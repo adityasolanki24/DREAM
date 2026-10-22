@@ -21,6 +21,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from dream.types import GANTRY_KP, GANTRY_KV
+
 JOINT_TYPES = ("fixed", "prismatic", "revolute")
 
 # family -> joint type. Families decide where axes go. The agent never sees the family name.
@@ -182,6 +184,11 @@ def build_mjcf(spec: MechanismSpec) -> str:
             (PANEL_CENTER + [half[0] + frame_t, 0, 0], [frame_t, 0.03, half[2] + 2 * frame_t]),
         ]
     )
+    actuators = "\n".join(
+        f'<position name="act_{a}" joint="ee_{a}" kp="{GANTRY_KP:g}" kv="{GANTRY_KV:g}" '
+        'forcelimited="true" forcerange="-20 20"/>'
+        for a in "xyz"
+    )
     h = spec.handle_offset
     return f"""
 <mujoco model="dream_{spec.family}">
@@ -214,12 +221,10 @@ def build_mjcf(spec: MechanismSpec) -> str:
     </body>
   </worldbody>
   <equality>
-    <connect name="grasp" site1="ee_tip" site2="handle" active="false"/>
+    <connect name="grasp" site1="ee_tip" site2="handle" active="false" solref="0.004 1"/>
   </equality>
   <actuator>
-    <position name="act_x" joint="ee_x" kp="400" kv="40" forcelimited="true" forcerange="-20 20"/>
-    <position name="act_y" joint="ee_y" kp="400" kv="40" forcelimited="true" forcerange="-20 20"/>
-    <position name="act_z" joint="ee_z" kp="400" kv="40" forcelimited="true" forcerange="-20 20"/>
+    {actuators}
   </actuator>
   <sensor>
     <framepos name="handle_pos" objtype="site" objname="handle"/>

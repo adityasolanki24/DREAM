@@ -11,6 +11,11 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+# Robot controller constants. These belong to the robot, not the mechanism, so the agent may use
+# them. The simulator builds its actuators from the same values.
+GANTRY_KP = 400.0  # N/m, per-axis position-servo stiffness
+GANTRY_KV = 40.0  # N s/m
+
 
 @dataclass(frozen=True)
 class PartGeometry:
