@@ -106,9 +106,14 @@ there must not be described as working. In summary:
      lid), and the audit table in the README lists these simplifications. Held-out results
      are in the README.
 
-Object and handle poses come from simulated trackers (oracle plus noise), not cameras. There is
-no language understanding (goals are structured; no LLM is integrated) and no experience memory.
-The only embodiment used for manipulation is a simulated Panda with a top-down parallel gripper.
+4. **Camera perception, first slice** (`dream/perception/`): a classical RGB-D pipeline replaces
+   the object tracker for tabletop pick-and-place. It is a colour-and-depth baseline for box-like
+   objects, not open-world vision. Camera-driven mechanism discovery does not work yet, so
+   handle poses for discovery still come from the oracle-assisted tracker.
+
+There is no language understanding (goals are structured; no LLM is integrated) and no
+experience memory. The only embodiment used for manipulation is a simulated Panda with a
+top-down parallel gripper.
 
 ---
 
@@ -402,7 +407,7 @@ limit of the architecture. Mechanism discovery is one tool, not the project's pu
 | | Component | Responsibility | Status / home |
 |---|---|---|---|
 | A | Embodied reasoning and task planning | Interpret goals, choose skills and tools, track multi-step progress; may use pretrained (V)LMs behind an interface | rule-based planner over structured goals with preconditions: `dream/runtime/` (LLM planner planned) |
-| B | Perception and scene understanding | Object poses, relations, affordances *with uncertainty*, from robot sensors | oracle-assisted trackers and a ray-cast depth view of openings in `dream/sim/tabletop_env.py`; real perception planned in `dream/perception/` |
+| B | Perception and scene understanding | Object poses, relations, affordances *with uncertainty*, from robot sensors | camera backend `dream/perception/` (RGB-D detection, world model; camera driver `dream/sim/camera.py`); oracle-assisted trackers in `dream/sim/tabletop_env.py` as the baseline |
 | C | Reusable motor skills and control | Reach, grasp, place, probe, pull along a constraint, release; reuse existing controllers | `dream/skills/` (manipulation, articulation); typed tools in `dream/tools/` |
 | D | Physical prediction and world modelling | Interpretable models first; learned dynamics only when they measurably win | quasi-static mechanism model, `dream/agent/model.py` |
 | E | Active physical discovery | Choose experiments that reduce task-relevant uncertainty | `dream/agent/` (belief, EIG); on the Panda via `dream/tools/discovery.py` |
@@ -496,7 +501,10 @@ Work on **one coherent vertical slice at a time**. The README names the current 
 3. A task runtime with structured tool calling.
 4. Several tasks in shared scenes without a script per task.
 
-**Current: integrate active physical discovery into Panda task execution.** The milestone must
+**Current: camera-driven perception, then camera-driven discovery.** Milestone 11 (discovery
+in Panda task execution) is implemented with the oracle tracker on a narrowed scene and audited
+in the README. Camera pick-and-place works; mechanism discovery from camera measurements is the
+next dependency. The discovery milestone's goals remain: The milestone must
 demonstrate that DREAM can do the following, with held-out evidence and a clear account of the
 simplifications used:
 - encounter an unfamiliar mechanism and recognise that knowledge is missing;
@@ -627,9 +635,11 @@ Before adding any dependency, pretrained model or upstream code:
 
 ```
 dream/types.py        Shared data and protocols (observations, RobotState, CompliantMode, Embodiment, Perception)
-dream/sim/            MuJoCo scenes (ground truth): mechanisms + gantry, tabletop + Panda, compartment
+dream/sim/            MuJoCo scenes (ground truth): mechanisms + gantry, tabletop + Panda, compartment;
+                      the RGB-D camera driver (renders sensor arrays only)
 dream/robot/          Panda controller: IK, admittance, safety layer (robot kinematics only, no scene access)
 dream/agent/          Active Physical Discovery: belief, predictive model, probe selection, operation
+dream/perception/     Camera perception: RGB-D geometry, detection, world model, VisionPerception
 dream/skills/         Closed-loop skills over Embodiment/Perception (manipulation, articulation)
 dream/tools/          Typed tools, structured goals, investigate_physics/opening (discovery.py)
 dream/runtime/        Task agent loop and planners

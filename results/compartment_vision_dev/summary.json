@@ -1,0 +1,127 @@
+{
+  "meta": {
+    "config": {
+      "name": "compartment_vision_dev",
+      "seed0": 0,
+      "n_per_kind": 6,
+      "kinds": [
+        "drawer",
+        "lid",
+        "fixed"
+      ],
+      "methods": [
+        "dream_eig"
+      ],
+      "probe_budget": 12,
+      "perception": "vision",
+      "_purpose": "Development measurement (seeds 0-5, development scenes): camera-driven discovery end to end, with two cameras, the vision world model and the position-only likelihood. Thresholds and noise models are the oracle-calibrated ones; nothing is tuned on this run.",
+      "gates": {
+        "max_false_claims": 0
+      }
+    },
+    "git_sha": "fc1c9d0e1031fc98c9c32e2413513e2bb404bbe4",
+    "dirty": false,
+    "mujoco": "3.16.0",
+    "wall_s": 190.43077659606934
+  },
+  "by_method": {
+    "dream_eig": {
+      "openable_n": 12,
+      "openable_success": 0,
+      "openable_success_rate": 0.0,
+      "openable_success_ci95": [
+        0.0,
+        0.2425007574992425
+      ],
+      "success_per_10_interactions": 0.0,
+      "success_per_10_interactions_ci95": [
+        0.0,
+        0.0
+      ],
+      "mean_interactions_openable": 2.5,
+      "correct_outcomes_per_10_interactions": 1.3043478260869565,
+      "mean_probes_openable": 2.5,
+      "mean_exploration_robot_s": 20.859999999998696,
+      "mean_robot_s": 26.790000000001484,
+      "fixed_n": 6,
+      "correct_rejections": 6,
+      "correct_rejection_ci95": [
+        0.6096569663469354,
+        0.9999999999999999
+      ],
+      "mean_interactions_fixed": 2.6666666666666665,
+      "false_claims": 0,
+      "protective_stops": 3,
+      "link_collisions": 0,
+      "mean_failed_actions": 1.6666666666666667,
+      "recovered": 0,
+      "drawer": {
+        "n": 6,
+        "success": 0,
+        "success_ci95": [
+          0.0,
+          0.3903430336530645
+        ],
+        "mean_interactions": 2.8333333333333335,
+        "mean_probes": 2.8333333333333335,
+        "identified_correctly": 0,
+        "investigation_status": {
+          "failed": 4,
+          "model_inadequate": 1,
+          "unsafe": 1
+        },
+        "median_axis_error_deg": 6.397176212009531,
+        "mean_pre_action_pred_err_mm": 22.166629730000015,
+        "max_probe_slip_mm": 29.772288574189346,
+        "max_probe_force_n": 15.008753056428416
+      },
+      "lid": {
+        "n": 6,
+        "success": 0,
+        "success_ci95": [
+          0.0,
+          0.3903430336530645
+        ],
+        "mean_interactions": 2.1666666666666665,
+        "mean_probes": 2.1666666666666665,
+        "identified_correctly": 0,
+        "investigation_status": {
+          "failed": 1,
+          "identified": 2,
+          "model_inadequate": 1,
+          "unsafe": 2
+        },
+        "median_axis_error_deg": 90.07322505371879,
+        "mean_pre_action_pred_err_mm": 21.757238210117055,
+        "max_probe_slip_mm": 59.232101455045004,
+        "max_probe_force_n": 15.002530077963355
+      },
+      "fixed": {
+        "n": 6,
+        "success": 0,
+        "success_ci95": [
+          0.0,
+          0.3903430336530645
+        ],
+        "mean_interactions": 2.6666666666666665,
+        "mean_probes": 2.6666666666666665,
+        "identified_correctly": 0,
+        "investigation_status": {
+          "failed": 1,
+          "model_inadequate": 5
+        },
+        "mean_pre_action_pred_err_mm": 13.350302382505308,
+        "max_probe_slip_mm": 12.825195861973606,
+        "max_probe_force_n": 15.008584610363886
+      }
+    }
+  },
+  "paired": {},
+  "gates": {
+    "false_claims_all_methods": {
+      "value": 0,
+      "gate": 0,
+      "pass": true
+    }
+  }
+}

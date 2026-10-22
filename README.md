@@ -21,14 +21,19 @@ rules, architecture and engineering standards are in [`AGENTS.md`](AGENTS.md).
      *structured* goals: "in red tray", or "on red blue" (stack red on blue).
    - It recovers from dropped objects, clears obstructions, and runs as a live session that can
      be paused or cancelled.
-   - There is no natural-language understanding, no camera perception (object poses come from a
-     simulated tracker) and no memory yet.
+   - There is no natural-language understanding and no memory yet.
 3. **Discovery as a tool on the Panda (milestone 11).** For "in red compartment", the Panda
    probes a closed box whose mechanism is hidden (drawer, lid or fixed) through its own compliant
    controller, using the same belief and EIG code as the gantry. It then opens the box along the
    learned constraint or declines, places the cube and verifies. This runs in one continuous
    simulation, on a deliberately narrowed scene (knob handle, 5 cm cavity, counterbalanced lid):
    see the [audit of simplifications](#audit-of-milestone-11-changes).
+4. **Camera perception (milestone 10, first slice).** A calibrated RGB-D camera and a classical
+   RGB-D pipeline replace the object tracker for tabletop pick-and-place: the Panda finds cubes
+   and the tray in images, grasps and places from those estimates, and verifies from new frames
+   (held-out 39/40 against the oracle tracker's 40/40). It is a colour-and-depth baseline for
+   box-like objects, not open-world vision. Camera-driven *mechanism discovery* does not work
+   yet (0/12 on development scenes); the oracle tracker remains in use there.
 
 ![Panda: red cube into the tray, then blue stacked on green](results/demo/panda_session/replay.gif)
 
@@ -47,11 +52,10 @@ unfamiliar physical behaviour.
 
 Every row marked "implemented and tested" has passing tests and/or saved results in `results/`.
 
-Last full verification (22 Oct 2026, branch `claude/panda-manipulation`): `pytest` (98 passed,
-including slow closed-loop, persistent-scene and live-session tests; the fast suite is 92 tests
-in about 50 s) and `ruff check`/`format`. The discovery statistics were independently recomputed
-from the saved `episodes.jsonl`. Environment: Python 3.13.16, MuJoCo 3.16.0, NumPy 2.5.3, Linux,
-CPU only.
+Last full verification (22 Oct 2026, branch `claude/vision-perception`): `pytest` (132 passed
+in about 6 min, including slow closed-loop, compartment, vision and live-session tests; the fast
+suite is 112 tests in about 55 s) and `ruff check`/`format`. Environment: Python 3.13.16,
+MuJoCo 3.16.0, NumPy 2.5.3, Linux, CPU only.
 
 | # | Milestone | Status | Evidence |
 |---|---|---|---|
@@ -67,7 +71,7 @@ CPU only.
 | 8 | Typed tool interface and task runtime (structured goals, rule-based planner) | Implemented and tested | `tests/test_tools_runtime.py`, `results/tasks` |
 | 9 | Two goal types (tray, stack) in shared scenes from the same tools, without per-task scripts | Implemented and tested | `results/tasks` |
 | 9a | Live session: background physics, pause, resume, cancel, logs, replay | Implemented and tested (headless); live viewer implemented, unverified (no display) | `tests/test_session.py` |
-| 10 | Visual perception replacing oracle poses | Planned | n/a |
+| 10 | Visual perception replacing oracle poses | **Tabletop pick-and-place: implemented and tested** (classical RGB-D baseline). Camera-driven discovery: implemented, **not working** (negative result) | `tests/test_vision.py`, `results/vision`, `results/compartment_vision_dev` |
 | 11 | **Discovery invoked on demand by the runtime (unfamiliar compartment on the Panda)** | **In progress**: implemented and tested on the narrowed scene; held-out evaluation below; challenge variants open | `tests/test_compartment.py`, `results/compartment`, audit table |
 | 12 | Experience memory, failure-driven replanning, skill adaptation | Planned | n/a |
 | 13 | Generalisation evaluation across goals, arrangements and task families | Planned | n/a |
@@ -85,8 +89,8 @@ sudo apt-get install libosmesa6    # only for headless rendering of the demo GIF
 ## Run
 
 ```bash
-pytest -m "not slow"                                   # fast suite (~40 s)
-pytest                                                 # + closed-loop episode tests (~1 min)
+pytest -m "not slow"                                   # fast suite (~55 s)
+pytest                                                 # + slow closed-loop, vision, session tests (~6 min)
 
 python experiments/demo.py --seed 3                    # hidden mechanism drawn from the seed
 python experiments/demo.py --family left_hinge         # or pick the hidden family
@@ -103,6 +107,10 @@ python experiments/summarise.py results/main          # re-summarise saved episo
 python experiments/run_pick_place.py --n 50 --seed0 1000              # acceptance test (~1 min)
 python experiments/run_tasks.py experiments/configs/tasks.json         # task evaluation (~10 min)
 python experiments/session.py --seed 0 [--viewer] [--rate 1]           # interactive live session
+python experiments/session.py --perception vision                      # ... seeing through the camera
+python experiments/run_vision.py experiments/configs/vision.json       # vision evaluation (~40 min)
+python experiments/demo_vision.py                                      # recorded camera-based demo
+python experiments/run_compartment.py experiments/configs/compartment.json  # discovery on the Panda
 python experiments/replay.py results/sessions/<time> --width 320       # session replay GIF
 ```
 
@@ -419,11 +427,112 @@ conditions remain available as parameters (`CompartmentSpec.handle`, `cavity_hei
 **Stale results.** `results/pick_place` and `results/tasks` predate the gripper, armature and
 floor-height changes and have not been rerun at the current code.
 
+### Camera perception (`results/vision`, `dream/perception/`)
+
+**Pipeline** (NumPy only, isolation-guarded: it never imports MuJoCo or the scene code).
+- **Camera.** A fixed calibrated RGB-D camera, rendered by MuJoCo at 480×360, about 1 m from
+  the objects. Depth noise is 1 mm + 1.5 mm/m²·z², with RGB noise.
+- **Self mask.** The robot's own body is masked by rendering its own geometry, the standard
+  self-filter.
+- **Detection.**
+  - back-projection, then a RANSAC table plane;
+  - segmentation by 3D and hue continuity;
+  - a box fit per component (minimum-area rectangle and height);
+  - colour names from a fixed hue vocabulary;
+  - open-container detection;
+  - occlusion flags and a 1σ position estimate.
+- **World model.** Tracks with visibility and last-seen time. An object the camera loses stays
+  at its *last-known* place and is flagged as not visible; it is never moved to where it really
+  is.
+- **Placement in the hand.** Placement uses the grasp point when the hand hides a held cube.
+  Pick confirms a lift by finger width when the cube is hidden.
+- **Two backends, same interface.**
+  - `TabletopEnv` is the oracle backend (noisy ground-truth trackers).
+  - `VisionPerception` sees only frames.
+  - Logs record which backend ran.
+
+**Held-out evaluation** (seeds 9000+; development used 0–11; run at `11b5cd8`; gates
+pre-registered in `experiments/configs/vision.json`, all passed):
+
+| Condition (tray + stack) | oracle | vision | vision, no retries | vision, single frame |
+|---|---|---|---|---|
+| Nominal (20 + 20) | 40/40 | **39/40** | 38/40 | 33/40 |
+| Small cubes (3.2 cm) | 24/24 | 24/24 | | |
+| Large cubes (5 cm) | 24/24 | 24/24 | | |
+| Colours never used in development (orange, purple, yellow) | 24/24 | 22/24 | | |
+| Dim light (×0.45) | 24/24 | 24/24 | | |
+| Bright light (×1.6) | 24/24 | 24/24 | | |
+| Calibration error (1 cm, 1°) | 24/24 | 24/24 | | |
+| Sensor noise ×3 | 24/24 | 18/24 | | |
+| Clutter (5 cubes) | 24/24 | 24/24 | | |
+
+- **Zero false success claims** in all 544 episodes.
+- **Nominal perception** (first frame, 40 scenes):
+  - recall 1.0, precision 1.0;
+  - position error median 2.2 mm, p90 2.8 mm, max 3.4 mm;
+  - yaw error median 0.9°;
+  - colour names 100% correct;
+  - tray centre error median 1.5 mm.
+- **Under shift:**
+  - *Calibration error* raises the position error to 12 mm. The tasks still succeed, but the
+    reported uncertainty is wrong: **0% of errors within 2σ**. The pipeline cannot know its
+    calibration is off.
+  - *Sensor noise ×3* gives a median error of 5.3 mm and precision 0.86. On the tray task the
+    tray estimate shrinks, and the agent declines with "tray too small" (5 of 12). These are
+    correct refusals, not false claims.
+  - *New colours* gave one colour misnamed per task ("orange is not visible").
+- **Uncertainty calibration:** 88% of nominal errors lie within 2σ.
+- **The world model matters:** without memory (single-frame ablation), a cube hidden in the
+  hand is forgotten, and success drops to 33/40.
+- The **oracle arm** also re-measures tray and stack at the current code: 40/40 nominal and
+  24/24 under every shift.
+
+**Supported distribution:**
+- distinctly coloured, box-shaped objects (3–5 cm) on one plane;
+- objects that contrast in colour with the tray and with each other;
+- one fixed camera in front of the workspace.
+
+Two touching objects of the same colour merge. Colour names come from a fixed vocabulary, not
+learning. This is a classical baseline, not open-world perception. The backend can be replaced
+behind `Perception` without touching skills or the runtime.
+
+- **Open-vocabulary and unseen-object segmenters** (for example Grounding-DINO-like detectors,
+  SAM-like segmenters) were not added. There is no GPU or network here, and this slice did not
+  need them. Their licences and versions were not verified in this session.
+- **Compute:** one camera frame takes about 0.35 s to render on CPU (OSMesa), and detection
+  about 0.25 s.
+- **Live demo** (`results/demo_vision/`): "in red tray" then "on blue green" in one live vision
+  session. The demo paused and resumed with 6e-15 rad of joint drift; both goals were true in
+  the world after 137 frames. The replay shows the camera view with the logged detections and
+  uncertainties.
+
+**Camera-driven discovery: negative result** (`results/compartment_vision_dev`, development
+seeds 0–5, oracle-calibrated thresholds, nothing tuned on it).
+
+What exists:
+- box, opening and handle detection from depth;
+- compartment identity across the closed and open states;
+- a second camera beside the robot, added after measuring that a lid swung open hides its
+  cavity from the default camera;
+- a position-only likelihood, since a round knob's orientation is not observable;
+- probes with an unseen handle give no measurement;
+- a `retract` tool to look with the arm out of view.
+
+Measured: **0/12 drawers and lids, 0 false claims**. The fixed boxes were declined 6/6, but as
+"model inadequate" rather than identified as fixed. Causes:
+- the knob estimate shifts when the fingers cover it, which is read as slip;
+- handle grasps miss on vision estimates;
+- the oracle-calibrated noise model (3 mm) and adequacy threshold (0.59) raise false alarms on
+  camera measurements;
+- position-only evidence misidentified lids as prismatic.
+
 ## Limitations (read before citing any number)
 
-- **No camera perception, anywhere.** Mechanism handle poses and tabletop object poses come
-  from simulated trackers with Gaussian noise. The report's MOSART warning applies: perception
-  error may dominate on a real system.
+- **Perception.** Tabletop pick-and-place runs from camera images (classical RGB-D baseline,
+  above). Mechanism discovery and every compartment result use the oracle-assisted handle
+  tracker; camera-driven discovery does not work yet. The import order matters for headless
+  rendering: MuJoCo picks its GL backend when first imported, so scripts set `MUJOCO_GL` first
+  (`dream/__init__.py`, runners, `tests/conftest.py`).
 - **No language understanding.** Goals are structured (`in X Y`, `on X Y`). No language model
   is integrated, and none is available in this environment. The `Planner` protocol is where one
   would plug in.
@@ -448,29 +557,24 @@ floor-height changes and have not been rerun at the current code.
   ran in a headless container. Headless replay GIFs are tested.
 - Compute: an EIG step takes about 0.6 s to select and 0.5–2 s to update, on one CPU core.
 
-## Next milestone: 11, discovery as a tool on the Panda
+## Next milestone: camera-driven discovery
 
-The goal is "open the unfamiliar compartment and put the cube inside". This connects DREAM's two
-foundations and is the first task that needs physical knowledge the agent lacks.
+Milestone 11 (discovery as a tool on the Panda) is implemented on a narrowed scene with the
+oracle tracker; see its audit. Milestone 10's first slice (camera pick-and-place) is done. The
+next technical dependency joins them: **mechanism discovery from camera measurements**.
+1. A measurement model for a tracked handle: noise and bias calibrated on development frames,
+   including partial occlusion by the fingers.
+2. Slip detection that does not mistake measurement shifts for slip.
+3. The adequacy threshold re-calibrated for the position-only likelihood.
+4. Grasping a handle from a vision estimate, with re-observation.
+Gate: fresh held-out compartment scenes in vision mode against the oracle-tracker results above,
+with no false claims.
 
-- **Scene.** A compartment (drawer or hinged lid, hidden joint) in the tabletop world. Reuse the
-  mechanism generator, now with collision geometry, so it physically blocks access until opened.
-- **Skills.** `grasp_handle`, `probe(direction, distance, max_force)` and `pull_along(path)` on
-  the Panda, all force-limited. These were in the earlier milestone 7 plan and have not been
-  built.
-- **Tool.** `investigate_physics(object)` runs the existing EIG belief loop through the Panda's
-  probe skill and returns the identified joint, its uncertainty and the adequacy check.
-  The planner calls it when `place` into a closed compartment is impossible or a pull fails.
-- **Gates.**
-  1. The discovery benchmark reruns through the Panda's probe skill. The change in
-     identification performance relative to the gantry is reported, whatever its size.
-  2. On held-out scenes, the open-then-place task beats two baselines: a script that pulls
-     straight out, and the runtime without `investigate_physics`.
-
-Visual perception (milestone 10) stays planned. Every result above uses tracked poses.
-
-Open follow-ups: test out-of-class detection on more mechanism families; diagnose the
-max-speed live-session stall; learn friction and travel limits; try receding-horizon EIG.
+Open follow-ups:
+- out-of-class detection on the Panda (0/16 on the return spring);
+- collision-aware placement (the 7 cm cavity);
+- grasps that follow a rotating handle (the bar challenge);
+- rerun `results/pick_place` and `results/tasks` at the current code.
 
 ## Roadmap
 
