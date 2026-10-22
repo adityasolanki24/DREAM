@@ -95,7 +95,7 @@ def fixed_sequence(env: TabletopEnv, goal) -> dict:
     obj = objs[goal.object]
     if isinstance(goal, InRegion):
         centre, _ = env.fixtures()[goal.region]
-        target = centre + [0, 0, obj.size / 2 + 0.004]
+        target = centre + [0, 0, obj.size / 2]
     else:
         sup = objs[goal.support]
         target = sup.position + [0, 0, (sup.size + obj.size) / 2]

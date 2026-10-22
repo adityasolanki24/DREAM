@@ -61,7 +61,7 @@ def test_pick_and_place_by_contact():
     assert 0.035 < robot.state().gripper_width < 0.045  # fingers stopped on the 4 cm cube
     assert env.privileged_object_pos("red")[2] > 0.15  # really lifted, by friction alone
     centre, half = env.tray_region()
-    r = M.place(robot, env, "red", centre + [0, 0, 0.024])
+    r = M.place(robot, env, "red", centre + [0, 0, 0.02])
     assert r.ok, r.reason
     final = env.privileged_object_pos("red")
     assert np.all(np.abs(final[:2] - centre[:2]) < half)

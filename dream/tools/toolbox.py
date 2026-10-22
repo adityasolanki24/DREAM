@@ -257,7 +257,7 @@ class Toolbox:
                 lo,
                 step=0.005,
             )
-            return None if spot is None else np.array([*spot, obj.size / 2 + 0.004])  # tray floor
+            return None if spot is None else np.array([*spot, centre[2] + obj.size / 2])
         if target == "table":
             boxes = [(c[:2], h + 0.03) for c, h in fixtures.values()]
             spot = self.free_spot(obj, TABLE_REGION, 0.08, boxes, obj.position[:2])

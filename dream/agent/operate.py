@@ -45,8 +45,40 @@ def plan_opening(
     kind = int(hyp.kind[0])
     q_now = float(project(hyp, handle_now, belief.h0)[0])
     q_goal = max(q_now, GOAL_MARGIN * TASK_GOAL[kind])
+    return _targets(belief, hyp, np.linspace(q_now, q_goal, n_waypoints)[1:], lead)
+
+
+def plan_segment(
+    belief: Belief, handle_now: np.ndarray, span: float, n_waypoints: int = 8, lead: float = 0.015
+) -> tuple[list[np.ndarray], float, float] | None:
+    """Targets that advance the believed joint by ``span`` (m or rad) from the handle's position.
+
+    For closed-loop opening in short segments: after each one the caller re-observes, checks
+    the handle stayed on the believed constraint, and stops when progress stalls at a limit.
+    Returns ``(targets, q_now, q_goal)``, or ``None`` if the best explanation is "fixed".
+    """
+    hyp = best_explanation(belief)
+    if hyp is None:
+        return None
+    q_now = float(project(hyp, handle_now, belief.h0)[0])
+    qs = np.linspace(q_now, q_now + span, n_waypoints + 1)[1:]
+    return _targets(belief, hyp, qs, lead), q_now, q_now + span
+
+
+def constraint_deviation(belief: Belief, handle: np.ndarray) -> tuple[float, float]:
+    """(joint coordinate, distance in m) of an observed handle from the believed constraint."""
+    hyp = best_explanation(belief)
+    if hyp is None:
+        return 0.0, float(np.linalg.norm(handle - belief.h0))
+    q = project(hyp, handle, belief.h0)
+    return float(q[0]), float(np.linalg.norm(handle_at(hyp, q, belief.h0)[0] - handle))
+
+
+def _targets(belief: Belief, hyp: Hypotheses, qs: np.ndarray, lead: float) -> list[np.ndarray]:
+    """Each target leads the believed handle position along the tangent by enough to overcome
+    the believed friction through the controller's spring."""
     targets = []
-    for q in np.linspace(q_now, q_goal, n_waypoints)[1:]:
+    for q in qs:
         x = handle_at(hyp, np.array([q]), belief.h0)
         t = tangent(hyp, x)[0]
         t /= max(np.linalg.norm(t), 1e-9)

@@ -28,7 +28,7 @@ from dream.skills.manipulation import (
 )
 from dream.types import ArticulatedObservation, CompliantMode, Embodiment, Perception
 
-HANDLE_OPENING = 0.037  # m: handle thickness + ~6 mm per side; the rear finger must fit the gap
+HANDLE_OPENING = 0.045  # m: knob diameter + 10 mm per side
 APPROACH_ABOVE = 0.10  # m
 TRACKER_FRAMES = 10  # averaged per snapshot: a still handle, so noise drops by ~sqrt(10)
 PROBE_STIFFNESS = 300.0  # N/m
@@ -61,11 +61,15 @@ def find_articulated(perception: Perception, name: str) -> ArticulatedObservatio
 
 
 def handle_closing_yaw(obs: ArticulatedObservation, current_yaw: float) -> float:
-    """Wrist yaw that closes the fingers across the handle's thickness (its local x axis)."""
+    """Wrist yaw that closes the fingers parallel to the face the knob sticks out of.
+
+    The face direction is the handle frame's local y axis. Pinching along it keeps both fingers
+    beside the knob's post and lets the knob pivot about that axis in the grip.
+    """
     w, x, y, z = obs.handle_quat
-    local_x = np.array([1 - 2 * (y * y + z * z), 2 * (x * y + w * z), 2 * (x * z - w * y)])
+    local_y = np.array([2 * (x * y - w * z), 1 - 2 * (x * x + z * z), 2 * (y * z + w * x)])
     # _down(yaw) closes the fingers along (-sin yaw, cos yaw).
-    yaw = float(np.arctan2(-local_x[0], local_x[1]))
+    yaw = float(np.arctan2(-local_y[0], local_y[1]))
     candidates = yaw + np.arange(-3, 4) * np.pi
     candidates = candidates[np.abs(candidates) <= np.pi * 0.75]
     return float(candidates[np.argmin(np.abs(candidates - current_yaw))])
@@ -175,18 +179,45 @@ def probe(
     )
 
 
+def _quat_from_rotvec(r: np.ndarray) -> np.ndarray:
+    angle = float(np.linalg.norm(r))
+    if angle < 1e-12:
+        return np.array([1.0, 0.0, 0.0, 0.0])
+    return np.concatenate([[np.cos(angle / 2)], np.sin(angle / 2) * r / angle])
+
+
+def _quat_mul(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    w1, x1, y1, z1 = a
+    w2, x2, y2, z2 = b
+    return np.array(
+        [
+            w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2,
+            w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2,
+            w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2,
+            w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2,
+        ]
+    )
+
+
 def pull_along(
     robot: Embodiment,
     waypoints: list[np.ndarray],
     force_limit: float,
     stiffness: float = PROBE_STIFFNESS,
     seconds_per_waypoint: float = 0.15,
+    rotations: list[np.ndarray] | None = None,
 ) -> SkillResult:
-    """Compliantly drag the gripped handle through ``waypoints`` (target positions for the TCP)."""
+    """Compliantly drag the gripped handle through ``waypoints`` (target positions for the TCP).
+
+    ``rotations`` (optional, one per waypoint) are world-frame rotation vectors of the hand
+    relative to its orientation at the start, so the wrist can turn with a swinging handle
+    instead of twisting it in the fingers.
+    """
     t0 = robot.state().time
     robot.set_compliance(CompliantMode(stiffness, force_limit))
-    quat = robot.state().tcp_quat
-    for wp in waypoints:
+    quat0 = robot.state().tcp_quat
+    for i, wp in enumerate(waypoints):
+        quat = quat0 if rotations is None else _quat_mul(_quat_from_rotvec(rotations[i]), quat0)
         robot.move_tcp(np.asarray(wp, float), quat)
         robot.wait_until(lambda: robot.state().protective_stop, seconds_per_waypoint)
         if robot.state().protective_stop:
@@ -200,10 +231,16 @@ def pull_along(
 
 
 def release_handle(robot: Embodiment, back_off: float = 0.08) -> SkillResult:
-    """Open the fingers, leave compliant mode, and back off upward."""
+    """Open the fingers, leave compliant mode, and back off up and toward the robot base.
+
+    Straight up can be out of reach when a lid has carried the hand high and far, so the
+    retreat also comes back toward the base.
+    """
     t0 = robot.state().time
     set_gripper(robot, HANDLE_OPENING)
     robot.set_compliance(None)
     st = robot.state()
-    r = move_to(robot, st.tcp_pos + [0, 0, back_off], tcp_yaw(st.tcp_quat))
+    home = -st.tcp_pos * [1, 1, 0]
+    home /= max(np.linalg.norm(home), 1e-9)
+    r = move_to(robot, st.tcp_pos + back_off * (0.7 * home + [0, 0, 0.7]), tcp_yaw(st.tcp_quat))
     return _done(r, robot, t0)

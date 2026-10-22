@@ -36,6 +36,8 @@ COLORS = {
     "yellow": (0.9, 0.75, 0.1, 1.0),
 }
 WORKSPACE_XY = ((0.35, 0.7), (-0.3, 0.3))  # region where objects and the tray are placed
+TRAY_FLOOR_HALF_THICKNESS = 0.002  # m
+TRAY_FLOOR_TOP = 2 * TRAY_FLOOR_HALF_THICKNESS  # m
 
 
 @dataclass(frozen=True)
@@ -157,8 +159,8 @@ def _add_tray(world, t: TraySpec) -> None:
     tray.add_geom(
         name="tray_floor",
         type=mujoco.mjtGeom.mjGEOM_BOX,
-        size=[floor_half, floor_half, 0.002],
-        pos=[0, 0, 0.002],
+        size=[floor_half, floor_half, TRAY_FLOOR_HALF_THICKNESS],
+        pos=[0, 0, TRAY_FLOOR_HALF_THICKNESS],
         rgba=[0.5, 0.5, 0.55, 1],
     )
     h = t.wall_height / 2

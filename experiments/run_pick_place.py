@@ -37,7 +37,7 @@ def episode(seed: int) -> dict:
     robot = env.embodiment()
     name = str(rng.choice([o.name for o in spec.objects]))
     centre, _ = env.fixtures()["tray"]
-    target = centre + [0, 0, 0.024]
+    target = centre + [0, 0, 0.02]  # 4 cm cubes; centre z is the floor top
     t0 = time.perf_counter()
     grasp = pick(robot, env, name)
     out = {"seed": seed, "object": name, "grasp_ok": grasp.ok, "grasp_reason": grasp.reason}

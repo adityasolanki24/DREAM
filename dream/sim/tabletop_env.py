@@ -19,8 +19,8 @@ import mujoco
 import numpy as np
 
 from dream.robot.panda import HOME_QPOS, Compliance, PandaController, SafetyLimits
-from dream.sim.compartment import FLOOR, INNER_HALF
-from dream.sim.tabletop import TabletopSpec, build_model
+from dream.sim.compartment import INNER_HALF
+from dream.sim.tabletop import TRAY_FLOOR_TOP, TabletopSpec, build_model
 from dream.types import ArticulatedObservation, CompliantMode, ObjectObservation, RobotState
 
 
@@ -123,12 +123,12 @@ class TabletopEnv:
         return out
 
     def tray_region(self) -> tuple[np.ndarray, float]:
-        """Visible tray geometry: (centre, inner half width). A static fixture the agent can see."""
+        """Visible tray geometry: (floor-top centre, inner half width). A static fixture."""
         t = self._spec.tray
-        return np.array([*t.xy, 0.0]), t.inner_half
+        return np.array([*t.xy, TRAY_FLOOR_TOP]), t.inner_half
 
     def fixtures(self) -> dict[str, tuple[np.ndarray, float]]:
-        """Visible regions objects can be put into: name -> (centre, half width).
+        """Visible regions objects can be put into: name -> (floor-top centre, half width).
 
         The compartment appears only while part of its cavity is uncovered (see
         ``_visible_cavity``). A closed compartment has no visible cavity.
@@ -183,6 +183,7 @@ class TabletopEnv:
         xs = np.arange(-a + step / 2, a + 0.26, step)  # include a drawer pulled fully out
         ys = np.arange(-a + step / 2, a, step)
         open_cells = np.zeros((len(xs), len(ys)), bool)
+        hit_z = np.zeros((len(xs), len(ys)))
         geomid = np.zeros(1, np.int32)
         groups = np.array([1, 0, 0, 0, 0, 0], np.uint8)  # scene geoms only (robot is 2/3)
         with self.lock:
@@ -193,19 +194,24 @@ class TabletopEnv:
                     dist = mujoco.mj_ray(
                         self.model, self.data, p, np.array([0.0, 0.0, -1.0]), groups, 1, -1, geomid
                     )
-                    hit_z = 0.6 - dist
+                    hit_z[i, j] = 0.6 - dist
                     g = int(geomid[0])
                     open_cells[i, j] = dist >= 0 and (
-                        g == floor_id or (g in object_ids and hit_z < comp.height - 0.01)
+                        g == floor_id or (g in object_ids and hit_z[i, j] < comp.height - 0.01)
                     )
         best, bi, bj = _largest_square(open_cells)
         if best < 3:
             return None
-        local = np.array([xs[bi] + (best - 1) * step / 2, ys[bj] + (best - 1) * step / 2, FLOOR])
+        # The floor height is the depth reading on open floor cells inside the square.
+        sq = (slice(bi, bi + best), slice(bj, bj + best))
+        floor_z = float(np.median(hit_z[sq][open_cells[sq]]))
+        local = np.array([xs[bi] + (best - 1) * step / 2, ys[bj] + (best - 1) * step / 2, 0.0])
+        centre = comp.to_world(local)
+        centre[2] = floor_z
         half_local = best * step / 2
         # Axis-aligned square inscribed in the rotated one (the agent's regions are axis-aligned).
         half = half_local / (abs(np.cos(comp.yaw)) + abs(np.sin(comp.yaw)))
-        return comp.to_world(local), float(half)
+        return centre, float(half)
 
     def embodiment(self) -> SimPanda:
         return SimPanda(self)

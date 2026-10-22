@@ -82,7 +82,8 @@ def verify(goal: Goal, objects: list[ObjectObservation], fixtures: dict) -> Verd
             return Verdict(False, -np.inf, False, f"unknown region '{goal.region}'")
         centre, half = fixtures[goal.region]
         inside = half - obj.size / 4 - np.max(np.abs(obj.position[:2] - centre[:2]))
-        low = 0.05 - obj.position[2]  # resting on the tray floor, not held above it
+        # Resting on the region's floor (centre z is the floor top), not held above it.
+        low = centre[2] + obj.size / 2 + 0.026 - obj.position[2]
         margin = float(min(inside, low))
         return Verdict(
             margin > 0,

@@ -27,10 +27,13 @@ INNER_HALF = 0.09  # m, cavity half width (x and y)
 WALL = 0.008  # m, wall and plate thickness
 CAVITY_HEIGHT = 0.07  # m, floor top to roof underside
 FLOOR = 0.006  # m, floor plate thickness (the drawer floor rides this high above the table)
-HANDLE_HALF = (0.0125, 0.03, 0.0125)  # m: grasped across x (25 mm), 60 mm long in y
+# A spherical knob on a central post, pinched with the fingers closing parallel to the front
+# face. Flat pads on a sphere touch at one point each, so the knob pivots freely about the
+# closing axis: a hand pointing down can follow a lid swinging up. A bar handle pinched across
+# its thickness twisted in the fingers instead, and the Panda stalled at ~0.8 rad.
+HANDLE_RADIUS = 0.0125  # m
+HANDLE_GAP = 0.032  # m between the front face and the knob (clear of the fingers' width)
 DRAWER_LIFT = 0.002  # m: the drawer rides on its slide, clear of the table
-HANDLE_GAP = 0.032  # m between the front face and the handle: room for the rear finger (~12 mm
-# thick) plus ~14 mm margin for tracking noise; 22 mm let the finger clip the face
 BODY_RGBA = (0.62, 0.5, 0.36, 1.0)
 
 
@@ -66,8 +69,8 @@ class CompartmentSpec:
     @property
     def handle_local(self) -> np.ndarray:
         """Handle centre in the closed state (local frame)."""
-        x = INNER_HALF + WALL + HANDLE_GAP + HANDLE_HALF[0]
-        return np.array([x, 0.0, self.height - HANDLE_HALF[2]])
+        x = INNER_HALF + WALL + HANDLE_GAP + HANDLE_RADIUS
+        return np.array([x, 0.0, self.height - HANDLE_RADIUS])
 
     @property
     def hinge_local(self) -> np.ndarray:
@@ -126,21 +129,25 @@ def _box(body, name: str, half, pos, rgba=BODY_RGBA, **kw):
 
 
 def _add_handle(body, local_origin: np.ndarray, spec: CompartmentSpec) -> None:
-    """Handle block on two thin end posts, so the rear finger fits between handle and face."""
+    """Spherical knob on one thin central post (the fingers close beside the post)."""
     h = spec.handle_local - local_origin
+    body.add_geom(
+        name="handle",
+        type=mujoco.mjtGeom.mjGEOM_SPHERE,
+        size=[HANDLE_RADIUS, 0, 0],
+        pos=list(h),
+        rgba=[0.2, 0.2, 0.22, 1],
+        friction=[1.5, 0.005, 0.0001],
+        condim=3,  # no torsional friction: the knob pivots about the closing axis
+    )
+    post = h - [HANDLE_RADIUS / 2 + HANDLE_GAP / 2, 0, 0]
     _box(
         body,
-        "handle",
-        HANDLE_HALF,
-        h,
+        "handle_post",
+        (HANDLE_GAP / 2 + HANDLE_RADIUS / 2, 0.004, 0.004),
+        post,
         rgba=(0.2, 0.2, 0.22, 1),
-        friction=[1.5, 0.005, 0.0001],
-        condim=4,
     )
-    post_half = (HANDLE_GAP / 2, 0.004, 0.006)
-    for side in (-1, 1):
-        post = h + [-(HANDLE_HALF[0] + HANDLE_GAP / 2), side * (HANDLE_HALF[1] - 0.004), 0]
-        _box(body, f"handle_post{side + 1}", post_half, post, rgba=(0.2, 0.2, 0.22, 1))
     body.add_site(name="handle", pos=list(h), size=[0.006] * 3, rgba=[1, 0.5, 0, 0.6])
 
 
