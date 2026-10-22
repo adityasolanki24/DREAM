@@ -48,7 +48,7 @@ class ObjectSpec:
 @dataclass(frozen=True)
 class TraySpec:
     xy: tuple[float, float]  # m, centre
-    inner_half: float = 0.07  # m, half width of the square floor
+    inner_half: float = 0.09  # m, half width of the square floor (fits four 4 cm cubes)
     wall_height: float = 0.03  # m
     wall_thickness: float = 0.005  # m
 

@@ -11,6 +11,7 @@ object is grasped or inside the tray, must be inferred by decision-making code.
 from __future__ import annotations
 
 import threading
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -46,6 +47,7 @@ class TabletopEnv:
         self.robot = PandaController(self.model, self.data, limits)
         self.lock = threading.RLock()  # guards data between a physics thread and readers
         self.step_hook: Callable | None = None  # e.g. a live viewer sync
+        self.background = False  # True while a physics thread advances time (live session)
         self.reset()
 
     def reset(self) -> None:
@@ -78,8 +80,18 @@ class TabletopEnv:
                     self.step_hook(self.model, self.data)
 
     def wait_until(self, predicate: Callable[[], bool], timeout: float) -> bool:
-        """Advance physics until ``predicate()`` holds or ``timeout`` simulated seconds pass."""
+        """Wait until ``predicate()`` holds or ``timeout`` simulated seconds pass.
+
+        Synchronous mode (tests, benchmarks): advances physics itself. When a background physics
+        thread owns the clock (``background = True``, live sessions), it only polls.
+        """
         end = self.time + timeout
+        if self.background:
+            while self.time < end:
+                if predicate():
+                    return True
+                time.sleep(0.002)
+            return predicate()
         while self.time < end:
             self.step(10)
             if predicate():

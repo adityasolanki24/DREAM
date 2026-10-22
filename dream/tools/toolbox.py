@@ -25,6 +25,9 @@ TABLE_REGION = ((0.35, 0.65), (-0.28, 0.28))  # m: where the arm can comfortably
 # m beyond an object's size between neighbour centres: the closed fingers stick out ~1.5 cm
 # past a held cube, so a tighter spacing makes them strike the neighbour while lowering.
 FINGER_CLEARANCE = 0.025
+# m between a placed object's side and a region wall: the fingers protrude past the object along
+# the closing axis and must not strike the wall while lowering.
+WALL_CLEARANCE = 0.025  # > release slack/2 + finger thickness (~0.018)
 
 TOOL_SPECS: list[dict] = [
     {
@@ -66,6 +69,7 @@ TOOL_SPECS: list[dict] = [
     },
 ]
 SPECS = {s["name"]: s for s in TOOL_SPECS}
+READ_ONLY = ("observe_scene", "get_robot_state", "verify_goal")  # never blocked by cancel/stop
 
 
 @dataclass
@@ -102,13 +106,9 @@ class Toolbox:
         problem = _validate(SPECS[name]["parameters"], args)
         if problem:
             return ToolResult(name, "rejected", problem)
-        if self.cancel.is_set():
+        if self.cancel.is_set() and name not in READ_ONLY:
             return ToolResult(name, "stopped", "cancelled before start")
-        if self.robot.state().protective_stop and name not in (
-            "observe_scene",
-            "get_robot_state",
-            "verify_goal",
-        ):
+        if self.robot.state().protective_stop and name not in READ_ONLY:
             return ToolResult(
                 name, "rejected", f"robot in protective stop: {self.robot.state().stop_reason}"
             )
@@ -247,7 +247,7 @@ class Toolbox:
             centre, half = fixtures[target]
             # Free spot inside the region, clear of objects already there and of the walls. Packing
             # from a corner leaves room for more objects than filling the centre first.
-            inner = half - obj.size / 2 - 0.01
+            inner = half - obj.size / 2 - WALL_CLEARANCE
             lo = centre[:2] - inner
             spot = self.free_spot(
                 obj,

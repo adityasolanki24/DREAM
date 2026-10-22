@@ -165,3 +165,17 @@ def test_same_tools_solve_tray_and_stack_goals_in_one_persistent_scene():
     env.step(250)
     assert ep.success_claimed and object_in_tray(env, "green")
     assert [s.call.args.get("object") for s in ep.steps][:2] == ["blue", "blue"]
+
+
+def test_read_only_tools_still_answer_while_cancel_is_set():
+    """Regression: a pause between agent steps made get_robot_state return no data, and the agent
+    thread crashed with a KeyError."""
+    env = _env(5)
+    tb = Toolbox(env.embodiment(), env)
+    tb.cancel.set()
+    for name in ("observe_scene", "get_robot_state"):
+        assert tb.call(name).ok
+    assert tb.call("verify_goal", {"goal": "in red tray"}).ok
+    assert tb.call("grasp", {"object": "red"}).status == "stopped"
+    ep = TaskAgent(tb).run(parse_goal("in red tray"))
+    assert not ep.success_claimed and "cancel" in ep.reason

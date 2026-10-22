@@ -165,9 +165,15 @@ class TaskAgent:
         for _ in range(self.max_steps):
             if self.tools.cancel.is_set():
                 return self._finish(goal, False, "cancelled by user", steps, emit)
-            scene = self.tools.call("observe_scene").data
-            verdict = self.tools.call("verify_goal", {"goal": goal}).data
-            state = self.tools.call("get_robot_state").data
+            observed = [
+                self.tools.call("observe_scene"),
+                self.tools.call("verify_goal", {"goal": goal}),
+                self.tools.call("get_robot_state"),
+            ]
+            bad = next((r for r in observed if not r.ok), None)
+            if bad is not None:
+                return self._finish(goal, False, f"{bad.tool} failed: {bad.message}", steps, emit)
+            scene, verdict, state = (r.data for r in observed)
             if state["protective_stop"]:
                 return self._finish(
                     goal, False, "robot in protective stop (operator reset needed)", steps, emit

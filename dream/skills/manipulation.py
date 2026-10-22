@@ -24,7 +24,7 @@ POS_TOL = 0.004  # m
 ROT_TOL = np.deg2rad(3.0)
 OPEN_WIDTH = 0.08  # m, fully open
 GRASP_SLACK = 0.03  # m of total opening beyond the object's width before grasping
-RELEASE_SLACK = 0.02  # m beyond the held width when releasing (wide openings hit neighbours)
+RELEASE_SLACK = 0.012  # m beyond the held width when releasing (wide openings hit walls/neighbours)
 
 
 @dataclass
@@ -41,10 +41,43 @@ def _down(yaw: float) -> np.ndarray:
 
 
 def grasp_yaw(object_yaw: float, current_yaw: float = 0.0) -> float:
-    """Cube yaw folded to the equivalent grasp closest to ``current_yaw`` (cubes are 4-fold)."""
-    candidates = object_yaw + np.arange(-4, 5) * np.pi / 2
+    """Grasp yaw closing across one face pair, folded to be closest to ``current_yaw``.
+
+    The parallel gripper is 2-fold symmetric, so only multiples of pi are equivalent. The other
+    face pair is ``object_yaw + pi/2`` (see ``choose_grasp_yaw``).
+    """
+    candidates = object_yaw + np.arange(-3, 4) * np.pi
     candidates = candidates[np.abs(candidates) <= np.pi * 0.75]  # stay inside the wrist range
     return float(candidates[np.argmin(np.abs(candidates - current_yaw))])
+
+
+# m the open fingers' outer faces extend beyond the object along the closing axis:
+# half the grasp slack plus the finger thickness (~12 mm).
+FINGER_REACH = GRASP_SLACK / 2 + 0.012
+WALL_BAND = 0.012  # m: fixture walls may extend this far outside the visible inner edge
+
+
+def finger_clearance(obj: ObjectObservation, yaw: float, perception: Perception) -> float:
+    """Free space (m) around both fingertips for a grasp at ``yaw``, from observations only."""
+    close_dir = np.array([-np.sin(yaw), np.cos(yaw)])  # fingers close along this world axis
+    tips = [obj.position[:2] + s * close_dir * (obj.size / 2 + FINGER_REACH) for s in (-1, 1)]
+    gaps = []
+    for tip in tips:
+        for o in perception.observe_objects():
+            if o.name != obj.name:
+                gaps.append(np.linalg.norm(tip - o.position[:2]) - o.size / 2)
+        for centre, half in perception.fixtures().values():
+            cheb = np.max(np.abs(tip - centre[:2]))
+            gaps.append(half - cheb if cheb < half else cheb - half - WALL_BAND)
+    return float(min(gaps)) if gaps else np.inf
+
+
+def choose_grasp_yaw(obj: ObjectObservation, current_yaw: float, perception: Perception) -> float:
+    """Of the two face pairs of a cube, grasp across the one with more room for the fingers."""
+    a = grasp_yaw(obj.yaw, current_yaw)
+    b = grasp_yaw(obj.yaw + np.pi / 2, current_yaw)
+    ca, cb = finger_clearance(obj, a, perception), finger_clearance(obj, b, perception)
+    return a if ca >= cb - 0.005 else b  # prefer less wrist rotation unless clearly worse
 
 
 def tcp_yaw(quat: np.ndarray) -> float:
@@ -99,6 +132,18 @@ def set_gripper(robot: Embodiment, width: float, timeout: float = 1.5) -> SkillR
     return SkillResult(True, "", robot.state().time - t0, {"width": robot.state().gripper_width})
 
 
+def settle(robot: Embodiment, timeout: float = 1.0, max_joint_speed: float = 0.02) -> bool:
+    """Wait until the arm is (nearly) still.
+
+    Readings combined from different sensors, such as an object pose and the TCP pose, are only
+    consistent when the arm is not moving. With a live physics thread, time passes between the
+    two reads.
+    """
+    return robot.wait_until(
+        lambda: float(np.max(np.abs(robot.state().joint_vel))) < max_joint_speed, timeout
+    )
+
+
 def move_via_travel_height(robot: Embodiment, pos: np.ndarray, yaw: float) -> SkillResult:
     """Rise, translate at travel height, then descend: avoids sweeping through other objects."""
     st = robot.state()
@@ -122,7 +167,7 @@ def pick(robot: Embodiment, perception: Perception, name: str) -> SkillResult:
     if obj is None:
         return SkillResult(False, f"object '{name}' not observed")
     t0 = robot.state().time
-    yaw = grasp_yaw(obj.yaw, tcp_yaw(robot.state().tcp_quat))
+    yaw = choose_grasp_yaw(obj, tcp_yaw(robot.state().tcp_quat), perception)
     set_gripper(robot, min(OPEN_WIDTH, obj.size + GRASP_SLACK))
     above = obj.position + [0, 0, APPROACH_ABOVE]
     r = move_via_travel_height(robot, above, yaw)
@@ -131,7 +176,7 @@ def pick(robot: Embodiment, perception: Perception, name: str) -> SkillResult:
     obj = find(perception, name)  # re-observe before committing: the object may have moved
     if obj is None:
         return _done(SkillResult(False, f"object '{name}' lost before grasp"), robot, t0)
-    yaw = grasp_yaw(obj.yaw, yaw)
+    yaw = choose_grasp_yaw(obj, yaw, perception)
     grasp_z = max(obj.position[2], 0.012)
     for wp, tol in (
         (obj.position + [0, 0, APPROACH_ABOVE], POS_TOL),
@@ -186,6 +231,7 @@ def place(
     goal holds is for a separate verifier to decide.
     """
     t0 = robot.state().time
+    settle(robot)  # the hand-object offset below needs both readings from a still arm
     held = find(perception, name)
     if held is None:
         return SkillResult(False, f"object '{name}' not observed")
@@ -203,7 +249,9 @@ def place(
         return _done(r, robot, t0)
     set_gripper(robot, min(OPEN_WIDTH, robot.state().gripper_width + RELEASE_SLACK))
     up = robot.state().tcp_pos + [0, 0, APPROACH_ABOVE]
-    move_to(robot, up, yaw)
+    r = move_to(robot, up, yaw)
+    if not r.ok:
+        return _done(SkillResult(False, f"released, but retreat failed: {r.reason}"), robot, t0)
     final = find(perception, name)
     err = None if final is None else float(np.linalg.norm(final.position - target))
     return _done(SkillResult(True, "", details={"final_error": err}), robot, t0)
