@@ -35,7 +35,7 @@ Every row marked "implemented and tested" has passing tests and/or saved results
 | 4 | Predictive model validated against MuJoCo; held-out prediction error | Implemented and tested | `tests/test_model.py`, `results/main` |
 | 5 | EIG probe selection vs random, goal-directed and scripted baselines | Implemented and tested | `results/main`, `results/main_geometric_prior` |
 | 6 | Generalisation (unseen parameters and families), out-of-class detection | Implemented and tested | `results/generalisation`, `results/adequacy_calibration` |
-| 6a | Minimum-evidence (3-probe) gate for adequacy false alarms | Implemented, not yet run | branch `research/fresh-adequacy-validation` |
+| 6a | Minimum-evidence (3-probe) gate for adequacy false alarms | Implemented and tested on fresh held-out seed; adopted in `Belief.fit_check` | `results/fresh_adequacy_validation`, `tests/test_adequacy.py` |
 | 6b | Demo GIF and narration / live viewer | Tested / implemented, unverified (no display) | `results/demo`, `experiments/demo.py --viewer` |
 | 7 | **Simulated arm plus reusable deterministic manipulation skills** | **Next: planned** | n/a |
 | 8 | Task runtime with structured tool calling over skills | Planned | n/a |
@@ -69,6 +69,7 @@ python experiments/run_benchmark.py experiments/configs/main.json --workers 4   
 python experiments/calibrate_adequacy.py --workers 4                                    # ~5 min
 python experiments/run_benchmark.py experiments/configs/generalisation.json --workers 4  # ~20 min
 python experiments/run_benchmark.py experiments/configs/main_geometric_prior.json --workers 4
+python experiments/validate_adequacy.py --workers 4   # fresh held-out adequacy validation (~12 min)
 python experiments/summarise.py results/main          # re-summarise saved episodes
 ```
 
@@ -162,7 +163,7 @@ mechanisms × 4 strategies. Nothing was retuned.
 | Goal-directed pull | 3.74 | 71% | 78% |
 | Axis sweep | 2.53 [2.10, 3.00] | 96% | 85% |
 
-- EIG vs random: -65% (p < 1e-4). EIG vs axis sweep: -24% (30 better, 23 worse, p = 0.01).
+- EIG vs random: -65% mean probes (-67% median; p < 1e-4). EIG vs axis sweep: -24% mean probes (30 better, 23 worse, p = 0.01).
   The script's assumptions break on tilted axes and the vertical sash, while EIG's do not.
 - On the two unseen families alone, EIG needs 1.69 probes, against 2.94 for the axis sweep and
   4.31 for random.
@@ -176,12 +177,29 @@ That helical motion is outside the agent's {fixed, prismatic, revolute} model cl
   (`results/adequacy_calibration`, threshold frozen at 0.28 before this run). It flags the
   rising hinge as an unknown mechanism class in **100% of EIG episodes by probe 6** (88% by
   probe 4). For comparison it flags 12% of random episodes, 50% of axis-sweep episodes and 100%
-  of goal-directed episodes. Informative probing is what exposes the misfit: random probes
-  rarely move the mechanism far enough.
+  of goal-directed episodes. What exposes the misfit is probes that move the mechanism far.
+  EIG and repeated goal-directed pulls do; random probes rarely do.
 - False alarms on in-class mechanisms: 0% at the end of the budget, but **3% of individual EIG
-  steps**, almost all after only 1–2 probes, when χ² over few records is noisy. A minimum-evidence
-  rule would likely fix this. It has to be evaluated on a fresh held-out seed, because these
-  results were already seen.
+  steps**, almost all after only 1–2 probes, when χ² over few records is noisy. These are the
+  results under the original rule, which alerts from probe 1. See the fresh validation below.
+
+### Fresh held-out validation of a minimum-evidence rule (`results/fresh_adequacy_validation`)
+
+A rule was preregistered in PR #1 before any of these data existed: alert only from probe 3
+onwards, with the threshold frozen at 0.28. It was then evaluated once on a new seed (14819):
+108 in-class mechanisms (the 7 development families plus sash and pivot, 12 each) and 12
+rising hinges, using EIG with a budget of 8. Before running, a seeding bug was found and fixed
+in review: families with equal-length names shared random streams.
+
+| Rule | In-class episodes with any false alarm [95% CI] | Rising hinges detected [95% CI] | Median first alert |
+|---|---|---|---|
+| Original (alert from probe 1) | 6/108 = 5.6% [2.6, 11.6] | 12/12 = 100% [76, 100] | probe 3 |
+| **3-probe minimum evidence** | **0/108 = 0% [0, 3.4]** | **12/12 = 100% [76, 100]** | probe 3 |
+
+All 6 original-rule false alarms happened at probe 1. The gate prevents no detection, but it
+delays 3 of 12 (from probe 1–2 to probe 3), so mean latency rises from 3.33 to 3.67 probes.
+Only one out-of-class family was tested, so the detection interval is wide. The rule is now used
+by `Belief.fit_check`. Results saved before this change keep their original flags.
 
 ### Demo outputs (`results/demo`)
 
@@ -203,8 +221,8 @@ In the hinge GIF, the sampled hinge lines start scattered and collapse onto the 
   limit are poor. This is visible as the held-out error rising late in some episodes.
 - **Uninformative prior.** EIG allows that a panel might open into the cabinet, which costs it a
   probe against scripts that assume otherwise. See the geometric-prior ablation.
-- **Model-adequacy check:** early false alarms (above). Out-of-class detection was tested on only
-  one out-of-class family.
+- **Model-adequacy check:** cannot alert before probe 3, by design. Out-of-class detection
+  was tested on only one out-of-class family (the rising hinge).
 - The live viewer (`--viewer`) was not exercised: development ran in a headless container.
 - Compute: an EIG step takes about 0.6 s to select and 0.5–2 s to update, on one CPU core.
 
@@ -234,8 +252,8 @@ results.
      the script.
 - Out of scope for milestone 7: language models, perception and memory.
 
-Open follow-ups on the current component: run the preregistered fresh-seed adequacy validation
-(milestone 6a), learn continuous parameters such as friction and travel limits, and try
+Open follow-ups on the current component: test out-of-class detection on more mechanism
+families, learn continuous parameters such as friction and travel limits, and try
 receding-horizon EIG.
 
 ## Roadmap
