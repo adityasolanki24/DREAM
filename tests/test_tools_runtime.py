@@ -1,0 +1,167 @@
+"""Contracts for structured goals, the typed toolbox and the task runtime."""
+
+import numpy as np
+import pytest
+
+from dream.eval.manipulation import object_in_tray, object_on_top
+from dream.runtime.agent import Finish, RuleBasedPlanner, Step, TaskAgent, ToolCall
+from dream.sim.tabletop import sample_tabletop
+from dream.sim.tabletop_env import TabletopEnv
+from dream.tools.goals import InRegion, OnTop, parse_goal, resting_on, verify
+from dream.tools.toolbox import TOOL_SPECS, Toolbox, ToolResult
+from dream.types import ObjectObservation
+
+TRAY = {"tray": (np.array([0.5, 0.0, 0.0]), 0.07)}
+
+
+def _obs(name, x, y, z=0.02, size=0.04):
+    return ObjectObservation(name, name, np.array([x, y, z]), 0.0, size)
+
+
+# ----- goals ----------------------------------------------------------------------------
+
+
+def test_parse_structured_goals_and_reject_everything_else():
+    assert parse_goal("in red tray") == InRegion("red", "tray")
+    assert parse_goal({"type": "on", "object": "red", "target": "blue"}) == OnTop("red", "blue")
+    for bad in ("put the red cube in the tray", "on red red", "under red blue", "in red"):
+        with pytest.raises(ValueError):
+            parse_goal(bad)
+
+
+def test_verify_in_region_and_on_top_from_observations():
+    objs = [_obs("red", 0.5, 0.02, 0.024), _obs("blue", 0.3, 0.2), _obs("green", 0.3, 0.2, 0.06)]
+    assert verify(InRegion("red", "tray"), objs, TRAY).satisfied
+    assert not verify(InRegion("blue", "tray"), objs, TRAY).satisfied
+    assert verify(OnTop("green", "blue"), objs, TRAY).satisfied
+    assert not verify(OnTop("blue", "green"), objs, TRAY).satisfied
+    assert not verify(InRegion("purple", "tray"), objs, TRAY).satisfied
+    held = [_obs("red", 0.5, 0.0, 0.18)]  # above the tray but still in the hand
+    assert not verify(InRegion("red", "tray"), held, TRAY).satisfied
+
+
+def test_resting_on_detects_stacks_only():
+    objs = [_obs("blue", 0.3, 0.2), _obs("green", 0.3, 0.21, 0.06), _obs("red", 0.4, 0.2)]
+    assert resting_on("blue", objs) == ["green"]
+    assert resting_on("red", objs) == [] and resting_on("green", objs) == []
+
+
+# ----- planner (no simulator) ------------------------------------------------------------------
+
+
+def _scene(objs, holding=None):
+    return {
+        "objects": [
+            {
+                "name": o.name,
+                "color": o.color,
+                "position": o.position.tolist(),
+                "yaw": 0.0,
+                "size": o.size,
+            }
+            for o in objs
+        ],
+        "fixtures": {"tray": {}},
+        "holding": holding,
+    }
+
+
+def test_planner_reduces_both_goal_types_to_grasp_then_place():
+    p = RuleBasedPlanner()
+    objs = [_obs("red", 0.4, 0.1), _obs("blue", 0.4, -0.1)]
+    unsat = {"satisfied": False}
+    assert p.next_action(InRegion("red", "tray"), _scene(objs), unsat, []) == ToolCall(
+        "grasp", {"object": "red"}
+    )
+    assert p.next_action(OnTop("red", "blue"), _scene(objs, "red"), unsat, []) == ToolCall(
+        "place", {"object": "red", "target": "blue"}
+    )
+    assert p.next_action(InRegion("red", "tray"), _scene(objs), {"satisfied": True}, []) == Finish(
+        True, "goal verified by observation"
+    )
+
+
+def test_planner_clears_obstructions_and_sets_aside_wrong_objects():
+    p = RuleBasedPlanner()
+    stacked = [_obs("blue", 0.4, 0.1), _obs("green", 0.4, 0.1, 0.06), _obs("red", 0.4, -0.1)]
+    unsat = {"satisfied": False}
+    assert p.next_action(InRegion("blue", "tray"), _scene(stacked), unsat, []) == ToolCall(
+        "grasp", {"object": "green"}
+    )
+    assert p.next_action(OnTop("red", "blue"), _scene(stacked), unsat, []) == ToolCall(
+        "grasp", {"object": "green"}
+    )
+    assert p.next_action(InRegion("blue", "tray"), _scene(stacked, "green"), unsat, []) == ToolCall(
+        "place", {"object": "green", "target": "table"}
+    )
+
+
+def test_planner_gives_up_after_attempt_budget_and_on_missing_objects():
+    p = RuleBasedPlanner(max_attempts=2)
+    objs = [_obs("red", 0.4, 0.1)]
+    fails = [
+        Step(ToolCall("grasp", {"object": "red"}), ToolResult("grasp", "failed", "missed"), 0.0)
+    ] * 2
+    act = p.next_action(InRegion("red", "tray"), _scene(objs), {"satisfied": False}, fails)
+    assert isinstance(act, Finish) and not act.success
+    act = p.next_action(OnTop("red", "purple"), _scene(objs), {"satisfied": False}, [])
+    assert isinstance(act, Finish) and not act.success and "purple" in act.reason
+
+
+# ----- toolbox and runtime in simulation ---------------------------------------------------------
+
+
+def _env(seed):
+    return TabletopEnv(
+        sample_tabletop(np.random.default_rng(seed)), np.random.default_rng(seed + 1)
+    )
+
+
+def test_every_tool_declares_a_schema_and_bad_calls_are_rejected():
+    env = _env(5)
+    tb = Toolbox(env.embodiment(), env)
+    expected = "observe_scene get_robot_state move_end_effector grasp release place verify_goal"
+    assert {t["name"] for t in TOOL_SPECS} == set(expected.split())
+    assert tb.call("teleport", {"object": "red"}).status == "rejected"
+    assert tb.call("grasp", {}).status == "rejected"
+    assert tb.call("grasp", {"object": "red", "force": 100}).status == "rejected"
+    assert tb.call("move_end_effector", {"position": [0.5, 0.0]}).status == "rejected"
+    assert tb.call("move_end_effector", {"position": [0.5, 0.0, -1.0]}).status == "rejected"
+    assert tb.call("place", {"object": "red", "target": "tray"}).status == "rejected"  # not holding
+    assert tb.call("verify_goal", {"goal": "please tidy up"}).status == "rejected"
+
+
+def test_cancel_stops_a_tool_and_leaves_the_robot_holding_still():
+    env = _env(5)
+    tb = Toolbox(env.embodiment(), env)
+    calls = {"n": 0}
+    original = env.wait_until
+
+    def wait_then_cancel(pred, timeout):
+        calls["n"] += 1
+        if calls["n"] == 3:
+            tb.cancel.set()
+        return original(pred, timeout)
+
+    env.wait_until = wait_then_cancel
+    r = tb.call("grasp", {"object": "red"})
+    assert r.status == "stopped"
+    q = env.robot_state().joint_pos
+    env.step(500)
+    assert np.max(np.abs(env.robot_state().joint_pos - q)) < 0.02
+
+
+@pytest.mark.slow
+def test_same_tools_solve_tray_and_stack_goals_in_one_persistent_scene():
+    env = _env(7)
+    agent = TaskAgent(Toolbox(env.embodiment(), env))
+    ep = agent.run(parse_goal("in red tray"))
+    env.step(250)
+    assert ep.success_claimed and object_in_tray(env, "red")
+    ep = agent.run(parse_goal("on blue green"))
+    env.step(250)
+    assert ep.success_claimed and object_on_top(env, "blue", "green")
+    ep = agent.run(parse_goal("in green tray"))  # green is under blue: must clear it first
+    env.step(250)
+    assert ep.success_claimed and object_in_tray(env, "green")
+    assert [s.call.args.get("object") for s in ep.steps][:2] == ["blue", "blue"]

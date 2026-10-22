@@ -22,7 +22,9 @@ TRAVEL_HEIGHT = 0.18  # m, TCP height for transit above objects and fixtures
 APPROACH_ABOVE = 0.08  # m above the grasp/place point before the final descent
 POS_TOL = 0.004  # m
 ROT_TOL = np.deg2rad(3.0)
-OPEN_WIDTH = 0.08  # m
+OPEN_WIDTH = 0.08  # m, fully open
+GRASP_SLACK = 0.03  # m of total opening beyond the object's width before grasping
+RELEASE_SLACK = 0.02  # m beyond the held width when releasing (wide openings hit neighbours)
 
 
 @dataclass
@@ -121,7 +123,7 @@ def pick(robot: Embodiment, perception: Perception, name: str) -> SkillResult:
         return SkillResult(False, f"object '{name}' not observed")
     t0 = robot.state().time
     yaw = grasp_yaw(obj.yaw, tcp_yaw(robot.state().tcp_quat))
-    set_gripper(robot, OPEN_WIDTH)
+    set_gripper(robot, min(OPEN_WIDTH, obj.size + GRASP_SLACK))
     above = obj.position + [0, 0, APPROACH_ABOVE]
     r = move_via_travel_height(robot, above, yaw)
     if not r.ok:
@@ -199,7 +201,7 @@ def place(
         r = move_to(robot, tcp_goal, yaw)
     if not r.ok:
         return _done(r, robot, t0)
-    set_gripper(robot, OPEN_WIDTH)
+    set_gripper(robot, min(OPEN_WIDTH, robot.state().gripper_width + RELEASE_SLACK))
     up = robot.state().tcp_pos + [0, 0, APPROACH_ABOVE]
     move_to(robot, up, yaw)
     final = find(perception, name)
