@@ -51,6 +51,7 @@ class MechanismEnv:
         }
         mujoco.mj_forward(self.model, self.data)
         self._initial_handle = self._read("handle_pos").copy()
+        self.step_hook = None  # optional callable(model, data) after every physics step
 
     # ----- agent-facing interface -------------------------------------------------------
 
@@ -175,6 +176,8 @@ class MechanismEnv:
             s = s * s * (3 - 2 * s)
             self.data.ctrl[:] = start + s * (goal - start)
             mujoco.mj_step(self.model, self.data)
+            if self.step_hook is not None:
+                self.step_hook(self.model, self.data)
             if record and i % every == 0:
                 out.append(self.observe())
         return out
@@ -186,6 +189,8 @@ class MechanismEnv:
         self.data.ctrl[:] = goal
         for i in range(n_steps):
             mujoco.mj_step(self.model, self.data)
+            if self.step_hook is not None:
+                self.step_hook(self.model, self.data)
             if record and i % every == 0:
                 out.append(self.observe())
         return out

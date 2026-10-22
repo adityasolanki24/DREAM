@@ -144,6 +144,18 @@ def sample_mechanism(
     )
 
 
+CAMERA_POS = np.array([0.55, -0.9, 1.0])
+
+
+def _look_at(pos: np.ndarray, target: np.ndarray) -> np.ndarray:
+    """MJCF camera ``xyaxes`` for a level camera at ``pos`` looking at ``target``."""
+    forward = (target - pos) / np.linalg.norm(target - pos)
+    right = np.cross(forward, [0.0, 0.0, 1.0])
+    right /= np.linalg.norm(right)
+    up = np.cross(right, forward)
+    return np.concatenate([right, up])
+
+
 def _fmt(v: np.ndarray) -> str:
     return " ".join(f"{x:.6g}" for x in np.ravel(v))
 
@@ -189,6 +201,7 @@ def build_mjcf(spec: MechanismSpec) -> str:
         'forcelimited="true" forcerange="-20 20"/>'
         for a in "xyz"
     )
+    camera_axes = _fmt(_look_at(CAMERA_POS, PANEL_CENTER))
     h = spec.handle_offset
     return f"""
 <mujoco model="dream_{spec.family}">
@@ -201,7 +214,7 @@ def build_mjcf(spec: MechanismSpec) -> str:
   <worldbody>
     <light pos="0 -1.5 2" dir="0 1 -1"/>
     <geom type="plane" size="1.5 1.5 0.05" rgba=".9 .9 .9 1"/>
-    <camera name="front" pos="0.9 -1.2 1.1" xyaxes="0.8 0.6 0 -0.25 0.33 0.91"/>
+    <camera name="front" pos="{_fmt(CAMERA_POS)}" xyaxes="{camera_axes}"/>
     {frame}
     <body name="panel" pos="{_fmt(PANEL_CENTER)}" gravcomp="1">
       {joint_xml}

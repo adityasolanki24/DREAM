@@ -63,12 +63,19 @@ def run_episode(
     seed: int,
     n_particles: int = 600,
     evaluate: bool = True,
+    on_step=None,
+    env_hook=None,
 ) -> dict:
-    """Run ``budget`` probes chosen by ``selector`` and return a JSON-serialisable log."""
+    """Run ``budget`` probes chosen by ``selector`` and return a JSON-serialisable log.
+
+    ``on_step(step_log, belief, info)`` is called after every belief update (e.g. for the demo),
+    and ``env_hook(model, data)`` after every physics step of the real (non-forked) environment.
+    """
     env_rng = np.random.default_rng([seed, 0])
     agent_rng = np.random.default_rng([seed, 1])
     eval_rng = np.random.default_rng([seed, 2])
     env = MechanismEnv(spec, env_rng)
+    env.step_hook = env_hook
     geometry = env.geometry()
     env.move_ee_to(geometry.handle_pos)
     if not env.grasp():
@@ -131,6 +138,8 @@ def run_episode(
                 **evaluate_now(),
             }
         )
+        if on_step is not None:
+            on_step(steps[-1], belief, {**info, "pre_action_prediction": pred})
     return {
         "family": spec.family,
         "joint_type": spec.joint_type,
