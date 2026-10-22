@@ -247,7 +247,12 @@ def investigate(
             break
     inv = _result(name, status, reason, belief, steps, robot.state().time - t_start)
     if not inv.opening_supported:
-        art.release_handle(robot)
+        released = art.release_handle(robot)
+        if not released.ok:  # the conclusion stands, but the robot did not get free safely
+            inv.status = "unsafe"
+            inv.reason = f"{inv.reason}; releasing the handle failed: {released.reason}".lstrip(
+                "; "
+            )
     return inv
 
 
@@ -393,8 +398,24 @@ def open_learned(
         "max_deviation_m": max((s["deviation_m"] for s in log), default=0.0),
         "release_ok": released.ok,
     }
+    outcome = with_release(outcome, released)
     outcome.details.update(details)
     outcome.sim_time = robot.state().time - t0
+    return outcome
+
+
+def with_release(outcome: SkillResult, released: SkillResult) -> SkillResult:
+    """An operation that ends by letting go succeeded only if letting go did too.
+
+    Held-out drawer 5005 latched a protective stop in the release that followed a successful
+    opening, and the opening was still reported as a success.
+    """
+    if outcome.ok and not released.ok:
+        return SkillResult(
+            False,
+            f"opened, but releasing the handle failed: {released.reason}",
+            details=outcome.details,
+        )
     return outcome
 
 
@@ -424,6 +445,7 @@ def open_fixed_pull(
     r = art.pull_along(robot, waypoints, safety.max_force)
     after = art.observe_handle_averaged(perception, name).handle_pos
     released = art.release_handle(robot)
+    r = with_release(r, released)
     r.details.update(
         {
             "handle_travel_m": float(np.linalg.norm(after - obs.handle_pos)),

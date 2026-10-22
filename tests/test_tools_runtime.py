@@ -256,3 +256,18 @@ def test_read_only_tools_still_answer_while_cancel_is_set():
     assert tb.call("grasp", {"object": "red"}).status == "stopped"
     ep = TaskAgent(tb).run(parse_goal("in red tray"))
     assert not ep.success_claimed and "cancel" in ep.reason
+
+
+def test_an_opening_whose_release_fails_is_reported_as_failed():
+    """Regression (held-out drawer 5005): a stop latched while letting go was hidden."""
+    from dream.skills.manipulation import SkillResult
+    from dream.tools.discovery import with_release
+
+    opened = SkillResult(True, "", details={"q_reached": 0.15})
+    stuck = SkillResult(False, "protective stop: hand external force 40 N > 40 N")
+    r = with_release(opened, stuck)
+    assert not r.ok and "releasing the handle failed" in r.reason
+    assert r.details["q_reached"] == 0.15
+    assert with_release(opened, SkillResult(True)).ok
+    failed = SkillResult(False, "handle left the learned constraint")
+    assert with_release(failed, stuck).reason == failed.reason  # the first failure is the cause

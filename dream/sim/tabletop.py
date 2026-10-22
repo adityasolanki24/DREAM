@@ -102,7 +102,8 @@ def _yaw_quat(yaw: float) -> list[float]:
     return [float(np.cos(yaw / 2)), 0.0, 0.0, float(np.sin(yaw / 2))]
 
 
-def build_model(spec: TabletopSpec) -> mujoco.MjModel:
+def build_model(spec: TabletopSpec, shoulder_armature: float = SHOULDER_ARMATURE) -> mujoco.MjModel:
+    """Compile the scene. ``shoulder_armature=0.1`` restores Menagerie's value (stall case)."""
     s = mujoco.MjSpec.from_file(str(PANDA_XML))
     s.option.timestep = 0.002
     s.option.cone = mujoco.mjtCone.mjCONE_ELLIPTIC  # better frictional grasps than pyramidal
@@ -126,7 +127,7 @@ def build_model(spec: TabletopSpec) -> mujoco.MjModel:
     # at ~0.7 rad/s, the hand stalled). 0.3 kg m^2 escaped it in every case measured. Reflected
     # motor inertia is real on the Franka; its exact value is not identified here.
     for i in range(1, 5):
-        s.joint(f"joint{i}").armature = SHOULDER_ARMATURE
+        s.joint(f"joint{i}").armature = shoulder_armature
     s.body("hand").add_site(
         name="tcp", pos=[0, 0, TCP_OFFSET], size=[0.005] * 3, rgba=[1, 0, 0, 0.5]
     )
@@ -190,9 +191,13 @@ def sample_compartment_scene(
     colors: tuple[str, ...] = ("red", "blue"),
     half_size: float = 0.02,
     looks_like: str | None = None,
+    **compartment_kwargs,
 ) -> TabletopSpec:
-    """A compartment with a hidden mechanism plus cubes placed clear of it, all in reach."""
-    comp = sample_compartment(kind, rng, looks_like=looks_like)
+    """A compartment with a hidden mechanism plus cubes placed clear of it, all in reach.
+
+    ``compartment_kwargs`` go to ``sample_compartment`` (parameter ranges, challenge variants).
+    """
+    comp = sample_compartment(kind, rng, looks_like=looks_like, **compartment_kwargs)
     centre = np.array(comp.xy)
     c, s = np.cos(comp.yaw), np.sin(comp.yaw)
     # Keep cubes off the box, its handle, the drawer's full pull-out path and the lid's swing,

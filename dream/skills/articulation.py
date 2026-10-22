@@ -62,15 +62,19 @@ def find_articulated(perception: Perception, name: str) -> ArticulatedObservatio
 
 
 def handle_closing_yaw(obs: ArticulatedObservation, current_yaw: float) -> float:
-    """Wrist yaw that closes the fingers parallel to the face the knob sticks out of.
+    """Wrist yaw that pinches the handle across its thinnest horizontal dimension.
 
-    The face direction is the handle frame's local y axis. Pinching along it keeps both fingers
-    beside the knob's post and lets the knob pivot about that axis in the grip.
+    A handle as wide as it is deep (a knob) is pinched parallel to the face it sticks out of
+    (its local y axis): both fingers stay beside the post, and a round knob pivots about that
+    axis in the grip. A bar (long along y) is pinched across its thickness (local x).
     """
     w, x, y, z = obs.handle_quat
+    local_x = np.array([1 - 2 * (y * y + z * z), 2 * (x * y + w * z), 2 * (x * z - w * y)])
     local_y = np.array([2 * (x * y - w * z), 1 - 2 * (x * x + z * z), 2 * (y * z + w * x)])
+    half = obs.handle_half
+    across = local_x if half is not None and half[0] < 0.8 * half[1] else local_y
     # _down(yaw) closes the fingers along (-sin yaw, cos yaw).
-    yaw = float(np.arctan2(-local_y[0], local_y[1]))
+    yaw = float(np.arctan2(-across[0], across[1]))
     candidates = yaw + np.arange(-3, 4) * np.pi
     candidates = candidates[np.abs(candidates) <= np.pi * 0.75]
     return float(candidates[np.argmin(np.abs(candidates - current_yaw))])

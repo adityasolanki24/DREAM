@@ -20,7 +20,7 @@ import numpy as np
 
 from dream.robot.panda import HOME_QPOS, Compliance, PandaController, SafetyLimits
 from dream.sim.compartment import INNER_HALF
-from dream.sim.tabletop import TRAY_FLOOR_TOP, TabletopSpec, build_model
+from dream.sim.tabletop import SHOULDER_ARMATURE, TRAY_FLOOR_TOP, TabletopSpec, build_model
 from dream.types import ArticulatedObservation, CompliantMode, ObjectObservation, RobotState
 
 
@@ -39,11 +39,12 @@ class TabletopEnv:
         rng: np.random.Generator,
         noise: TrackerNoise | None = None,
         limits: SafetyLimits | None = None,
+        shoulder_armature: float = SHOULDER_ARMATURE,
     ) -> None:
         self._spec = spec
         self.rng = rng
         self.noise = noise or TrackerNoise()
-        self.model = build_model(spec)
+        self.model = build_model(spec, shoulder_armature)
         self.data = mujoco.MjData(self.model)
         self.robot = PandaController(self.model, self.data, limits)
         self.lock = threading.RLock()  # guards data between a physics thread and readers
@@ -143,7 +144,8 @@ class TabletopEnv:
         return out
 
     def observe_articulated(self) -> list[ArticulatedObservation]:
-        """Objects with a handle. Pose of the handle from a noisy tracker, plus the visible box."""
+        """Objects with a handle: handle pose from a noisy tracker, the visible box, and the
+        handle's visible extent (oracle-assisted, like the tracker)."""
         comp = self._spec.compartment
         if comp is None:
             return []
@@ -154,7 +156,11 @@ class TabletopEnv:
             mujoco.mju_mat2Quat(quat, site.xmat)
             quat = _perturb_quat(quat, self.rng.normal(scale=self.noise.yaw_std, size=3))
             lo, hi = self._compartment_aabb()
-        return [ArticulatedObservation("compartment", pos, quat, (lo + hi) / 2, (hi - lo) / 2)]
+        return [
+            ArticulatedObservation(
+                "compartment", pos, quat, (lo + hi) / 2, (hi - lo) / 2, comp.handle_half.copy()
+            )
+        ]
 
     def _compartment_aabb(self) -> tuple[np.ndarray, np.ndarray]:
         """World AABB of the compartment's geoms in their current pose (its visible extent)."""
@@ -164,7 +170,10 @@ class TabletopEnv:
             if self.model.geom_bodyid[g] not in bodies:
                 continue
             c = self.data.geom_xpos[g]
-            r = np.abs(self.data.geom_xmat[g].reshape(3, 3)) @ self.model.geom_size[g]
+            size = self.model.geom_size[g]
+            if self.model.geom_type[g] == mujoco.mjtGeom.mjGEOM_SPHERE:
+                size = np.full(3, size[0])
+            r = np.abs(self.data.geom_xmat[g].reshape(3, 3)) @ size
             lo, hi = np.minimum(lo, c - r), np.maximum(hi, c + r)
         return lo, hi
 

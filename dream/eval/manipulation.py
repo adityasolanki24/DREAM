@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from dream.sim.compartment import CAVITY_HEIGHT, FLOOR, INNER_HALF
+from dream.sim.compartment import FLOOR, INNER_HALF
 from dream.sim.tabletop_env import TabletopEnv
 
 REST_SPEED = 0.02  # m/s: an object moving faster than this is not "resting"
@@ -61,7 +61,7 @@ def object_in_compartment(env: TabletopEnv, name: str) -> bool:
     body = env.data.body("compartment_part" if comp.looks_like == "drawer" else "housing")
     local = body.xmat.reshape(3, 3).T @ (env.privileged_object_pos(name) - body.xpos)
     inside = np.all(np.abs(local[:2]) < INNER_HALF)
-    below_roof = local[2] < FLOOR + CAVITY_HEIGHT
+    below_roof = local[2] < FLOOR + comp.cavity_height
     return bool(inside and below_roof and _resting(env, name))
 
 

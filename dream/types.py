@@ -151,3 +151,5 @@ class ArticulatedObservation:
     handle_quat: np.ndarray  # (4,) (w, x, y, z)
     box_centre: np.ndarray  # (3,) m
     box_half: np.ndarray  # (3,) m
+    # (3,) m, half extent of the handle in its own frame (x out of the face); None if unknown
+    handle_half: np.ndarray | None = None

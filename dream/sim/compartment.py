@@ -35,6 +35,10 @@ FLOOR = 0.006  # m, floor plate thickness (the drawer floor rides this high abov
 # its thickness twisted in the fingers instead, and the Panda stalled at ~0.8 rad.
 HANDLE_RADIUS = 0.0125  # m
 HANDLE_GAP = 0.032  # m between the front face and the knob (clear of the fingers' width)
+# The original bar handle (challenge variant ``handle="bar"``): a 25 x 60 x 25 mm block on two
+# end posts, pinched across its 25 mm thickness.
+BAR_HALF = (0.0125, 0.03, 0.0125)  # m
+HANDLES = ("knob", "bar")
 DRAWER_LIFT = 0.002  # m: the drawer rides on its slide, clear of the table
 BODY_RGBA = (0.62, 0.5, 0.36, 1.0)
 
@@ -50,6 +54,11 @@ class CompartmentSpec:
     upper: float  # m (drawer) or rad (lid), the open limit; the closed limit is 0
     friction: float  # N, Coulomb resistance referred to the handle
     damping: float  # N s/m or N m s/rad
+    # Variants that keep the original, harder conditions reproducible (README audit table):
+    handle: str = "knob"  # "bar": the original handle, which twisted in the grip on lids
+    cavity_height: float = CAVITY_HEIGHT  # m; 0.07 was the original depth
+    counterbalanced: bool = True  # lid only; False: gravity closes a released lid
+    return_stiffness: float = 0.0  # N/m or N m/rad toward closed: out of the model class
 
     @property
     def front_dir(self) -> np.ndarray:
@@ -57,11 +66,16 @@ class CompartmentSpec:
 
     @property
     def outer_half(self) -> np.ndarray:
-        return np.array([INNER_HALF + WALL, INNER_HALF + WALL, (FLOOR + CAVITY_HEIGHT + WALL) / 2])
+        return np.array([INNER_HALF + WALL, INNER_HALF + WALL, self.height / 2])
 
     @property
     def height(self) -> float:
-        return FLOOR + CAVITY_HEIGHT + WALL
+        return FLOOR + self.cavity_height + WALL
+
+    @property
+    def handle_half(self) -> np.ndarray:
+        """Visible half extent of the handle in its local frame (x out of the face)."""
+        return np.array(BAR_HALF if self.handle == "bar" else [HANDLE_RADIUS] * 3)
 
     def to_world(self, p_local: np.ndarray) -> np.ndarray:
         c, s = np.cos(self.yaw), np.sin(self.yaw)
@@ -71,8 +85,8 @@ class CompartmentSpec:
     @property
     def handle_local(self) -> np.ndarray:
         """Handle centre in the closed state (local frame)."""
-        x = INNER_HALF + WALL + HANDLE_GAP + HANDLE_RADIUS
-        return np.array([x, 0.0, self.height - HANDLE_RADIUS])
+        hx, _, hz = self.handle_half
+        return np.array([INNER_HALF + WALL + HANDLE_GAP + hx, 0.0, self.height - hz])
 
     @property
     def hinge_local(self) -> np.ndarray:
@@ -95,10 +109,17 @@ def sample_compartment(
     looks_like: str | None = None,
     friction_range: tuple[float, float] = (0.5, 3.0),
     yaw_jitter_deg: float = 15.0,
+    **variant,
 ) -> CompartmentSpec:
-    """A compartment in reach of the Panda, front facing the robot base +- ``yaw_jitter_deg``."""
+    """A compartment in reach of the Panda, front facing the robot base +- ``yaw_jitter_deg``.
+
+    ``variant`` sets the challenge fields of ``CompartmentSpec`` (handle, cavity_height,
+    counterbalanced, return_stiffness); the random draws do not depend on them.
+    """
     if kind not in KINDS:
         raise ValueError(f"unknown kind {kind!r}")
+    if variant.get("handle", "knob") not in HANDLES:
+        raise ValueError(f"unknown handle {variant['handle']!r}")
     dist = rng.uniform(0.6, 0.68)  # m from the robot base to the box centre
     bearing = rng.uniform(-0.35, 0.35)  # rad
     xy = (float(dist * np.cos(bearing)), float(dist * np.sin(bearing)))
@@ -116,6 +137,7 @@ def sample_compartment(
         upper=upper if kind != "fixed" else 0.0,
         friction=float(rng.uniform(*friction_range)),
         damping=2.0 if kind == "drawer" else 0.05,
+        **variant,
     )
 
 
@@ -131,8 +153,25 @@ def _box(body, name: str, half, pos, rgba=BODY_RGBA, **kw):
 
 
 def _add_handle(body, local_origin: np.ndarray, spec: CompartmentSpec) -> None:
-    """Spherical knob on one thin central post (the fingers close beside the post)."""
+    """Spherical knob on one thin central post (the fingers close beside the post), or the
+    original bar on two thin end posts (the rear finger fits between bar and face)."""
     h = spec.handle_local - local_origin
+    if spec.handle == "bar":
+        _box(
+            body,
+            "handle",
+            BAR_HALF,
+            h,
+            rgba=(0.2, 0.2, 0.22, 1),
+            friction=[1.5, 0.005, 0.0001],
+            condim=4,
+        )
+        post_half = (HANDLE_GAP / 2, 0.004, 0.006)
+        for side in (-1, 1):
+            post = h + [-(BAR_HALF[0] + HANDLE_GAP / 2), side * (BAR_HALF[1] - 0.004), 0]
+            _box(body, f"handle_post{side + 1}", post_half, post, rgba=(0.2, 0.2, 0.22, 1))
+        body.add_site(name="handle", pos=list(h), size=[0.006] * 3, rgba=[1, 0.5, 0, 0.6])
+        return
     body.add_geom(
         name="handle",
         type=mujoco.mjtGeom.mjGEOM_SPHERE,
@@ -182,7 +221,7 @@ def add_compartment(s: mujoco.MjSpec, spec: CompartmentSpec) -> None:
             rgba=(0.5, 0.42, 0.3, 1),
             mass=0.3,
         )
-        inner_wall_h = (CAVITY_HEIGHT - 0.01) / 2  # drawer walls stay 1 cm below the roof
+        inner_wall_h = (spec.cavity_height - 0.01) / 2  # drawer walls stay 1 cm below the roof
         for side in (-1, 1):
             _box(
                 moving,
@@ -234,6 +273,7 @@ def add_compartment(s: mujoco.MjSpec, spec: CompartmentSpec) -> None:
             range=[0, spec.upper],
             frictionloss=spec.friction,
             damping=spec.damping,
+            stiffness=spec.return_stiffness,
             solref_friction=[0.004, 1],
         )
     elif spec.kind == "lid":
@@ -245,8 +285,10 @@ def add_compartment(s: mujoco.MjSpec, spec: CompartmentSpec) -> None:
             range=[0, spec.upper],
             frictionloss=spec.friction * lever,
             damping=spec.damping,
+            stiffness=spec.return_stiffness * lever**2,
             solref_friction=[0.004, 1],
         )
-        moving.gravcomp = 1.0  # a counterbalanced lid (e.g. gas strut) that stays where it is put
+        if spec.counterbalanced:  # e.g. a gas strut: the lid stays where it is put
+            moving.gravcomp = 1.0
     # The housing and moving part never collide; joint limits are the stops.
     s.add_exclude(bodyname1="housing", bodyname2="compartment_part")
