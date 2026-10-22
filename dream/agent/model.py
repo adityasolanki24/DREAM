@@ -142,11 +142,12 @@ def predict_outcome(
     direction: np.ndarray,
     distance: np.ndarray,
     max_force: np.ndarray,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Predicted settled outcome of a probe.
 
-    Returns ``(y, q)``: ``y`` is (N, 6), the handle position followed by the handle rotation
-    vector relative to the closed state, and ``q`` is the predicted joint coordinate (N,).
+    Returns ``(y, q, y_start)``. ``y`` is (N, 6), the handle position followed by the handle
+    rotation vector relative to the closed state. ``q`` is the predicted joint coordinate (N,),
+    and ``y_start`` is each hypothesis's own reconstruction of the pre-probe state (N, 6).
 
     Probe arguments broadcast against the hypothesis batch, so one call can evaluate many
     hypotheses under one probe, or matched (hypothesis, probe) pairs.
@@ -155,7 +156,9 @@ def predict_outcome(
     target = np.asarray(ee_before) + np.asarray(direction) * np.asarray(distance)[..., None]
     target = np.broadcast_to(target, h.axis.shape)
     q1 = settle(h, q0, h0, target, np.asarray(max_force, dtype=float))
-    return np.concatenate([handle_at(h, q1, h0), handle_rotation(h, q1)], axis=-1), q1
+    y = np.concatenate([handle_at(h, q1, h0), handle_rotation(h, q1)], axis=-1)
+    y_start = np.concatenate([handle_at(h, q0, h0), handle_rotation(h, q0)], axis=-1)
+    return y, q1, y_start
 
 
 def quat_mul(a: np.ndarray, b: np.ndarray) -> np.ndarray:

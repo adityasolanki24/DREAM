@@ -35,29 +35,37 @@ class Record:
 
 @dataclass(frozen=True)
 class NoiseModel:
-    """Observation likelihood: Gaussian with a broad outlier component.
+    """Gaussian observation likelihood whose width grows with the predicted motion.
 
-    The sigmas cover both sensor noise (1 mm, 0.5 deg) and measured model mismatch (about
-    0.2-2 mm, with rare ~1 cm outliers; see tests/test_model.py).
+    ``sigma_pos`` and ``sigma_rot`` cover sensor noise (1 mm, 0.5 deg) plus the model's
+    static mismatch. ``motion_frac`` covers mismatch that scales with how far the part moves:
+    hinges overshoot the quasi-static equilibrium by about 3% of travel, and in the worst
+    measured case by about 19% (tests/test_model.py). A hypothesis that predicts no motion
+    therefore keeps a tight likelihood and cannot explain away a large observed motion.
     """
 
     sigma_pos: float = 0.003  # m
     sigma_rot: float = np.deg2rad(2.0)  # rad
-    outlier_prob: float = 0.03
-    outlier_scale: float = 10.0
+    motion_frac: float = 0.15
 
     @property
     def sigma(self) -> np.ndarray:
         return np.array([self.sigma_pos] * 3 + [self.sigma_rot] * 3)
 
-    def loglik(self, y_pred: np.ndarray, y_obs: np.ndarray) -> np.ndarray:
-        z2 = np.sum(((y_pred - y_obs) / self.sigma) ** 2, axis=-1)
+    def sigma_for(self, y_pred: np.ndarray, y_start: np.ndarray) -> np.ndarray:
+        """Per-sample standard deviations, shape like ``y_pred``."""
+        motion = y_pred - y_start
+        dp = np.linalg.norm(motion[..., :3], axis=-1, keepdims=True)
+        dr = np.linalg.norm(motion[..., 3:], axis=-1, keepdims=True)
+        sp = np.sqrt(self.sigma_pos**2 + (self.motion_frac * dp) ** 2)
+        sr = np.sqrt(self.sigma_rot**2 + (self.motion_frac * dr) ** 2)
+        return np.concatenate([np.repeat(sp, 3, -1), np.repeat(sr, 3, -1)], axis=-1)
+
+    def loglik(self, y_pred: np.ndarray, y_obs: np.ndarray, y_start: np.ndarray) -> np.ndarray:
+        sigma = self.sigma_for(y_pred, y_start)
+        z2 = np.sum(((y_pred - y_obs) / sigma) ** 2, axis=-1)
         d = y_obs.shape[-1]
-        log_in = -0.5 * z2 + np.log1p(-self.outlier_prob)
-        log_out = -0.5 * z2 / self.outlier_scale**2 + np.log(self.outlier_prob)
-        log_out -= d * np.log(self.outlier_scale)
-        norm = -0.5 * d * np.log(2 * np.pi) - np.sum(np.log(self.sigma))
-        return np.logaddexp(log_in, log_out) + norm
+        return -0.5 * z2 - 0.5 * d * np.log(2 * np.pi) - np.sum(np.log(sigma), axis=-1)
 
 
 @dataclass(frozen=True)
@@ -251,7 +259,7 @@ def log_likelihood(
         )
         return np.repeat(values, n, axis=0)
 
-    y_pred, _ = predict_outcome(
+    y_pred, _, y_start = predict_outcome(
         tiled,
         h0,
         per_pair("handle_before"),
@@ -260,7 +268,7 @@ def log_likelihood(
         per_pair("distance")[:, 0],
         per_pair("max_force")[:, 0],
     )
-    return noise.loglik(y_pred, per_pair("y_obs")).reshape(r, n).sum(axis=0)
+    return noise.loglik(y_pred, per_pair("y_obs"), y_start).reshape(r, n).sum(axis=0)
 
 
 class Belief:

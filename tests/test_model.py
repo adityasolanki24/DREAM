@@ -31,7 +31,7 @@ def _hyp(kind, axis, origin=(0.0, 0.0, 0.0), upper=1.0, friction=1.0) -> Hypothe
 
 
 def _predict(h, direction, distance=0.05, force=15.0):
-    y, q = predict_outcome(h, H0, H0, H0, np.array(direction, float), np.array(distance), force)
+    y, q, _ = predict_outcome(h, H0, H0, H0, np.array(direction, float), np.array(distance), force)
     return y[0], q[0]
 
 
@@ -107,7 +107,7 @@ def test_predictor_matches_mujoco_given_true_parameters(family):
             d = rng.normal(size=3)
             probe = Probe(d / np.linalg.norm(d), rng.choice([0.03, 0.08]), rng.choice([6.0, 15.0]))
             r = env.execute_probe(probe)
-            y, _ = predict_outcome(
+            y, _, _ = predict_outcome(
                 hyp,
                 geo.handle_pos,
                 r.before.handle_pos,

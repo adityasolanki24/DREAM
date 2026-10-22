@@ -35,7 +35,7 @@ def _simulate_records(truth, probes, rng, noise_std=(0.001, 0.0087), force=15.0)
     handle = GEO.handle_pos.copy()
     records = []
     for d in probes:
-        y, _ = predict_outcome(truth, GEO.handle_pos, handle, handle, d, np.array(0.06), force)
+        y, _, _ = predict_outcome(truth, GEO.handle_pos, handle, handle, d, np.array(0.06), force)
         y = y[0] + rng.normal(size=6) * np.repeat(noise_std, 3)
         records.append(make_record(handle, handle, d, 0.06, force, y[:3], y[3:]))
         handle = y[:3]
@@ -58,13 +58,18 @@ def test_belief_starts_uniform_over_types():
     assert b.type_entropy() == pytest.approx(np.log(3))
 
 
-def test_noise_model_outlier_component_bounds_penalty():
+def test_noise_widens_with_predicted_motion_only():
     nm = NoiseModel()
-    y = np.zeros((1, 6))
-    far = np.full((1, 6), 0.05)
-    # A 5 cm / 3 deg miss is heavily penalised but not infinitely so.
-    assert np.isfinite(nm.loglik(far, y)).all()
-    assert nm.loglik(y, y)[0] - nm.loglik(far, y)[0] > 10
+    start = np.zeros((1, 6))
+    still = np.zeros((1, 6))
+    moved = np.array([[0.05, 0, 0, 0, 0, 0]])
+    # Predicting no motion keeps the tight sensor-level width ...
+    assert np.allclose(nm.sigma_for(still, start), nm.sigma)
+    # ... so a "no motion" hypothesis is crushed by an observed 5 cm displacement.
+    assert nm.loglik(still, moved, start)[0] < nm.loglik(moved, moved, start)[0] - 50
+    # A hypothesis that predicts the motion tolerates a 15% error in its magnitude.
+    near = moved * 1.15
+    assert nm.loglik(near, moved, start)[0] > nm.loglik(moved, moved, start)[0] - 3
 
 
 @pytest.mark.parametrize("kind", [FIXED, PRISMATIC, REVOLUTE])

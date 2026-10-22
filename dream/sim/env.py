@@ -8,6 +8,7 @@ exist for evaluation and tests, and the agent must not call them.
 
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass
 
 import mujoco
@@ -117,6 +118,21 @@ class MechanismEnv:
         self._hold(self._ee_local(), 0.3)
         return ProbeResult(probe=probe, before=before, after=after, trajectory=traj)
 
+    def follow_path(
+        self, targets: list[np.ndarray], max_force: float, seconds_per_target: float = 0.1
+    ) -> Observation:
+        """Drag the gripped handle through a sequence of world-frame gripper targets."""
+        if not self.grasped:
+            raise RuntimeError("follow_path requires a successful grasp first")
+        self._set_force_limit(max_force)
+        start = self._ee_local()
+        for target in targets:
+            goal = np.asarray(target, dtype=float) - EE_HOME
+            self._ramp(start, goal, seconds_per_target)
+            start = goal
+        self._hold(start, 0.5)
+        return self.observe()
+
     # ----- privileged (evaluation / tests only) -----------------------------------------
 
     def privileged_joint_position(self) -> float:
@@ -127,6 +143,13 @@ class MechanismEnv:
 
     def privileged_spec(self) -> MechanismSpec:
         return self._spec
+
+    def privileged_fork(self, rng: np.random.Generator) -> MechanismEnv:
+        """Independent copy of the current physical state, for "what would happen if" scoring."""
+        twin = MechanismEnv(self._spec, rng, self.noise)
+        twin.data = copy.copy(self.data)
+        twin._initial_handle = self._initial_handle.copy()
+        return twin
 
     # ----- internals ------------------------------------------------------------------
 
