@@ -327,6 +327,98 @@ goal, controller, skills and sensing for each method.
 - In the starved maximum-speed mode (`--rate 0`), one of 20 runs stalled during a grasp lift,
   and the cause is not yet understood.
 
+### Discovery as a tool on the Panda (`results/compartment`)
+
+Goal `in red compartment`: a closed box whose mechanism is hidden (drawer, lid or fixed). The
+runtime finds the compartment inaccessible, calls `investigate_physics` (the gantry's belief and
+EIG, executed as compliant Panda probes), opens along the learned constraint or declines, then
+picks, places and verifies, in one continuous simulation.
+
+- 30 held-out scenes per kind (seeds 5000–5029, disjoint from development seeds 0–9 and
+  100–109), paired across methods.
+- All methods share the robot, skills, sensing (oracle-assisted trackers), the 104-probe
+  candidate set, a 12-probe budget and the 15 N force cap.
+- Success is the cube inside the cavity by ground truth.
+- An interaction is one compliant motion of the gripped handle: a probe, an opening segment or
+  a straight pull.
+
+| | DREAM (EIG) | random probing | fixed pull (no discovery) |
+|---|---|---|---|
+| Drawers | 27/30 | 27/30 | 28/30 |
+| Lids | 27/30 | 26/30 | 0/30 |
+| Openable, Wilson 95% | **54/60 [80, 95]** | 53/60 [78, 94] | 28/60 [35, 59] |
+| Fixed boxes declined | **30/30** [89, 100] | 30/30 (28 as "not identified" after 12 probes) | 0/30 (pulls 3 times) |
+| Mean interactions, openable / fixed | 5.7 / 5.7 | 8.4 / 11.9 | 2.0 / 3.0 |
+| Successes per 10 interactions (openable) | 1.58 [1.42, 1.74] | 1.05 [0.91, 1.19] | **2.33** [1.54, 3.37] |
+| Correct outcomes per 10 interactions (all scenes) | **1.64** | 0.96 | 1.33 |
+| False success claims | 0 | 0 | 0 |
+
+- **Gates** (pre-registered in `experiments/configs/compartment.json`), all passed:
+  - openable success ≥ 80% (90%);
+  - fixed-box rejection ≥ 90% (100%);
+  - zero false claims.
+- **DREAM vs random:** the same success (McNemar p = 1.0) with 2.7 fewer interactions per
+  openable box (paired 95% CI [2.1, 3.4]).
+- **DREAM vs fixed pull:** 28 vs 2 discordant successes (p = 9e-7).
+- **The primary metric does not favour DREAM.** On openable boxes, the fixed pull has the most
+  successes per interaction, because a drawer opens with one pull. DREAM leads only when lids and
+  fixed boxes count: its "correct outcomes per interaction" includes correct refusals.
+- **Identification:**
+  - drawers 29/30 (one investigation stopped unsafe), lids 30/30, fixed 30/30;
+  - median axis error 1.0° (drawers) and 2.1° (lids);
+  - about 3 probes per openable box and 5.7 per fixed box.
+- **DREAM's six failures are all protective stops:**
+  - four hand or arm contacts near the open container while picking or placing (the motions
+    are not collision-aware);
+  - one during probing;
+  - one stop latched by the handle release after an opening that the tool still reported as
+    successful. This was a reporting defect, since fixed with a regression test.
+- The run was launched at `029bd63`; see `sha_note` in `summary.json`.
+
+**Shift and challenge runs.** Pre-registered, report-only, single method (DREAM), at `7e7c178`:
+
+| Condition | Result | Reading |
+|---|---|---|
+| Parameter shift: friction 3–5 N (dev 0.5–3), front yaw ±35° (dev ±15°) | drawers 10/10, lids 10/10, fixed declined 10/10, 0 false claims | the frozen thresholds transferred to this shift |
+| Out of model class: return spring (60 N/m) closes the part | 0/16 success, 0 false claims, **0/16 flagged inadequate** (all "identified") | the Panda adequacy check (0.59) showed no detection power here; the agent fails after 3 openings without knowing why |
+| Original bar handle | drawers 8/8, lids 5/8 (two release stops, one 40 N stop) | the knob simplification matters for lids, though it does not decide them |
+| Original 7 cm cavity | drawers 8/8, lids 6/8 true but only 3 claimed (stops after placing) | placement is not collision-aware; the 5 cm cavity hides this |
+| Gravity-loaded lid (no counterbalance) | 8/8 | lids opened to about 1.3–1.6 rad stay open under joint friction |
+| Menagerie shoulder armature 0.1 | drawers 8/10 (one grasp failure, one 40 N stop) | no stall observed |
+
+**Shoulder-singularity stress test** (`results/shoulder_singularity_stress`). 40 motions from
+folded poses near the base through the travel height, at armatures 0.1, 0.2, 0.3 and 0.5 kg m²:
+**0 stalls at every value, including Menagerie's 0.1**. The stall seen once in development has
+not been reproduced beyond that one trajectory, so the armature change is not shown to be
+necessary (see the audit).
+
+### Audit of milestone-11 changes
+
+Each change that affects task success, classified per `AGENTS.md` Rule 3. The original
+conditions remain available as parameters (`CompartmentSpec.handle`, `cavity_height`,
+`counterbalanced`, `return_stiffness`; `TabletopEnv(shoulder_armature=...)`).
+
+| Change | Class | Evidence / open |
+|---|---|---|
+| Gripper servo ×10 stiffer (about 2 N → about 20 N on a cube) | Physically justified calibration | The Franka Hand grips up to 70 N; tests. Still a position servo, not force control. |
+| Net wrist-force estimate; two-stage finger close | General correction | `tests/test_panda.py` |
+| Spherical knob instead of a bar handle | **Environment simplification** | Bar challenge: lids 5/8, drawers 8/8. Open: grasps that follow a rotating handle. |
+| Cavity 7 → 5 cm | **Environment simplification** | Deep challenge: 3/8 lids claimed. Open: collision-aware placement. |
+| Counterbalanced lid | **Environment simplification** (from the start) | Gravity challenge 8/8 at the opening angles reached |
+| Shoulder armature 0.1 → 0.3 kg m² | **Unverified workaround** | Stall not reproduced at 0.1 in 40 stress motions; 8/10 full drawer tasks at 0.1. Neither necessity nor harm shown. |
+| Panda adequacy threshold 0.59 | Calibration by the frozen development procedure | No false alarms in 90 held-out and 30 shifted scenes; **no detection shown** on the out-of-class spring (0/16) |
+| P(fixed) ≥ 0.99 to declare fixed | Task-specific decision heuristic (asymmetric cost) | Held-out 30/30 declined, 0/60 openable declined; shift 10/10 and 0/20 |
+| Opening deviation tolerance 2 cm + 10% of travel | Heuristic tolerance | No false stops held-out or shifted. Its ability to catch a wrong model is untested. |
+| Place yaw aligned with the container's front face | Task-specific heuristic | Deep-cavity lids still fail. Open: general collision-aware placement. |
+| Release retreat toward 0.5 m radius | Heuristic | Development failures only |
+| Open only until the opening is wide enough | General (task-directed stopping from perception) | n/a |
+| Failed release fails the opening | General correction | Regression test |
+| Cubes kept out of the drawer's path and in the validated workspace | **Environment simplification** | The agent does not reason about objects blocking an opening |
+| Drawer- or lid-specific code | None in planning or discovery: segment sizes depend on the *learned* joint class. The fixed-pull baseline is a drawer strategy by definition. | `dream/runtime`, `dream/tools/discovery.py` |
+
+**Stale results.** `results/pick_place` and `results/tasks` predate the gripper, armature and
+floor-height changes and have not been rerun at the current code.
+
 ## Limitations (read before citing any number)
 
 - **No camera perception, anywhere.** Mechanism handle poses and tabletop object poses come
@@ -338,8 +430,9 @@ goal, controller, skills and sensing for each method.
 - **Panda scope.**
   - Cubes of one size, one tray fixture, top-down grasps only.
   - The rule-based planner covers two goal types plus obstruction clearing.
-  - The gripper's grip force is low (about 2 N, Menagerie's actuator range), which is fine for
-    50 g cubes but untested for heavier objects.
+  - The gripper is a position servo stiffened ×10 (about 20 N on a cube), not force-controlled.
+  - Compartment opening covers one drawer and lid family on a narrowed scene (see the audit).
+    Out-of-class mechanisms are not detected on the Panda.
 - **Simplified contact (discovery gantry only).** That grasp is an ideal ball-joint
   constraint, the mechanism has no collision geometry (joint limits act as stops), and panels
   are gravity-compensated. The Panda's grasps use real finger contact.
