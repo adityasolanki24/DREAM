@@ -134,3 +134,27 @@ def test_fit_check_separates_in_class_from_out_of_class_data():
         fits[name] = b.fit_check()["chi2_per_dof"]
     assert fits["clean"] < 1.0
     assert fits["lifted"] > 2 * fits["clean"]
+
+
+def test_geometric_prior_downweights_inward_opening_by_the_set_factor():
+    rng = np.random.default_rng(0)
+    uniform, soft = Prior(GEO), Prior(GEO, inward_weight=0.1)
+    assert np.allclose(soft.front_normal(), [0, -1, 0])
+    for kind in (PRISMATIC, REVOLUTE):
+        f = uniform.opens_inward(uniform.sample(kind, 20000, rng)).mean()
+        g = soft.opens_inward(soft.sample(kind, 20000, rng)).mean()
+        expected = 0.1 * f / (0.1 * f + (1 - f))
+        assert g == pytest.approx(expected, abs=0.02)
+        assert soft.in_support(soft.sample(kind, 500, rng)).all()
+
+
+def test_evidence_overturns_geometric_prior_for_an_inward_drawer():
+    """A drawer that pushes *into* the cabinet is still identified despite the prior."""
+    truth = _truth(PRISMATIC)
+    truth.axis[:] = [0, 1, 0]
+    rng = np.random.default_rng(2)
+    b = Belief(GEO, np.random.default_rng(3), n_particles=600, prior=Prior(GEO, inward_weight=0.1))
+    for rec in _simulate_records(truth, PROBES, rng):
+        b.update(rec)
+    assert b.map_type() == PRISMATIC and b.type_probs()[PRISMATIC] > 0.9
+    assert np.dot(b.estimate(PRISMATIC)["axis"], [0, 1, 0]) > 0.98

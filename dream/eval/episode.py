@@ -11,7 +11,7 @@ import time
 
 import numpy as np
 
-from dream.agent.belief import Belief, make_record
+from dream.agent.belief import Belief, Prior, make_record
 from dream.agent.exploration import predict_for_probes
 from dream.agent.model import TYPE_NAMES, relative_rotvec
 from dream.agent.operate import TASK_GOAL, plan_opening
@@ -19,6 +19,16 @@ from dream.eval.metrics import score_belief
 from dream.sim.env import MechanismEnv
 from dream.sim.mechanisms import MechanismSpec
 from dream.types import Probe
+
+
+def _obs_dict(obs) -> dict:
+    return {
+        "time": obs.time,
+        "handle_pos": obs.handle_pos.round(6).tolist(),
+        "handle_quat": obs.handle_quat.round(6).tolist(),
+        "ee_pos": obs.ee_pos.round(6).tolist(),
+        "ee_force": obs.ee_force.round(4).tolist(),
+    }
 
 
 def heldout_probes(rng: np.random.Generator, n: int = 6) -> list[Probe]:
@@ -66,6 +76,7 @@ def run_episode(
     evaluate: bool = True,
     on_step=None,
     env_hook=None,
+    prior_kwargs: dict | None = None,
 ) -> dict:
     """Run ``budget`` probes chosen by ``selector`` and return a JSON-serialisable log.
 
@@ -82,7 +93,8 @@ def run_episode(
     if not env.grasp():
         raise RuntimeError("could not grasp the handle")
     q_ref = env.observe().handle_quat
-    belief = Belief(geometry, agent_rng, n_particles=n_particles)
+    prior = Prior(geometry, **(prior_kwargs or {}))
+    belief = Belief(geometry, agent_rng, n_particles=n_particles, prior=prior)
     tests = heldout_probes(np.random.default_rng([seed, 3]))
 
     def evaluate_now() -> dict:
@@ -124,6 +136,8 @@ def run_episode(
                     "distance": probe.distance,
                     "max_force": probe.max_force,
                 },
+                "obs_before": _obs_dict(result.before),
+                "obs_after": _obs_dict(result.after),
                 "observed_displacement_m": float(
                     np.linalg.norm(result.after.handle_pos - result.before.handle_pos)
                 ),
@@ -153,5 +167,6 @@ def run_episode(
             "upper": spec.upper_limit,
             "friction": spec.friction,
         },
+        "mjcf": env.mjcf,
         "steps": steps,
     }

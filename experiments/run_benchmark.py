@@ -58,6 +58,7 @@ def _job(args: tuple) -> dict:
         budget=cfg["budget"],
         seed=1000 * cfg["seed"] + mech_seed,
         n_particles=cfg["n_particles"],
+        prior_kwargs=cfg.get("prior", {}),
     )
     log["mechanism_seed"] = mech_seed
     log["wall_s"] = time.perf_counter() - t0

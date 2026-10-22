@@ -17,7 +17,15 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from dream.agent.model import FIXED, PRISMATIC, REVOLUTE, TYPE_NAMES, Hypotheses, predict_outcome
+from dream.agent.model import (
+    FIXED,
+    PRISMATIC,
+    REVOLUTE,
+    TYPE_NAMES,
+    Hypotheses,
+    predict_outcome,
+    tangent,
+)
 from dream.types import PartGeometry
 
 # chi2/dof above which the model class is declared inadequate. Calibrated on development
@@ -74,13 +82,21 @@ class NoiseModel:
 
 @dataclass(frozen=True)
 class Prior:
-    """Uninformative prior over hypotheses, given only the visible part geometry."""
+    """Prior over hypotheses given only the visible part geometry.
+
+    By default it is uniform: any axis direction, any hinge line near the panel. With
+    ``inward_weight < 1``, hypotheses whose opening motion goes *into* the cabinet (against the
+    front face, which is identified from the side the handle sticks out of) get that relative
+    weight. This geometric prior encodes "a solid cabinet sits behind the panel". It is soft,
+    never zero, so physics evidence can overturn it, as the report requires.
+    """
 
     geometry: PartGeometry
     prismatic_upper: tuple[float, float] = (0.05, 0.4)  # m
     revolute_upper: tuple[float, float] = (0.3, 2.0)  # rad
     friction: tuple[float, float] = (0.0, 5.0)  # N
     origin_margin: float = 0.1  # m beyond the panel in x and z, and in front of or behind it in y
+    inward_weight: float = 1.0  # relative weight of hypotheses that open into the cabinet
 
     def _origin_box(self) -> tuple[np.ndarray, np.ndarray]:
         c, half = self.geometry.panel_center, self.geometry.panel_half_extents
@@ -92,7 +108,39 @@ class Prior:
     def _upper_range(self, kind: int) -> tuple[float, float]:
         return self.prismatic_upper if kind == PRISMATIC else self.revolute_upper
 
+    def front_normal(self) -> np.ndarray:
+        """Outward normal of the panel's front face (the side the handle protrudes from)."""
+        g = self.geometry
+        thin = int(np.argmin(g.panel_half_extents))
+        n = np.zeros(3)
+        n[thin] = np.sign((g.handle_pos - g.panel_center)[thin])
+        return n
+
+    def opens_inward(self, h: Hypotheses) -> np.ndarray:
+        """Where the closed-state opening direction points >~6 deg into the cabinet."""
+        h0 = np.broadcast_to(self.geometry.handle_pos, h.axis.shape)
+        t0 = tangent(h, h0)
+        t0 = t0 / np.maximum(np.linalg.norm(t0, axis=-1, keepdims=True), 1e-12)
+        return (h.kind != FIXED) & (t0 @ self.front_normal() < -0.1)
+
+    def log_density(self, h: Hypotheses) -> np.ndarray:
+        """Unnormalised log prior density within one type (-inf outside the support)."""
+        lp = np.where(self.opens_inward(h), np.log(self.inward_weight), 0.0)
+        return np.where(self.in_support(h), lp, -np.inf)
+
     def sample(self, kind: int, n: int, rng: np.random.Generator) -> Hypotheses:
+        """Exact draws: uniform proposals, accepted with probability exp(log_density)."""
+        if self.inward_weight >= 1.0:
+            return self._sample_uniform(kind, n, rng)
+        parts, have = [], 0
+        while have < n:
+            cand = self._sample_uniform(kind, 2 * n, rng)
+            keep = np.log(rng.uniform(size=2 * n)) < self.log_density(cand)
+            parts.append(cand.take(np.flatnonzero(keep)))
+            have += int(keep.sum())
+        return Hypotheses.concat(parts).take(np.arange(n))
+
+    def _sample_uniform(self, kind: int, n: int, rng: np.random.Generator) -> Hypotheses:
         axis = rng.normal(size=(n, 3))
         axis /= np.linalg.norm(axis, axis=1, keepdims=True)
         lo, hi = self._origin_box()
@@ -203,10 +251,12 @@ class TypeFilter:
         p = self.particles
         for _ in range(steps):
             prop = self._propose(p)
-            ok = self.prior.in_support(prop)
+            lp_prop = self.prior.log_density(prop)
+            ok = np.isfinite(lp_prop)
             ll_hist_prop = log_likelihood(prop, history, h0, noise) if history else 0.0 * ok
             ll_new_prop = log_likelihood(prop, [record], h0, noise)
             log_ratio = (ll_hist_prop + beta * ll_new_prop) - (self.ll_hist + beta * ll_new)
+            log_ratio = log_ratio + np.where(ok, lp_prop - self.prior.log_density(p), 0.0)
             accept = ok & (np.log(self.rng.uniform(size=len(ok))) < log_ratio)
             self.mh_acceptance.append(float(accept.mean()))
             p = _where(accept, prop, p)
