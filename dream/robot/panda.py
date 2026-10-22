@@ -94,6 +94,7 @@ class PandaController:
         self.stop_reason = ""
         self.peak_contact_force = 0.0
         self.peak_finger_force = 0.0
+        self.stop_contact_body: str | None = None
         self.external_force = np.zeros(3)  # N, net force of the world on hand + fingers
         self.filtered_force = np.zeros(3)  # N, first-order low-pass of external_force
         self.external_torque = np.zeros(3)  # N m about the TCP
@@ -216,6 +217,7 @@ class PandaController:
         torque = np.zeros(3)
         tcp = self.d.site_xpos[self.tcp]
         f6 = np.zeros(6)
+        strongest, strongest_body = 0.0, -1  # the world body pressing hardest on the hand
         for i in range(self.d.ncon):
             c = self.d.contact[i]
             b1 = self.m.geom_bodyid[c.geom1]
@@ -232,6 +234,8 @@ class PandaController:
                 f_robot = -f_world if robot1 else f_world
                 hand += f_robot
                 torque += np.cross(c.pos - tcp, f_robot)
+                if abs(f6[0]) > strongest:
+                    strongest, strongest_body = abs(f6[0]), b2 if robot1 else b1
             else:
                 links += abs(f6[0])
         self.peak_contact_force = max(self.peak_contact_force, links)
@@ -250,6 +254,10 @@ class PandaController:
         elif fingers > lim.max_finger_force:
             self.protective_stop = True
             self.stop_reason = f"hand external force {fingers:.0f} N > {lim.max_finger_force:.0f} N"
+            # Diagnostics for evaluation only; never reported through the Embodiment interface.
+            self.stop_contact_body = mujoco.mj_id2name(
+                self.m, mujoco.mjtObj.mjOBJ_BODY, strongest_body
+            )
 
     # ----- proprioception -----------------------------------------------------------------
 

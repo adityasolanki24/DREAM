@@ -55,7 +55,11 @@ TOOL_SPECS: list[dict] = [
         "description": "Pick up a named object from above. Requires an empty gripper.",
         "parameters": {"object": {"type": "string", "required": True}},
     },
-    {"name": "release", "description": "Open the gripper.", "parameters": {}},
+    {
+        "name": "release",
+        "description": "Open the gripper (letting go of a held handle also backs off).",
+        "parameters": {},
+    },
     {
         "name": "place",
         "description": "Put the held object in a region ('tray'), on an object, or on 'table'.",
@@ -93,6 +97,8 @@ TOOL_SPECS: list[dict] = [
         "parameters": {
             "object": {"type": "string", "required": True},
             "strategy": {"type": "string", "required": False},
+            # m: stop as soon as the visible opening is at least this half width
+            "min_opening": {"type": "number", "required": False},
         },
     },
 ]
@@ -244,6 +250,8 @@ class Toolbox:
         return self._from_skill("grasp", r)
 
     def _release(self) -> ToolResult:
+        if self.held_handle() is not None:  # let go of a handle: leave compliance, back off
+            return self._from_skill("release", self._guard(art.release_handle))
         width = min(skills.OPEN_WIDTH, self.robot.state().gripper_width + skills.RELEASE_SLACK)
         r = self._guard(lambda rb: skills.set_gripper(rb, width))
         return self._from_skill("release", r)
@@ -262,7 +270,8 @@ class Toolbox:
         point = self.target_point(object, target)
         if point is None:
             return ToolResult("place", "rejected", f"unknown or unseen target '{target}'")
-        r = self._guard(lambda rb: skills.place(rb, self.perception, object, point))
+        yaw = self.container_place_yaw(target)
+        r = self._guard(lambda rb: skills.place(rb, self.perception, object, point, yaw=yaw))
         return self._from_skill("place", r)
 
     def _verify_goal(self, goal) -> ToolResult:
@@ -311,7 +320,9 @@ class Toolbox:
         status = "failed" if inv.status in ("unsafe", "failed") else "succeeded"
         return ToolResult(name, status, inv.reason, inv.summary())
 
-    def _open_articulated(self, object: str, strategy: str = "learned") -> ToolResult:
+    def _open_articulated(
+        self, object: str, strategy: str = "learned", min_opening: float | None = None
+    ) -> ToolResult:
         name = "open_articulated"
         if art.find_articulated(self.perception, object) is None:
             return ToolResult(name, "rejected", f"no articulated object '{object}' observed")
@@ -322,7 +333,11 @@ class Toolbox:
             if inv is None or not inv.opening_supported:
                 why = "not investigated" if inv is None else f"investigation: {inv.status}"
                 return ToolResult(name, "rejected", f"no supported opening strategy ({why})")
-            r = self._guard(lambda rb: discovery.open_learned(rb, self.perception, object, inv))
+            r = self._guard(
+                lambda rb: discovery.open_learned(
+                    rb, self.perception, object, inv, min_opening=min_opening
+                )
+            )
         elif strategy == "fixed_pull":
             r = self._guard(lambda rb: discovery.open_fixed_pull(rb, self.perception, object))
         else:
@@ -330,6 +345,32 @@ class Toolbox:
         return self._from_skill(name, r)
 
     # ----- helpers ------------------------------------------------------------------------
+
+    def container_place_yaw(self, target: str) -> float | None:
+        """Hand yaw for placing into an articulated container, or None to keep the current one.
+
+        The Panda hand is 20 cm wide along the finger axis but only 6 cm across. Lining the wide
+        axis up with the container's front face keeps it off a drawer's front panel and away
+        from a lid standing open at the back. The front is where the handle stuck out of the
+        box when first seen (closed), from the investigation, else from the current view.
+        """
+        inv = self.investigations.get(target)
+        if inv is not None and inv.belief is not None:
+            g = inv.belief.geometry
+            front = g.handle_pos - g.panel_center
+        else:
+            obs = art.find_articulated(self.perception, target)
+            if obs is None:
+                return None
+            front = obs.handle_pos - obs.box_centre
+        if np.linalg.norm(front[:2]) < 1e-3:
+            return None
+        # _down(yaw) closes the fingers along (-sin yaw, cos yaw): perpendicular to the front.
+        yaw = float(np.arctan2(front[1], front[0]))
+        current = skills.tcp_yaw(self.robot.state().tcp_quat)
+        options = yaw + np.arange(-3, 4) * np.pi
+        options = options[np.abs(options) <= 0.75 * np.pi]
+        return float(options[np.argmin(np.abs(options - current))])
 
     def held_handle(self) -> str | None:
         """Name of the articulated object whose handle the closed fingers are on, if any."""

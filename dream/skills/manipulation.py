@@ -236,11 +236,13 @@ def place(
     name: str,
     target: np.ndarray,
     release_clearance: float = 0.01,
+    yaw: float | None = None,
 ) -> SkillResult:
     """Lower the held object so its centre reaches ``target`` (+clearance), release, retreat.
 
     Success means the object was released near the target and stayed there. Whether the *task*
-    goal holds is for a separate verifier to decide.
+    goal holds is for a separate verifier to decide. ``yaw`` turns the hand (and the held
+    object with it) on the way, e.g. to keep the wide hand clear of a container's walls.
     """
     t0 = robot.state().time
     settle(robot)  # the hand-object offset below needs both readings from a still arm
@@ -252,7 +254,14 @@ def place(
     # The TCP-to-object offset is measured, not assumed: the grasp may not be centred.
     st = robot.state()
     offset = held.position - st.tcp_pos
-    yaw = tcp_yaw(st.tcp_quat)
+    if yaw is None:
+        yaw = tcp_yaw(st.tcp_quat)
+    else:  # the held object turns with the hand, so its offset from the TCP turns too
+        dyaw = yaw - tcp_yaw(st.tcp_quat)
+        cz, sz = np.cos(dyaw), np.sin(dyaw)
+        offset = np.array(
+            [cz * offset[0] - sz * offset[1], sz * offset[0] + cz * offset[1], offset[2]]
+        )
     tcp_goal = np.asarray(target, float) - offset + [0, 0, release_clearance]
     r = move_via_travel_height(robot, tcp_goal + [0, 0, APPROACH_ABOVE], yaw)
     if r.ok:

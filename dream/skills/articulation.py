@@ -32,6 +32,7 @@ HANDLE_OPENING = 0.045  # m: knob diameter + 10 mm per side
 APPROACH_ABOVE = 0.10  # m
 TRACKER_FRAMES = 10  # averaged per snapshot: a still handle, so noise drops by ~sqrt(10)
 PROBE_STIFFNESS = 300.0  # N/m
+COMFORT_RADIUS = 0.5  # m from the base: mid reach for the Panda at table height
 
 
 @dataclass
@@ -231,16 +232,18 @@ def pull_along(
 
 
 def release_handle(robot: Embodiment, back_off: float = 0.08) -> SkillResult:
-    """Open the fingers, leave compliant mode, and back off up and toward the robot base.
+    """Open the fingers, leave compliant mode, and back off upward and toward mid reach.
 
-    Straight up can be out of reach when a lid has carried the hand high and far, so the
-    retreat also comes back toward the base.
+    Straight up can be out of reach when a lid has carried the hand high and far, and a drawer
+    pulled out toward the robot leaves the elbow nearly folded. The retreat therefore also moves
+    radially toward ``COMFORT_RADIUS`` from the base.
     """
     t0 = robot.state().time
     set_gripper(robot, HANDLE_OPENING)
     robot.set_compliance(None)
     st = robot.state()
-    home = -st.tcp_pos * [1, 1, 0]
-    home /= max(np.linalg.norm(home), 1e-9)
-    r = move_to(robot, st.tcp_pos + back_off * (0.7 * home + [0, 0, 0.7]), tcp_yaw(st.tcp_quat))
+    r_xy = float(np.linalg.norm(st.tcp_pos[:2]))
+    radial = st.tcp_pos * [1, 1, 0] / max(r_xy, 1e-9)
+    shift = np.clip(COMFORT_RADIUS - r_xy, -0.7 * back_off, 0.7 * back_off)
+    r = move_to(robot, st.tcp_pos + radial * shift + [0, 0, back_off], tcp_yaw(st.tcp_quat))
     return _done(r, robot, t0)

@@ -28,6 +28,7 @@ PANDA_XML = (
     / "panda.xml"
 )
 GRIP_STIFFNESS_SCALE = 10.0
+SHOULDER_ARMATURE = 0.3  # kg m^2 on joints 1-4 (Menagerie: 0.1)
 TCP_OFFSET = 0.1034  # m from the hand frame to the centre of the fingertip pads
 COLORS = {
     "red": (0.85, 0.15, 0.15, 1.0),
@@ -119,6 +120,13 @@ def build_model(spec: TabletopSpec) -> mujoco.MjModel:
     grip.gainprm[0] *= GRIP_STIFFNESS_SCALE
     grip.biasprm[1] *= GRIP_STIFFNESS_SCALE
     grip.biasprm[2] *= GRIP_STIFFNESS_SCALE
+    # At the shoulder singularity (joint2 ~ 0) joints 1 and 3 are coaxial, and their opposing
+    # rotation moves only links 2-3: with Menagerie's 0.1 kg m^2 armature that mode fell into a
+    # limit cycle against the 87 N m force clamp (both joints saturated in opposite directions
+    # at ~0.7 rad/s, the hand stalled). 0.3 kg m^2 escaped it in every case measured. Reflected
+    # motor inertia is real on the Franka; its exact value is not identified here.
+    for i in range(1, 5):
+        s.joint(f"joint{i}").armature = SHOULDER_ARMATURE
     s.body("hand").add_site(
         name="tcp", pos=[0, 0, TCP_OFFSET], size=[0.005] * 3, rgba=[1, 0, 0, 0.5]
     )
@@ -186,13 +194,19 @@ def sample_compartment_scene(
     """A compartment with a hidden mechanism plus cubes placed clear of it, all in reach."""
     comp = sample_compartment(kind, rng, looks_like=looks_like)
     centre = np.array(comp.xy)
-    # Keep cubes off the box, its handle, the drawer's pull-out path and the lid's swing.
-    keep_out = comp.outer_half[0] + 0.12
+    c, s = np.cos(comp.yaw), np.sin(comp.yaw)
+    # Keep cubes off the box, its handle, the drawer's full pull-out path and the lid's swing,
+    # plus room for the fingers: a rectangle in the compartment's frame.
+    a = comp.outer_half[0]
+    x_lo, x_hi, y_half = -a - 0.08, a + 0.06 + 0.2 + 0.08, a + 0.08
     placed: list[ObjectSpec] = []
     for color in colors:
         for _ in range(2000):
-            xy = np.array([rng.uniform(0.3, 0.6), rng.uniform(-0.35, 0.35)])
-            if np.linalg.norm(xy - centre) < keep_out + 0.05:
+            (x0, x1), (y0, y1) = WORKSPACE_XY  # where pick and place were validated
+            xy = np.array([rng.uniform(x0, x1), rng.uniform(y0, y1)])
+            dx, dy = xy - centre
+            lx, ly = c * dx + s * dy, -s * dx + c * dy
+            if x_lo < lx < x_hi and abs(ly) < y_half:
                 continue
             if all(np.linalg.norm(xy - o.xy) >= 0.09 for o in placed):
                 break

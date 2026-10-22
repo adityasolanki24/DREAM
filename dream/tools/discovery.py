@@ -46,16 +46,24 @@ from dream.skills.manipulation import SkillResult
 from dream.types import Embodiment, PartGeometry, Perception
 
 CONFIDENCE = 0.95  # posterior probability of the most probable mechanism class
+# Declaring "fixed" ends the task, and four uninformative probes once gave a real drawer
+# P(fixed) = 0.96 (development scene), so that conclusion needs stronger evidence.
+FIXED_CONFIDENCE = 0.99
 AXIS_AGREEMENT = 0.98  # |weighted mean axis| over the class's particles (1 = all agree)
 N_PARTICLES = 600
 # chi2/dof above which Panda probe data count as unexplained. Calibrated like the gantry's
 # threshold, on in-class development scenes only (experiments/calibrate_panda_adequacy.py).
-PANDA_ADEQUACY_THRESHOLD = 0.28  # placeholder until calibration
+# results/panda_adequacy_calibration: max 0.471 over 317 checks (40 episodes) x 1.25.
+PANDA_ADEQUACY_THRESHOLD = 0.59
 PREDICTION_SAMPLES = 128
 SEGMENT = {PRISMATIC: 0.04, REVOLUTE: 0.25}  # m, rad of joint travel per opening segment
 MAX_SEGMENTS = 10
 STALL_FRACTION = 0.25  # a segment that advances less than this fraction has hit a limit
-DEVIATION_TOL = 0.02  # m off the believed constraint during opening: the model is wrong
+# Off the believed constraint by more than this during opening: the model is wrong. The
+# allowance grows with travel because parameter error compounds along a long arc (a lid's
+# knob travels ~0.3 m); measured deviations of correct models reached 21 mm.
+DEVIATION_TOL = 0.02  # m
+DEVIATION_PER_TRAVEL = 0.1  # m per m of handle travel from the closed position
 GRASP_MIN_WIDTH = 0.6 * 0.025  # m: fingers closing below this have lost the knob
 
 
@@ -246,7 +254,7 @@ def investigate(
 def _confident(belief: Belief) -> bool:
     p = belief.type_probs()
     k = int(np.argmax(p))
-    if p[k] < CONFIDENCE:
+    if p[k] < (FIXED_CONFIDENCE if k == FIXED else CONFIDENCE):
         return False
     return k == FIXED or float(belief.estimate(k)["axis_concentration"]) >= AXIS_AGREEMENT
 
@@ -329,8 +337,13 @@ def open_learned(
     name: str,
     inv: Investigation,
     safety: SafetyConstraints = DEFAULT_SAFETY,
+    min_opening: float | None = None,
 ) -> SkillResult:
-    """Open along the learned constraint in closed-loop segments, then release the handle."""
+    """Open along the learned constraint in closed-loop segments, then release the handle.
+
+    With ``min_opening`` (m), stop as soon as perception shows an opening of ``name`` at least
+    that wide (half width): no more travel, force or time than the task needs.
+    """
     belief = inv.belief
     if belief is None or not inv.opening_supported:
         return SkillResult(False, "no supported opening strategy for this object")
@@ -360,7 +373,8 @@ def open_learned(
         if robot.state().gripper_width < min(GRASP_MIN_WIDTH, width0 - 0.008):
             outcome = SkillResult(False, "grasp on the handle lost while opening")
             break
-        if deviation > DEVIATION_TOL:
+        tolerance = DEVIATION_TOL + DEVIATION_PER_TRAVEL * float(np.linalg.norm(after - belief.h0))
+        if deviation > tolerance:
             outcome = SkillResult(
                 False,
                 f"handle left the learned constraint by {deviation * 1000:.0f} mm: "
@@ -369,6 +383,9 @@ def open_learned(
             break
         if q_after - q_now < STALL_FRACTION * (q_goal - q_now):
             break  # at the opening limit (or blocked): stop pulling
+        seen = perception.fixtures().get(name)
+        if min_opening is not None and seen is not None and seen[1] >= min_opening:
+            break
     released = art.release_handle(robot)
     details = {
         "segments": log,

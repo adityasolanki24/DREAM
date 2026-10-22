@@ -95,7 +95,8 @@ def test_planner_investigates_then_opens_a_closed_container_before_grasping():
     )
     learned = _container_scene(objs, investigation=_inv("identified", "prismatic", True))
     assert p.next_action(goal, learned, unsat, []) == ToolCall(
-        "open_articulated", {"object": "box"}
+        "open_articulated",
+        {"object": "box", "min_opening": 0.05},  # 2 + 2.5 + 0.5 cm
     )
     too_small = {"box": {"centre": [0.6, 0, 0.008], "half_width": 0.03}}
     ajar = _container_scene(objs, too_small, _inv("identified", "prismatic", True))

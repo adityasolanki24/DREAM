@@ -25,7 +25,6 @@ import subprocess
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor
-from math import comb
 
 import mujoco
 import numpy as np
@@ -34,7 +33,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import dream.skills.manipulation as skills  # noqa: E402
-from dream.eval.adequacy import wilson_interval  # noqa: E402
+from dream.eval.adequacy import mcnemar_p, wilson_interval  # noqa: E402
 from dream.eval.manipulation import object_in_tray, object_on_top, safety_summary  # noqa: E402
 from dream.runtime.agent import RuleBasedPlanner, TaskAgent  # noqa: E402
 from dream.sim.tabletop import sample_tabletop  # noqa: E402
@@ -192,15 +191,6 @@ def episode(args: tuple) -> dict:
         **out,
         **safety_summary(env),
     }
-
-
-def mcnemar_p(b: int, c: int) -> float:
-    """Exact two-sided McNemar test on discordant pair counts."""
-    n = b + c
-    if n == 0:
-        return 1.0
-    k = min(b, c)
-    return min(1.0, 2 * sum(comb(n, i) for i in range(k + 1)) / 2**n)
 
 
 def summarise(eps: list[dict]) -> dict:

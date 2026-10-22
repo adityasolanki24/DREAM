@@ -8,7 +8,7 @@ does not make deployment decisions; it only scores validation experiments.
 from __future__ import annotations
 
 from collections.abc import Sequence
-from math import sqrt
+from math import comb, sqrt
 from statistics import median
 
 
@@ -20,6 +20,15 @@ def wilson_interval(k: int, n: int, z: float = 1.96) -> list[float]:
     centre = (p + z * z / (2 * n)) / (1 + z * z / n)
     half = z * sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / (1 + z * z / n)
     return [max(0.0, centre - half), min(1.0, centre + half)]
+
+
+def mcnemar_p(b: int, c: int) -> float:
+    """Exact two-sided McNemar test on discordant pair counts."""
+    n = b + c
+    if n == 0:
+        return 1.0
+    k = min(b, c)
+    return min(1.0, 2 * sum(comb(n, i) for i in range(k + 1)) / 2**n)
 
 
 def alert_flags(scores: Sequence[float], threshold: float, min_probes: int = 3) -> list[bool]:

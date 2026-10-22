@@ -62,6 +62,9 @@ class Planner(Protocol):
     ) -> Action: ...
 
 
+OPENING_MARGIN = 0.005  # m beyond the minimum accessible half width when opening a container
+
+
 @dataclass
 class RuleBasedPlanner:
     max_attempts: int = 3  # per action kind, before giving up
@@ -82,7 +85,11 @@ class RuleBasedPlanner:
                 return Finish(False, f"unknown region '{target}'")
             if holding is not None:  # free the gripper before operating the container
                 return ToolCall("place", {"object": holding, "target": "table"})
-            return self._make_accessible(target, scene, history)
+            size = next(o["size"] for o in scene["objects"] if o["name"] == goal.object)
+            need = round(size / 2 + WALL_CLEARANCE + OPENING_MARGIN, 4)
+            return self._make_accessible(target, need, scene, history)
+        if scene.get("holding_handle") is not None:  # accessible (e.g. probing opened it enough)
+            return ToolCall("release")
         if isinstance(goal, OnTop) and target not in names:
             return Finish(False, f"'{target}' is not visible")
         if verdict["satisfied"] and holding is None:
@@ -111,7 +118,9 @@ class RuleBasedPlanner:
             return Finish(False, "goal still not verified after repeated placements")
         return ToolCall("grasp", {"object": goal.object})
 
-    def _make_accessible(self, target: str, scene: dict, history: list[Step]) -> Action:
+    def _make_accessible(
+        self, target: str, need: float, scene: dict, history: list[Step]
+    ) -> Action:
         opens = sum(1 for s in history if s.call.name == "open_articulated")
         if self.opening == "fixed_pull":
             if opens >= self.max_attempts:
@@ -131,7 +140,7 @@ class RuleBasedPlanner:
             return Finish(False, _unsupported(target, inv))
         if opens >= self.max_attempts:
             return Finish(False, f"'{target}' still not accessible after {opens} openings")
-        return ToolCall("open_articulated", {"object": target})
+        return ToolCall("open_articulated", {"object": target, "min_opening": need})
 
 
 def _accessible(region: str, obj: str, scene: dict) -> bool:

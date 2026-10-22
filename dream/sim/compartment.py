@@ -25,7 +25,9 @@ import numpy as np
 KINDS = ("drawer", "lid", "fixed")
 INNER_HALF = 0.09  # m, cavity half width (x and y)
 WALL = 0.008  # m, wall and plate thickness
-CAVITY_HEIGHT = 0.07  # m, floor top to roof underside
+# m, floor top to roof underside. Rims must stay below the Panda hand housing, which is only
+# 37 mm above the TCP (a cube released 1 cm above the floor puts it 67 mm up); 7 cm hit it.
+CAVITY_HEIGHT = 0.05
 FLOOR = 0.006  # m, floor plate thickness (the drawer floor rides this high above the table)
 # A spherical knob on a central post, pinched with the fingers closing parallel to the front
 # face. Flat pads on a sphere touch at one point each, so the knob pivots freely about the
@@ -180,7 +182,7 @@ def add_compartment(s: mujoco.MjSpec, spec: CompartmentSpec) -> None:
             rgba=(0.5, 0.42, 0.3, 1),
             mass=0.3,
         )
-        inner_wall_h = (CAVITY_HEIGHT - 0.01) / 2
+        inner_wall_h = (CAVITY_HEIGHT - 0.01) / 2  # drawer walls stay 1 cm below the roof
         for side in (-1, 1):
             _box(
                 moving,
