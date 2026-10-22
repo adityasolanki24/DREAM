@@ -37,18 +37,22 @@ MIN_PROBES = 3  # fixed before running this validation, not optimized here
 def _job(args: tuple[str, int]) -> dict:
     family, index = args
     spec = sample_mechanism(family, np.random.default_rng([SEED, index, len(family)]))
-    log = run_episode(
+    scores = [0.0]  # step zero, before any probes
+    run_episode(
         spec,
         EIGSelector(candidate_probes()),
         BUDGET,
         seed=SEED * 100 + index + 1000 * len(family),
         evaluate=False,
+        on_step=lambda step, belief, info: scores.append(
+            belief.fit_check()["chi2_per_dof"]
+        ),
     )
     return {
         "family": family,
         "mechanism_index": index,
         "out_of_class": family == "rising_hinge",
-        "scores": [float(s["chi2_per_dof"]) for s in log["steps"]],
+        "scores": scores,
     }
 
 
