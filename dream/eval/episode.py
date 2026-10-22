@@ -51,7 +51,8 @@ def _try_operation(env, belief, rng) -> dict:
     if plan is None:
         return {"task_success": False, "declared_fixed": True}
     twin.follow_path(plan, max_force=15.0)
-    goal = TASK_GOAL[TYPE_NAMES.index(spec.joint_type)]
+    kind = TYPE_NAMES.index("revolute" if spec.joint_type == "screw" else spec.joint_type)
+    goal = TASK_GOAL[kind]
     q = twin.privileged_joint_position()
     return {"task_success": bool(q >= goal), "declared_fixed": False, "q_after_task": q}
 

@@ -20,6 +20,10 @@ import numpy as np
 from dream.agent.model import FIXED, PRISMATIC, REVOLUTE, TYPE_NAMES, Hypotheses, predict_outcome
 from dream.types import PartGeometry
 
+# chi2/dof above which the model class is declared inadequate. Calibrated on development
+# families only; see Belief.fit_check and experiments/calibrate_adequacy.py.
+ADEQUACY_THRESHOLD = float("inf")
+
 
 @dataclass(frozen=True)
 class Record:
@@ -244,6 +248,31 @@ def _where(mask: np.ndarray, a: Hypotheses, b: Hypotheses) -> Hypotheses:
     )
 
 
+def sq_residuals(
+    h: Hypotheses, records: list[Record], h0: np.ndarray, noise: NoiseModel
+) -> np.ndarray:
+    """Squared standardised residuals summed over the 6 observed dims. Shape (N, R)."""
+    n, r = len(h.kind), len(records)
+    tiled = h.take(np.tile(np.arange(n), r))
+    fields = {
+        f: np.repeat(
+            np.stack([np.atleast_1d(np.asarray(getattr(rec, f), float)) for rec in records]), n, 0
+        )
+        for f in ("handle_before", "ee_before", "direction", "distance", "max_force", "y_obs")
+    }
+    y_pred, _, y_start = predict_outcome(
+        tiled,
+        h0,
+        fields["handle_before"],
+        fields["ee_before"],
+        fields["direction"],
+        fields["distance"][:, 0],
+        fields["max_force"][:, 0],
+    )
+    z = (y_pred - fields["y_obs"]) / noise.sigma_for(y_pred, y_start)
+    return np.sum(z * z, axis=-1).reshape(r, n).T
+
+
 def log_likelihood(
     h: Hypotheses, records: list[Record], h0: np.ndarray, noise: NoiseModel
 ) -> np.ndarray:
@@ -281,7 +310,9 @@ class Belief:
         n_particles: int = 1000,
         noise: NoiseModel | None = None,
         prior: Prior | None = None,
+        adequacy_threshold: float = ADEQUACY_THRESHOLD,
     ) -> None:
+        self.adequacy_threshold = adequacy_threshold
         self.geometry = geometry
         self.h0 = np.asarray(geometry.handle_pos, dtype=float)
         self.noise = noise or NoiseModel()
@@ -319,6 +350,25 @@ class Belief:
 
     def map_type(self) -> int:
         return int(np.argmax(self.type_probs()))
+
+    def fit_check(self) -> dict:
+        """Goodness of fit of the best explanation: is the model class adequate?
+
+        Computes chi2/dof, the mean squared standardised residual of the best-fitting particle
+        of the most probable type over every record so far. The threshold is not the textbook
+        chi-square quantile: the noise model is deliberately generous, so in-class fits sit far
+        below 1. Instead the threshold is calibrated on development mechanism families
+        (experiments/calibrate_adequacy.py) and then frozen. Above it, no hypothesis in the
+        agent's model class explains the data, and the agent reports an unknown mechanism class
+        instead of trusting its belief.
+        """
+        if not self.history:
+            return {"chi2_per_dof": 0.0, "model_adequate": True}
+        f = self.filters[self.map_type()]
+        best = f.particles.take(np.array([int(np.argmax(f.ll_hist))]))
+        chi2 = float(sq_residuals(best, self.history, self.h0, self.noise).sum())
+        per_dof = chi2 / (6 * len(self.history))
+        return {"chi2_per_dof": per_dof, "model_adequate": per_dof <= self.adequacy_threshold}
 
     def summary(self) -> dict:
         """Human-readable posterior summary (type probabilities, best-type parameter means)."""

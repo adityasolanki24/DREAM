@@ -9,7 +9,8 @@ the chosen probe will do, and what actually happened. Outputs in results/demo/<f
                   (blue: hinge axes, orange: slide directions)
     summary.png   type posterior, predicted vs observed motion, held-out prediction error
     log.json      the full episode log
-Rendering needs MuJoCo offscreen GL (MUJOCO_GL=osmesa or egl). Use --no-render to skip it.
+Headless rendering uses OSMesa (apt install libosmesa6). --viewer opens MuJoCo's live viewer
+on a machine with a display. --no-render skips the GIF.
 """
 
 from __future__ import annotations
@@ -20,8 +21,9 @@ import os
 import pathlib
 import sys
 
-os.environ.setdefault("MUJOCO_GL", "osmesa")
-os.environ.setdefault("PYOPENGL_PLATFORM", os.environ["MUJOCO_GL"])
+if "DISPLAY" not in os.environ:  # headless: render offscreen with OSMesa
+    os.environ.setdefault("MUJOCO_GL", "osmesa")
+    os.environ.setdefault("PYOPENGL_PLATFORM", os.environ["MUJOCO_GL"])
 
 import matplotlib  # noqa: E402
 
@@ -47,9 +49,19 @@ def _hex_rgba(h: str, alpha: float) -> np.ndarray:
 
 
 class Recorder:
-    """Collects rendered frames with the agent's current hypotheses drawn into the scene."""
+    """Renders frames and/or drives a live viewer, with the agent's hypotheses drawn in."""
 
-    def __init__(self, width: int = 480, height: int = 360, every: int = 50) -> None:
+    def __init__(
+        self,
+        frames: bool = True,
+        live: bool = False,
+        width: int = 480,
+        height: int = 360,
+        every: int = 50,
+    ) -> None:
+        self.record_frames = frames
+        self.live = live
+        self.viewer = None
         self.size = (height, width)
         self.every = every
         self.renderer = None
@@ -63,12 +75,31 @@ class Recorder:
         self.n += 1
         if self.n % self.every:
             return
+        handle = data.site("handle").xpos.copy()
+        if self.live:
+            self._sync_viewer(model, data, handle)
+        if not self.record_frames:
+            return
         if self.renderer is None:
             self.renderer = mujoco.Renderer(model, *self.size)
         self.renderer.update_scene(data, camera="front")
         if self.hyps is not None:
-            self._draw_hypotheses(self.renderer.scene, data.site("handle").xpos.copy())
+            self._draw_hypotheses(self.renderer.scene, handle)
         self.frames.append((self.renderer.render().copy(), dict(self.caption)))
+
+    def _sync_viewer(self, model, data, handle: np.ndarray) -> None:
+        import time
+
+        import mujoco.viewer
+
+        if self.viewer is None:
+            self.viewer = mujoco.viewer.launch_passive(model, data)
+        with self.viewer.lock():
+            self.viewer.user_scn.ngeom = 0
+            if self.hyps is not None:
+                self._draw_hypotheses(self.viewer.user_scn, handle)
+        self.viewer.sync()
+        time.sleep(self.every * model.opt.timestep)  # roughly real time
 
     def _draw_hypotheses(self, scn, handle: np.ndarray) -> None:
         h = self.hyps
@@ -146,7 +177,8 @@ def main() -> None:
     ap.add_argument("--family", choices=sorted(FAMILIES), default=None)
     ap.add_argument("--strategy", choices=["eig", "random"], default="eig")
     ap.add_argument("--budget", type=int, default=6)
-    ap.add_argument("--no-render", action="store_true")
+    ap.add_argument("--no-render", action="store_true", help="skip the GIF")
+    ap.add_argument("--viewer", action="store_true", help="live MuJoCo viewer (needs a display)")
     args = ap.parse_args()
 
     rng = np.random.default_rng(args.seed)
@@ -156,7 +188,9 @@ def main() -> None:
     out.mkdir(parents=True, exist_ok=True)
     probes = candidate_probes()
     selector = EIGSelector(probes) if args.strategy == "eig" else RandomSelector(probes)
-    rec = None if args.no_render else Recorder()
+    rec = None
+    if not args.no_render or args.viewer:
+        rec = Recorder(frames=not args.no_render, live=args.viewer)
 
     def on_step(step, belief, info):
         text = _narrate(step, info, belief.history[-1].handle_before)

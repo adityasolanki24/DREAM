@@ -86,7 +86,10 @@ def test_relative_rotvec_roundtrip():
     assert np.allclose(relative_rotvec(q_ref, q), axis * angle)
 
 
-@pytest.mark.parametrize("family", sorted(FAMILIES))
+IN_CLASS = sorted(f for f, t in FAMILIES.items() if t != "screw")
+
+
+@pytest.mark.parametrize("family", IN_CLASS)
 def test_predictor_matches_mujoco_given_true_parameters(family):
     """Model validity: with the true hypothesis, settled predictions match the simulator.
 

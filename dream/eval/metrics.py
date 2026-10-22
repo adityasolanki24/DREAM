@@ -32,6 +32,18 @@ def score_belief(
     The thresholds are project engineering criteria, not published standards.
     """
     probs = belief.type_probs()
+    fit = belief.fit_check()
+    if spec.joint_type not in TYPE_NAMES:  # outside the agent's model class
+        return {
+            "p_true_type": None,
+            "map_correct": False,
+            "identified": False,
+            "type_entropy": belief.type_entropy(),
+            "max_type_prob": float(probs.max()),
+            "axis_err_deg": None,
+            "line_err_m": None,
+            **fit,
+        }
     true_kind = TYPE_NAMES.index(spec.joint_type)
     k = belief.map_type()
     out = {
@@ -40,6 +52,8 @@ def score_belief(
         "type_entropy": belief.type_entropy(),
         "axis_err_deg": None,
         "line_err_m": None,
+        "max_type_prob": float(probs.max()),
+        **fit,
     }
     geometry_ok = True
     if true_kind != FIXED:

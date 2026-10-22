@@ -103,3 +103,34 @@ def test_no_motion_under_weak_force_is_weak_evidence_for_fixed():
     for rec in _simulate_records(_truth(FIXED), PROBES[:3], rng, force=0.5):
         b.update(rec)
     assert b.type_probs()[FIXED] < 0.6
+
+
+def test_fit_check_separates_in_class_from_out_of_class_data():
+    """Data with an unmodelled helical lift must fit worse than data from the model class."""
+    rng = np.random.default_rng(3)
+    truth = _truth(REVOLUTE)
+    clean = _simulate_records(truth, PROBES, rng)
+    lifted = []
+    for rec in clean:
+        q = np.linalg.norm(rec.y_obs[3:])  # hinge angle (rotation about a unit axis)
+        y = rec.y_obs.copy()
+        y[2] += 0.05 * q  # 5 cm of lift per radian, like a rising-butt hinge
+        lifted.append(
+            make_record(
+                rec.handle_before,
+                rec.ee_before,
+                rec.direction,
+                rec.distance,
+                rec.max_force,
+                y[:3],
+                y[3:],
+            )
+        )
+    fits = {}
+    for name, records in (("clean", clean), ("lifted", lifted)):
+        b = Belief(GEO, np.random.default_rng(4), n_particles=600)
+        for rec in records:
+            b.update(rec)
+        fits[name] = b.fit_check()["chi2_per_dof"]
+    assert fits["clean"] < 1.0
+    assert fits["lifted"] > 2 * fits["clean"]
