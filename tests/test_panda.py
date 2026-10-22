@@ -87,3 +87,20 @@ def test_grasp_on_nothing_is_reported_as_a_miss():
     env = _env(seed=3)
     r = M.pick(env.embodiment(), _MisleadingPerception(env), "red")
     assert not r.ok and "missed" in r.reason
+
+
+def test_grip_is_firm_and_cancels_in_the_external_force_estimate():
+    """The stiffer grip squeezes ~20 N, yet the wrist-force estimate only sees the cube's weight
+    (the opposing finger forces cancel), so grasping is not mistaken for a collision."""
+    env = _env(seed=3)
+    assert M.pick(env.embodiment(), env, "red").ok
+    assert abs(env.data.actuator_force[7]) > 15.0
+    f = env.robot_state().external_force
+    assert abs(f[2] + 0.05 * 9.81) < 0.15 and np.linalg.norm(f[:2]) < 0.3
+
+
+def test_off_centre_close_does_not_trip_the_safety_stop():
+    """Regression (seed 31): closing straight to full force shoved the cube with one finger."""
+    env = TabletopEnv(sample_tabletop(np.random.default_rng(31)), np.random.default_rng(1031))
+    r = M.pick(env.embodiment(), env, "blue")
+    assert r.ok, r.reason

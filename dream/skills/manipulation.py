@@ -23,6 +23,7 @@ APPROACH_ABOVE = 0.08  # m above the grasp/place point before the final descent
 POS_TOL = 0.004  # m
 ROT_TOL = np.deg2rad(3.0)
 OPEN_WIDTH = 0.08  # m, fully open
+PRE_SQUEEZE = 0.008  # m below the expected width for the gentle first closing stage
 GRASP_SLACK = 0.03  # m of total opening beyond the object's width before grasping
 RELEASE_SLACK = 0.012  # m beyond the held width when releasing (wide openings hit walls/neighbours)
 
@@ -144,6 +145,17 @@ def settle(robot: Embodiment, timeout: float = 1.0, max_joint_speed: float = 0.0
     )
 
 
+def close_on(robot: Embodiment, expected_width: float) -> float:
+    """Two-stage close: gentle squeeze to just under the expected width, then full grip.
+
+    Closing straight to full force lets the first finger to touch shove the object against the
+    table before the other finger arrives. With the stiff gripper this produced a 40 N
+    one-sided load and a protective stop. Returns the measured finger opening.
+    """
+    set_gripper(robot, max(0.0, expected_width - PRE_SQUEEZE))
+    return set_gripper(robot, 0.0).details["width"]
+
+
 def move_via_travel_height(robot: Embodiment, pos: np.ndarray, yaw: float) -> SkillResult:
     """Rise, translate at travel height, then descend: avoids sweeping through other objects."""
     st = robot.state()
@@ -185,7 +197,7 @@ def pick(robot: Embodiment, perception: Perception, name: str) -> SkillResult:
         r = move_to(robot, np.asarray(wp, float), yaw, tol=tol)
         if not r.ok:
             return _done(r, robot, t0)
-    width = set_gripper(robot, 0.0).details["width"]
+    width = close_on(robot, obj.size)
     if width < 0.5 * obj.size:
         set_gripper(robot, OPEN_WIDTH)
         return _done(

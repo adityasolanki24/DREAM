@@ -26,6 +26,7 @@ PANDA_XML = (
     / "franka_emika_panda"
     / "panda.xml"
 )
+GRIP_STIFFNESS_SCALE = 10.0
 TCP_OFFSET = 0.1034  # m from the hand frame to the centre of the fingertip pads
 COLORS = {
     "red": (0.85, 0.15, 0.15, 1.0),
@@ -106,6 +107,14 @@ def build_model(spec: TabletopSpec) -> mujoco.MjModel:
 
     for name in ROBOT_BODIES:  # Franka controllers compensate gravity internally; so do we
         s.body(name).gravcomp = 1.0
+    # Menagerie's gripper is a soft position servo (kp 100 N/m on the finger tendon): it squeezes
+    # ~2 N on a 4 cm cube, too little to pull a handle against joint friction. A real Franka Hand
+    # grips with up to 70 N. Stiffen the servo x10 here (~20 N on a cube); the vendored file is
+    # unchanged.
+    grip = s.actuator("actuator8")
+    grip.gainprm[0] *= GRIP_STIFFNESS_SCALE
+    grip.biasprm[1] *= GRIP_STIFFNESS_SCALE
+    grip.biasprm[2] *= GRIP_STIFFNESS_SCALE
     s.body("hand").add_site(
         name="tcp", pos=[0, 0, TCP_OFFSET], size=[0.005] * 3, rgba=[1, 0, 0, 0.5]
     )

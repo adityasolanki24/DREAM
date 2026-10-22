@@ -88,6 +88,7 @@ class RobotState:
     gripper_command: float  # m, commanded opening
     protective_stop: bool
     stop_reason: str = ""
+    external_force: np.ndarray = field(default_factory=lambda: np.zeros(3))  # N, world frame
 
 
 @dataclass(frozen=True)

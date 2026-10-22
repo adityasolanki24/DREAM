@@ -41,7 +41,7 @@ class SafetyLimits:
     max_linear_speed: float = 0.25  # m/s
     max_angular_speed: float = 1.0  # rad/s
     max_contact_force: float = 80.0  # N, total normal force on robot links (excludes fingers)
-    max_finger_force: float = 40.0  # N, total external normal force on the fingers (grip ~2 N)
+    max_finger_force: float = 40.0  # N, net external force on hand + fingers (grip cancels)
 
 
 class PandaController:
@@ -50,6 +50,7 @@ class PandaController:
     INTEGRATION_DT = 0.05  # s, lead time of the joint target (Menagerie diffik convention)
     DAMPING = 1e-2  # DLS damping (lambda^2)
     MAX_JOINT_SPEED = 1.5  # rad/s, joint-space cap on the IK velocity
+    FORCE_FILTER = 0.05  # per-step low-pass coefficient for the external force (~40 ms at 2 ms)
     NULL_GAIN = 0.5
 
     def __init__(
@@ -64,7 +65,7 @@ class PandaController:
         self.tcp = model.site("tcp").id
         self.finger_q = [model.joint(f"finger_joint{i}").qposadr[0] for i in (1, 2)]
         self.robot_bodies = {model.body(b).id for b in ROBOT_BODIES}
-        self.finger_bodies = {model.body(b).id for b in ("left_finger", "right_finger")}
+        self.hand_bodies = {model.body(b).id for b in ("hand", "left_finger", "right_finger")}
         self.ctrl_lo = model.actuator_ctrlrange[self.arm_act, 0]
         self.ctrl_hi = model.actuator_ctrlrange[self.arm_act, 1]
         self.target_pos: np.ndarray | None = None
@@ -74,6 +75,8 @@ class PandaController:
         self.stop_reason = ""
         self.peak_contact_force = 0.0
         self.peak_finger_force = 0.0
+        self.external_force = np.zeros(3)  # N, net force of the world on hand + fingers
+        self.filtered_force = np.zeros(3)  # N, first-order low-pass of external_force
 
     # ----- commands -------------------------------------------------------------------
 
@@ -146,8 +149,15 @@ class PandaController:
         return dq
 
     def _monitor_contacts(self) -> None:
-        """Latch a protective stop if links, or the fingers, press on anything too hard."""
-        links = fingers = 0.0
+        """Estimate the external force on the hand and latch a protective stop if needed.
+
+        Links: the summed normal-force magnitude of their contacts with the world (> 80 N stops).
+        Hand and fingers: the *net* force vector on them from the world, which is what a wrist
+        force/torque sensor (or Franka's external-wrench estimate) measures. The two fingers'
+        opposing grip forces cancel in it, so a firm grasp is not mistaken for a collision.
+        """
+        links = 0.0
+        hand = np.zeros(3)
         f6 = np.zeros(6)
         for i in range(self.d.ncon):
             c = self.d.contact[i]
@@ -157,11 +167,18 @@ class PandaController:
             if robot1 == robot2:  # robot self-contact is excluded by the model; ignore world-world
                 continue
             mujoco.mj_contactForce(self.m, self.d, i, f6)
-            if (b1 if robot1 else b2) in self.finger_bodies:
-                fingers += abs(f6[0])  # fingers are meant to touch things, up to a limit
+            body = b1 if robot1 else b2
+            if body in self.hand_bodies:
+                # mj_contactForce is in the contact frame (rows: normal, tangents), and it is the
+                # force geom1 exerts on geom2. Convert it to the force on the robot body.
+                f_world = c.frame.reshape(3, 3).T @ f6[:3]
+                hand += -f_world if robot1 else f_world
             else:
                 links += abs(f6[0])
         self.peak_contact_force = max(self.peak_contact_force, links)
+        self.external_force = hand
+        self.filtered_force += self.FORCE_FILTER * (hand - self.filtered_force)
+        fingers = float(np.linalg.norm(hand))
         self.peak_finger_force = max(self.peak_finger_force, fingers)
         if self.protective_stop:
             return
@@ -171,9 +188,7 @@ class PandaController:
             self.stop_reason = f"link contact force {links:.0f} N > {lim.max_contact_force:.0f} N"
         elif fingers > lim.max_finger_force:
             self.protective_stop = True
-            self.stop_reason = (
-                f"finger contact force {fingers:.0f} N > {lim.max_finger_force:.0f} N"
-            )
+            self.stop_reason = f"hand external force {fingers:.0f} N > {lim.max_finger_force:.0f} N"
 
     # ----- proprioception -----------------------------------------------------------------
 
@@ -193,6 +208,7 @@ class PandaController:
             gripper_command=self.gripper_width_cmd,
             protective_stop=self.protective_stop,
             stop_reason=self.stop_reason,
+            external_force=self.filtered_force.copy(),
         )
 
     def tracking_error(self) -> tuple[float, float]:
