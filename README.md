@@ -36,6 +36,8 @@ python experiments/demo.py --family slider --viewer    # live MuJoCo viewer (nee
 python experiments/run_benchmark.py experiments/configs/main.json --workers 4            # ~15 min
 python experiments/calibrate_adequacy.py --workers 4                                    # ~5 min
 python experiments/run_benchmark.py experiments/configs/generalisation.json --workers 4  # ~20 min
+python experiments/run_benchmark.py experiments/configs/main_geometric_prior.json --workers 4
+python experiments/summarise.py results/main          # re-summarise saved episodes
 ```
 
 The demo prints, for every probe, the chosen probe and its expected information gain, the
@@ -93,8 +95,26 @@ budget. These thresholds are project criteria, not published standards.
   (3.3 vs 5.0) and sliders (1.75 vs 2.75), and worse on drawers and hinges, where it typically
   needs 2 probes against 1. EIG's agent prior is symmetric, so it has no reason to expect parts
   to open *toward* it, and its first probe often tests the inward direction. The script carries
-  that assumption implicitly.
+  that assumption implicitly. The ablation below tests this explanation.
 - **Goal-directed pulling** never identifies sliders or fixed panels (0/24).
+
+### Ablation: a soft geometric prior (`results/main_geometric_prior`)
+
+These are the same 84 mechanisms as the main benchmark, but the agent's prior gives weight 0.1 (not 0)
+to hypotheses that open *into* the cabinet. The agent infers the front face from the side the
+handle protrudes from. Caveat: this assumption matches how the generator builds every mechanism
+in this set, so it is favourable.
+
+| Strategy | Mean probes [95% CI] | Identified after 1 probe |
+|---|---|---|
+| **EIG + prior** | **1.63 [1.45, 1.82]** (uniform prior: 2.14) | **64%** (uniform: 24%) |
+| Axis sweep + prior | 1.96 [1.65, 2.31] (uniform: 2.15) | 65% |
+| Random + prior | 5.27 | 23% |
+
+With the prior, EIG beats the axis sweep (p = 0.008; 24 better, 11 worse, 49 ties). This confirms
+the main benchmark's tie was a prior effect, not a planner weakness. Sliders get slightly
+worse (1.75 → 2.08), because sliding parallel to the face sits at the edge of the "outward" region.
+The default prior stays uniform.
 
 ### Generalisation (`results/generalisation`)
 
