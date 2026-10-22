@@ -120,3 +120,19 @@ class Embodiment(Protocol):
 class Perception(Protocol):
     def observe_objects(self) -> list[ObjectObservation]: ...
     def fixtures(self) -> dict[str, tuple[np.ndarray, float]]: ...  # name -> (centre, half width)
+
+
+@dataclass(frozen=True)
+class ArticulatedObservation:
+    """What perception reports about an object that has a handle (mechanism unknown).
+
+    ``handle_pos``/``handle_quat`` come from a handle tracker: oracle-assisted perception with
+    noise, the same convention as the cube tracker. ``box_centre``/``box_half`` are the
+    object's visible outer extent (world axis-aligned) in its current state.
+    """
+
+    name: str
+    handle_pos: np.ndarray  # (3,) m
+    handle_quat: np.ndarray  # (4,) (w, x, y, z)
+    box_centre: np.ndarray  # (3,) m
+    box_half: np.ndarray  # (3,) m

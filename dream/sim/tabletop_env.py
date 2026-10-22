@@ -19,8 +19,9 @@ import mujoco
 import numpy as np
 
 from dream.robot.panda import HOME_QPOS, PandaController, SafetyLimits
+from dream.sim.compartment import FLOOR, INNER_HALF
 from dream.sim.tabletop import TabletopSpec, build_model
-from dream.types import ObjectObservation, RobotState
+from dream.types import ArticulatedObservation, ObjectObservation, RobotState
 
 
 @dataclass(frozen=True)
@@ -127,8 +128,84 @@ class TabletopEnv:
         return np.array([*t.xy, 0.0]), t.inner_half
 
     def fixtures(self) -> dict[str, tuple[np.ndarray, float]]:
-        centre, half = self.tray_region()
-        return {"tray": (centre, half)}
+        """Visible regions objects can be put into: name -> (centre, half width).
+
+        The compartment appears only while part of its cavity is uncovered (see
+        ``_visible_cavity``). A closed compartment has no visible cavity.
+        """
+        out = {}
+        if self._spec.tray is not None:
+            out["tray"] = self.tray_region()
+        if self._spec.compartment is not None:
+            cavity = self._visible_cavity()
+            if cavity is not None:
+                out["compartment"] = cavity
+        return out
+
+    def observe_articulated(self) -> list[ArticulatedObservation]:
+        """Objects with a handle. Pose of the handle from a noisy tracker, plus the visible box."""
+        comp = self._spec.compartment
+        if comp is None:
+            return []
+        with self.lock:
+            site = self.data.site("handle")
+            pos = site.xpos + self.rng.normal(scale=self.noise.position_std, size=3)
+            quat = np.zeros(4)
+            mujoco.mju_mat2Quat(quat, site.xmat)
+            quat = _perturb_quat(quat, self.rng.normal(scale=self.noise.yaw_std, size=3))
+            lo, hi = self._compartment_aabb()
+        return [ArticulatedObservation("compartment", pos, quat, (lo + hi) / 2, (hi - lo) / 2)]
+
+    def _compartment_aabb(self) -> tuple[np.ndarray, np.ndarray]:
+        """World AABB of the compartment's geoms in their current pose (its visible extent)."""
+        bodies = {self.model.body("housing").id, self.model.body("compartment_part").id}
+        lo, hi = np.full(3, np.inf), np.full(3, -np.inf)
+        for g in range(self.model.ngeom):
+            if self.model.geom_bodyid[g] not in bodies:
+                continue
+            c = self.data.geom_xpos[g]
+            r = np.abs(self.data.geom_xmat[g].reshape(3, 3)) @ self.model.geom_size[g]
+            lo, hi = np.minimum(lo, c - r), np.maximum(hi, c + r)
+        return lo, hi
+
+    def _visible_cavity(self, step: float = 0.01) -> tuple[np.ndarray, float] | None:
+        """Largest uncovered square of the cavity, seen from above like a top-down depth camera.
+
+        Vertical rays are cast over a grid around the box (robot geometry ignored, as if several
+        viewpoints were available). A cell is open if its ray first hits the cavity floor, or an
+        object resting low inside the cavity, and not the roof or lid. Returns (centre, half
+        width) of the largest open square, axis-aligned in the world, or None if it is too small.
+        """
+        comp = self._spec.compartment
+        floor_id = self.model.geom("cavity_floor").id
+        object_ids = {self.model.geom(f"{o.name}_geom").id for o in self._spec.objects}
+        a = INNER_HALF
+        xs = np.arange(-a + step / 2, a + 0.26, step)  # include a drawer pulled fully out
+        ys = np.arange(-a + step / 2, a, step)
+        open_cells = np.zeros((len(xs), len(ys)), bool)
+        geomid = np.zeros(1, np.int32)
+        groups = np.array([1, 0, 0, 0, 0, 0], np.uint8)  # scene geoms only (robot is 2/3)
+        with self.lock:
+            for i, x in enumerate(xs):
+                for j, y in enumerate(ys):
+                    p = comp.to_world(np.array([x, y, 0.0]))
+                    p[2] = 0.6
+                    dist = mujoco.mj_ray(
+                        self.model, self.data, p, np.array([0.0, 0.0, -1.0]), groups, 1, -1, geomid
+                    )
+                    hit_z = 0.6 - dist
+                    g = int(geomid[0])
+                    open_cells[i, j] = dist >= 0 and (
+                        g == floor_id or (g in object_ids and hit_z < comp.height - 0.01)
+                    )
+        best, bi, bj = _largest_square(open_cells)
+        if best < 3:
+            return None
+        local = np.array([xs[bi] + (best - 1) * step / 2, ys[bj] + (best - 1) * step / 2, FLOOR])
+        half_local = best * step / 2
+        # Axis-aligned square inscribed in the rotated one (the agent's regions are axis-aligned).
+        half = half_local / (abs(np.cos(comp.yaw)) + abs(np.sin(comp.yaw)))
+        return comp.to_world(local), float(half)
 
     def embodiment(self) -> SimPanda:
         return SimPanda(self)
@@ -174,3 +251,27 @@ class SimPanda:
     def hold(self) -> None:
         with self._env.lock:
             self._env.robot.hold()
+
+
+def _largest_square(grid: np.ndarray) -> tuple[int, int, int]:
+    """Side length (cells) and lower-left index of the largest all-True square (classic DP)."""
+    n, m = grid.shape
+    dp = np.zeros((n + 1, m + 1), int)
+    best, bi, bj = 0, 0, 0
+    for i in range(n):
+        for j in range(m):
+            if grid[i, j]:
+                dp[i + 1, j + 1] = 1 + min(dp[i, j + 1], dp[i + 1, j], dp[i, j])
+                if dp[i + 1, j + 1] > best:
+                    best = dp[i + 1, j + 1]
+                    bi, bj = i - best + 1, j - best + 1
+    return best, bi, bj
+
+
+def _perturb_quat(q: np.ndarray, rotvec: np.ndarray) -> np.ndarray:
+    angle = np.linalg.norm(rotvec)
+    dq = np.zeros(4)
+    mujoco.mju_axisAngle2Quat(dq, rotvec / max(angle, 1e-12), angle)
+    out = np.zeros(4)
+    mujoco.mju_mulQuat(out, dq, q)
+    return out

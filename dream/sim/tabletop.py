@@ -18,6 +18,7 @@ import mujoco
 import numpy as np
 
 from dream.robot.panda import ROBOT_BODIES
+from dream.sim.compartment import CompartmentSpec, add_compartment, sample_compartment
 
 PANDA_XML = (
     pathlib.Path(__file__).resolve().parents[2]
@@ -59,7 +60,8 @@ class TabletopSpec:
     """Ground truth for one scene. Privileged: never give this to decision-making code."""
 
     objects: tuple[ObjectSpec, ...]
-    tray: TraySpec
+    tray: TraySpec | None
+    compartment: CompartmentSpec | None = None
     seed: int | None = field(default=None, compare=False)
 
 
@@ -142,7 +144,14 @@ def build_model(spec: TabletopSpec) -> mujoco.MjModel:
         )
         b.add_site(name=f"{obj.name}_site", size=[0.003] * 3)
 
-    t = spec.tray
+    if spec.compartment is not None:
+        add_compartment(s, spec.compartment)
+    if spec.tray is not None:
+        _add_tray(world, spec.tray)
+    return s.compile()
+
+
+def _add_tray(world, t: TraySpec) -> None:
     tray = world.add_body(name="tray", pos=[*t.xy, 0])
     floor_half = t.inner_half + t.wall_thickness
     tray.add_geom(
@@ -163,4 +172,33 @@ def build_model(spec: TabletopSpec) -> mujoco.MjModel:
             pos=pos,
             rgba=[0.45, 0.45, 0.5, 1],
         )
-    return s.compile()
+
+
+def sample_compartment_scene(
+    kind: str,
+    rng: np.random.Generator,
+    colors: tuple[str, ...] = ("red", "blue"),
+    half_size: float = 0.02,
+    looks_like: str | None = None,
+) -> TabletopSpec:
+    """A compartment with a hidden mechanism plus cubes placed clear of it, all in reach."""
+    comp = sample_compartment(kind, rng, looks_like=looks_like)
+    centre = np.array(comp.xy)
+    # Keep cubes off the box, its handle, the drawer's pull-out path and the lid's swing.
+    keep_out = comp.outer_half[0] + 0.12
+    placed: list[ObjectSpec] = []
+    for color in colors:
+        for _ in range(2000):
+            xy = np.array([rng.uniform(0.3, 0.6), rng.uniform(-0.35, 0.35)])
+            if np.linalg.norm(xy - centre) < keep_out + 0.05:
+                continue
+            if all(np.linalg.norm(xy - o.xy) >= 0.09 for o in placed):
+                break
+        else:
+            raise RuntimeError("could not place objects clear of the compartment")
+        placed.append(
+            ObjectSpec(
+                color, half_size, (float(xy[0]), float(xy[1])), float(rng.uniform(-np.pi, np.pi))
+            )
+        )
+    return TabletopSpec(objects=tuple(placed), tray=None, compartment=comp)
