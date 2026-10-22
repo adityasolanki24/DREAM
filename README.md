@@ -34,6 +34,12 @@ rules, architecture and engineering standards are in [`AGENTS.md`](AGENTS.md).
    (held-out 39/40 against the oracle tracker's 40/40). It is a colour-and-depth baseline for
    box-like objects, not open-world vision. Camera-driven *mechanism discovery* does not work
    yet (0/12 on development scenes); the oracle tracker remains in use there.
+5. **Foundation-model integration: interface only, no model run yet.** A model-driven agent
+   (`dream/runtime/vlm.py`) lets a vision-language model (selected: Qwen3-VL-4B-Instruct) choose
+   DREAM's typed tools from a natural-language instruction and the camera image. Its contracts
+   are tested with a scripted test double. **No pretrained model has been executed in this
+   repository**: this environment has no route to the model hosts and no GPU (see
+   [Foundation models](#foundation-models-dreamruntimevlmpy-resultsfoundation_model_audit)).
 
 ![Panda: red cube into the tray, then blue stacked on green](results/demo/panda_session/replay.gif)
 
@@ -74,6 +80,8 @@ MuJoCo 3.16.0, NumPy 2.5.3, Linux, CPU only.
 | 10 | Visual perception replacing oracle poses | **Tabletop pick-and-place: implemented and tested** (classical RGB-D baseline). Camera-driven discovery: implemented, **not working** (negative result) | `tests/test_vision.py`, `results/vision`, `results/compartment_vision_dev` |
 | 11 | **Discovery invoked on demand by the runtime (unfamiliar compartment on the Panda)** | **In progress**: implemented and tested on the narrowed scene; held-out evaluation below; challenge variants open | `tests/test_compartment.py`, `results/compartment`, audit table |
 | 12 | Experience memory, failure-driven replanning, skill adaptation | Planned | n/a |
+| 12a | Vision-language planner (Qwen3-VL-4B-Instruct) choosing typed tools | Interface implemented and contract-tested with a scripted test double. **Model inference not run** (hosts blocked here) | `tests/test_vlm.py`, `results/foundation_model_audit` |
+| 12b | Learned motor policy (GR00T N1.7-LIBERO) behind `run_learned_policy` | **Not started**: checkpoint, licence and conventions unverifiable here; needs a GPU | `results/foundation_model_audit` |
 | 13 | Generalisation evaluation across goals, arrangements and task families | Planned | n/a |
 | 14 | Learned world/motor models, mobile or whole-body embodiments | Planned, conditional on evidence and compute | n/a |
 
@@ -112,6 +120,9 @@ python experiments/run_vision.py experiments/configs/vision.json       # vision 
 python experiments/demo_vision.py                                      # recorded camera-based demo
 python experiments/run_compartment.py experiments/configs/compartment.json  # discovery on the Panda
 python experiments/replay.py results/sessions/<time> --width 320       # session replay GIF
+python experiments/calibrate_handle_measurement.py                     # camera handle-measurement calibration
+python experiments/audit_foundation_models.py                          # hardware and model-host audit
+python experiments/run_vlm.py experiments/configs/vlm.json --model-path <dir>  # needs the checkpoint
 ```
 
 In the live session, type structured goals such as `in red tray` or `on blue green`, then
@@ -526,6 +537,70 @@ Measured: **0/12 drawers and lids, 0 false claims**. The fixed boxes were declin
   camera measurements;
 - position-only evidence misidentified lids as prismatic.
 
+**Since then (development work; no saved re-measurement yet).**
+- *Handle measurement calibrated* (`experiments/calibrate_handle_measurement.py`,
+  `results/handle_measurement_calibration`, development seeds 0–9, 30 scenes, with the true
+  handle pose used only for scoring):
+  - camera error with the knob in clear view: median 4.3 mm, p90 6.7 mm;
+  - with the gripper on the knob: median 5.4 mm, but p90 24.3 mm;
+  - the rigid-grasp offset (TCP to handle) changes by at most 2.2 mm during probing.
+- So observations now carry a 1σ (7 mm clear, 25 mm occluded). When perception is worse than
+  the grasp, probe displacements come from the gripped TCP, and the camera only checks for gross
+  slip.
+- A bug made position-only probes use the full 6D likelihood (the averaging step dropped the
+  orientation flag). This, not the evidence, was why lids came out prismatic. Fixed, with a
+  regression test.
+- Runtime fixes found on these scenes: no re-grasp of a knob already held, bounded set-aside
+  attempts, one compartment track across its closed and open states.
+- Still open: grasping the knob again from a camera estimate, the grasp being lost while
+  opening, verification right after placing (the cube estimate is occluded), and the
+  position-only adequacy threshold (still the 0.59 placeholder).
+
+### Foundation models (`dream/runtime/vlm.py`, `results/foundation_model_audit`)
+
+**Selected models.**
+- Planner: **Qwen/Qwen3-VL-4B-Instruct** (Apache-2.0, per its model card; the card could not be
+  re-checked from here). About 9 GB of memory in bfloat16.
+- Learned motor policy: **NVIDIA GR00T N1.7-LIBERO**, with OpenVLA-OFT as the comparison or
+  fallback. Neither is integrated. Their checkpoints, licences, camera and state conventions,
+  action representation and normalisation must be read from the official repositories before
+  an adapter is written, and none of those could be reached.
+
+**Audit** (`experiments/audit_foundation_models.py`, saved run at `8366bfe`):
+- 4 CPUs, 16.5 GB RAM, 31.5 GB free disk, **no GPU**, no torch or transformers installed.
+- huggingface.co, github.com, modelscope.cn and download.pytorch.org are refused by the
+  environment's network policy (403 at the proxy); pypi.org is reachable.
+- So Qwen3-VL cannot be downloaded here, and GR00T could not be run even with its checkpoint:
+  it needs a CUDA GPU.
+
+**What exists** (`dream/runtime/vlm.py`, `dream/runtime/qwen.py`):
+- `VLMAgent` gives the model the instruction, the camera image (at most two images kept in
+  context), the structured scene, tool results and investigation findings. Every tool is
+  offered as a JSON-schema function, plus `finish`.
+- Output is parsed only as JSON inside the model's own `<tool_call>` format. Nothing it
+  writes is executed as code. Tool arguments go through the same toolbox validation,
+  preconditions, budgets and safety limits as the rule-based planner.
+- A success claim is accepted only if `verify_goal` confirms it on a fresh observation with
+  nothing in the hand; otherwise the rejection is fed back. Invalid or rejected calls are
+  bounded (`max_invalid`), and the run stops.
+- The model chooses tools; it never supplies coordinates from images, motor commands or
+  mechanism types. Discovery stays the only way a mechanism is identified.
+- Backends: local transformers inference (`QwenTransformersBackend`, the model's chat template
+  with `tools`), or an OpenAI-compatible server such as vLLM (`OpenAICompatibleBackend`).
+- `experiments/run_vlm.py` compares condition A (rule-based planner given the structured goal)
+  with B (the model given the paraphrased instruction), including an impossible instruction
+  scored as a correct refusal. It refuses to run B without a real backend.
+
+**What is tested:** schemas, parsing, bounded invalid outputs, rejected false success claims,
+image budget, and one scripted episode through real physics (`tests/test_vlm.py`). The test
+double replays fixed outputs. These tests show the plumbing works. **They are not evidence of
+any model's ability.**
+
+**To run the model:** allow huggingface.co (and github.com for GR00T) in the environment's
+network settings, install `pip install -e ".[vlm]"`, download the checkpoint, then
+`python experiments/run_vlm.py experiments/configs/vlm.json --model-path <dir>`. CPU
+inference works but is slow. GR00T needs a machine with an NVIDIA GPU.
+
 ## Limitations (read before citing any number)
 
 - **Perception.** Tabletop pick-and-place runs from camera images (classical RGB-D baseline,
@@ -533,9 +608,9 @@ Measured: **0/12 drawers and lids, 0 false claims**. The fixed boxes were declin
   tracker; camera-driven discovery does not work yet. The import order matters for headless
   rendering: MuJoCo picks its GL backend when first imported, so scripts set `MUJOCO_GL` first
   (`dream/__init__.py`, runners, `tests/conftest.py`).
-- **No language understanding.** Goals are structured (`in X Y`, `on X Y`). No language model
-  is integrated, and none is available in this environment. The `Planner` protocol is where one
-  would plug in.
+- **No language understanding has been demonstrated.** The rule-based planner takes structured
+  goals (`in X Y`, `on X Y`). The model-driven agent accepts language, but no model has been run
+  through it, so there is no evidence of any model's ability on these tasks.
 - **Panda scope.**
   - Cubes of one size, one tray fixture, top-down grasps only.
   - The rule-based planner covers two goal types plus obstruction clearing.
