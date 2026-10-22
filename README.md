@@ -1,18 +1,50 @@
 # DREAM
 
-A simulated robot meets a mechanism it has never seen, a panel with a handle that might be fixed,
-slide, or swing on a hinge. It keeps competing explanations of how the panel moves, picks
-the physical experiment expected to best tell them apart, predicts what that experiment will do,
-runs it, updates its beliefs from what it measures, and then opens the mechanism.
+**Long-term mission.** DREAM is a research project toward a general-purpose embodied agent. Given
+a natural-language goal ("put the red cube in that cabinet", "figure out how this mechanism
+works"), it should reason about the task, act through reusable motor skills, discover missing
+physical knowledge by experimenting, verify outcomes, recover from failure and improve with
+experience, all without a hand-written script per task. This is the direction, **not a current
+capability**. The architecture, invariants and priorities are in [`AGENTS.md`](AGENTS.md).
+
+**What exists today: Active Physical Discovery.** This is the first experimentally validated
+component. A simulated robot meets a mechanism it has never seen, a panel with a handle that
+might be fixed, slide, or swing on a hinge. It keeps competing explanations of how the panel
+moves, picks the physical experiment expected to best tell them apart, predicts what that
+experiment will do, runs it, updates its beliefs from what it measures, and then opens the
+mechanism.
 
 ```
 observe -> hypothesise -> predict -> act (probe) -> measure -> update -> ... -> operate
 ```
 
-This is the "Stage Zero / Stage One" core of the Physics Apprentice plan (see the research
-report): explicit Bayesian system identification with information-seeking probes, in MuJoCo, with
-no learned components. It tests whether choosing experiments for their information gain
-identifies mechanisms faster than other probing strategies.
+It is explicit Bayesian system identification with information-seeking probes in MuJoCo, with no
+learned components (Stage Zero and One of the Physics Apprentice research plan). In the long-term
+architecture it becomes a tool that a task-level agent calls when a skill hits unfamiliar
+physical behaviour.
+
+## Status
+
+Every row marked "implemented and tested" has passing tests and/or saved results in `results/`.
+
+| # | Milestone | Status | Evidence |
+|---|---|---|---|
+| 1 | MuJoCo mechanism scenes plus force-limited gantry probing | Implemented and tested | `tests/test_sim.py` |
+| 2 | Sensor-only observations, ground-truth isolation, episode logging with git SHA and config | Implemented and tested | `tests/test_isolation.py`, `results/*/meta.json`. Raw observations and MJCF are logged since `results/main_geometric_prior`; `main` and `generalisation` predate this. |
+| 3 | Bayesian belief over fixed / prismatic / revolute mechanisms | Implemented and tested | `tests/test_belief.py` |
+| 4 | Predictive model validated against MuJoCo; held-out prediction error | Implemented and tested | `tests/test_model.py`, `results/main` |
+| 5 | EIG probe selection vs random, goal-directed and scripted baselines | Implemented and tested | `results/main`, `results/main_geometric_prior` |
+| 6 | Generalisation (unseen parameters and families), out-of-class detection | Implemented and tested | `results/generalisation`, `results/adequacy_calibration` |
+| 6a | Minimum-evidence (3-probe) gate for adequacy false alarms | Implemented, not yet run | branch `research/fresh-adequacy-validation` |
+| 6b | Demo GIF and narration / live viewer | Tested / implemented, unverified (no display) | `results/demo`, `experiments/demo.py --viewer` |
+| 7 | **Simulated arm plus reusable deterministic manipulation skills** | **Next: planned** | n/a |
+| 8 | Task runtime with structured tool calling over skills | Planned | n/a |
+| 9 | Several tasks in shared scenes without per-task scripts | Planned | n/a |
+| 10 | Visual perception replacing oracle poses | Planned | n/a |
+| 11 | Discovery invoked on demand by the runtime | Planned | n/a |
+| 12 | Experience memory, failure-driven replanning, skill adaptation | Planned | n/a |
+| 13 | Generalisation evaluation across goals, arrangements and task families | Planned | n/a |
+| 14 | Learned world/motor models, mobile or whole-body embodiments | Planned, conditional on evidence and compute | n/a |
 
 ## Install
 
@@ -26,7 +58,7 @@ sudo apt-get install libosmesa6    # only for headless rendering of the demo GIF
 ## Run
 
 ```bash
-pytest -m "not slow"                                   # fast suite (~20 s)
+pytest -m "not slow"                                   # fast suite (~40 s)
 pytest                                                 # + closed-loop episode tests (~1 min)
 
 python experiments/demo.py --seed 3                    # hidden mechanism drawn from the seed
@@ -47,7 +79,7 @@ hinge axes in blue and slide arrows in orange), `summary.png` and `log.json`.
 Benchmarks write `results/<name>/`: every step of every episode (`episodes.jsonl`),
 `summary.json`, plots, and `meta.json` with the git SHA, versions and config.
 
-## How it works
+## How Active Physical Discovery works
 
 | Piece | File | What it does |
 |---|---|---|
@@ -111,8 +143,8 @@ in this set, so it is favourable.
 | Axis sweep + prior | 1.96 [1.65, 2.31] (uniform: 2.15) | 65% |
 | Random + prior | 5.27 | 23% |
 
-With the prior, EIG beats the axis sweep (p = 0.008; 24 better, 11 worse, 49 ties). This confirms
-the main benchmark's tie was a prior effect, not a planner weakness. Sliders get slightly
+With the prior, EIG beats the axis sweep (p = 0.008; 24 better, 11 worse, 49 ties). This supports
+the explanation that the main benchmark's tie came from the prior, not from the planner. Sliders get slightly
 worse (1.75 → 2.08), because sliding parallel to the face sits at the edge of the "outward" region.
 The default prior stays uniform.
 
@@ -176,9 +208,38 @@ In the hinge GIF, the sampled hinge lines start scattered and collapse onto the 
 - The live viewer (`--viewer`) was not exercised: development ran in a headless container.
 - Compute: an EIG step takes about 0.6 s to select and 0.5–2 s to update, on one CPU core.
 
-## Next steps
+## Next milestone: 7, simulated arm and reusable skills
 
-1. Evaluate a minimum-evidence rule for the adequacy check on a fresh held-out seed.
-2. Synthetic RGB-D perception in the loop, comparing oracle and perceived poses (report Stage Four).
-3. Continuous parameter refinement (friction, limits) and held-out prediction gates (report Stage One).
-4. Multi-step (receding-horizon) EIG, and distilling the EIG planner into a cheap policy.
+This is the dependency for everything after it. The goal is to replace the abstract gantry with a
+real articulated manipulator and a small set of reusable skills, without losing the discovery
+results.
+
+- **Embodiment.** An existing open model of an arm with a parallel gripper, preferably the Franka
+  Panda from MuJoCo Menagerie. Verify its licence and pin it before vendoring. It sits behind a
+  thin robot-capability adapter (`dream/robot/`) that exposes proprioception and commands but no
+  object ground truth.
+- **Control.** A deterministic Cartesian impedance or operational-space controller, with joint,
+  force, velocity and workspace limits enforced below every higher layer.
+- **Skills** (`dream/skills/`): `reach`, `grasp` (real finger contacts; any attachment
+  constraint must be explicitly labelled as a temporary simplification), `release`, `place`,
+  `pull_along(path)` and `probe(direction, distance, max_force)`. Each skill reports success or
+  failure from measured signals.
+- **Gates.**
+  1. The skills pass contract tests (for example, "grasp reports failure when nothing is held"
+     and "a probe never exceeds its force cap").
+  2. The discovery benchmark reruns through the arm's `probe` skill on the main mechanisms. The
+     drop in identification performance relative to the gantry is reported, whatever its size.
+  3. One two-stage task ("open the cabinet, then place the cube inside") runs as a fixed
+     sequence of skill calls. This is the baseline the later task runtime must match without
+     the script.
+- Out of scope for milestone 7: language models, perception and memory.
+
+Open follow-ups on the current component: run the preregistered fresh-seed adequacy validation
+(milestone 6a), learn continuous parameters such as friction and travel limits, and try
+receding-horizon EIG.
+
+## Roadmap
+
+Milestones 8–14 in the status table, in order, one vertical slice at a time (see
+`AGENTS.md` → Development priorities). Each needs its own baselines and fresh held-out
+evaluation before it is marked done.
