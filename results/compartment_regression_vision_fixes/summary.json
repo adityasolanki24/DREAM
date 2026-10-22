@@ -1,0 +1,305 @@
+{
+  "meta": {
+    "config": {
+      "name": "compartment_regression_vision_fixes",
+      "seed0": 5000,
+      "n_per_kind": 30,
+      "kinds": [
+        "drawer",
+        "lid",
+        "fixed"
+      ],
+      "methods": [
+        "dream_eig",
+        "random_probe",
+        "fixed_pull"
+      ],
+      "probe_budget": 12,
+      "gates": {
+        "_note": "Regression rerun of the seen held-out seeds 5000-5029 after the camera-discovery fixes; not a fresh evaluation. Same gates as results/compartment.",
+        "dream_openable_success_min": 0.8,
+        "dream_correct_rejection_min": 0.9,
+        "max_false_claims": 0
+      }
+    },
+    "git_sha": "723b68e4ea378a932a7672baab164a787c0f11a0",
+    "dirty": false,
+    "mujoco": "3.16.0",
+    "wall_s": 603.2091929912567
+  },
+  "by_method": {
+    "dream_eig": {
+      "openable_n": 60,
+      "openable_success": 55,
+      "openable_success_rate": 0.9166666666666666,
+      "openable_success_ci95": [
+        0.8193083153188752,
+        0.9638800759495141
+      ],
+      "success_per_10_interactions": 1.608187134502924,
+      "success_per_10_interactions_ci95": [
+        1.4539929956524738,
+        1.7664670658682635
+      ],
+      "mean_interactions_openable": 5.7,
+      "correct_outcomes_per_10_interactions": 1.6504854368932038,
+      "mean_probes_openable": 3.1666666666666665,
+      "mean_exploration_robot_s": 24.33444444444194,
+      "mean_robot_s": 39.03355555555913,
+      "fixed_n": 30,
+      "correct_rejections": 30,
+      "correct_rejection_ci95": [
+        0.8864829086095221,
+        1.0
+      ],
+      "mean_interactions_fixed": 5.766666666666667,
+      "false_claims": 0,
+      "protective_stops": 5,
+      "link_collisions": 2,
+      "mean_failed_actions": 0.05555555555555555,
+      "recovered": 0,
+      "drawer": {
+        "n": 30,
+        "success": 28,
+        "success_ci95": [
+          0.7867618227892791,
+          0.9815233646723066
+        ],
+        "mean_interactions": 4.5,
+        "mean_probes": 3.1333333333333333,
+        "identified_correctly": 29,
+        "investigation_status": {
+          "identified": 29,
+          "unsafe": 1
+        },
+        "median_axis_error_deg": 1.0068040469805768,
+        "mean_pre_action_pred_err_mm": 18.892287778342087,
+        "max_probe_slip_mm": 9.091723196800936,
+        "max_probe_force_n": 17.44497797933217
+      },
+      "lid": {
+        "n": 30,
+        "success": 27,
+        "success_ci95": [
+          0.7437855868473339,
+          0.9654007400402839
+        ],
+        "mean_interactions": 6.9,
+        "mean_probes": 3.2,
+        "identified_correctly": 30,
+        "investigation_status": {
+          "identified": 30
+        },
+        "median_axis_error_deg": 1.88439333962413,
+        "mean_pre_action_pred_err_mm": 20.447008063075565,
+        "max_probe_slip_mm": 5.266104631523728,
+        "max_probe_force_n": 15.02293615621164
+      },
+      "fixed": {
+        "n": 30,
+        "success": 0,
+        "success_ci95": [
+          0.0,
+          0.113517091390478
+        ],
+        "mean_interactions": 5.766666666666667,
+        "mean_probes": 5.766666666666667,
+        "identified_correctly": 30,
+        "investigation_status": {
+          "identified": 30
+        },
+        "mean_pre_action_pred_err_mm": 5.635494306146244,
+        "max_probe_slip_mm": 5.396952749930543,
+        "max_probe_force_n": 15.390803415845209
+      }
+    },
+    "random_probe": {
+      "openable_n": 60,
+      "openable_success": 54,
+      "openable_success_rate": 0.9,
+      "openable_success_ci95": [
+        0.7985030550748896,
+        0.9533578005427642
+      ],
+      "success_per_10_interactions": 1.0444874274661509,
+      "success_per_10_interactions_ci95": [
+        0.9090909090909092,
+        1.1850390260950607
+      ],
+      "mean_interactions_openable": 8.616666666666667,
+      "correct_outcomes_per_10_interactions": 0.9621993127147767,
+      "mean_probes_openable": 5.65,
+      "mean_exploration_robot_s": 36.14111111111623,
+      "mean_robot_s": 51.29000000001575,
+      "fixed_n": 30,
+      "correct_rejections": 30,
+      "correct_rejection_ci95": [
+        0.8864829086095221,
+        1.0
+      ],
+      "mean_interactions_fixed": 11.866666666666667,
+      "false_claims": 0,
+      "protective_stops": 4,
+      "link_collisions": 2,
+      "mean_failed_actions": 0.05555555555555555,
+      "recovered": 1,
+      "drawer": {
+        "n": 30,
+        "success": 28,
+        "success_ci95": [
+          0.7867618227892791,
+          0.9815233646723066
+        ],
+        "mean_interactions": 7.333333333333333,
+        "mean_probes": 5.166666666666667,
+        "identified_correctly": 30,
+        "investigation_status": {
+          "identified": 30
+        },
+        "median_axis_error_deg": 1.6676273131958577,
+        "mean_pre_action_pred_err_mm": 8.45823961242987,
+        "max_probe_slip_mm": 4.525344020098217,
+        "max_probe_force_n": 16.419624529453365
+      },
+      "lid": {
+        "n": 30,
+        "success": 26,
+        "success_ci95": [
+          0.7031831605558306,
+          0.9469043057578189
+        ],
+        "mean_interactions": 9.9,
+        "mean_probes": 6.133333333333334,
+        "identified_correctly": 28,
+        "investigation_status": {
+          "identified": 28,
+          "insufficient_information": 2
+        },
+        "median_axis_error_deg": 3.125321511399264,
+        "mean_pre_action_pred_err_mm": 9.414944930068115,
+        "max_probe_slip_mm": 4.809748971933477,
+        "max_probe_force_n": 15.312592664635707
+      },
+      "fixed": {
+        "n": 30,
+        "success": 0,
+        "success_ci95": [
+          0.0,
+          0.113517091390478
+        ],
+        "mean_interactions": 11.866666666666667,
+        "mean_probes": 11.866666666666667,
+        "identified_correctly": 2,
+        "investigation_status": {
+          "identified": 2,
+          "insufficient_information": 28
+        },
+        "mean_pre_action_pred_err_mm": 2.4769004778825474,
+        "max_probe_slip_mm": 4.470450888538011,
+        "max_probe_force_n": 16.81000508954351
+      }
+    },
+    "fixed_pull": {
+      "openable_n": 60,
+      "openable_success": 28,
+      "openable_success_rate": 0.4666666666666667,
+      "openable_success_ci95": [
+        0.34627701540988,
+        0.5910679132886489
+      ],
+      "success_per_10_interactions": 2.3333333333333335,
+      "success_per_10_interactions_ci95": [
+        1.5441176470588236,
+        3.3661556603773546
+      ],
+      "mean_interactions_openable": 2.0,
+      "correct_outcomes_per_10_interactions": 1.3333333333333333,
+      "mean_probes_openable": 0.0,
+      "mean_exploration_robot_s": 0.0,
+      "mean_robot_s": 34.326666666664316,
+      "fixed_n": 30,
+      "correct_rejections": 0,
+      "correct_rejection_ci95": [
+        0.0,
+        0.113517091390478
+      ],
+      "mean_interactions_fixed": 3.0,
+      "false_claims": 0,
+      "protective_stops": 2,
+      "link_collisions": 0,
+      "mean_failed_actions": 0.022222222222222223,
+      "recovered": 0,
+      "drawer": {
+        "n": 30,
+        "success": 28,
+        "success_ci95": [
+          0.7867618227892791,
+          0.9815233646723066
+        ],
+        "mean_interactions": 1.0,
+        "mean_probes": 0.0
+      },
+      "lid": {
+        "n": 30,
+        "success": 0,
+        "success_ci95": [
+          0.0,
+          0.113517091390478
+        ],
+        "mean_interactions": 3.0,
+        "mean_probes": 0.0
+      },
+      "fixed": {
+        "n": 30,
+        "success": 0,
+        "success_ci95": [
+          0.0,
+          0.113517091390478
+        ],
+        "mean_interactions": 3.0,
+        "mean_probes": 0.0
+      }
+    }
+  },
+  "paired": {
+    "dream_eig_vs_random_probe": {
+      "n_pairs_openable": 60,
+      "only_dream_succeeded": 3,
+      "only_other_succeeded": 2,
+      "mcnemar_p": 1.0,
+      "mean_interaction_difference": -2.9166666666666665,
+      "mean_interaction_difference_ci95": [
+        -3.6666666666666665,
+        -2.25
+      ]
+    },
+    "dream_eig_vs_fixed_pull": {
+      "n_pairs_openable": 60,
+      "only_dream_succeeded": 28,
+      "only_other_succeeded": 1,
+      "mcnemar_p": 1.1175870895385742e-07,
+      "mean_interaction_difference": 3.7,
+      "mean_interaction_difference_ci95": [
+        3.5166666666666666,
+        3.9
+      ]
+    }
+  },
+  "gates": {
+    "dream_openable_success": {
+      "value": 0.9166666666666666,
+      "gate": 0.8,
+      "pass": true
+    },
+    "dream_correct_rejection": {
+      "value": 1.0,
+      "gate": 0.9,
+      "pass": true
+    },
+    "false_claims_all_methods": {
+      "value": 0,
+      "gate": 0,
+      "pass": true
+    }
+  }
+}

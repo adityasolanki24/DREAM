@@ -372,6 +372,12 @@ picks, places and verifies, in one continuous simulation.
 | Correct outcomes per 10 interactions (all scenes) | **1.64** | 0.96 | 1.33 |
 | False success claims | 0 | 0 | 0 |
 
+- **Regression rerun after the camera-discovery fixes** (`results/compartment_regression_vision_fixes`,
+  run at `723b68e`, the same seeds and gates; these seeds were already seen, so this checks for
+  regressions and is not a fresh evaluation): DREAM 55/60 openable (was 54), fixed 30/30, random
+  probing 54/60 (was 53), fixed pull 28/60, zero false claims. The only per-episode changes are
+  two drawers (one DREAM, one random) that ended in a protective stop before and now succeed. The
+  table below is the original run.
 - **Gates** (pre-registered in `experiments/configs/compartment.json`), all passed:
   - openable success ≥ 80% (90%);
   - fixed-box rejection ≥ 90% (100%);
