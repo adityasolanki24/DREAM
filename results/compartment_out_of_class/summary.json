@@ -1,0 +1,106 @@
+{
+  "meta": {
+    "config": {
+      "name": "compartment_out_of_class",
+      "methods": [
+        "dream_eig"
+      ],
+      "probe_budget": 12,
+      "gates": {
+        "_note": "Pre-registered before running. Report-only: these results must not be used to tune anything; a fix motivated by them needs fresh seeds.",
+        "max_false_claims": 0
+      },
+      "seed0": 6100,
+      "n_per_kind": 8,
+      "kinds": [
+        "drawer",
+        "lid"
+      ],
+      "scene_kwargs": {
+        "return_stiffness": 60.0
+      },
+      "_purpose": "Out of the model class: a return spring (60 N/m at the handle) pulls the part closed. Single-joint quasi-static models without springs cannot explain it, and a released part shuts. Correct behaviour: no false success; ideally model_inadequate. Measures the Panda adequacy check's detection power, unmeasured so far."
+    },
+    "git_sha": "7e7c178b64373a33f2209bb1957608d92e398bff",
+    "dirty": false,
+    "mujoco": "3.16.0",
+    "wall_s": 112.37151718139648
+  },
+  "by_method": {
+    "dream_eig": {
+      "openable_n": 16,
+      "openable_success": 0,
+      "openable_success_rate": 0.0,
+      "openable_success_ci95": [
+        0.0,
+        0.19361341827271994
+      ],
+      "success_per_10_interactions": 0.0,
+      "success_per_10_interactions_ci95": [
+        0.0,
+        0.0
+      ],
+      "mean_interactions_openable": 15.3125,
+      "correct_outcomes_per_10_interactions": 0.0,
+      "mean_probes_openable": 3.3125,
+      "mean_exploration_robot_s": 21.44874999999871,
+      "mean_robot_s": 63.52500000002609,
+      "fixed_n": 0,
+      "correct_rejections": 0,
+      "correct_rejection_ci95": [
+        0.0,
+        1.0
+      ],
+      "mean_interactions_fixed": null,
+      "false_claims": 0,
+      "protective_stops": 0,
+      "link_collisions": 0,
+      "mean_failed_actions": 0.0,
+      "recovered": 0,
+      "drawer": {
+        "n": 8,
+        "success": 0,
+        "success_ci95": [
+          0.0,
+          0.3244156195108769
+        ],
+        "mean_interactions": 13.5,
+        "mean_probes": 3.25,
+        "identified_correctly": 8,
+        "investigation_status": {
+          "identified": 8
+        },
+        "median_axis_error_deg": 1.628918681749237,
+        "mean_pre_action_pred_err_mm": 17.918573629802168,
+        "max_probe_slip_mm": 3.979387527014145,
+        "max_probe_force_n": 15.143466814105578
+      },
+      "lid": {
+        "n": 8,
+        "success": 0,
+        "success_ci95": [
+          0.0,
+          0.3244156195108769
+        ],
+        "mean_interactions": 17.125,
+        "mean_probes": 3.375,
+        "identified_correctly": 8,
+        "investigation_status": {
+          "identified": 8
+        },
+        "median_axis_error_deg": 3.7968678163951677,
+        "mean_pre_action_pred_err_mm": 22.133381566689522,
+        "max_probe_slip_mm": 4.017978048866293,
+        "max_probe_force_n": 15.005345097669338
+      }
+    }
+  },
+  "paired": {},
+  "gates": {
+    "false_claims_all_methods": {
+      "value": 0,
+      "gate": 0,
+      "pass": true
+    }
+  }
+}

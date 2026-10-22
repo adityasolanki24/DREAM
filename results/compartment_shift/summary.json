@@ -1,0 +1,128 @@
+{
+  "meta": {
+    "config": {
+      "name": "compartment_shift",
+      "methods": [
+        "dream_eig"
+      ],
+      "probe_budget": 12,
+      "gates": {
+        "_note": "Pre-registered before running. Report-only: these results must not be used to tune anything; a fix motivated by them needs fresh seeds.",
+        "max_false_claims": 0
+      },
+      "seed0": 6000,
+      "n_per_kind": 10,
+      "kinds": [
+        "drawer",
+        "lid",
+        "fixed"
+      ],
+      "scene_kwargs": {
+        "friction_range": [
+          3.0,
+          5.0
+        ],
+        "yaw_jitter_deg": 35.0
+      },
+      "_purpose": "Parameter shift: friction 3-5 N (development 0.5-3) and front yaw +-35 deg (development +-15). Do the frozen thresholds (adequacy 0.59, fixed 0.99, deviation tolerance) transfer?"
+    },
+    "git_sha": "7e7c178b64373a33f2209bb1957608d92e398bff",
+    "dirty": false,
+    "mujoco": "3.16.0",
+    "wall_s": 186.80380702018738
+  },
+  "by_method": {
+    "dream_eig": {
+      "openable_n": 20,
+      "openable_success": 20,
+      "openable_success_rate": 1.0,
+      "openable_success_ci95": [
+        0.8388698745050667,
+        1.0
+      ],
+      "success_per_10_interactions": 1.5151515151515151,
+      "success_per_10_interactions_ci95": [
+        1.3986013986013988,
+        1.6393442622950818
+      ],
+      "mean_interactions_openable": 6.6,
+      "correct_outcomes_per_10_interactions": 1.6042780748663101,
+      "mean_probes_openable": 3.45,
+      "mean_exploration_robot_s": 24.34399999999722,
+      "mean_robot_s": 40.92933333333972,
+      "fixed_n": 10,
+      "correct_rejections": 10,
+      "correct_rejection_ci95": [
+        0.7224598312333834,
+        1.0
+      ],
+      "mean_interactions_fixed": 5.5,
+      "false_claims": 0,
+      "protective_stops": 0,
+      "link_collisions": 0,
+      "mean_failed_actions": 0.0,
+      "recovered": 0,
+      "drawer": {
+        "n": 10,
+        "success": 10,
+        "success_ci95": [
+          0.7224598312333834,
+          1.0
+        ],
+        "mean_interactions": 5.8,
+        "mean_probes": 3.5,
+        "identified_correctly": 10,
+        "investigation_status": {
+          "identified": 10
+        },
+        "median_axis_error_deg": 2.231408635824357,
+        "mean_pre_action_pred_err_mm": 15.689981430794141,
+        "max_probe_slip_mm": 5.138191331595016,
+        "max_probe_force_n": 17.766518115841656
+      },
+      "lid": {
+        "n": 10,
+        "success": 10,
+        "success_ci95": [
+          0.7224598312333834,
+          1.0
+        ],
+        "mean_interactions": 7.4,
+        "mean_probes": 3.4,
+        "identified_correctly": 10,
+        "investigation_status": {
+          "identified": 10
+        },
+        "median_axis_error_deg": 2.731304769807127,
+        "mean_pre_action_pred_err_mm": 16.52372939555378,
+        "max_probe_slip_mm": 4.828217141879856,
+        "max_probe_force_n": 15.005307631336338
+      },
+      "fixed": {
+        "n": 10,
+        "success": 0,
+        "success_ci95": [
+          0.0,
+          0.2775401687666166
+        ],
+        "mean_interactions": 5.5,
+        "mean_probes": 5.5,
+        "identified_correctly": 10,
+        "investigation_status": {
+          "identified": 10
+        },
+        "mean_pre_action_pred_err_mm": 5.619354670500195,
+        "max_probe_slip_mm": 4.309713744498263,
+        "max_probe_force_n": 15.187190878615512
+      }
+    }
+  },
+  "paired": {},
+  "gates": {
+    "false_claims_all_methods": {
+      "value": 0,
+      "gate": 0,
+      "pass": true
+    }
+  }
+}
