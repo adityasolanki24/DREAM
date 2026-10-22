@@ -42,6 +42,9 @@ class CameraSpec:
     height: int = 360
     depth_noise: tuple[float, float] = (0.001, 0.0015)  # sigma = a + b z^2 (m)
     rgb_noise: float = 3.0  # per channel, 0-255
+    # Calibration error: the camera reports this much less than its true pose (dx, dy, dz in m,
+    # then rotation about world x, y, z in degrees). Perception only ever sees the report.
+    calibration_error: tuple[float, ...] = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 
     def xyaxes(self) -> list[float]:
         f = np.subtract(self.target, self.position)
@@ -74,12 +77,13 @@ class RGBDCamera:
 
     def calibration(self, data: mujoco.MjData) -> CameraCalibration:
         cam = data.cam(CAMERA_NAME)
+        err = np.asarray(self.spec.calibration_error, float)
         return CameraCalibration(
             width=self.spec.width,
             height=self.spec.height,
             fovy_deg=float(self.model.cam(CAMERA_NAME).fovy[0]),
-            position=cam.xpos.copy(),
-            rotation=cam.xmat.reshape(3, 3).copy(),
+            position=cam.xpos - err[:3],
+            rotation=_rotation(-np.deg2rad(err[3:])) @ cam.xmat.reshape(3, 3),
         )
 
     def _renderers(self) -> tuple[mujoco.Renderer, mujoco.Renderer, mujoco.Renderer]:
@@ -127,3 +131,13 @@ class RGBDCamera:
     def close(self) -> None:
         for r in getattr(self._local, "renderers", ()):
             r.close()
+
+
+def _rotation(rv: np.ndarray) -> np.ndarray:
+    """Rotation matrix of a rotation vector (rad)."""
+    angle = float(np.linalg.norm(rv))
+    if angle < 1e-12:
+        return np.eye(3)
+    k = rv / angle
+    kx = np.array([[0, -k[2], k[1]], [k[2], 0, -k[0]], [-k[1], k[0], 0]])
+    return np.eye(3) + np.sin(angle) * kx + (1 - np.cos(angle)) * kx @ kx

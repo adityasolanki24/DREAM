@@ -1,0 +1,47 @@
+{
+  "name": "vision_smoke",
+  "seed0": 950,
+  "n": 1,
+  "tasks": [
+    "tray",
+    "stack"
+  ],
+  "conditions": {
+    "nominal": {
+      "methods": [
+        "oracle",
+        "vision",
+        "vision_no_retry",
+        "vision_single_frame"
+      ],
+      "n": 1
+    },
+    "small_cubes": {
+      "n": 1,
+      "methods": [
+        "oracle",
+        "vision"
+      ],
+      "scene": {
+        "half_size": 0.016
+      }
+    },
+    "large_cubes": {
+      "n": 1,
+      "methods": [
+        "oracle",
+        "vision"
+      ],
+      "scene": {
+        "half_size": 0.025
+      }
+    }
+  },
+  "gates": {
+    "_note": "Pre-registered before the first held-out run (development used seeds 0-11, nominal conditions only). Shift conditions are report-only.",
+    "vision_nominal_success_min": 0.85,
+    "max_false_claims": 0,
+    "nominal_recall_min": 0.95,
+    "nominal_median_position_error_mm_max": 5.0
+  }
+}

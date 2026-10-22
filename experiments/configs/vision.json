@@ -1,0 +1,132 @@
+{
+  "name": "vision",
+  "seed0": 9000,
+  "n": 20,
+  "tasks": [
+    "tray",
+    "stack"
+  ],
+  "conditions": {
+    "nominal": {
+      "methods": [
+        "oracle",
+        "vision",
+        "vision_no_retry",
+        "vision_single_frame"
+      ]
+    },
+    "small_cubes": {
+      "n": 12,
+      "methods": [
+        "oracle",
+        "vision"
+      ],
+      "scene": {
+        "half_size": 0.016
+      }
+    },
+    "large_cubes": {
+      "n": 12,
+      "methods": [
+        "oracle",
+        "vision"
+      ],
+      "scene": {
+        "half_size": 0.025
+      }
+    },
+    "new_colours": {
+      "n": 12,
+      "methods": [
+        "oracle",
+        "vision"
+      ],
+      "scene": {
+        "colors": [
+          "orange",
+          "purple",
+          "yellow"
+        ]
+      }
+    },
+    "dim_light": {
+      "n": 12,
+      "methods": [
+        "oracle",
+        "vision"
+      ],
+      "env": {
+        "light_scale": 0.45
+      }
+    },
+    "bright_light": {
+      "n": 12,
+      "methods": [
+        "oracle",
+        "vision"
+      ],
+      "env": {
+        "light_scale": 1.6
+      }
+    },
+    "calibration_error": {
+      "n": 12,
+      "methods": [
+        "oracle",
+        "vision"
+      ],
+      "env": {
+        "camera": {
+          "calibration_error": [
+            0.01,
+            -0.005,
+            0.0,
+            0.0,
+            1.0,
+            0.5
+          ]
+        }
+      }
+    },
+    "noise_x3": {
+      "n": 12,
+      "methods": [
+        "oracle",
+        "vision"
+      ],
+      "env": {
+        "camera": {
+          "depth_noise": [
+            0.003,
+            0.0045
+          ],
+          "rgb_noise": 9.0
+        }
+      }
+    },
+    "clutter": {
+      "n": 12,
+      "methods": [
+        "oracle",
+        "vision"
+      ],
+      "scene": {
+        "colors": [
+          "red",
+          "blue",
+          "green",
+          "yellow",
+          "purple"
+        ],
+        "min_gap": 0.065
+      }
+    }
+  },
+  "gates": {
+    "_note": "Pre-registered before the first held-out run (development used seeds 0-11, nominal conditions only). Shift conditions are report-only.",
+    "vision_nominal_success_min": 0.85,
+    "max_false_claims": 0,
+    "nominal_recall_min": 0.95,
+    "nominal_median_position_error_mm_max": 5.0
+  }
+}

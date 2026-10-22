@@ -31,10 +31,14 @@ class VisionPerception:
         frame_source: Callable[[], RGBDFrame],
         clock: Callable[[], float],
         rng: np.random.Generator,
+        memory: bool = True,
     ) -> None:
+        """``memory=False`` is the single-frame ablation: entities not in the latest frame are
+        forgotten instead of being kept as last-known estimates."""
         self._source = frame_source
         self._clock = clock
         self._rng = rng
+        self.memory = memory
         self.world = WorldModel()
         self.last_frame: RGBDFrame | None = None
         self.last_detections: list[Detection] = []
@@ -50,6 +54,8 @@ class VisionPerception:
         if self._plane is None:  # the support plane is static: fit it once, from a full view
             self._plane = plane
         self.world.update(dets, frame.time)
+        if not self.memory:
+            self.world.tracks = [t for t in self.world.tracks if t.visible]
         self.last_frame, self.last_detections = frame, dets
         self.frames += 1
 

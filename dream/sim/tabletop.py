@@ -36,6 +36,9 @@ COLORS = {
     "blue": (0.15, 0.3, 0.85, 1.0),
     "green": (0.15, 0.65, 0.25, 1.0),
     "yellow": (0.9, 0.75, 0.1, 1.0),
+    # Appearances never used while developing the vision pipeline (distribution-shift tests).
+    "orange": (0.95, 0.45, 0.1, 1.0),
+    "purple": (0.5, 0.2, 0.75, 1.0),
 }
 WORKSPACE_XY = ((0.35, 0.7), (-0.3, 0.3))  # region where objects and the tray are placed
 TRAY_FLOOR_HALF_THICKNESS = 0.002  # m
