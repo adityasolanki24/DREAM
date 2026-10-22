@@ -7,7 +7,9 @@ appear in these types.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
+from typing import Protocol
 
 import numpy as np
 
@@ -71,3 +73,49 @@ class ProbeResult:
     before: Observation
     after: Observation  # at the end of the loaded hold, before relaxing
     trajectory: list[Observation] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class RobotState:
+    """Robot proprioception: what any arm reports about itself, independent of the scene."""
+
+    time: float  # s
+    joint_pos: np.ndarray  # rad
+    joint_vel: np.ndarray  # rad/s
+    tcp_pos: np.ndarray  # (3,) m, tool centre point in the world frame
+    tcp_quat: np.ndarray  # (4,) (w, x, y, z)
+    gripper_width: float  # m, measured finger opening
+    gripper_command: float  # m, commanded opening
+    protective_stop: bool
+    stop_reason: str = ""
+
+
+@dataclass(frozen=True)
+class ObjectObservation:
+    """One tracked object as a perception system reports it (pose with noise, no physics)."""
+
+    name: str
+    color: str
+    position: np.ndarray  # (3,) m, centre
+    yaw: float  # rad, about world z
+    size: float  # m, edge length (from the visible extent)
+
+
+class Embodiment(Protocol):
+    """What skills may ask of a robot. Implemented per robot (see dream/sim/tabletop_env.py).
+
+    Commands are setpoints for a deterministic controller that enforces safety limits below
+    this interface; there is no way to send raw torques through it.
+    """
+
+    def state(self) -> RobotState: ...
+    def move_tcp(self, pos: np.ndarray, quat: np.ndarray) -> np.ndarray: ...  # clamped target
+    def set_gripper(self, width: float) -> None: ...
+    def tracking_error(self) -> tuple[float, float]: ...
+    def wait_until(self, predicate: Callable[[], bool], timeout: float) -> bool: ...
+    def hold(self) -> None: ...
+
+
+class Perception(Protocol):
+    def observe_objects(self) -> list[ObjectObservation]: ...
+    def fixtures(self) -> dict[str, tuple[np.ndarray, float]]: ...  # name -> (centre, half width)
