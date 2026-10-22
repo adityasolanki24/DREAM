@@ -44,6 +44,25 @@ class SafetyLimits:
     max_finger_force: float = 40.0  # N, net external force on hand + fingers (grip cancels)
 
 
+@dataclass(frozen=True)
+class Compliance:
+    """Cartesian admittance: the hand behaves like a force-capped spring toward its target.
+
+    Commanded pose dynamics: x_cmd' = (clip(K (x_target - x_cmd), F_max) + F_ext) / D. At
+    equilibrium the hand pushes with at most F_max and yields wherever the environment pushes back.
+    This is the force-capped spring the discovery model assumes, with Panda-specific
+    parameters. Rotation follows the same law with torques about the TCP.
+    """
+
+    stiffness: float = 300.0  # N/m
+    damping: float = 100.0  # N s/m; > dt * contact stiffness / 2 for a stable discrete loop
+    force_limit: float = 15.0  # N
+    rot_stiffness: float = 1.0  # N m/rad
+    rot_damping: float = 0.3  # N m s/rad
+    torque_limit: float = 1.0  # N m
+    max_lag: float = 0.03  # m: x_cmd never strays further than this from the actual TCP
+
+
 class PandaController:
     """Owns the arm and gripper actuators of a Panda inside a MuJoCo model."""
 
@@ -77,6 +96,11 @@ class PandaController:
         self.peak_finger_force = 0.0
         self.external_force = np.zeros(3)  # N, net force of the world on hand + fingers
         self.filtered_force = np.zeros(3)  # N, first-order low-pass of external_force
+        self.external_torque = np.zeros(3)  # N m about the TCP
+        self.filtered_torque = np.zeros(3)
+        self.compliance: Compliance | None = None
+        self.cmd_pos = np.zeros(3)  # admittance state (compliant mode only)
+        self.cmd_quat = DOWN_QUAT.copy()
 
     # ----- commands -------------------------------------------------------------------
 
@@ -99,6 +123,13 @@ class PandaController:
         self.target_pos = self.d.site_xpos[self.tcp].copy()
         self.target_quat = self._tcp_quat()
 
+    def set_compliance(self, compliance: Compliance | None) -> None:
+        """Enter (or leave, with None) compliant mode, starting from the current pose."""
+        self.hold()
+        self.compliance = compliance
+        self.cmd_pos = self.target_pos.copy()
+        self.cmd_quat = self.target_quat.copy()
+
     def reset_safety(self) -> None:
         self.protective_stop = False
         self.stop_reason = ""
@@ -115,16 +146,40 @@ class PandaController:
         if self.protective_stop:
             self.d.ctrl[self.arm_act] = q
         else:
+            if self.compliance is not None:
+                self._admittance_step()
             self.d.ctrl[self.arm_act] = np.clip(
                 q + self._ik_step() * self.INTEGRATION_DT, self.ctrl_lo, self.ctrl_hi
             )
         self.d.ctrl[self.grip_act] = 255.0 * self.gripper_width_cmd / GRIPPER_MAX_WIDTH
 
+    def _admittance_step(self) -> None:
+        c, dt = self.compliance, self.m.opt.timestep
+        spring = _clip_norm(c.stiffness * (self.target_pos - self.cmd_pos), c.force_limit)
+        self.cmd_pos = self.cmd_pos + dt * (spring + self.filtered_force) / c.damping
+        tcp = self.d.site_xpos[self.tcp]
+        self.cmd_pos = tcp + _clip_norm(self.cmd_pos - tcp, c.max_lag)
+        rot_spring = _clip_norm(
+            c.rot_stiffness * _quat_error(self.target_quat, self.cmd_quat), c.torque_limit
+        )
+        omega = (rot_spring + self.filtered_torque) / c.rot_damping
+        dq = np.zeros(4)
+        angle = np.linalg.norm(omega) * dt
+        mujoco.mju_axisAngle2Quat(dq, omega / max(np.linalg.norm(omega), 1e-12), angle)
+        out = np.zeros(4)
+        mujoco.mju_mulQuat(out, dq, self.cmd_quat)
+        self.cmd_quat = out / np.linalg.norm(out)
+
     def _ik_step(self) -> np.ndarray:
         lim = self.limits
+        goal_pos, goal_quat = (
+            (self.cmd_pos, self.cmd_quat)
+            if self.compliance is not None
+            else (self.target_pos, self.target_quat)
+        )
         err = np.zeros(6)
-        err[:3] = self.target_pos - self.d.site_xpos[self.tcp]
-        err[3:] = _quat_error(self.target_quat, self._tcp_quat())
+        err[:3] = goal_pos - self.d.site_xpos[self.tcp]
+        err[3:] = _quat_error(goal_quat, self._tcp_quat())
         twist = err / self.INTEGRATION_DT
         v, w = np.linalg.norm(twist[:3]), np.linalg.norm(twist[3:])
         if v > lim.max_linear_speed:
@@ -158,6 +213,8 @@ class PandaController:
         """
         links = 0.0
         hand = np.zeros(3)
+        torque = np.zeros(3)
+        tcp = self.d.site_xpos[self.tcp]
         f6 = np.zeros(6)
         for i in range(self.d.ncon):
             c = self.d.contact[i]
@@ -172,12 +229,16 @@ class PandaController:
                 # mj_contactForce is in the contact frame (rows: normal, tangents), and it is the
                 # force geom1 exerts on geom2. Convert it to the force on the robot body.
                 f_world = c.frame.reshape(3, 3).T @ f6[:3]
-                hand += -f_world if robot1 else f_world
+                f_robot = -f_world if robot1 else f_world
+                hand += f_robot
+                torque += np.cross(c.pos - tcp, f_robot)
             else:
                 links += abs(f6[0])
         self.peak_contact_force = max(self.peak_contact_force, links)
         self.external_force = hand
         self.filtered_force += self.FORCE_FILTER * (hand - self.filtered_force)
+        self.external_torque = torque
+        self.filtered_torque += self.FORCE_FILTER * (torque - self.filtered_torque)
         fingers = float(np.linalg.norm(hand))
         self.peak_finger_force = max(self.peak_finger_force, fingers)
         if self.protective_stop:
@@ -218,6 +279,11 @@ class PandaController:
         pos = float(np.linalg.norm(self.target_pos - self.d.site_xpos[self.tcp]))
         rot = float(np.linalg.norm(_quat_error(self.target_quat, self._tcp_quat())))
         return pos, rot
+
+
+def _clip_norm(v: np.ndarray, limit: float) -> np.ndarray:
+    n = np.linalg.norm(v)
+    return v * (limit / n) if n > limit else v
 
 
 def _quat_error(target: np.ndarray, current: np.ndarray) -> np.ndarray:

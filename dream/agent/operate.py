@@ -15,7 +15,6 @@ import numpy as np
 
 from dream.agent.belief import Belief
 from dream.agent.model import FIXED, PRISMATIC, REVOLUTE, Hypotheses, handle_at, project, tangent
-from dream.types import GANTRY_KP
 
 TASK_GOAL = {PRISMATIC: 0.10, REVOLUTE: 0.5}  # m, rad
 GOAL_MARGIN = 1.25  # aim past the goal; joint limits and the force cap stop us safely
@@ -51,6 +50,6 @@ def plan_opening(
         x = handle_at(hyp, np.array([q]), belief.h0)
         t = tangent(hyp, x)[0]
         t /= max(np.linalg.norm(t), 1e-9)
-        push = lead + float(hyp.friction[0]) / GANTRY_KP
+        push = lead + float(hyp.friction[0]) / belief.controller.stiffness
         targets.append(x[0] + t * push)
     return targets

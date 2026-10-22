@@ -19,10 +19,12 @@ import numpy as np
 
 from dream.agent.model import (
     FIXED,
+    GANTRY_PROBE,
     PRISMATIC,
     REVOLUTE,
     TYPE_NAMES,
     Hypotheses,
+    ProbeController,
     predict_outcome,
     tangent,
 )
@@ -100,9 +102,14 @@ class Prior:
     friction: tuple[float, float] = (0.0, 5.0)  # N
     origin_margin: float = 0.1  # m beyond the panel in x and z, and in front of or behind it in y
     inward_weight: float = 1.0  # relative weight of hypotheses that open into the cabinet
+    # False: hinge lines pass near the panel plane (gantry panels, thin in y). True: anywhere
+    # within ``origin_margin`` of the visible box in every axis (a closed box of unknown layout).
+    origin_around_box: bool = False
 
     def _origin_box(self) -> tuple[np.ndarray, np.ndarray]:
         c, half = self.geometry.panel_center, self.geometry.panel_half_extents
+        if self.origin_around_box:
+            return c - half - self.origin_margin, c + half + self.origin_margin
         span = np.array(
             [half[0] + self.origin_margin, self.origin_margin, half[2] + self.origin_margin]
         )
@@ -209,8 +216,9 @@ class TypeFilter:
         noise: NoiseModel,
         ess_frac: float = 0.5,
         mh_steps: int = 4,
+        controller: ProbeController | None = None,
     ) -> None:
-        ll_new = log_likelihood(self.particles, [record], h0, noise)
+        ll_new = log_likelihood(self.particles, [record], h0, noise, controller)
         if self.kind == FIXED:  # no free parameters: the evidence is exact
             self.log_evidence += float(ll_new[0])
             self.ll_hist += ll_new
@@ -228,7 +236,9 @@ class TypeFilter:
                 self.particles = self.particles.take(idx)
                 self.ll_hist, ll_new = self.ll_hist[idx], ll_new[idx]
                 self.logw = _normalise(np.zeros(n))
-                ll_new = self._rejuvenate(history, record, ll_new, beta, h0, noise, mh_steps)
+                ll_new = self._rejuvenate(
+                    history, record, ll_new, beta, h0, noise, mh_steps, controller
+                )
         self.ll_hist += ll_new
 
     def _next_increment(self, ll_new: np.ndarray, remaining: float, ess_target: float) -> float:
@@ -249,6 +259,7 @@ class TypeFilter:
         h0: np.ndarray,
         noise: NoiseModel,
         steps: int,
+        controller: ProbeController | None = None,
     ) -> np.ndarray:
         """Random-walk MH moves that leave prior x L(history) x L(record)^beta invariant."""
         p = self.particles
@@ -256,8 +267,10 @@ class TypeFilter:
             prop = self._propose(p)
             lp_prop = self.prior.log_density(prop)
             ok = np.isfinite(lp_prop)
-            ll_hist_prop = log_likelihood(prop, history, h0, noise) if history else 0.0 * ok
-            ll_new_prop = log_likelihood(prop, [record], h0, noise)
+            ll_hist_prop = (
+                log_likelihood(prop, history, h0, noise, controller) if history else 0.0 * ok
+            )
+            ll_new_prop = log_likelihood(prop, [record], h0, noise, controller)
             log_ratio = (ll_hist_prop + beta * ll_new_prop) - (self.ll_hist + beta * ll_new)
             log_ratio = log_ratio + np.where(ok, lp_prop - self.prior.log_density(p), 0.0)
             accept = ok & (np.log(self.rng.uniform(size=len(ok))) < log_ratio)
@@ -302,7 +315,11 @@ def _where(mask: np.ndarray, a: Hypotheses, b: Hypotheses) -> Hypotheses:
 
 
 def sq_residuals(
-    h: Hypotheses, records: list[Record], h0: np.ndarray, noise: NoiseModel
+    h: Hypotheses,
+    records: list[Record],
+    h0: np.ndarray,
+    noise: NoiseModel,
+    controller: ProbeController | None = None,
 ) -> np.ndarray:
     """Squared standardised residuals summed over the 6 observed dims. Shape (N, R)."""
     n, r = len(h.kind), len(records)
@@ -321,13 +338,18 @@ def sq_residuals(
         fields["direction"],
         fields["distance"][:, 0],
         fields["max_force"][:, 0],
+        controller=controller,
     )
     z = (y_pred - fields["y_obs"]) / noise.sigma_for(y_pred, y_start)
     return np.sum(z * z, axis=-1).reshape(r, n).T
 
 
 def log_likelihood(
-    h: Hypotheses, records: list[Record], h0: np.ndarray, noise: NoiseModel
+    h: Hypotheses,
+    records: list[Record],
+    h0: np.ndarray,
+    noise: NoiseModel,
+    controller: ProbeController | None = None,
 ) -> np.ndarray:
     """Sum over ``records`` of log p(y_obs | hypothesis, probe). Vectorised over N x R."""
     n, r = len(h.kind), len(records)
@@ -349,6 +371,7 @@ def log_likelihood(
         per_pair("direction"),
         per_pair("distance")[:, 0],
         per_pair("max_force")[:, 0],
+        controller=controller,
     )
     return noise.loglik(y_pred, per_pair("y_obs"), y_start).reshape(r, n).sum(axis=0)
 
@@ -364,8 +387,10 @@ class Belief:
         noise: NoiseModel | None = None,
         prior: Prior | None = None,
         adequacy_threshold: float = ADEQUACY_THRESHOLD,
+        controller: ProbeController | None = None,
     ) -> None:
         self.adequacy_threshold = adequacy_threshold
+        self.controller = controller or GANTRY_PROBE  # how the probing robot applies force
         self.geometry = geometry
         self.h0 = np.asarray(geometry.handle_pos, dtype=float)
         self.noise = noise or NoiseModel()
@@ -379,7 +404,7 @@ class Belief:
 
     def update(self, record: Record) -> None:
         for f in self.filters:
-            f.update(record, self.history, self.h0, self.noise)
+            f.update(record, self.history, self.h0, self.noise, controller=self.controller)
         self.history.append(record)
 
     def type_probs(self) -> np.ndarray:
@@ -420,7 +445,7 @@ class Belief:
             return {"chi2_per_dof": 0.0, "model_adequate": True}
         f = self.filters[self.map_type()]
         best = f.particles.take(np.array([int(np.argmax(f.ll_hist))]))
-        chi2 = float(sq_residuals(best, self.history, self.h0, self.noise).sum())
+        chi2 = float(sq_residuals(best, self.history, self.h0, self.noise, self.controller).sum())
         per_dof = chi2 / (6 * len(self.history))
         enough = len(self.history) >= MIN_EVIDENCE_PROBES
         return {

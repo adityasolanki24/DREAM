@@ -29,7 +29,8 @@ CAVITY_HEIGHT = 0.07  # m, floor top to roof underside
 FLOOR = 0.006  # m, floor plate thickness (the drawer floor rides this high above the table)
 HANDLE_HALF = (0.0125, 0.03, 0.0125)  # m: grasped across x (25 mm), 60 mm long in y
 DRAWER_LIFT = 0.002  # m: the drawer rides on its slide, clear of the table
-HANDLE_GAP = 0.022  # m between the front face and the handle: room for the rear finger
+HANDLE_GAP = 0.032  # m between the front face and the handle: room for the rear finger (~12 mm
+# thick) plus ~14 mm margin for tracking noise; 22 mm let the finger clip the face
 BODY_RGBA = (0.62, 0.5, 0.36, 1.0)
 
 

@@ -20,7 +20,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from dream.agent.belief import Belief
-from dream.agent.model import Hypotheses, predict_outcome
+from dream.agent.model import Hypotheses, ProbeController, predict_outcome
 from dream.types import Probe
 
 
@@ -44,6 +44,7 @@ def predict_for_probes(
     handle_now: np.ndarray,
     ee_now: np.ndarray,
     probes: list[Probe],
+    controller: ProbeController | None = None,
 ) -> np.ndarray:
     """Predicted outcomes and start states for every (probe, hypothesis) pair, each (K, M, 6)."""
     m, k = len(hyps), len(probes)
@@ -51,7 +52,9 @@ def predict_for_probes(
     dirs = np.repeat(np.stack([p.direction for p in probes]), m, axis=0)
     dist = np.repeat([p.distance for p in probes], m)
     force = np.repeat([p.max_force for p in probes], m)
-    y, _, y_start = predict_outcome(tiled, h0, handle_now, ee_now, dirs, dist, force)
+    y, _, y_start = predict_outcome(
+        tiled, h0, handle_now, ee_now, dirs, dist, force, controller=controller
+    )
     return y.reshape(k, m, 6), y_start.reshape(k, m, 6)
 
 
@@ -91,7 +94,9 @@ class EIGSelector:
         self, belief: Belief, handle_now: np.ndarray, ee_now: np.ndarray, rng: np.random.Generator
     ) -> tuple[Probe, dict]:
         hyps = belief.sample(self.n_samples, rng)
-        y, y_start = predict_for_probes(hyps, belief.h0, handle_now, ee_now, self.probes)
+        y, y_start = predict_for_probes(
+            hyps, belief.h0, handle_now, ee_now, self.probes, belief.controller
+        )
         eig = pairwise_mixture_mi(y, belief.noise.sigma_for(y, y_start))
         effort = np.array([p.max_force / 15.0 * p.distance / 0.08 for p in self.probes])
         score = eig - self.effort_cost * effort

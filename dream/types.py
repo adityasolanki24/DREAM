@@ -76,6 +76,19 @@ class ProbeResult:
 
 
 @dataclass(frozen=True)
+class CompliantMode:
+    """Request for a compliant end effector, the same for every embodiment.
+
+    The hand acts like a spring of ``stiffness`` toward its target whose force is capped at
+    ``force_limit`` by *norm* (not per axis, unlike the gantry's servos). Each embodiment maps
+    this onto its own controller (the Panda: Cartesian admittance).
+    """
+
+    stiffness: float = 300.0  # N/m
+    force_limit: float = 15.0  # N
+
+
+@dataclass(frozen=True)
 class RobotState:
     """Robot proprioception: what any arm reports about itself, independent of the scene."""
 
@@ -115,11 +128,13 @@ class Embodiment(Protocol):
     def tracking_error(self) -> tuple[float, float]: ...
     def wait_until(self, predicate: Callable[[], bool], timeout: float) -> bool: ...
     def hold(self) -> None: ...
+    def set_compliance(self, mode: CompliantMode | None) -> None: ...  # None: stiff tracking
 
 
 class Perception(Protocol):
     def observe_objects(self) -> list[ObjectObservation]: ...
     def fixtures(self) -> dict[str, tuple[np.ndarray, float]]: ...  # name -> (centre, half width)
+    def observe_articulated(self) -> list[ArticulatedObservation]: ...
 
 
 @dataclass(frozen=True)

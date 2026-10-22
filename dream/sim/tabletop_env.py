@@ -18,10 +18,10 @@ from dataclasses import dataclass
 import mujoco
 import numpy as np
 
-from dream.robot.panda import HOME_QPOS, PandaController, SafetyLimits
+from dream.robot.panda import HOME_QPOS, Compliance, PandaController, SafetyLimits
 from dream.sim.compartment import FLOOR, INNER_HALF
 from dream.sim.tabletop import TabletopSpec, build_model
-from dream.types import ArticulatedObservation, ObjectObservation, RobotState
+from dream.types import ArticulatedObservation, CompliantMode, ObjectObservation, RobotState
 
 
 @dataclass(frozen=True)
@@ -251,6 +251,13 @@ class SimPanda:
     def hold(self) -> None:
         with self._env.lock:
             self._env.robot.hold()
+
+    def set_compliance(self, mode: CompliantMode | None) -> None:
+        c = None
+        if mode is not None:
+            c = Compliance(stiffness=mode.stiffness, force_limit=mode.force_limit)
+        with self._env.lock:
+            self._env.robot.set_compliance(c)
 
 
 def _largest_square(grid: np.ndarray) -> tuple[int, int, int]:

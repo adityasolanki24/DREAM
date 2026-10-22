@@ -106,11 +106,14 @@ def settle(
     kp: float = GANTRY_KP,
     n_iter: int = 60,
     max_step: float = 0.005,
+    norm_clip: bool = False,
 ) -> np.ndarray:
     """Quasi-static equilibrium joint coordinate after the gripper target moves to ``target``.
 
     Iterates friction-limited Newton steps along the constraint, with each step capped to
     ``max_step`` metres of handle travel so that saturated springs do not overshoot.
+    The spring force is capped per axis (the gantry's independent axis servos) or, with
+    ``norm_clip``, in magnitude (a Cartesian admittance controller such as the Panda's).
     """
     q = q_start.astype(float).copy()
     max_force = np.broadcast_to(max_force, q.shape)[:, None]
@@ -119,7 +122,12 @@ def settle(
         x = handle_at(h, q, h0)
         j = tangent(h, x)
         jn2 = np.sum(j * j, -1) + 1e-12
-        force = np.clip(kp * (target - x), -max_force, max_force)
+        if norm_clip:
+            raw = kp * (target - x)
+            mag = np.linalg.norm(raw, axis=-1, keepdims=True)
+            force = raw * np.minimum(1.0, max_force / np.maximum(mag, 1e-12))
+        else:
+            force = np.clip(kp * (target - x), -max_force, max_force)
         gen = np.sum(force * j, -1)
         resist = h.friction * np.sqrt(jn2)
         excess = np.sign(gen) * np.maximum(np.abs(gen) - resist, 0.0)
@@ -127,6 +135,17 @@ def settle(
         dq = np.clip(dq, -max_step / np.sqrt(jn2), max_step / np.sqrt(jn2))
         q = np.where(moving, np.clip(q + dq, 0.0, h.upper), q)
     return q
+
+
+@dataclass(frozen=True)
+class ProbeController:
+    """How a robot's probe acts on the handle: a spring of ``stiffness`` with a force cap."""
+
+    stiffness: float  # N/m
+    norm_clip: bool  # cap |F| (Cartesian admittance) rather than each axis (independent servos)
+
+
+GANTRY_PROBE = ProbeController(GANTRY_KP, norm_clip=False)
 
 
 def handle_rotation(h: Hypotheses, q: np.ndarray) -> np.ndarray:
@@ -142,6 +161,7 @@ def predict_outcome(
     direction: np.ndarray,
     distance: np.ndarray,
     max_force: np.ndarray,
+    controller: ProbeController | None = None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Predicted settled outcome of a probe.
 
@@ -150,12 +170,16 @@ def predict_outcome(
     and ``y_start`` is each hypothesis's own reconstruction of the pre-probe state (N, 6).
 
     Probe arguments broadcast against the hypothesis batch, so one call can evaluate many
-    hypotheses under one probe, or matched (hypothesis, probe) pairs.
+    hypotheses under one probe, or matched (hypothesis, probe) pairs. ``controller`` describes
+    the robot's probing compliance (default: the gantry).
     """
+    c = controller or GANTRY_PROBE
     q0 = project(h, handle_before, h0)
     target = np.asarray(ee_before) + np.asarray(direction) * np.asarray(distance)[..., None]
     target = np.broadcast_to(target, h.axis.shape)
-    q1 = settle(h, q0, h0, target, np.asarray(max_force, dtype=float))
+    q1 = settle(
+        h, q0, h0, target, np.asarray(max_force, dtype=float), kp=c.stiffness, norm_clip=c.norm_clip
+    )
     y = np.concatenate([handle_at(h, q1, h0), handle_rotation(h, q1)], axis=-1)
     y_start = np.concatenate([handle_at(h, q0, h0), handle_rotation(h, q0)], axis=-1)
     return y, q1, y_start
