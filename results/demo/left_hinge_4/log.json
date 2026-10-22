@@ -15,9 +15,10 @@
       -0.01,
       0.6
     ],
-    "upper": 1.4811407241914845,
+    "upper": 1.1047166896864171,
     "friction": 2.018389579987574
   },
+  "mjcf": "\n<mujoco model=\"dream_left_hinge\">\n  <compiler angle=\"radian\"/>\n  <option timestep=\"0.002\" integrator=\"implicitfast\"/>\n  <default>\n    <geom contype=\"0\" conaffinity=\"0\"/>\n  </default>\n  <visual><global offwidth=\"640\" offheight=\"480\"/></visual>\n  <worldbody>\n    <light pos=\"0 -1.5 2\" dir=\"0 1 -1\"/>\n    <geom type=\"plane\" size=\"1.5 1.5 0.05\" rgba=\".9 .9 .9 1\"/>\n    <camera name=\"front\" pos=\"0.55 -0.9 1\" xyaxes=\"0.853282 0.52145 -0 -0.184903 0.302568 0.93502\"/>\n    <geom type=\"box\" pos=\"0 0.1 0.6\" size=\"0.284306 0.08 0.211133\" rgba=\".45 .35 .25 1\"/>\n<geom type=\"box\" pos=\"-0.264306 0 0.6\" size=\"0.02 0.03 0.211133\" rgba=\".45 .35 .25 1\"/>\n<geom type=\"box\" pos=\"0.264306 0 0.6\" size=\"0.02 0.03 0.211133\" rgba=\".45 .35 .25 1\"/>\n    <body name=\"panel\" pos=\"0 0 0.6\" gravcomp=\"1\">\n      <joint name=\"mech\" type=\"hinge\" pos=\"-0.244306 -0.01 0\" axis=\"-0 -0 -1\" limited=\"true\" range=\"0 1.10472\" solreffriction=\"0.004 1\" frictionloss=\"0.825833\" damping=\"0.05\"/>\n      <geom type=\"box\" size=\"0.244306 0.01 0.171133\" mass=\"1\" rgba=\".75 .6 .4 1\"/>\n      <geom type=\"box\" pos=\"0.162889 -0.03 -0.100426\"\n            size=\"0.01 0.02 0.01\" mass=\"0.02\" rgba=\".2 .2 .2 1\"/>\n      <site name=\"handle\" pos=\"0.162889 -0.05 -0.100426\" size=\"0.012\" rgba=\".9 .1 .1 1\"/>\n    </body>\n    <body name=\"ee_base\" pos=\"0 -0.35 0.6\">\n      <body name=\"ee\" gravcomp=\"1\">\n        <joint name=\"ee_x\" type=\"slide\" axis=\"1 0 0\" range=\"-0.8 0.8\" damping=\"2\"/>\n        <joint name=\"ee_y\" type=\"slide\" axis=\"0 1 0\" range=\"-0.8 0.8\" damping=\"2\"/>\n        <joint name=\"ee_z\" type=\"slide\" axis=\"0 0 1\" range=\"-0.8 0.8\" damping=\"2\"/>\n        <geom type=\"sphere\" size=\"0.02\" mass=\"0.3\" rgba=\".1 .4 .9 1\"/>\n        <site name=\"ee_tip\" size=\"0.005\"/>\n      </body>\n    </body>\n  </worldbody>\n  <equality>\n    <connect name=\"grasp\" site1=\"ee_tip\" site2=\"handle\" active=\"false\" solref=\"0.004 1\"/>\n    \n  </equality>\n  <actuator>\n    <position name=\"act_x\" joint=\"ee_x\" kp=\"400\" kv=\"40\" forcelimited=\"true\" forcerange=\"-20 20\"/>\n<position name=\"act_y\" joint=\"ee_y\" kp=\"400\" kv=\"40\" forcelimited=\"true\" forcerange=\"-20 20\"/>\n<position name=\"act_z\" joint=\"ee_z\" kp=\"400\" kv=\"40\" forcelimited=\"true\" forcerange=\"-20 20\"/>\n  </actuator>\n  <sensor>\n    <framepos name=\"handle_pos\" objtype=\"site\" objname=\"handle\"/>\n    <framequat name=\"handle_quat\" objtype=\"site\" objname=\"handle\"/>\n    <framepos name=\"ee_pos\" objtype=\"site\" objname=\"ee_tip\"/>\n    <actuatorfrc name=\"frc_x\" actuator=\"act_x\"/>\n    <actuatorfrc name=\"frc_y\" actuator=\"act_y\"/>\n    <actuatorfrc name=\"frc_z\" actuator=\"act_z\"/>\n  </sensor>\n</mujoco>\n",
   "steps": [
     {
       "step": 0,
@@ -31,6 +32,9 @@
       "type_entropy": 1.0986122886681096,
       "axis_err_deg": 53.66835294797137,
       "line_err_m": 0.2914781643208572,
+      "max_type_prob": 0.3333333333333333,
+      "chi2_per_dof": 0.0,
+      "model_adequate": true,
       "identified": false,
       "heldout_pos_err_m": 0.010558973479646966,
       "task_success": false,
@@ -46,6 +50,54 @@
         ],
         "distance": 0.08,
         "max_force": 15.0
+      },
+      "obs_before": {
+        "time": 1.500000000000001,
+        "handle_pos": [
+          0.162686,
+          -0.049252,
+          0.500425
+        ],
+        "handle_quat": [
+          0.999976,
+          0.004185,
+          -0.004275,
+          -0.003481
+        ],
+        "ee_pos": [
+          0.162704,
+          -0.050201,
+          0.499441
+        ],
+        "ee_force": [
+          -0.0593,
+          -0.0254,
+          -0.0126
+        ]
+      },
+      "obs_after": {
+        "time": 3.499999999999836,
+        "handle_pos": [
+          0.163608,
+          -0.046717,
+          0.500799
+        ],
+        "handle_quat": [
+          0.999984,
+          -0.000834,
+          0.005584,
+          -0.000424
+        ],
+        "ee_pos": [
+          0.162776,
+          -0.049456,
+          0.499283
+        ],
+        "ee_force": [
+          14.9992,
+          14.8601,
+          -14.9385
+        ]
       },
       "observed_displacement_m": 0.002723005689176956,
       "observed_rotation_rad": 0.020332117674018834,
@@ -64,13 +116,16 @@
         },
         "map_type": "fixed"
       },
-      "select_s": 0.6868197300000247,
-      "update_s": 0.10100619099966934,
+      "select_s": 0.6549796369999967,
+      "update_s": 0.14862680599981104,
       "p_true_type": 0.2601207139175147,
       "map_correct": false,
       "type_entropy": 1.0485519436270012,
       "axis_err_deg": 34.156413983279855,
       "line_err_m": 0.2953493981390119,
+      "max_type_prob": 0.48667999449215393,
+      "chi2_per_dof": 0.29344623589166136,
+      "model_adequate": false,
       "identified": false,
       "heldout_pos_err_m": 0.009208433363176413,
       "task_success": false,
@@ -86,6 +141,54 @@
         ],
         "distance": 0.08,
         "max_force": 15.0
+      },
+      "obs_before": {
+        "time": 3.799999999999803,
+        "handle_pos": [
+          0.162827,
+          -0.049822,
+          0.500389
+        ],
+        "handle_quat": [
+          0.999965,
+          0.005774,
+          -0.002483,
+          -0.005483
+        ],
+        "ee_pos": [
+          0.163119,
+          -0.050282,
+          0.499628
+        ],
+        "ee_force": [
+          0.1082,
+          0.1448,
+          -0.0665
+        ]
+      },
+      "obs_after": {
+        "time": 5.799999999999583,
+        "handle_pos": [
+          0.155118,
+          -0.098915,
+          0.500413
+        ],
+        "handle_quat": [
+          0.998154,
+          0.000735,
+          0.005413,
+          -0.060488
+        ],
+        "ee_pos": [
+          0.155113,
+          -0.099942,
+          0.499795
+        ],
+        "ee_force": [
+          -15.1817,
+          1.5,
+          14.873
+        ]
       },
       "observed_displacement_m": 0.04969462462677674,
       "observed_rotation_rad": 0.13632006062358887,
@@ -117,13 +220,16 @@
           0.511
         ]
       },
-      "select_s": 0.5499891930003287,
-      "update_s": 2.1747349490001397,
+      "select_s": 0.6498507539999991,
+      "update_s": 2.2745793519998188,
       "p_true_type": 0.9975215471413698,
       "map_correct": true,
       "type_entropy": 0.01734639540552889,
       "axis_err_deg": 0.8582503050966648,
       "line_err_m": 0.026707754532017344,
+      "max_type_prob": 0.9975215471413698,
+      "chi2_per_dof": 0.18561677307026006,
+      "model_adequate": true,
       "identified": false,
       "heldout_pos_err_m": 0.0034672177614526924,
       "task_success": true,
@@ -140,6 +246,54 @@
         ],
         "distance": 0.08,
         "max_force": 6.0
+      },
+      "obs_before": {
+        "time": 6.09999999999955,
+        "handle_pos": [
+          0.156076,
+          -0.100424,
+          0.499092
+        ],
+        "handle_quat": [
+          0.998296,
+          0.003949,
+          -1.2e-05,
+          -0.058217
+        ],
+        "ee_pos": [
+          0.154762,
+          -0.099555,
+          0.49958
+        ],
+        "ee_force": [
+          -0.1083,
+          -0.0962,
+          -0.0874
+        ]
+      },
+      "obs_after": {
+        "time": 8.099999999999374,
+        "handle_pos": [
+          0.132329,
+          -0.166971,
+          0.499402
+        ],
+        "handle_quat": [
+          0.989941,
+          0.002152,
+          0.006759,
+          -0.141302
+        ],
+        "ee_pos": [
+          0.132982,
+          -0.168207,
+          0.49964
+        ],
+        "ee_force": [
+          6.0673,
+          -4.2984,
+          0.2418
+        ]
       },
       "observed_displacement_m": 0.07065748151832371,
       "observed_rotation_rad": 0.29862274917096815,
@@ -171,13 +325,16 @@
           0.4884
         ]
       },
-      "select_s": 0.5328614420000122,
-      "update_s": 0.9570034919997852,
+      "select_s": 0.5601535739997416,
+      "update_s": 1.0301158310003302,
       "p_true_type": 1.0,
       "map_correct": true,
       "type_entropy": 7.23742076392959e-17,
       "axis_err_deg": 1.7922602498182567,
       "line_err_m": 0.009600357793235646,
+      "max_type_prob": 1.0,
+      "chi2_per_dof": 0.1835714668067537,
+      "model_adequate": true,
       "identified": true,
       "heldout_pos_err_m": 0.004273500235843524,
       "task_success": true,
@@ -194,6 +351,54 @@
         ],
         "distance": 0.03,
         "max_force": 6.0
+      },
+      "obs_before": {
+        "time": 8.399999999999475,
+        "handle_pos": [
+          0.130259,
+          -0.168071,
+          0.499803
+        ],
+        "handle_quat": [
+          0.989574,
+          -0.000133,
+          -0.005599,
+          -0.143914
+        ],
+        "ee_pos": [
+          0.132985,
+          -0.168628,
+          0.499355
+        ],
+        "ee_force": [
+          0.1894,
+          0.0323,
+          0.0901
+        ]
+      },
+      "obs_after": {
+        "time": 10.400000000000142,
+        "handle_pos": [
+          0.130838,
+          -0.176951,
+          0.499803
+        ],
+        "handle_quat": [
+          0.987511,
+          0.003887,
+          -0.00373,
+          -0.157456
+        ],
+        "ee_pos": [
+          0.128657,
+          -0.178002,
+          0.499573
+        ],
+        "ee_force": [
+          5.9039,
+          -4.9117,
+          -0.0353
+        ]
       },
       "observed_displacement_m": 0.008899549489603064,
       "observed_rotation_rad": 0.33107768013899047,
@@ -225,13 +430,16 @@
           0.4823
         ]
       },
-      "select_s": 0.6637100230000215,
-      "update_s": 1.3953128030002517,
+      "select_s": 0.5175712540003587,
+      "update_s": 1.5708998760001123,
       "p_true_type": 1.0,
       "map_correct": true,
       "type_entropy": 7.812312360048622e-36,
       "axis_err_deg": 2.3852908676008013,
       "line_err_m": 0.008126318000984034,
+      "max_type_prob": 1.0,
+      "chi2_per_dof": 0.11556694969021353,
+      "model_adequate": true,
       "identified": true,
       "heldout_pos_err_m": 0.0036557626452121666,
       "task_success": true,
@@ -248,6 +456,54 @@
         ],
         "distance": 0.08,
         "max_force": 6.0
+      },
+      "obs_before": {
+        "time": 10.700000000000243,
+        "handle_pos": [
+          0.126698,
+          -0.176467,
+          0.499612
+        ],
+        "handle_quat": [
+          0.988328,
+          -0.00233,
+          -0.001353,
+          -0.152318
+        ],
+        "ee_pos": [
+          0.128694,
+          -0.178269,
+          0.49959
+        ],
+        "ee_force": [
+          0.1043,
+          -0.0182,
+          0.1637
+        ]
+      },
+      "obs_after": {
+        "time": 12.70000000000091,
+        "handle_pos": [
+          0.108124,
+          -0.220645,
+          0.498269
+        ],
+        "handle_quat": [
+          0.97615,
+          -0.001943,
+          -0.003048,
+          -0.217066
+        ],
+        "ee_pos": [
+          0.106742,
+          -0.220078,
+          0.499616
+        ],
+        "ee_force": [
+          6.02,
+          -5.7306,
+          0.1127
+        ]
       },
       "observed_displacement_m": 0.04794212602655052,
       "observed_rotation_rad": 0.4521611268397246,
@@ -279,13 +535,16 @@
           0.4905
         ]
       },
-      "select_s": 0.6511470489999738,
-      "update_s": 0.9308589529996425,
+      "select_s": 0.6474588649998623,
+      "update_s": 1.1403933890005646,
       "p_true_type": 1.0,
       "map_correct": true,
       "type_entropy": 1.1377243652725702e-71,
       "axis_err_deg": 1.267172136174471,
       "line_err_m": 0.007054575373379829,
+      "max_type_prob": 1.0,
+      "chi2_per_dof": 0.081744145295275,
+      "model_adequate": true,
       "identified": true,
       "heldout_pos_err_m": 0.004036145344146023,
       "task_success": true,
@@ -302,6 +561,54 @@
         ],
         "distance": 0.08,
         "max_force": 6.0
+      },
+      "obs_before": {
+        "time": 13.00000000000101,
+        "handle_pos": [
+          0.106584,
+          -0.220569,
+          0.498592
+        ],
+        "handle_quat": [
+          0.975223,
+          -0.009483,
+          -0.006075,
+          -0.220939
+        ],
+        "ee_pos": [
+          0.10705,
+          -0.220375,
+          0.499928
+        ],
+        "ee_force": [
+          -0.225,
+          0.0571,
+          0.1057
+        ]
+      },
+      "obs_after": {
+        "time": 15.000000000001679,
+        "handle_pos": [
+          0.104149,
+          -0.225535,
+          0.500127
+        ],
+        "handle_quat": [
+          0.975505,
+          0.005604,
+          0.004625,
+          -0.219857
+        ],
+        "ee_pos": [
+          0.10448,
+          -0.223865,
+          0.499578
+        ],
+        "ee_force": [
+          6.0216,
+          -5.912,
+          -0.1272
+        ]
       },
       "observed_displacement_m": 0.0057398264476926026,
       "observed_rotation_rad": 0.458300969987471,
@@ -333,13 +640,16 @@
           0.4895
         ]
       },
-      "select_s": 0.6207614649997595,
-      "update_s": 2.436514377000094,
+      "select_s": 0.6369111789999806,
+      "update_s": 2.3836668439998903,
       "p_true_type": 1.0,
       "map_correct": true,
       "type_entropy": 1.1895760485779512e-110,
       "axis_err_deg": 1.4563076655250258,
       "line_err_m": 0.004869907776917053,
+      "max_type_prob": 1.0,
+      "chi2_per_dof": 0.0895036522868738,
+      "model_adequate": true,
       "identified": true,
       "heldout_pos_err_m": 0.0032660462024394466,
       "task_success": true,

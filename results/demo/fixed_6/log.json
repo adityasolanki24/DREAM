@@ -1,0 +1,590 @@
+{
+  "family": "fixed",
+  "joint_type": "fixed",
+  "strategy": "eig",
+  "seed": 6,
+  "budget": 6,
+  "truth": {
+    "axis": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "origin": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "upper": 0.0,
+    "friction": 2.9686124754661662
+  },
+  "mjcf": "\n<mujoco model=\"dream_fixed\">\n  <compiler angle=\"radian\"/>\n  <option timestep=\"0.002\" integrator=\"implicitfast\"/>\n  <default>\n    <geom contype=\"0\" conaffinity=\"0\"/>\n  </default>\n  <visual><global offwidth=\"640\" offheight=\"480\"/></visual>\n  <worldbody>\n    <light pos=\"0 -1.5 2\" dir=\"0 1 -1\"/>\n    <geom type=\"plane\" size=\"1.5 1.5 0.05\" rgba=\".9 .9 .9 1\"/>\n    <camera name=\"front\" pos=\"0.55 -0.9 1\" xyaxes=\"0.853282 0.52145 -0 -0.184903 0.302568 0.93502\"/>\n    <geom type=\"box\" pos=\"0 0.1 0.6\" size=\"0.243816 0.08 0.194327\" rgba=\".45 .35 .25 1\"/>\n<geom type=\"box\" pos=\"-0.223816 0 0.6\" size=\"0.02 0.03 0.194327\" rgba=\".45 .35 .25 1\"/>\n<geom type=\"box\" pos=\"0.223816 0 0.6\" size=\"0.02 0.03 0.194327\" rgba=\".45 .35 .25 1\"/>\n    <body name=\"panel\" pos=\"0 0 0.6\" gravcomp=\"1\">\n      \n      <geom type=\"box\" size=\"0.203816 0.01 0.154327\" mass=\"1\" rgba=\".75 .6 .4 1\"/>\n      <geom type=\"box\" pos=\"-0.0373607 -0.03 -0.027116\"\n            size=\"0.01 0.02 0.01\" mass=\"0.02\" rgba=\".2 .2 .2 1\"/>\n      <site name=\"handle\" pos=\"-0.0373607 -0.05 -0.027116\" size=\"0.012\" rgba=\".9 .1 .1 1\"/>\n    </body>\n    <body name=\"ee_base\" pos=\"0 -0.35 0.6\">\n      <body name=\"ee\" gravcomp=\"1\">\n        <joint name=\"ee_x\" type=\"slide\" axis=\"1 0 0\" range=\"-0.8 0.8\" damping=\"2\"/>\n        <joint name=\"ee_y\" type=\"slide\" axis=\"0 1 0\" range=\"-0.8 0.8\" damping=\"2\"/>\n        <joint name=\"ee_z\" type=\"slide\" axis=\"0 0 1\" range=\"-0.8 0.8\" damping=\"2\"/>\n        <geom type=\"sphere\" size=\"0.02\" mass=\"0.3\" rgba=\".1 .4 .9 1\"/>\n        <site name=\"ee_tip\" size=\"0.005\"/>\n      </body>\n    </body>\n  </worldbody>\n  <equality>\n    <connect name=\"grasp\" site1=\"ee_tip\" site2=\"handle\" active=\"false\" solref=\"0.004 1\"/>\n    \n  </equality>\n  <actuator>\n    <position name=\"act_x\" joint=\"ee_x\" kp=\"400\" kv=\"40\" forcelimited=\"true\" forcerange=\"-20 20\"/>\n<position name=\"act_y\" joint=\"ee_y\" kp=\"400\" kv=\"40\" forcelimited=\"true\" forcerange=\"-20 20\"/>\n<position name=\"act_z\" joint=\"ee_z\" kp=\"400\" kv=\"40\" forcelimited=\"true\" forcerange=\"-20 20\"/>\n  </actuator>\n  <sensor>\n    <framepos name=\"handle_pos\" objtype=\"site\" objname=\"handle\"/>\n    <framequat name=\"handle_quat\" objtype=\"site\" objname=\"handle\"/>\n    <framepos name=\"ee_pos\" objtype=\"site\" objname=\"ee_tip\"/>\n    <actuatorfrc name=\"frc_x\" actuator=\"act_x\"/>\n    <actuatorfrc name=\"frc_y\" actuator=\"act_y\"/>\n    <actuatorfrc name=\"frc_z\" actuator=\"act_z\"/>\n  </sensor>\n</mujoco>\n",
+  "steps": [
+    {
+      "step": 0,
+      "type_probs": [
+        0.3333333333333333,
+        0.3333333333333333,
+        0.3333333333333333
+      ],
+      "p_true_type": 0.3333333333333333,
+      "map_correct": true,
+      "type_entropy": 1.0986122886681096,
+      "axis_err_deg": null,
+      "line_err_m": null,
+      "max_type_prob": 0.3333333333333333,
+      "chi2_per_dof": 0.0,
+      "model_adequate": true,
+      "identified": false,
+      "heldout_pos_err_m": 0.005713068302210061,
+      "task_success": true,
+      "declared_fixed": true
+    },
+    {
+      "step": 1,
+      "probe": {
+        "direction": [
+          0.5774,
+          0.5774,
+          0.5774
+        ],
+        "distance": 0.08,
+        "max_force": 15.0
+      },
+      "obs_before": {
+        "time": 1.500000000000001,
+        "handle_pos": [
+          -0.037325,
+          -0.050862,
+          0.574886
+        ],
+        "handle_quat": [
+          0.999992,
+          -0.000982,
+          -0.002969,
+          0.002608
+        ],
+        "ee_pos": [
+          -0.037424,
+          -0.050103,
+          0.57297
+        ],
+        "ee_force": [
+          0.175,
+          -0.0165,
+          0.0705
+        ]
+      },
+      "obs_after": {
+        "time": 3.499999999999836,
+        "handle_pos": [
+          -0.038337,
+          -0.049614,
+          0.572999
+        ],
+        "handle_quat": [
+          0.999984,
+          -0.005309,
+          0.001855,
+          -0.000765
+        ],
+        "ee_pos": [
+          -0.037516,
+          -0.05001,
+          0.573197
+        ],
+        "ee_force": [
+          15.0977,
+          14.9839,
+          14.9618
+        ]
+      },
+      "observed_displacement_m": 0.002478402577725,
+      "observed_rotation_rad": 0.03101688104884619,
+      "pre_action_pred_err_m": 0.011207481148434619,
+      "chosen_eig": 2.074921489232806,
+      "type_probs": [
+        0.4795659863443009,
+        0.26959931577479795,
+        0.2508346978809018
+      ],
+      "belief": {
+        "type_probs": {
+          "fixed": 0.4796,
+          "prismatic": 0.2696,
+          "revolute": 0.2508
+        },
+        "map_type": "fixed"
+      },
+      "select_s": 0.5922462309999901,
+      "update_s": 0.10711063200051285,
+      "p_true_type": 0.4795659863443009,
+      "map_correct": true,
+      "type_entropy": 1.0527108602013449,
+      "axis_err_deg": null,
+      "line_err_m": null,
+      "max_type_prob": 0.4795659863443009,
+      "chi2_per_dof": 0.15223749578594445,
+      "model_adequate": true,
+      "identified": false,
+      "heldout_pos_err_m": 0.002334294428866728,
+      "task_success": true,
+      "declared_fixed": true
+    },
+    {
+      "step": 2,
+      "probe": {
+        "direction": [
+          -0.5774,
+          -0.5774,
+          -0.5774
+        ],
+        "distance": 0.08,
+        "max_force": 15.0
+      },
+      "obs_before": {
+        "time": 3.799999999999803,
+        "handle_pos": [
+          -0.037399,
+          -0.049208,
+          0.572764
+        ],
+        "handle_quat": [
+          0.999998,
+          -0.00027,
+          0.001188,
+          -0.001434
+        ],
+        "ee_pos": [
+          -0.037436,
+          -0.050259,
+          0.572871
+        ],
+        "ee_force": [
+          -0.0123,
+          0.0125,
+          0.1148
+        ]
+      },
+      "obs_after": {
+        "time": 5.799999999999583,
+        "handle_pos": [
+          -0.039254,
+          -0.051093,
+          0.571938
+        ],
+        "handle_quat": [
+          0.999976,
+          -0.001891,
+          -0.004621,
+          0.004793
+        ],
+        "ee_pos": [
+          -0.037514,
+          -0.050321,
+          0.572504
+        ],
+        "ee_force": [
+          -15.1317,
+          -15.0743,
+          -15.1482
+        ]
+      },
+      "observed_displacement_m": 0.0027704594659448893,
+      "observed_rotation_rad": 0.0423796758697282,
+      "pre_action_pred_err_m": 0.008370926773948538,
+      "chosen_eig": 2.0931858392692186,
+      "type_probs": [
+        0.8364753409503688,
+        0.08495468227678074,
+        0.07856997677285292
+      ],
+      "belief": {
+        "type_probs": {
+          "fixed": 0.8365,
+          "prismatic": 0.085,
+          "revolute": 0.0786
+        },
+        "map_type": "fixed"
+      },
+      "select_s": 0.6350540670000555,
+      "update_s": 1.3718049150002116,
+      "p_true_type": 0.8364753409503688,
+      "map_correct": true,
+      "type_entropy": 0.5586906037804558,
+      "axis_err_deg": null,
+      "line_err_m": null,
+      "max_type_prob": 0.8364753409503688,
+      "chi2_per_dof": 0.2514874766669478,
+      "model_adequate": true,
+      "identified": false,
+      "heldout_pos_err_m": 0.0024808581632423557,
+      "task_success": true,
+      "declared_fixed": true
+    },
+    {
+      "step": 3,
+      "probe": {
+        "direction": [
+          -0.5774,
+          0.5774,
+          -0.5774
+        ],
+        "distance": 0.08,
+        "max_force": 15.0
+      },
+      "obs_before": {
+        "time": 6.09999999999955,
+        "handle_pos": [
+          -0.03709,
+          -0.049971,
+          0.570207
+        ],
+        "handle_quat": [
+          0.999972,
+          0.007324,
+          -0.000965,
+          0.000942
+        ],
+        "ee_pos": [
+          -0.037679,
+          -0.049825,
+          0.572907
+        ],
+        "ee_force": [
+          -0.1807,
+          -0.1752,
+          0.0861
+        ]
+      },
+      "obs_after": {
+        "time": 8.099999999999374,
+        "handle_pos": [
+          -0.037273,
+          -0.050885,
+          0.5733
+        ],
+        "handle_quat": [
+          0.999984,
+          -0.002492,
+          -0.002807,
+          0.004216
+        ],
+        "ee_pos": [
+          -0.037438,
+          -0.049893,
+          0.572732
+        ],
+        "ee_force": [
+          -14.874,
+          14.9937,
+          -14.9426
+        ]
+      },
+      "observed_displacement_m": 0.0032305831814645036,
+      "observed_rotation_rad": 0.039876033581470696,
+      "pre_action_pred_err_m": 0.004707796520329353,
+      "chosen_eig": 0.7301322031404414,
+      "type_probs": [
+        0.9162461311394814,
+        0.043765899998783955,
+        0.039987968861734675
+      ],
+      "belief": {
+        "type_probs": {
+          "fixed": 0.9162,
+          "prismatic": 0.0438,
+          "revolute": 0.04
+        },
+        "map_type": "fixed"
+      },
+      "select_s": 0.6537194949996774,
+      "update_s": 0.8984343209995131,
+      "p_true_type": 0.9162461311394814,
+      "map_correct": true,
+      "type_entropy": 0.34581174996004715,
+      "axis_err_deg": null,
+      "line_err_m": null,
+      "max_type_prob": 0.9162461311394814,
+      "chi2_per_dof": 0.2461138680191537,
+      "model_adequate": true,
+      "identified": true,
+      "heldout_pos_err_m": 0.002086772621355565,
+      "task_success": true,
+      "declared_fixed": true
+    },
+    {
+      "step": 4,
+      "probe": {
+        "direction": [
+          0.5774,
+          -0.5774,
+          0.5774
+        ],
+        "distance": 0.08,
+        "max_force": 15.0
+      },
+      "obs_before": {
+        "time": 8.399999999999475,
+        "handle_pos": [
+          -0.037877,
+          -0.052694,
+          0.574127
+        ],
+        "handle_quat": [
+          0.999992,
+          0.002132,
+          0.002746,
+          0.002027
+        ],
+        "ee_pos": [
+          -0.037299,
+          -0.049569,
+          0.572797
+        ],
+        "ee_force": [
+          -0.0726,
+          -0.2091,
+          -0.1463
+        ]
+      },
+      "obs_after": {
+        "time": 10.400000000000142,
+        "handle_pos": [
+          -0.037116,
+          -0.049904,
+          0.573192
+        ],
+        "handle_quat": [
+          0.999993,
+          0.00098,
+          -0.003089,
+          -0.0019
+        ],
+        "ee_pos": [
+          -0.037104,
+          -0.050361,
+          0.573063
+        ],
+        "ee_force": [
+          14.9973,
+          -14.9705,
+          15.0578
+        ]
+      },
+      "observed_displacement_m": 0.003039295076986239,
+      "observed_rotation_rad": 0.02939308808305824,
+      "pre_action_pred_err_m": 0.0034855016272351477,
+      "chosen_eig": 0.3571959894809483,
+      "type_probs": [
+        0.9827113285006341,
+        0.007994651776259068,
+        0.009294019723112803
+      ],
+      "belief": {
+        "type_probs": {
+          "fixed": 0.9827,
+          "prismatic": 0.008,
+          "revolute": 0.0093
+        },
+        "map_type": "fixed"
+      },
+      "select_s": 0.599875609999799,
+      "update_s": 0.9254846249996262,
+      "p_true_type": 0.9827113285006341,
+      "map_correct": true,
+      "type_entropy": 0.09922538140940029,
+      "axis_err_deg": null,
+      "line_err_m": null,
+      "max_type_prob": 0.9827113285006341,
+      "chi2_per_dof": 0.21488818556771552,
+      "model_adequate": true,
+      "identified": true,
+      "heldout_pos_err_m": 0.0016955092582792298,
+      "task_success": true,
+      "declared_fixed": true
+    },
+    {
+      "step": 5,
+      "probe": {
+        "direction": [
+          0.7071,
+          0.0,
+          -0.7071
+        ],
+        "distance": 0.03,
+        "max_force": 6.0
+      },
+      "obs_before": {
+        "time": 10.700000000000243,
+        "handle_pos": [
+          -0.037751,
+          -0.050345,
+          0.572894
+        ],
+        "handle_quat": [
+          0.999978,
+          -0.002716,
+          -0.004736,
+          0.00377
+        ],
+        "ee_pos": [
+          -0.037441,
+          -0.049713,
+          0.572793
+        ],
+        "ee_force": [
+          0.2618,
+          -0.0147,
+          0.0006
+        ]
+      },
+      "obs_after": {
+        "time": 12.70000000000091,
+        "handle_pos": [
+          -0.037564,
+          -0.050021,
+          0.573445
+        ],
+        "handle_quat": [
+          0.999974,
+          0.000823,
+          0.007038,
+          -0.001643
+        ],
+        "ee_pos": [
+          -0.037261,
+          -0.04939,
+          0.572485
+        ],
+        "ee_force": [
+          5.9402,
+          -0.0055,
+          -5.9383
+        ]
+      },
+      "observed_displacement_m": 0.0006663335540316855,
+      "observed_rotation_rad": 0.020489248359785866,
+      "pre_action_pred_err_m": 0.0007132163402124951,
+      "chosen_eig": 0.04568832038616522,
+      "type_probs": [
+        0.9907639782277738,
+        0.0051009892607411615,
+        0.0041350325114900876
+      ],
+      "belief": {
+        "type_probs": {
+          "fixed": 0.9908,
+          "prismatic": 0.0051,
+          "revolute": 0.0041
+        },
+        "map_type": "fixed"
+      },
+      "select_s": 0.7402071810001871,
+      "update_s": 1.393831644999409,
+      "p_true_type": 0.9907639782277738,
+      "map_correct": true,
+      "type_entropy": 0.05881202933800933,
+      "axis_err_deg": null,
+      "line_err_m": null,
+      "max_type_prob": 0.9907639782277738,
+      "chi2_per_dof": 0.18471553424133932,
+      "model_adequate": true,
+      "identified": true,
+      "heldout_pos_err_m": 0.0012345885722553735,
+      "task_success": true,
+      "declared_fixed": true
+    },
+    {
+      "step": 6,
+      "probe": {
+        "direction": [
+          -0.7071,
+          0.0,
+          0.7071
+        ],
+        "distance": 0.03,
+        "max_force": 6.0
+      },
+      "obs_before": {
+        "time": 13.00000000000101,
+        "handle_pos": [
+          -0.037738,
+          -0.049132,
+          0.573721
+        ],
+        "handle_quat": [
+          0.999981,
+          -0.003092,
+          -0.000818,
+          0.005296
+        ],
+        "ee_pos": [
+          -0.03729,
+          -0.050115,
+          0.573075
+        ],
+        "ee_force": [
+          -0.1456,
+          0.0116,
+          -0.1941
+        ]
+      },
+      "obs_after": {
+        "time": 15.000000000001679,
+        "handle_pos": [
+          -0.0386,
+          -0.050979,
+          0.573956
+        ],
+        "handle_quat": [
+          0.999978,
+          0.000392,
+          -0.000936,
+          -0.006556
+        ],
+        "ee_pos": [
+          -0.03703,
+          -0.049568,
+          0.572908
+        ],
+        "ee_force": [
+          -5.8944,
+          -0.0227,
+          5.941
+        ]
+      },
+      "observed_displacement_m": 0.0020521287816739225,
+      "observed_rotation_rad": 0.021368813402386118,
+      "pre_action_pred_err_m": 0.0017925434086256658,
+      "chosen_eig": 0.09130539341636322,
+      "type_probs": [
+        0.9999997438872626,
+        2.3350741419224188e-07,
+        2.2605316365678478e-08
+      ],
+      "belief": {
+        "type_probs": {
+          "fixed": 1.0,
+          "prismatic": 0.0,
+          "revolute": 0.0
+        },
+        "map_type": "fixed"
+      },
+      "select_s": 0.7550057329999618,
+      "update_s": 1.4645917230000123,
+      "p_true_type": 0.9999997438872626,
+      "map_correct": true,
+      "type_entropy": 4.219751482842578e-06,
+      "axis_err_deg": null,
+      "line_err_m": null,
+      "max_type_prob": 0.9999997438872626,
+      "chi2_per_dof": 0.1755862212429848,
+      "model_adequate": true,
+      "identified": true,
+      "heldout_pos_err_m": 0.001869827220902632,
+      "task_success": true,
+      "declared_fixed": true
+    }
+  ]
+}

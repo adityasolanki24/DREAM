@@ -166,6 +166,9 @@ def _narrate(step: dict, info: dict, h_before: np.ndarray) -> str:
             f"  best explanation: {s['map_type']} axis {np.round(s['axis'], 2)}"
             + (f" through {np.round(s['origin'], 3)}" if "origin" in s else "")
         )
+    fit = info["fit"]
+    verdict = "fits" if fit["model_adequate"] else "DOES NOT FIT: unknown mechanism class"
+    lines.append(f"  model check: chi2/dof {fit['chi2_per_dof']:.2f} -> {verdict}")
     return "\n".join(lines)
 
 
@@ -193,7 +196,7 @@ def main() -> None:
         rec = Recorder(frames=not args.no_render, live=args.viewer)
 
     def on_step(step, belief, info):
-        text = _narrate(step, info, belief.history[-1].handle_before)
+        text = _narrate(step, {**info, "fit": belief.fit_check()}, belief.history[-1].handle_before)
         print(text, flush=True)
         if rec is not None:
             rec.h0 = belief.h0

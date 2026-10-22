@@ -98,18 +98,67 @@ budget. These thresholds are project criteria, not published standards.
 
 ### Generalisation (`results/generalisation`)
 
-_Pending: the run is in progress._
+Mechanisms were drawn from wider distributions than anything used during development: axes tilted
+up to 15°, hinge lines up to 4 cm off the panel edge, friction up to 4.5 N. Two families were
+never used during development: a vertical **sash** and an interior **pivot**. Each family has 8
+mechanisms × 4 strategies. Nothing was retuned.
+
+| In-class (72 mechanisms) | Mean probes to identify [95% CI] | Identified within 8 | Opening succeeds after 2 probes |
+|---|---|---|---|
+| **EIG** | **1.92 [1.71, 2.11]** | **100%** | **97%** |
+| Random | 5.44 [4.81, 6.08] | 78% | 49% |
+| Goal-directed pull | 3.74 | 71% | 78% |
+| Axis sweep | 2.53 [2.10, 3.00] | 96% | 85% |
+
+- EIG vs random: -65% (p < 1e-4). EIG vs axis sweep: -24% (30 better, 23 worse, p = 0.01).
+  The script's assumptions break on tilted axes and the vertical sash, while EIG's do not.
+- On the two unseen families alone, EIG needs 1.69 probes, against 2.94 for the axis sweep and
+  4.31 for random.
+
+**Out-of-class mechanism: the rising hinge.** This hinge lifts 3–6 cm per radian as it turns.
+That helical motion is outside the agent's {fixed, prismatic, revolute} model class.
+
+- Every strategy ends up confidently wrong: P(revolute) ≈ 1.0. Every strategy still opens it,
+  because the compliant controller absorbs the lift.
+- The χ² model-adequacy check (`Belief.fit_check`) was calibrated on development families only
+  (`results/adequacy_calibration`, threshold frozen at 0.28 before this run). It flags the
+  rising hinge as an unknown mechanism class in **100% of EIG episodes by probe 6** (88% by
+  probe 4). For comparison it flags 12% of random episodes, 50% of axis-sweep episodes and 100%
+  of goal-directed episodes. Informative probing is what exposes the misfit: random probes
+  rarely move the mechanism far enough.
+- False alarms on in-class mechanisms: 0% at the end of the budget, but **3% of individual EIG
+  steps**, almost all after only 1–2 probes, when χ² over few records is noisy. A minimum-evidence
+  rule would likely fix this. It has to be evaluated on a fresh held-out seed, because these
+  results were already seen.
+
+### Demo outputs (`results/demo`)
+
+`left_hinge_4`, `fixed_6` and `rising_hinge_5` each contain a GIF, a summary plot and a log.
+In the hinge GIF, the sampled hinge lines start scattered and collapse onto the true hinge
+(final axis error 1.5°, hinge-line error 4.9 mm). The rising-hinge run reports
+`DOES NOT FIT: unknown mechanism class` from probe 3 onwards, while P(revolute) = 1.0.
 
 ## Limitations (read before citing any number)
 
-- **No camera perception.** The handle pose comes from a simulated tracker with Gaussian noise.
-  The report's MOSART warning applies: perception error may dominate on a real system.
+- **No camera perception.** The handle pose comes from a simulated tracker with Gaussian noise
+  (the report's "oracle geometry" rung). The report's MOSART warning applies: perception error
+  may dominate on a real system.
 - **Simplified contact.** The grasp is an ideal ball-joint constraint, the mechanism has no
   collision geometry (joint limits act as stops), and panels are gravity-compensated.
 - **Quasi-static predictor.** It predicts settled outcomes only. Inertial overshoot is absorbed
   by the noise model rather than modelled.
 - **Travel limits** are only learned if a probe reaches them, so predictions near an unvisited
-  limit are poor.
-- **Single-joint model class.** Mechanisms outside it are detected only through the χ²
-  adequacy check (see Generalisation).
-- The live viewer (`--viewer`) was not exercised here: development ran in a headless container.
+  limit are poor. This is visible as the held-out error rising late in some episodes.
+- **Uninformative prior.** EIG allows that a panel might open into the cabinet, which costs it a
+  probe against scripts that assume otherwise. See the geometric-prior ablation.
+- **Model-adequacy check:** early false alarms (above). Out-of-class detection was tested on only
+  one out-of-class family.
+- The live viewer (`--viewer`) was not exercised: development ran in a headless container.
+- Compute: an EIG step takes about 0.6 s to select and 0.5–2 s to update, on one CPU core.
+
+## Next steps
+
+1. Evaluate a minimum-evidence rule for the adequacy check on a fresh held-out seed.
+2. Synthetic RGB-D perception in the loop, comparing oracle and perceived poses (report Stage Four).
+3. Continuous parameter refinement (friction, limits) and held-out prediction gates (report Stage One).
+4. Multi-step (receding-horizon) EIG, and distilling the EIG planner into a cheap policy.
