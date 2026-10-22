@@ -71,6 +71,21 @@ def _strategy_stats(logs: list[dict], budget: int) -> dict:
     }
 
 
+def _family_stats(logs: list[dict], budget: int) -> dict:
+    final = [lg["steps"][-1] for lg in logs]
+    return {
+        "mean_probes_to_id": float(np.mean([_censored(lg, budget) for lg in logs])),
+        "identified_by_budget": float(
+            np.mean([probes_to_identification(lg) is not None for lg in logs])
+        ),
+        "final_task_success": float(np.mean([s["task_success"] for s in final])),
+        "final_flagged_inadequate": float(
+            np.mean([not s.get("model_adequate", True) for s in final])
+        ),
+        "final_max_type_prob": float(np.mean([s.get("max_type_prob", np.nan) for s in final])),
+    }
+
+
 def summarise(logs: list[dict], budget: int, reference: str = "eig") -> dict:
     """Per-strategy metrics overall and per family, plus paired tests against ``reference``.
 
@@ -84,20 +99,7 @@ def summarise(logs: list[dict], budget: int, reference: str = "eig") -> dict:
     families = sorted({lg["family"] for lg in logs})
     per_family = {
         fam: {
-            s: {
-                "mean_probes_to_id": float(
-                    np.mean([_censored(lg, budget) for lg in lgs if lg["family"] == fam])
-                ),
-                "identified_by_budget": float(
-                    np.mean(
-                        [
-                            probes_to_identification(lg) is not None
-                            for lg in lgs
-                            if lg["family"] == fam
-                        ]
-                    )
-                ),
-            }
+            s: _family_stats([lg for lg in lgs if lg["family"] == fam], budget)
             for s, lgs in by_strat.items()
         }
         for fam in families

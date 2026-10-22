@@ -46,6 +46,9 @@ def test_summary_censors_unidentified_and_pairs_by_mechanism():
     ]
     s = summarise(logs, budget=2)
     assert s["overall"]["random"]["mean_probes_to_id"] == pytest.approx((3 + 2) / 2)
+    fam = s["per_family"]["drawer"]["eig"]
+    assert fam["final_task_success"] == 1.0 and fam["identified_by_budget"] == 1.0
+    assert fam["final_flagged_inadequate"] == 0.0
     cmp = s["comparisons"]["eig_vs_random"]
     assert cmp["n_pairs"] == 2 and cmp["eig_better"] == 1 and cmp["ties"] == 1
 
