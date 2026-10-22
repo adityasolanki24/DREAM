@@ -1,13 +1,14 @@
 # DREAM
 
-**Long-term mission.** DREAM is a research project toward a general-purpose embodied agent. Given
-a natural-language goal ("put the red cube in that cabinet", "figure out how this mechanism
-works"), it should reason about the task, act through reusable motor skills, discover missing
-physical knowledge by experimenting, verify outcomes, recover from failure and improve with
-experience, all without a hand-written script per task. This is the direction, **not a current
-capability**. The architecture, invariants and priorities are in [`AGENTS.md`](AGENTS.md).
+**Long-term mission.** DREAM is a research project toward general-purpose embodied artificial
+intelligence: a system that receives an unfamiliar physical goal, works out from what it observes
+and what it can physically do what needs to happen, acquires missing knowledge by observation and
+experiment, adapts to failure, and completes the task or recognises that it cannot, without a
+task-specific program per goal. This is the direction, **not a current capability**, and
+generality is something we measure, not assume. The behavioural contract, anti-overfitting
+rules, architecture and engineering standards are in [`AGENTS.md`](AGENTS.md).
 
-**What exists today: two foundations, not yet connected.**
+**What exists today: two foundations, now connected in one narrow task.**
 
 1. **Active Physical Discovery** (abstract gantry robot). A simulated robot meets a mechanism it
    has never seen, a panel with a handle that might be fixed, slide, or swing on a hinge. It
@@ -21,7 +22,13 @@ capability**. The architecture, invariants and priorities are in [`AGENTS.md`](A
    - It recovers from dropped objects, clears obstructions, and runs as a live session that can
      be paused or cancelled.
    - There is no natural-language understanding, no camera perception (object poses come from a
-     simulated tracker) and no memory yet, and discovery is not yet a tool the runtime can call.
+     simulated tracker) and no memory yet.
+3. **Discovery as a tool on the Panda (milestone 11).** For "in red compartment", the Panda
+   probes a closed box whose mechanism is hidden (drawer, lid or fixed) through its own compliant
+   controller, using the same belief and EIG code as the gantry. It then opens the box along the
+   learned constraint or declines, places the cube and verifies. This runs in one continuous
+   simulation, on a deliberately narrowed scene (knob handle, 5 cm cavity, counterbalanced lid):
+   see the [audit of simplifications](#audit-of-milestone-11-changes).
 
 ![Panda: red cube into the tray, then blue stacked on green](results/demo/panda_session/replay.gif)
 
@@ -61,7 +68,7 @@ CPU only.
 | 9 | Two goal types (tray, stack) in shared scenes from the same tools, without per-task scripts | Implemented and tested | `results/tasks` |
 | 9a | Live session: background physics, pause, resume, cancel, logs, replay | Implemented and tested (headless); live viewer implemented, unverified (no display) | `tests/test_session.py` |
 | 10 | Visual perception replacing oracle poses | Planned | n/a |
-| 11 | **Discovery invoked on demand by the runtime (unfamiliar compartment on the Panda)** | **Next** | n/a |
+| 11 | **Discovery invoked on demand by the runtime (unfamiliar compartment on the Panda)** | **In progress**: implemented and tested on the narrowed scene; held-out evaluation below; challenge variants open | `tests/test_compartment.py`, `results/compartment`, audit table |
 | 12 | Experience memory, failure-driven replanning, skill adaptation | Planned | n/a |
 | 13 | Generalisation evaluation across goals, arrangements and task families | Planned | n/a |
 | 14 | Learned world/motor models, mobile or whole-body embodiments | Planned, conditional on evidence and compute | n/a |

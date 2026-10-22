@@ -55,9 +55,9 @@ GOAL = InRegion("red", "compartment")
 
 
 def episode(args: tuple) -> dict:
-    kind, seed, method, budget = args
-    spec = sample_compartment_scene(kind, np.random.default_rng([seed, 0]))
-    env = TabletopEnv(spec, np.random.default_rng([seed, 1]))
+    kind, seed, method, budget, scene_kwargs, env_kwargs = args
+    spec = sample_compartment_scene(kind, np.random.default_rng([seed, 0]), **scene_kwargs)
+    env = TabletopEnv(spec, np.random.default_rng([seed, 1]), **env_kwargs)
     tb = Toolbox(env.embodiment(), env, rng=np.random.default_rng([seed, 2]))
     planner = RuleBasedPlanner(probe_budget=budget, **METHODS[method])
     t0 = time.perf_counter()
@@ -259,12 +259,19 @@ def main() -> None:
     args = ap.parse_args()
     cfg = json.loads(pathlib.Path(args.config).read_text())
     seeds = range(cfg["seed0"], cfg["seed0"] + cfg["n_per_kind"])
+    # Optional shifted or challenge conditions: passed to the scene sampler and the environment.
+    scene_kwargs = cfg.get("scene_kwargs", {})
+    env_kwargs = cfg.get("env_kwargs", {})
     jobs = [
-        (kind, s, m, cfg["probe_budget"])
+        (kind, s, m, cfg["probe_budget"], scene_kwargs, env_kwargs)
         for kind in cfg["kinds"]
         for s in seeds
         for m in cfg["methods"]
     ]
+    sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    dirty = bool(
+        subprocess.check_output(["git", "status", "--porcelain", "dream"], cwd=ROOT, text=True)
+    )
     out = ROOT / "results" / cfg["name"]
     out.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
@@ -279,12 +286,8 @@ def main() -> None:
     summary["gates"] = check_gates(summary, cfg.get("gates", {}))
     meta = {
         "config": cfg,
-        "git_sha": subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
-        ).strip(),
-        "dirty": bool(
-            subprocess.check_output(["git", "status", "--porcelain", "dream"], cwd=ROOT, text=True)
-        ),
+        "git_sha": sha,  # read at the start: the code that ran
+        "dirty": dirty,
         "mujoco": mujoco.__version__,
         "wall_s": time.time() - t0,
     }
