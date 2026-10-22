@@ -1,6 +1,7 @@
 """Interactive DREAM session: a live Panda tabletop that accepts goals while it runs.
 
-    python experiments/session.py [--scene tray|drawer|lid|fixed] [--seed 0] [--viewer] [--rate 1.0]
+    python experiments/session.py [--scene tray|drawer|lid|fixed] [--perception oracle|vision]
+                                  [--seed 0] [--viewer] [--rate 1.0]
 
 Commands (goals are structured; natural language is not supported yet):
     in <object> <region>     e.g. "in red tray", or "in red compartment" in a compartment scene
@@ -48,6 +49,7 @@ def main() -> None:
     )
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--scene", default="tray", choices=["tray", "drawer", "lid", "fixed"])
+    ap.add_argument("--perception", default="oracle", choices=["oracle", "vision"])
     ap.add_argument(
         "--rate", type=float, default=1.0, help="simulated seconds per wall second (0 = max)"
     )
@@ -55,7 +57,12 @@ def main() -> None:
     args = ap.parse_args()
     log_dir = ROOT / "results" / "sessions" / time.strftime("%Y%m%d-%H%M%S")
     s = LiveSession(
-        seed=args.seed, rate=args.rate, viewer=args.viewer, log_dir=log_dir, scene=args.scene
+        seed=args.seed,
+        rate=args.rate,
+        viewer=args.viewer,
+        log_dir=log_dir,
+        scene=args.scene,
+        perception=args.perception,
     )
     s.start()
     print(__doc__.split("Commands")[0].strip().splitlines()[0])

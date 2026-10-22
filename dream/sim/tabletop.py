@@ -111,6 +111,7 @@ def build_model(
     shoulder_armature: float = SHOULDER_ARMATURE,
     camera: CameraSpec | None = None,
     light_scale: float = 1.0,
+    extra_cameras: tuple[CameraSpec, ...] = (),
 ) -> mujoco.MjModel:
     """Compile the scene. ``shoulder_armature=0.1`` restores Menagerie's value (stall case).
 
@@ -154,6 +155,8 @@ def build_model(
     )
     world.add_camera(name="overview", pos=[1.35, 0.0, 0.85], xyaxes=[0, 1, 0, -0.5, 0, 0.87])
     add_camera(world, camera or CameraSpec())
+    for extra in extra_cameras:
+        add_camera(world, extra)
 
     for obj in spec.objects:
         b = world.add_body(name=obj.name, pos=[*obj.xy, obj.half_size], quat=_yaw_quat(obj.yaw))

@@ -192,3 +192,9 @@ class ArticulatedObservation:
     box_half: np.ndarray  # (3,) m
     # (3,) m, half extent of the handle in its own frame (x out of the face); None if unknown
     handle_half: np.ndarray | None = None
+    # False: ``handle_quat`` is only the face direction seen while closed, not a measurement of
+    # the handle's orientation (e.g. a camera tracking a round knob); rotations are unobserved.
+    orientation_observed: bool = True
+    # False: the handle is not seen in the latest frame; ``handle_pos`` is its last-known place
+    # and must not be used as a measurement.
+    handle_visible: bool = True

@@ -9,14 +9,17 @@ Assumptions (this is not general object understanding):
 - objects are box-like: a footprint rectangle and a height describe them;
 - adjacent objects differ in colour (two touching same-coloured objects merge);
 - colour names come from a fixed hue vocabulary (``COLOR_NAMES``), not from learning;
-- an "open container" is a large component whose interior is much lower than its rim.
+- an "open container" is a large component whose interior is much lower than its rim; any
+  other large component is a "box", whose opening (if any) is the largest region of its
+  footprint well below its rim;
+- a "handle" is a small component protruding from a box's side, no higher than its top.
 Everything is inferred from the image arrays and the camera calibration.
 """
 
 from __future__ import annotations
 
 import colorsys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import numpy as np
 
@@ -31,6 +34,7 @@ NEIGHBOUR_3D = 0.015  # m between adjacent pixels of one surface
 NEIGHBOUR_HUE_DEG = 25.0
 SATURATED = 0.3
 MIN_PIXELS = 20
+MIN_SIDE = 0.006  # m: thinner components are fragments, not objects
 CONTAINER_MIN_SIDE = 0.10  # m: footprints larger than this may be containers
 RESTING_BOTTOM = 0.015  # m: a component reaching this close to the table rests on it
 # Hue bands in degrees; low saturation is grey. A fixed vocabulary, not learned.
@@ -49,7 +53,7 @@ COLOR_NAMES = (
 
 @dataclass(frozen=True)
 class Detection:
-    kind: str  # "object" | "container"
+    kind: str  # "object" | "container" | "box" | "handle"
     color: str
     position: np.ndarray  # object: box centre; container: inner floor centre (floor-top z)
     yaw: float  # rad, rectangle orientation (mod pi/2 for a square)
@@ -60,6 +64,10 @@ class Detection:
     inner_half: float = 0.0  # container: axis-aligned inner half width
     pixels: int = 0
     bbox: tuple[int, int, int, int] = (0, 0, 0, 0)  # (u0, v0, u1, v1) for overlays
+    # box: the largest visible opening, (floor-top centre, axis-aligned half width), if any
+    opening: tuple[np.ndarray, float] | None = None
+    # small objects: centre from the topmost points (top-centre of a knob or bar handle)
+    top_centre: np.ndarray | None = None
 
     @property
     def size(self) -> float:
@@ -152,27 +160,66 @@ def detect(
     labels = components(fg, pts, frame.rgb)
     out = []
     ids, counts = np.unique(labels[labels >= 0], return_counts=True)
+    hue, sat = _hue_sat(frame.rgb)
+    ctx = _Context(pts, height, valid, fg, hue, sat, frame)
     for lab in ids[counts >= MIN_PIXELS]:
         mask = labels == lab
-        d = _describe(mask, pts, height, frame, valid)
+        d = _describe(mask, ctx)
         if d is not None:
             out.append(d)
-    return _absorb_container_fragments(out), plane
+    return _assign_handles(_absorb_container_fragments(out)), plane
+
+
+HANDLE_REACH = 0.07  # m: how far outside a box's side a handle may protrude
+
+
+def _assign_handles(dets: list[Detection]) -> list[Detection]:
+    """Small components just outside a box's footprint and no higher than its top are its
+    handle candidates (assumption: nothing else is placed touching a box's side)."""
+    boxes = [d for d in dets if d.kind == "box"]
+    out = []
+    for d in dets:
+        if d.kind == "object" and d.top_centre is not None:
+            for b in boxes:
+                ca, sa = np.cos(b.yaw), np.sin(b.yaw)
+                local = (d.top_centre[:2] - b.position[:2]) @ np.array([[ca, -sa], [sa, ca]])
+                outside = np.abs(local) - b.extent[:2] / 2
+                beside = outside.max() > 0 and outside.max() < HANDLE_REACH and outside.min() < 0
+                if beside and d.top_centre[2] <= b.extent[2] + 0.01:
+                    d = replace(d, kind="handle", position=d.top_centre)
+                    break
+        out.append(d)
+    return out
 
 
 def _absorb_container_fragments(dets: list[Detection]) -> list[Detection]:
-    """Drop same-coloured pieces lying on a container's wall band (walls broken up by shading
-    or occlusion). Assumes objects contrast in colour with the container they are in."""
-    containers = [d for d in dets if d.kind == "container"]
-    keep = []
+    """Merge pieces of receptacles (open containers and boxes):
+    - same-coloured objects on a container's wall band, or inside a box's grouped footprint
+      (walls broken up by shading or occlusion, a drawer's separate side pieces);
+    - same-coloured boxes whose centres are within 0.1 m (one box seen as two components):
+      the one with more pixels is kept.
+    Assumes objects contrast in colour with the receptacle they are in or next to."""
+    recs = sorted([d for d in dets if d.kind in ("container", "box")], key=lambda d: -d.pixels)
+    kept_recs: list[Detection] = []
+    for r in recs:
+        dup = any(
+            k.color == r.color and np.linalg.norm(k.position[:2] - r.position[:2]) < 0.1
+            for k in kept_recs
+        )
+        if not dup:
+            kept_recs.append(r)
+    keep = list(kept_recs)
     for d in dets:
+        if d.kind in ("container", "box"):
+            continue
         part_of = False
-        if d.kind == "object":
-            for c in containers:
-                ca, sa = np.cos(c.yaw), np.sin(c.yaw)
-                local = (d.position[:2] - c.position[:2]) @ np.array([[ca, -sa], [sa, ca]])
-                to_edge = np.min(c.extent[:2] / 2 - np.abs(local))
-                part_of |= d.color == c.color and -0.015 < to_edge < 0.02
+        for c in kept_recs:
+            ca, sa = np.cos(c.yaw), np.sin(c.yaw)
+            local = (d.position[:2] - c.position[:2]) @ np.array([[ca, -sa], [sa, ca]])
+            to_edge = np.min(c.extent[:2] / 2 - np.abs(local))
+            lo = -0.015 if c.kind == "container" else -0.01
+            hi = 0.02 if c.kind == "container" else np.inf
+            part_of |= d.color == c.color and lo < to_edge < hi
         if not part_of:
             keep.append(d)
     return keep
@@ -194,7 +241,24 @@ def _occluded(mask: np.ndarray, frame: RGBDFrame, jump: float = 0.02) -> bool:
     return bool(vs.min() <= 1 or us.min() <= 1 or vs.max() >= h - 2 or us.max() >= w - 2)
 
 
-def _describe(mask, pts, height, frame, valid) -> Detection | None:
+@dataclass
+class _Context:
+    """Per-frame arrays shared by the component descriptions."""
+
+    pts: np.ndarray
+    height: np.ndarray
+    valid: np.ndarray
+    fg: np.ndarray
+    hue: np.ndarray
+    sat: np.ndarray
+    frame: RGBDFrame
+
+
+BOX_GROUP_RADIUS = 0.35  # m: same-coloured foreground this close belongs to one box
+
+
+def _describe(mask, ctx: _Context) -> Detection | None:
+    pts, height, frame, valid = ctx.pts, ctx.height, ctx.frame, ctx.valid
     vs, us = np.nonzero(mask)
     p, hgt = pts[mask], height[mask]
     top = float(np.percentile(hgt, 97))
@@ -205,9 +269,14 @@ def _describe(mask, pts, height, frame, valid) -> Detection | None:
     depth = float(np.nanmedian(frame.depth[mask]))
     pixel = depth / frame.calibration.focal  # m per pixel at this range
     if max(sides) > CONTAINER_MIN_SIDE:
-        return _container(
+        container = _container(
             mask, pts, height, valid, centre, sides, angle, top, occluded, bbox, frame
         )
+        if container is not None:
+            return replace(container, opening=_opening(ctx, centre, sides, angle, top))
+        return _box(mask, ctx, top, occluded, bbox)
+    if min(sides) < MIN_SIDE:  # a sliver (a shaded edge of something larger), not an object
+        return None
     resting = bottom < RESTING_BOTTOM
     z_lo = 0.0 if resting else bottom
     top_face = hgt > top - 0.006
@@ -216,8 +285,11 @@ def _describe(mask, pts, height, frame, valid) -> Detection | None:
     std = 0.5 * pixel / np.sqrt(max(int(top_face.sum()), 1)) + 0.5 * pixel
     if occluded:  # the hidden part can be as large as the object: up to half its extent off
         std = max(std, 0.5 * float(max(*sides, top - z_lo)))
+    highest = hgt > top - 0.003
+    top_centre = np.array([*p[highest][:, :2].mean(axis=0), top - 0.5 * float(min(sides))])
     return Detection(
         kind="object",
+        top_centre=top_centre,
         color=color_name(rgb),
         position=np.array([centre[0], centre[1], (z_lo + top) / 2]),
         yaw=float(angle),
@@ -263,3 +335,84 @@ def _container(mask, pts, height, valid, centre, sides, angle, top, occluded, bb
         pixels=int(mask.sum()),
         bbox=bbox,
     )
+
+
+OPENING_CELL = 0.01  # m
+OPENING_BELOW_RIM = 0.012  # m: a cell this far below the box's top is open
+
+
+def _box(mask, ctx: _Context, top, occluded, bbox):
+    """A solid-looking large component, grouped with same-coloured foreground nearby (a drawer
+    pulled out of its housing shows up as separate pieces of the same colour). Its opening, if
+    any, is the largest square of *observed* cells in the group's footprint whose surface is
+    well below the rim (a depth well). Cells with no observation are never counted as open."""
+    pts, height, frame = ctx.pts, ctx.height, ctx.frame
+    hue0 = float(np.median(ctx.hue[mask]))
+    colored = float(np.median(ctx.sat[mask])) > SATURATED
+    dh = np.abs(ctx.hue - hue0)
+    dh = np.minimum(dh, 360.0 - dh)
+    same = (ctx.sat > SATURATED) & (dh < NEIGHBOUR_HUE_DEG) if colored else ctx.sat <= SATURATED
+    centre0 = pts[mask][:, :2].mean(axis=0)
+    near = np.linalg.norm(pts[..., :2] - centre0, axis=-1) < BOX_GROUP_RADIUS
+    group = mask | (ctx.fg & same & near)
+    centre, sides, angle = min_area_rect(pts[group][:, :2])
+    top = max(top, float(np.percentile(height[group], 97)))
+    mask = group
+    opening = _opening(ctx, centre, sides, angle, top)
+    return Detection(
+        kind="box",
+        color=color_name(frame.rgb[mask].mean(axis=0)),
+        position=np.array([centre[0], centre[1], top / 2]),
+        yaw=float(angle),
+        extent=np.array([sides[0], sides[1], top]),
+        position_std=0.003,
+        occluded=occluded,
+        resting=True,
+        pixels=int(mask.sum()),
+        bbox=bbox,
+        opening=opening,
+    )
+
+
+def _opening(ctx: _Context, centre, sides, angle, top) -> tuple[np.ndarray, float] | None:
+    """Largest square of observed cells inside a footprint whose surface lies well below the
+    rim: (floor-top centre, axis-aligned half width), or None. Unobserved cells are not open."""
+    pts, height, valid = ctx.pts, ctx.height, ctx.valid
+    c, s = np.cos(angle), np.sin(angle)
+    local = (pts[..., :2] - centre) @ np.array([[c, -s], [s, c]])
+    half = np.asarray(sides) / 2
+    inside = valid & np.all(np.abs(local) < half, axis=-1)
+    if not inside.any():
+        return None
+    nx, ny = (np.ceil(2 * half / OPENING_CELL)).astype(int)
+    loc = np.where(inside[..., None], local, 0.0)
+    ix = np.clip(((loc[..., 0] + half[0]) / OPENING_CELL).astype(int), 0, nx - 1)
+    iy = np.clip(((loc[..., 1] + half[1]) / OPENING_CELL).astype(int), 0, ny - 1)
+    cell_max = np.full((nx, ny), -np.inf)
+    np.maximum.at(cell_max, (ix[inside], iy[inside]), height[inside])
+    open_cells = np.isfinite(cell_max) & (cell_max < top - OPENING_BELOW_RIM)
+    n, i0, j0 = _largest_square(open_cells)
+    if n < 3:
+        return None
+    lc = np.array([(i0 + n / 2) * OPENING_CELL - half[0], (j0 + n / 2) * OPENING_CELL - half[1]])
+    world = centre + lc @ np.array([[c, s], [-s, c]])
+    cells = np.zeros_like(open_cells)
+    cells[i0 : i0 + n, j0 : j0 + n] = True
+    sel = inside & cells[ix, iy]
+    floor_z = float(np.nanpercentile(pts[..., 2][sel], 20))
+    return np.array([world[0], world[1], floor_z]), n * OPENING_CELL / 2 / (abs(c) + abs(s))
+
+
+def _largest_square(grid: np.ndarray) -> tuple[int, int, int]:
+    """Side (cells) and lower-left index of the largest all-True square (dynamic programming)."""
+    n, m = grid.shape
+    dp = np.zeros((n + 1, m + 1), int)
+    best, bi, bj = 0, 0, 0
+    for i in range(n):
+        for j in range(m):
+            if grid[i, j]:
+                dp[i + 1, j + 1] = 1 + min(dp[i, j + 1], dp[i + 1, j], dp[i, j])
+                if dp[i + 1, j + 1] > best:
+                    best = dp[i + 1, j + 1]
+                    bi, bj = i + 1 - best, j + 1 - best
+    return best, bi, bj

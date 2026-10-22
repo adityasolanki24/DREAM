@@ -26,7 +26,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 import dream.skills.articulation as art
-from dream.agent.belief import MIN_EVIDENCE_PROBES, Belief, Prior, make_record
+from dream.agent.belief import MIN_EVIDENCE_PROBES, Belief, NoiseModel, Prior, make_record
 from dream.agent.exploration import (
     EIGSelector,
     RandomSelector,
@@ -89,7 +89,8 @@ class Investigation:
     """Result of ``investigate``. ``belief`` stays with the session for later operation."""
 
     object: str
-    status: str  # identified | insufficient_information | model_inadequate | unsafe | failed
+    # identified | insufficient_information | model_inadequate | unsafe | unobservable | failed
+    status: str
     reason: str
     mechanism: str  # most probable class, or "unknown" when the model class is inadequate
     type_probs: dict
@@ -173,6 +174,8 @@ def investigate(
         rng,
         n_particles=n_particles,
         prior=Prior(geometry, origin_around_box=True),
+        # A camera on a round knob measures position only: the reduced likelihood.
+        noise=NoiseModel(observed_rotation=ref.orientation_observed),
         controller=probe_controller(),
         adequacy_threshold=adequacy_threshold,
     )
@@ -194,7 +197,14 @@ def investigate(
         pred_pos = pred[0][0][:, :3].mean(axis=0)
         t0 = time.perf_counter()
         o = art.probe(robot, perception, name, probe.direction, probe.distance, probe.max_force)
-        rotvec = relative_rotvec(ref.handle_quat, o.handle_quat_after)
+        if o.ok and not o.extra.get("handle_visible", True):
+            status = "unobservable"
+            reason = "the handle was not visible after a probe, so it gave no measurement"
+            break
+        if ref.orientation_observed:
+            rotvec = relative_rotvec(ref.handle_quat, o.handle_quat_after)
+        else:  # not measured: ignored by the reduced likelihood, never filled in
+            rotvec = np.zeros(3)
         # The spring acts at the grasp point, which moves rigidly with the knob, so the handle
         # position before the probe stands in for the end-effector position in the model.
         record = make_record(

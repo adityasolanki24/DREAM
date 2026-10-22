@@ -104,6 +104,17 @@ def test_planner_investigates_then_opens_a_closed_container_before_grasping():
     wide = {"box": {"centre": [0.6, 0, 0.008], "half_width": 0.06}}
     opened = _container_scene(objs, wide, _inv("identified", "prismatic", True))
     assert p.next_action(goal, opened, unsat, []) == ToolCall("grasp", {"object": "red"})
+    opened = [
+        Step(
+            ToolCall("open_articulated", {"object": "box"}),
+            ToolResult("open_articulated", "succeeded"),
+            0.0,
+        )
+    ]
+    not_seen = _container_scene(objs, investigation=_inv("identified", "prismatic", True))
+    assert p.next_action(goal, not_seen, unsat, opened) == ToolCall("retract")  # look again
+    looked = opened + [Step(ToolCall("retract"), ToolResult("retract", "succeeded"), 0.0)]
+    assert p.next_action(goal, not_seen, unsat, looked).name == "open_articulated"
     held = _container_scene(objs, investigation=_inv("identified", "prismatic", True))
     held["holding"] = "red"  # holding the cube while the box is shut: set it down first
     assert p.next_action(goal, held, unsat, []) == ToolCall(
@@ -193,7 +204,7 @@ def test_every_tool_declares_a_schema_and_bad_calls_are_rejected():
     tb = Toolbox(env.embodiment(), env)
     expected = (
         "observe_scene get_robot_state move_end_effector grasp release place verify_goal "
-        "investigate_physics open_articulated"
+        "investigate_physics open_articulated retract"
     )
     assert {t["name"] for t in TOOL_SPECS} == set(expected.split())
     # A tray scene has no articulated object: both tools refuse before touching anything.

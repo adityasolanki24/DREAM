@@ -21,6 +21,9 @@ from dream.tools import discovery
 from dream.tools.goals import InRegion, OnTop, parse_goal, resting_on, verify
 from dream.types import Embodiment, Perception
 
+# m: TCP parking pose above the robot's side of the table, behind every object it can reach,
+# so neither camera looks through the arm at the workspace.
+PARK_POSITION = np.array([0.3, 0.0, 0.45])
 HOLD_MIN_WIDTH = 0.01  # m: closed fingers stopped wider than this are holding something
 HOLD_MAX_DISTANCE = 0.04  # m: an object this close to the TCP is the one being held
 TABLE_REGION = ((0.35, 0.65), (-0.28, 0.28))  # m: where the arm can comfortably set objects down
@@ -54,6 +57,14 @@ TOOL_SPECS: list[dict] = [
         "name": "grasp",
         "description": "Pick up a named object from above. Requires an empty gripper.",
         "parameters": {"object": {"type": "string", "required": True}},
+    },
+    {
+        "name": "retract",
+        "description": (
+            "Move the arm to its parking pose, clear of the workspace and of the cameras' view "
+            "(to observe what the arm was hiding)."
+        ),
+        "parameters": {},
     },
     {
         "name": "release",
@@ -252,6 +263,12 @@ class Toolbox:
             )
         return self._from_skill("grasp", r)
 
+    def _retract(self) -> ToolResult:
+        if self.held_handle() is not None:
+            return ToolResult("retract", "rejected", "precondition: release the handle first")
+        r = self._guard(lambda rb: skills.move_via_travel_height(rb, PARK_POSITION, 0.0))
+        return self._from_skill("retract", r)
+
     def _release(self) -> ToolResult:
         if self.held_handle() is not None:  # let go of a handle: leave compliance, back off
             return self._from_skill("release", self._guard(art.release_handle))
@@ -320,7 +337,7 @@ class Toolbox:
         self.investigations[object] = inv
         # The tool succeeded if the investigation ran to a conclusion, including "fixed",
         # "insufficient information" and "model inadequate"; the data say which.
-        status = "failed" if inv.status in ("unsafe", "failed") else "succeeded"
+        status = "failed" if inv.status in ("unsafe", "unobservable", "failed") else "succeeded"
         return ToolResult(name, status, inv.reason, inv.summary())
 
     def _open_articulated(

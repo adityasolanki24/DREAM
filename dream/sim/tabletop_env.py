@@ -56,12 +56,17 @@ class TabletopEnv:
         camera: CameraSpec | None = None,
         light_scale: float = 1.0,
         camera_seed: int = 0,
+        extra_cameras: tuple[CameraSpec, ...] = (),
     ) -> None:
         self._spec = spec
         self.rng = rng
         self.noise = noise or TrackerNoise()
         self.camera_spec = camera or CameraSpec()
-        self.model = build_model(spec, shoulder_armature, self.camera_spec, light_scale)
+        self.extra_camera_specs = tuple(extra_cameras)
+        self.model = build_model(
+            spec, shoulder_armature, self.camera_spec, light_scale, self.extra_camera_specs
+        )
+        self._extra_cameras: dict[str, RGBDCamera] = {}
         self._camera: RGBDCamera | None = None  # created on first use
         self.camera_seed = camera_seed
         self.data = mujoco.MjData(self.model)
@@ -128,6 +133,20 @@ class TabletopEnv:
             rng = np.random.default_rng([self.camera_seed, 7])
             self._camera = RGBDCamera(self.model, self.camera_spec, rng)
         return self._camera.capture(self.data, self.lock)
+
+    def frame_sources(self) -> list:
+        """One capture function per mounted camera (the default camera first)."""
+        sources = [self.capture_frame]
+        for i, spec in enumerate(self.extra_camera_specs, start=1):
+            sources.append(lambda spec=spec, i=i: self._capture_extra(spec, i))
+        return sources
+
+    def _capture_extra(self, spec: CameraSpec, i: int) -> RGBDFrame:
+        cam = self._extra_cameras.get(spec.name)
+        if cam is None:
+            cam = RGBDCamera(self.model, spec, np.random.default_rng([self.camera_seed, 7, i]))
+            self._extra_cameras[spec.name] = cam
+        return cam.capture(self.data, self.lock)
 
     def robot_state(self) -> RobotState:
         with self.lock:

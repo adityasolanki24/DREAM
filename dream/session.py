@@ -24,6 +24,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from dream.perception.vision import VisionPerception
 from dream.runtime.agent import Episode, TaskAgent
 from dream.sim.tabletop import TabletopSpec, sample_compartment_scene, sample_tabletop
 from dream.sim.tabletop_env import TabletopEnv
@@ -60,15 +61,29 @@ class LiveSession:
         viewer: bool = False,
         log_dir: str | pathlib.Path | None = None,
         scene: str = "tray",
+        perception: str = "oracle",
     ) -> None:
+        """``perception``: "oracle" (noisy ground-truth trackers) or "vision" (the RGB-D camera
+        pipeline). Logs record which one ran."""
         if scene not in SCENES:
             raise ValueError(f"scene must be one of {SCENES}")
+        if perception not in ("oracle", "vision"):
+            raise ValueError("perception must be 'oracle' or 'vision'")
         self.seed = seed
         self.scene_kind = scene
         self.rate = rate  # simulated seconds per wall second (0 = as fast as possible)
-        self.env = TabletopEnv(make_scene(scene, seed), np.random.default_rng([seed, 1]))
+        self.env = TabletopEnv(
+            make_scene(scene, seed), np.random.default_rng([seed, 1]), camera_seed=seed
+        )
+        self.perception = (
+            self.env
+            if perception == "oracle"
+            else VisionPerception(
+                self.env.capture_frame, lambda: self.env.time, np.random.default_rng([seed, 3])
+            )
+        )
         self.toolbox = Toolbox(
-            self.env.embodiment(), self.env, rng=np.random.default_rng([seed, 2])
+            self.env.embodiment(), self.perception, rng=np.random.default_rng([seed, 2])
         )
         self.toolbox.on_discovery_step = self._on_discovery_step
         self.agent = TaskAgent(self.toolbox)
@@ -229,7 +244,31 @@ class LiveSession:
             "last_result": st.last_result,
             "discovery": st.discovery,
             "message": st.message,
+            "perception": self._perception_overlay(),
         }
+
+    def _perception_overlay(self) -> dict | None:
+        """The latest camera frame's detections, labelled with world-model names (vision only)."""
+        vis = self.perception
+        if not isinstance(vis, VisionPerception) or vis.last_frame is None:
+            return None
+        names = vis.world.names()
+        tracks = {id(t.detection): t for t in vis.world.tracks}
+        dets = []
+        for d in vis.last_detections:
+            t = tracks.get(id(d))
+            dets.append(
+                {
+                    "label": names.get(t.id, d.kind) if t else d.kind,
+                    "kind": d.kind,
+                    "bbox": list(d.bbox),
+                    "position": np.round(d.position, 3).tolist(),
+                    "std_mm": round(1000 * d.position_std, 1),
+                    "occluded": d.occluded,
+                }
+            )
+        hidden = [names[t.id] for t in vis.world.tracks if not t.visible]
+        return {"frame_time": round(vis.last_frame.time, 2), "detections": dets, "hidden": hidden}
 
     def _sync_viewer(self) -> None:
         import mujoco.viewer
@@ -247,5 +286,12 @@ class LiveSession:
             for ep in self.episodes:
                 f.write(json.dumps(ep.to_dict()) + "\n")
         (self.log_dir / "trajectory.json").write_text(
-            json.dumps({"seed": self.seed, "scene": self.scene_kind, "states": self._trajectory})
+            json.dumps(
+                {
+                    "seed": self.seed,
+                    "scene": self.scene_kind,
+                    "perception": self.perception.backend,
+                    "states": self._trajectory,
+                }
+            )
         )

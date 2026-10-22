@@ -128,7 +128,7 @@ class RuleBasedPlanner:
             return ToolCall("open_articulated", {"object": target, "strategy": "fixed_pull"})
         inv = scene["investigations"].get(target)
         tries = sum(1 for s in history if s.call.name == "investigate_physics")
-        if inv is None or inv["status"] in ("unsafe", "failed"):
+        if inv is None or inv["status"] in ("unsafe", "unobservable", "failed"):
             if tries >= self.max_attempts:
                 why = inv["reason"] if inv else "no investigation"
                 return Finish(False, f"could not investigate '{target}': {why}")
@@ -140,7 +140,21 @@ class RuleBasedPlanner:
             return Finish(False, _unsupported(target, inv))
         if opens >= self.max_attempts:
             return Finish(False, f"'{target}' still not accessible after {opens} openings")
+        if opens and _since(history, "open_articulated", "retract"):
+            # Opened, but not seen open: the arm may hide the opening from the cameras. Look
+            # again with the arm out of the way before pulling more.
+            return ToolCall("retract")
         return ToolCall("open_articulated", {"object": target, "min_opening": need})
+
+
+def _since(history: list[Step], event: str, absent: str) -> bool:
+    """True if ``absent`` has not been called since the last ``event``."""
+    for s in reversed(history):
+        if s.call.name == absent:
+            return False
+        if s.call.name == event:
+            return True
+    return False
 
 
 def _accessible(region: str, obj: str, scene: dict) -> bool:

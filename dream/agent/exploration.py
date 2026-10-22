@@ -97,7 +97,8 @@ class EIGSelector:
         y, y_start = predict_for_probes(
             hyps, belief.h0, handle_now, ee_now, self.probes, belief.controller
         )
-        eig = pairwise_mixture_mi(y, belief.noise.sigma_for(y, y_start))
+        k = belief.noise.dims
+        eig = pairwise_mixture_mi(y[..., k], belief.noise.sigma_for(y, y_start)[..., k])
         effort = np.array([p.max_force / 15.0 * p.distance / 0.08 for p in self.probes])
         score = eig - self.effort_cost * effort
         best = int(np.argmax(score))

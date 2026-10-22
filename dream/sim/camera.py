@@ -25,9 +25,15 @@ import numpy as np
 
 from dream.types import CameraCalibration, RGBDFrame
 
-CAMERA_NAME = "rgbd"
+CAMERA_NAME = "rgbd"  # the default camera
 ROBOT_GEOM_GROUP = 2  # Menagerie Panda visual geoms; scene geoms are group 0
 MAX_RANGE = 3.0  # m: beyond this the sensor reports no return
+
+
+# A second viewpoint from the robot's side. Added only where an observability measurement
+# showed it is needed: a lid swung open at the back of a compartment hides the cavity from the
+# default camera (README, camera-driven discovery).
+SIDE_CAMERA = dict(name="rgbd_side", position=(0.25, 0.65, 0.75), target=(0.6, 0.0, 0.0))
 
 
 @dataclass(frozen=True)
@@ -45,6 +51,7 @@ class CameraSpec:
     # Calibration error: the camera reports this much less than its true pose (dx, dy, dz in m,
     # then rotation about world x, y, z in degrees). Perception only ever sees the report.
     calibration_error: tuple[float, ...] = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+    name: str = CAMERA_NAME
 
     def xyaxes(self) -> list[float]:
         f = np.subtract(self.target, self.position)
@@ -58,7 +65,7 @@ class CameraSpec:
 def add_camera(world, spec: CameraSpec) -> None:
     """Add the camera to an ``MjSpec`` world body."""
     world.add_camera(
-        name=CAMERA_NAME, pos=list(spec.position), xyaxes=spec.xyaxes(), fovy=spec.fovy_deg
+        name=spec.name, pos=list(spec.position), xyaxes=spec.xyaxes(), fovy=spec.fovy_deg
     )
 
 
@@ -76,12 +83,12 @@ class RGBDCamera:
         self._robot_opt.geomgroup[ROBOT_GEOM_GROUP] = 1
 
     def calibration(self, data: mujoco.MjData) -> CameraCalibration:
-        cam = data.cam(CAMERA_NAME)
+        cam = data.cam(self.spec.name)
         err = np.asarray(self.spec.calibration_error, float)
         return CameraCalibration(
             width=self.spec.width,
             height=self.spec.height,
-            fovy_deg=float(self.model.cam(CAMERA_NAME).fovy[0]),
+            fovy_deg=float(self.model.cam(self.spec.name).fovy[0]),
             position=cam.xpos - err[:3],
             rotation=_rotation(-np.deg2rad(err[3:])) @ cam.xmat.reshape(3, 3),
         )
@@ -106,9 +113,10 @@ class RGBDCamera:
         try:
             time = float(data.time)
             calibration = self.calibration(data)
-            rgb_r.update_scene(data, camera=CAMERA_NAME, scene_option=self._scene_opt)
-            depth_r.update_scene(data, camera=CAMERA_NAME, scene_option=self._scene_opt)
-            robot_r.update_scene(data, camera=CAMERA_NAME, scene_option=self._robot_opt)
+            name = self.spec.name
+            rgb_r.update_scene(data, camera=name, scene_option=self._scene_opt)
+            depth_r.update_scene(data, camera=name, scene_option=self._scene_opt)
+            robot_r.update_scene(data, camera=name, scene_option=self._robot_opt)
         finally:
             if lock is not None:
                 lock.release()

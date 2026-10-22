@@ -98,13 +98,23 @@ def test_world_model_keeps_a_hidden_object_as_last_known_not_as_seen():
     assert after["blue"].visible
 
 
-def test_vision_backend_has_no_articulated_fallback_to_the_oracle():
+@pytest.mark.parametrize("kind", ["drawer", "lid"])
+def test_vision_finds_the_closed_compartment_and_measures_its_handle(kind):
+    """The handle position is measured from the image (near, not equal, to the truth), the
+    orientation is declared unobserved, and a closed compartment offers no opening."""
     from dream.sim.tabletop import sample_compartment_scene
 
-    spec = sample_compartment_scene("drawer", np.random.default_rng(0))
-    env = TabletopEnv(spec, np.random.default_rng(1))
-    assert env.observe_articulated()  # the oracle tracker reports the handle...
-    assert _vision(env).observe_articulated() == []  # ...vision does not (not implemented yet)
+    spec = sample_compartment_scene(kind, np.random.default_rng([3, 0]))
+    env = TabletopEnv(spec, np.random.default_rng(4))
+    vis = _vision(env)
+    (a,) = vis.observe_articulated()
+    assert a.name == "compartment" and a.handle_visible and not a.orientation_observed
+    true = env.data.site("handle").xpos
+    assert 0 < np.linalg.norm(a.handle_pos - true) < 0.02
+    front = a.handle_pos[:2] - a.box_centre[:2]
+    assert np.dot(front, spec.compartment.front_dir[:2]) > 0  # the handle side is the front
+    assert np.allclose(np.abs(a.box_half[:2]), 0.098, atol=0.02)
+    assert "compartment" not in vis.fixtures()
 
 
 @pytest.mark.slow

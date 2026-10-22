@@ -21,14 +21,19 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import pathlib
 import subprocess
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor
 
-import mujoco
-import numpy as np
+if "DISPLAY" not in os.environ:  # offscreen GL for the cameras, chosen when MuJoCo is imported
+    os.environ.setdefault("MUJOCO_GL", "osmesa")
+    os.environ.setdefault("PYOPENGL_PLATFORM", os.environ["MUJOCO_GL"])
+
+import mujoco  # noqa: E402
+import numpy as np  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -39,7 +44,9 @@ from dream.eval.manipulation import (  # noqa: E402
     object_in_compartment,
     safety_summary,
 )
+from dream.perception.vision import VisionPerception  # noqa: E402
 from dream.runtime.agent import RuleBasedPlanner, TaskAgent  # noqa: E402
+from dream.sim.camera import SIDE_CAMERA, CameraSpec  # noqa: E402
 from dream.sim.tabletop import sample_compartment_scene  # noqa: E402
 from dream.sim.tabletop_env import TabletopEnv  # noqa: E402
 from dream.tools.goals import InRegion  # noqa: E402
@@ -55,10 +62,18 @@ GOAL = InRegion("red", "compartment")
 
 
 def episode(args: tuple) -> dict:
-    kind, seed, method, budget, scene_kwargs, env_kwargs = args
+    kind, seed, method, budget, scene_kwargs, env_kwargs, perception = args
     spec = sample_compartment_scene(kind, np.random.default_rng([seed, 0]), **scene_kwargs)
+    if perception == "vision":  # both cameras: the lid hides its cavity from the default one
+        env_kwargs = {**env_kwargs, "extra_cameras": (CameraSpec(**SIDE_CAMERA),)}
+        env_kwargs.setdefault("camera_seed", seed)
     env = TabletopEnv(spec, np.random.default_rng([seed, 1]), **env_kwargs)
-    tb = Toolbox(env.embodiment(), env, rng=np.random.default_rng([seed, 2]))
+    sensing = env
+    if perception == "vision":
+        sensing = VisionPerception(
+            env.frame_sources(), lambda: env.time, np.random.default_rng([seed, 4])
+        )
+    tb = Toolbox(env.embodiment(), sensing, rng=np.random.default_rng([seed, 2]))
     planner = RuleBasedPlanner(probe_budget=budget, **METHODS[method])
     t0 = time.perf_counter()
     ep = TaskAgent(tb, planner, max_steps=14).run(GOAL)
@@ -70,6 +85,7 @@ def episode(args: tuple) -> dict:
         "looks_like": comp.looks_like,
         "seed": seed,
         "method": method,
+        "perception": sensing.backend,
         "success": object_in_compartment(env, "red"),
         "claimed": ep.success_claimed,
         "reason": ep.reason,
@@ -262,8 +278,9 @@ def main() -> None:
     # Optional shifted or challenge conditions: passed to the scene sampler and the environment.
     scene_kwargs = cfg.get("scene_kwargs", {})
     env_kwargs = cfg.get("env_kwargs", {})
+    perception = cfg.get("perception", "oracle")  # "vision": camera pipeline, two cameras
     jobs = [
-        (kind, s, m, cfg["probe_budget"], scene_kwargs, env_kwargs)
+        (kind, s, m, cfg["probe_budget"], scene_kwargs, env_kwargs, perception)
         for kind in cfg["kinds"]
         for s in seeds
         for m in cfg["methods"]

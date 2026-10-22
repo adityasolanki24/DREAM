@@ -181,6 +181,8 @@ def probe(
         ),
         ok=not stopped,
         reason=st1.stop_reason if stopped else "",
+        # A camera may lose the handle; its position is then last-known, not a measurement.
+        extra={"handle_visible": bool(obs0.handle_visible and obs1.handle_visible)},
     )
 
 

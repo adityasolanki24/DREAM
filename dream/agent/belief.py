@@ -59,11 +59,22 @@ class NoiseModel:
     hinges overshoot the quasi-static equilibrium by about 3% of travel, and in the worst
     measured case by about 19% (tests/test_model.py). A hypothesis that predicts no motion
     therefore keeps a tight likelihood and cannot explain away a large observed motion.
+
+    ``observed_rotation=False`` is the reduced likelihood for sensors that cannot recover the
+    handle's orientation (a camera tracking a round knob): only the 3 position dimensions enter
+    the likelihood, the fit check and the information gain, and the rotation entries of an
+    observation are ignored rather than filled in.
     """
 
     sigma_pos: float = 0.003  # m
     sigma_rot: float = np.deg2rad(2.0)  # rad
     motion_frac: float = 0.15
+    observed_rotation: bool = True
+
+    @property
+    def dims(self) -> slice:
+        """The observed dimensions of the 6-vector (position, rotation vector)."""
+        return slice(0, 6 if self.observed_rotation else 3)
 
     @property
     def sigma(self) -> np.ndarray:
@@ -79,9 +90,10 @@ class NoiseModel:
         return np.concatenate([np.repeat(sp, 3, -1), np.repeat(sr, 3, -1)], axis=-1)
 
     def loglik(self, y_pred: np.ndarray, y_obs: np.ndarray, y_start: np.ndarray) -> np.ndarray:
-        sigma = self.sigma_for(y_pred, y_start)
-        z2 = np.sum(((y_pred - y_obs) / sigma) ** 2, axis=-1)
-        d = y_obs.shape[-1]
+        k = self.dims
+        sigma = self.sigma_for(y_pred, y_start)[..., k]
+        z2 = np.sum(((y_pred[..., k] - y_obs[..., k]) / sigma) ** 2, axis=-1)
+        d = sigma.shape[-1]
         return -0.5 * z2 - 0.5 * d * np.log(2 * np.pi) - np.sum(np.log(sigma), axis=-1)
 
 
@@ -341,7 +353,7 @@ def sq_residuals(
         controller=controller,
     )
     z = (y_pred - fields["y_obs"]) / noise.sigma_for(y_pred, y_start)
-    return np.sum(z * z, axis=-1).reshape(r, n).T
+    return np.sum(z[..., noise.dims] ** 2, axis=-1).reshape(r, n).T
 
 
 def log_likelihood(
@@ -446,7 +458,8 @@ class Belief:
         f = self.filters[self.map_type()]
         best = f.particles.take(np.array([int(np.argmax(f.ll_hist))]))
         chi2 = float(sq_residuals(best, self.history, self.h0, self.noise, self.controller).sum())
-        per_dof = chi2 / (6 * len(self.history))
+        n_dims = self.noise.dims.stop - self.noise.dims.start
+        per_dof = chi2 / (n_dims * len(self.history))
         enough = len(self.history) >= MIN_EVIDENCE_PROBES
         return {
             "chi2_per_dof": per_dof,
