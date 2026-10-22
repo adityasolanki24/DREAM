@@ -117,3 +117,34 @@ def test_quasi_static_model_predicts_panda_probes_with_true_parameters(kind):
         assert np.linalg.norm(y[0, 3:] - rot) < np.deg2rad(6)
     assert max(moved) > 0.02  # the set includes probes that really move the mechanism
     assert np.median(errs) < 0.005 and max(errs) < 0.015
+
+
+def _run_task(kind, seed):
+    from dream.runtime.agent import TaskAgent
+    from dream.tools.goals import InRegion
+    from dream.tools.toolbox import Toolbox
+
+    spec, env = _env(kind, seed)
+    tb = Toolbox(env.embodiment(), env, rng=np.random.default_rng(seed))
+    ep = TaskAgent(tb).run(InRegion("red", "compartment"))
+    env.step(250)
+    return env, ep
+
+
+@pytest.mark.slow
+def test_drawer_task_investigates_opens_places_and_is_true_in_the_world():
+    from dream.eval.manipulation import object_in_compartment
+
+    env, ep = _run_task("drawer", 3)
+    tools = [s.call.name for s in ep.steps]
+    assert tools[0] == "investigate_physics" and "place" in tools
+    assert ep.success_claimed and object_in_compartment(env, "red")
+    assert not env.robot.protective_stop
+
+
+@pytest.mark.slow
+def test_fixed_box_is_declined_without_any_attempt_to_force_it_open():
+    env, ep = _run_task("fixed", 3)
+    assert not ep.success_claimed and "not forcing it" in ep.reason
+    assert [s.call.name for s in ep.steps] == ["investigate_physics"]
+    assert env.robot.peak_finger_force < 40.0

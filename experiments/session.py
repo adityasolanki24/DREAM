@@ -1,9 +1,9 @@
 """Interactive DREAM session: a live Panda tabletop that accepts goals while it runs.
 
-    python experiments/session.py [--seed 0] [--viewer] [--rate 1.0]
+    python experiments/session.py [--scene tray|drawer|lid|fixed] [--seed 0] [--viewer] [--rate 1.0]
 
 Commands (goals are structured; natural language is not supported yet):
-    in <object> <region>     e.g. "in red tray"
+    in <object> <region>     e.g. "in red tray", or "in red compartment" in a compartment scene
     on <object> <support>    e.g. "on red blue"
     status                   goal, current tool call, last result, robot state
     scene                    current observations (tracked object poses, tray, held object)
@@ -38,6 +38,7 @@ def _status(s: LiveSession) -> str:
         f"robot: tcp {st.tcp_pos.round(3).tolist()} gripper {st.gripper_width * 1000:.0f} mm "
         f"holding {held} protective_stop {st.protective_stop} {st.stop_reason}\n"
         f"sim time {s.env.time:.1f} s"
+        + (f"\ndiscovery: {s.status.discovery}" if s.status.discovery else "")
     )
 
 
@@ -46,13 +47,16 @@ def main() -> None:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--scene", default="tray", choices=["tray", "drawer", "lid", "fixed"])
     ap.add_argument(
         "--rate", type=float, default=1.0, help="simulated seconds per wall second (0 = max)"
     )
     ap.add_argument("--viewer", action="store_true")
     args = ap.parse_args()
     log_dir = ROOT / "results" / "sessions" / time.strftime("%Y%m%d-%H%M%S")
-    s = LiveSession(seed=args.seed, rate=args.rate, viewer=args.viewer, log_dir=log_dir)
+    s = LiveSession(
+        seed=args.seed, rate=args.rate, viewer=args.viewer, log_dir=log_dir, scene=args.scene
+    )
     s.start()
     print(__doc__.split("Commands")[0].strip().splitlines()[0])
     print("Objects:", [o["name"] for o in s.scene()["objects"]], "| type 'help' for commands")

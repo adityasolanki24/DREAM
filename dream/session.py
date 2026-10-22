@@ -25,7 +25,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from dream.runtime.agent import Episode, TaskAgent
-from dream.sim.tabletop import sample_tabletop
+from dream.sim.tabletop import TabletopSpec, sample_compartment_scene, sample_tabletop
 from dream.sim.tabletop_env import TabletopEnv
 from dream.tools.goals import Goal, parse_goal
 from dream.tools.toolbox import Toolbox
@@ -39,6 +39,17 @@ class Status:
     last_result: str | None = None
     message: str = ""
     events: list[dict] = field(default_factory=list)
+    discovery: dict | None = None  # latest investigate_physics step (for displays)
+
+
+SCENES = ("tray", "drawer", "lid", "fixed")
+
+
+def make_scene(scene: str, seed: int) -> TabletopSpec:
+    """The tray scene, or a compartment scene with a hidden mechanism of the given kind."""
+    if scene == "tray":
+        return sample_tabletop(np.random.default_rng(seed))
+    return sample_compartment_scene(scene, np.random.default_rng([seed, 0]))
 
 
 class LiveSession:
@@ -48,13 +59,18 @@ class LiveSession:
         rate: float = 1.0,
         viewer: bool = False,
         log_dir: str | pathlib.Path | None = None,
+        scene: str = "tray",
     ) -> None:
+        if scene not in SCENES:
+            raise ValueError(f"scene must be one of {SCENES}")
         self.seed = seed
+        self.scene_kind = scene
         self.rate = rate  # simulated seconds per wall second (0 = as fast as possible)
-        self.env = TabletopEnv(
-            sample_tabletop(np.random.default_rng(seed)), np.random.default_rng([seed, 1])
+        self.env = TabletopEnv(make_scene(scene, seed), np.random.default_rng([seed, 1]))
+        self.toolbox = Toolbox(
+            self.env.embodiment(), self.env, rng=np.random.default_rng([seed, 2])
         )
-        self.toolbox = Toolbox(self.env.embodiment(), self.env)
+        self.toolbox.on_discovery_step = self._on_discovery_step
         self.agent = TaskAgent(self.toolbox)
         self.status = Status()
         self.episodes: list[Episode] = []
@@ -158,6 +174,7 @@ class LiveSession:
                         {
                             "t": round(self.env.time, 3),
                             "qpos": np.round(self.env.data.qpos, 5).tolist(),
+                            "overlay": self._overlay(),
                         }
                     )
             if self.rate > 0:
@@ -186,6 +203,34 @@ class LiveSession:
         else:
             self.status.state = "done" if ep.success_claimed else "failed"
 
+    def _on_discovery_step(self, step: dict, belief) -> None:
+        fit = belief.fit_check()
+        info = {
+            "probe": step["step"],
+            "direction": step["probe"]["direction"],
+            "max_force_n": step["probe"]["max_force"],
+            "type_probs": step["type_probs"],
+            "predicted_mm": round(1000 * step["predicted_displacement_m"], 1),
+            "observed_mm": round(1000 * step["observed_displacement_m"], 1),
+            "prediction_error_mm": round(1000 * step["pre_action_pred_err_m"], 1),
+            "chi2_per_dof": round(fit["chi2_per_dof"], 3),
+            "model_adequate": fit["model_adequate"],
+        }
+        self.status.discovery = info
+        self.status.events.append({"t": round(self.env.time, 2), "kind": "probe", **info})
+
+    def _overlay(self) -> dict:
+        """What a display shows at this instant (logged with the trajectory for replay)."""
+        st = self.status
+        return {
+            "goal": st.goal,
+            "state": st.state,
+            "action": st.current_action,
+            "last_result": st.last_result,
+            "discovery": st.discovery,
+            "message": st.message,
+        }
+
     def _sync_viewer(self) -> None:
         import mujoco.viewer
 
@@ -202,5 +247,5 @@ class LiveSession:
             for ep in self.episodes:
                 f.write(json.dumps(ep.to_dict()) + "\n")
         (self.log_dir / "trajectory.json").write_text(
-            json.dumps({"seed": self.seed, "states": self._trajectory})
+            json.dumps({"seed": self.seed, "scene": self.scene_kind, "states": self._trajectory})
         )
