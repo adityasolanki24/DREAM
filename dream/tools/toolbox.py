@@ -15,7 +15,9 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+import dream.skills.articulation as art
 from dream.skills import manipulation as skills
+from dream.tools import discovery
 from dream.tools.goals import InRegion, OnTop, parse_goal, resting_on, verify
 from dream.types import Embodiment, Perception
 
@@ -67,6 +69,32 @@ TOOL_SPECS: list[dict] = [
         "description": "Check a structured goal against observations, with margin.",
         "parameters": {"goal": {"type": "goal", "required": True}},
     },
+    {
+        "name": "investigate_physics",
+        "description": (
+            "Grasp the handle of an articulated object and probe it with capped forces until its "
+            "mechanism (fixed, sliding, hinged), constraint and parameters are identified, the "
+            "model is found inadequate, a safety limit trips, or the probe budget is spent."
+        ),
+        "parameters": {
+            "object": {"type": "string", "required": True},
+            "budget": {"type": "number", "required": False},  # probes, default 12
+            "strategy": {"type": "string", "required": False},  # "eig" (default) | "random"
+            "max_force": {"type": "number", "required": False},  # N, at most 15
+        },
+    },
+    {
+        "name": "open_articulated",
+        "description": (
+            "Open an articulated object. 'learned' (default) follows the constraint identified by "
+            "investigate_physics and requires it; 'fixed_pull' pulls straight out of the front "
+            "without a model (a baseline)."
+        ),
+        "parameters": {
+            "object": {"type": "string", "required": True},
+            "strategy": {"type": "string", "required": False},
+        },
+    },
 ]
 SPECS = {s["name"]: s for s in TOOL_SPECS}
 READ_ONLY = ("observe_scene", "get_robot_state", "verify_goal")  # never blocked by cancel/stop
@@ -91,11 +119,19 @@ class Cancelled(Exception):
 
 class Toolbox:
     def __init__(
-        self, robot: Embodiment, perception: Perception, cancel: threading.Event | None = None
+        self,
+        robot: Embodiment,
+        perception: Perception,
+        cancel: threading.Event | None = None,
+        rng: np.random.Generator | None = None,
     ):
         self.robot = robot
         self.perception = perception
         self.cancel = cancel or threading.Event()
+        self.rng = rng if rng is not None else np.random.default_rng(0)
+        # Results of investigate_physics in this session (not memory: nothing persists).
+        self.investigations: dict[str, discovery.Investigation] = {}
+        self.on_discovery_step = None  # optional callback(step: dict, belief) for live displays
 
     # ----- entry point ----------------------------------------------------------------
 
@@ -138,10 +174,26 @@ class Toolbox:
             k: {"centre": np.round(c, 4).tolist(), "half_width": h}
             for k, (c, h) in self.perception.fixtures().items()
         }
+        articulated = [
+            {
+                "name": a.name,
+                "handle_position": np.round(a.handle_pos, 4).tolist(),
+                "box_centre": np.round(a.box_centre, 4).tolist(),
+                "box_half": np.round(a.box_half, 4).tolist(),
+            }
+            for a in self.perception.observe_articulated()
+        ]
         return ToolResult(
             "observe_scene",
             "succeeded",
-            data={"objects": objects, "fixtures": fixtures, "holding": self.held_object()},
+            data={
+                "objects": objects,
+                "fixtures": fixtures,
+                "articulated": articulated,
+                "investigations": {k: v.summary() for k, v in self.investigations.items()},
+                "holding": self.held_object(),
+                "holding_handle": self.held_handle(),
+            },
         )
 
     def _get_robot_state(self) -> ToolResult:
@@ -166,6 +218,12 @@ class Toolbox:
         return self._from_skill("move_end_effector", r)
 
     def _grasp(self, object: str) -> ToolResult:
+        if self.held_handle() is not None:
+            return ToolResult(
+                "grasp",
+                "rejected",
+                f"precondition: gripper holds the handle of '{self.held_handle()}'",
+            )
         if self.held_object() is not None:
             return ToolResult(
                 "grasp", "rejected", f"precondition: gripper already holds '{self.held_object()}'"
@@ -220,7 +278,68 @@ class Toolbox:
             {"satisfied": v.satisfied, "margin_m": v.margin, "uncertain": v.uncertain},
         )
 
+    def _investigate_physics(
+        self, object: str, budget: float = 12, strategy: str = "eig", max_force: float = 15.0
+    ) -> ToolResult:
+        name = "investigate_physics"
+        if art.find_articulated(self.perception, object) is None:
+            return ToolResult(name, "rejected", f"no articulated object '{object}' observed")
+        if self.held_object() is not None:
+            return ToolResult(name, "rejected", f"precondition: holding '{self.held_object()}'")
+        if strategy not in ("eig", "random"):
+            return ToolResult(name, "rejected", f"unknown strategy '{strategy}'")
+        if not (float(budget).is_integer() and 1 <= budget <= 50):
+            return ToolResult(name, "rejected", "'budget' must be an integer number of probes 1-50")
+        if not 0 < max_force <= discovery.DEFAULT_SAFETY.max_force:
+            return ToolResult(name, "rejected", "'max_force' must be in (0, 15] N")
+        safety = discovery.SafetyConstraints(max_force=float(max_force))
+        inv = self._guard(
+            lambda rb: discovery.investigate(
+                rb,
+                self.perception,
+                object,
+                int(budget),
+                self.rng,
+                strategy=strategy,
+                safety=safety,
+                on_step=self.on_discovery_step,
+            )
+        )
+        self.investigations[object] = inv
+        # The tool succeeded if the investigation ran to a conclusion, including "fixed",
+        # "insufficient information" and "model inadequate"; the data say which.
+        status = "failed" if inv.status in ("unsafe", "failed") else "succeeded"
+        return ToolResult(name, status, inv.reason, inv.summary())
+
+    def _open_articulated(self, object: str, strategy: str = "learned") -> ToolResult:
+        name = "open_articulated"
+        if art.find_articulated(self.perception, object) is None:
+            return ToolResult(name, "rejected", f"no articulated object '{object}' observed")
+        if self.held_object() is not None:
+            return ToolResult(name, "rejected", f"precondition: holding '{self.held_object()}'")
+        if strategy == "learned":
+            inv = self.investigations.get(object)
+            if inv is None or not inv.opening_supported:
+                why = "not investigated" if inv is None else f"investigation: {inv.status}"
+                return ToolResult(name, "rejected", f"no supported opening strategy ({why})")
+            r = self._guard(lambda rb: discovery.open_learned(rb, self.perception, object, inv))
+        elif strategy == "fixed_pull":
+            r = self._guard(lambda rb: discovery.open_fixed_pull(rb, self.perception, object))
+        else:
+            return ToolResult(name, "rejected", f"unknown strategy '{strategy}'")
+        return self._from_skill(name, r)
+
     # ----- helpers ------------------------------------------------------------------------
+
+    def held_handle(self) -> str | None:
+        """Name of the articulated object whose handle the closed fingers are on, if any."""
+        s = self.robot.state()
+        if s.gripper_command > 0.005 or s.gripper_width < discovery.GRASP_MIN_WIDTH:
+            return None
+        for a in self.perception.observe_articulated():
+            if np.linalg.norm(a.handle_pos - s.tcp_pos) < 0.025:
+                return a.name
+        return None
 
     def held_object(self) -> str | None:
         """Infer what is held from finger opening and the observed object nearest the TCP."""

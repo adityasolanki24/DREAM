@@ -10,6 +10,14 @@ Recovery comes from the loop, not from special cases. After every action the age
 re-observes and re-plans, so a missed grasp is retried and a dropped object is picked up again.
 A placement that verification rejects is redone. Attempt budgets bound all of this, and the
 agent stops and reports when they run out.
+
+Containers: "put X in Y" has the precondition "Y is accessible", meaning perception sees an
+open region named Y big enough for X. If Y is an articulated object that is not accessible,
+the planner first establishes how it moves (``investigate_physics``) and then opens it along
+the learned constraint (``open_articulated``). It never chooses a motion itself: the opening
+motion comes from the investigation's model, and when the investigation does not support
+opening (identified as fixed, mechanism not identified, model inadequate) the planner stops and
+says why instead of forcing it.
 """
 
 from __future__ import annotations
@@ -22,7 +30,7 @@ from typing import Protocol
 import numpy as np
 
 from dream.tools.goals import Goal, InRegion, OnTop, resting_on
-from dream.tools.toolbox import Toolbox, ToolResult
+from dream.tools.toolbox import WALL_CLEARANCE, Toolbox, ToolResult
 from dream.types import ObjectObservation
 
 
@@ -57,17 +65,26 @@ class Planner(Protocol):
 @dataclass
 class RuleBasedPlanner:
     max_attempts: int = 3  # per action kind, before giving up
+    exploration: str = "eig"  # probe selection for investigate_physics: "eig" | "random"
+    opening: str = "learned"  # "learned" | "fixed_pull" (baseline: no discovery)
+    probe_budget: int = 12
 
     def next_action(self, goal: Goal, scene: dict, verdict: dict, history: list[Step]) -> Action:
         names = {o["name"] for o in scene["objects"]}
         target = goal.region if isinstance(goal, InRegion) else goal.support
         if goal.object not in names:
             return Finish(False, f"'{goal.object}' is not visible")
-        if isinstance(goal, InRegion) and target not in scene["fixtures"]:
-            return Finish(False, f"unknown region '{target}'")
+        holding = scene["holding"]
+        if isinstance(goal, InRegion) and not _accessible(target, goal.object, scene):
+            if target not in {a["name"] for a in scene.get("articulated", [])}:
+                if target in scene["fixtures"]:
+                    return Finish(False, f"'{target}' is too small for '{goal.object}'")
+                return Finish(False, f"unknown region '{target}'")
+            if holding is not None:  # free the gripper before operating the container
+                return ToolCall("place", {"object": holding, "target": "table"})
+            return self._make_accessible(target, scene, history)
         if isinstance(goal, OnTop) and target not in names:
             return Finish(False, f"'{target}' is not visible")
-        holding = scene["holding"]
         if verdict["satisfied"] and holding is None:
             return Finish(True, "goal verified by observation")
         failures = _failures(history)
@@ -93,6 +110,54 @@ class RuleBasedPlanner:
         if _placements(history) >= self.max_attempts:
             return Finish(False, "goal still not verified after repeated placements")
         return ToolCall("grasp", {"object": goal.object})
+
+    def _make_accessible(self, target: str, scene: dict, history: list[Step]) -> Action:
+        opens = sum(1 for s in history if s.call.name == "open_articulated")
+        if self.opening == "fixed_pull":
+            if opens >= self.max_attempts:
+                return Finish(False, f"'{target}' still not accessible after {opens} pulls")
+            return ToolCall("open_articulated", {"object": target, "strategy": "fixed_pull"})
+        inv = scene["investigations"].get(target)
+        tries = sum(1 for s in history if s.call.name == "investigate_physics")
+        if inv is None or inv["status"] in ("unsafe", "failed"):
+            if tries >= self.max_attempts:
+                why = inv["reason"] if inv else "no investigation"
+                return Finish(False, f"could not investigate '{target}': {why}")
+            return ToolCall(
+                "investigate_physics",
+                {"object": target, "budget": self.probe_budget, "strategy": self.exploration},
+            )
+        if not inv["opening_supported"]:
+            return Finish(False, _unsupported(target, inv))
+        if opens >= self.max_attempts:
+            return Finish(False, f"'{target}' still not accessible after {opens} openings")
+        return ToolCall("open_articulated", {"object": target})
+
+
+def _accessible(region: str, obj: str, scene: dict) -> bool:
+    """The region is visible and wide enough to set the object down clear of its walls."""
+    if region not in scene["fixtures"]:
+        return False
+    size = next(o["size"] for o in scene["objects"] if o["name"] == obj)
+    return scene["fixtures"][region]["half_width"] >= size / 2 + WALL_CLEARANCE
+
+
+def _unsupported(target: str, inv: dict) -> str:
+    n = inv["interactions"]
+    if inv["status"] == "identified":  # identified, and the class does not open
+        return (
+            f"'{target}' does not open: identified as {inv['mechanism']} "
+            f"(P={inv['confidence']:.2f}) after {n} probes; not forcing it"
+        )
+    if inv["status"] == "model_inadequate":
+        return (
+            f"'{target}' moves in a way none of my mechanism models explain "
+            f"(chi2/dof {inv['chi2_per_dof']:.2f} after {n} probes); not attempting to open it"
+        )
+    return (
+        f"mechanism of '{target}' not identified within {n} probes (best guess "
+        f"{inv['mechanism']}, P={inv['confidence']:.2f}); not attempting to open it"
+    )
 
 
 def _obs(o: dict) -> ObjectObservation:

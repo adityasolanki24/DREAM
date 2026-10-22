@@ -61,9 +61,79 @@ def _scene(objs, holding=None):
             }
             for o in objs
         ],
-        "fixtures": {"tray": {}},
+        "fixtures": {"tray": {"centre": [0.5, 0.0, 0.004], "half_width": 0.09}},
         "holding": holding,
     }
+
+
+def _container_scene(objs, fixtures=None, investigation=None, holding=None):
+    scene = _scene(objs, holding)
+    scene["fixtures"] = fixtures or {}
+    scene["articulated"] = [{"name": "box"}]
+    scene["investigations"] = {} if investigation is None else {"box": investigation}
+    return scene
+
+
+def _inv(status, mechanism, supported, confidence=0.99):
+    return {
+        "status": status,
+        "reason": "",
+        "mechanism": mechanism,
+        "confidence": confidence,
+        "chi2_per_dof": 0.1,
+        "interactions": 4,
+        "opening_supported": supported,
+    }
+
+
+def test_planner_investigates_then_opens_a_closed_container_before_grasping():
+    p = RuleBasedPlanner(probe_budget=9)
+    objs = [_obs("red", 0.4, 0.1)]
+    goal, unsat = InRegion("red", "box"), {"satisfied": False}
+    assert p.next_action(goal, _container_scene(objs), unsat, []) == ToolCall(
+        "investigate_physics", {"object": "box", "budget": 9, "strategy": "eig"}
+    )
+    learned = _container_scene(objs, investigation=_inv("identified", "prismatic", True))
+    assert p.next_action(goal, learned, unsat, []) == ToolCall(
+        "open_articulated", {"object": "box"}
+    )
+    too_small = {"box": {"centre": [0.6, 0, 0.008], "half_width": 0.03}}
+    ajar = _container_scene(objs, too_small, _inv("identified", "prismatic", True))
+    assert p.next_action(goal, ajar, unsat, []).name == "open_articulated"  # open further
+    wide = {"box": {"centre": [0.6, 0, 0.008], "half_width": 0.06}}
+    opened = _container_scene(objs, wide, _inv("identified", "prismatic", True))
+    assert p.next_action(goal, opened, unsat, []) == ToolCall("grasp", {"object": "red"})
+    held = _container_scene(objs, investigation=_inv("identified", "prismatic", True))
+    held["holding"] = "red"  # holding the cube while the box is shut: set it down first
+    assert p.next_action(goal, held, unsat, []) == ToolCall(
+        "place", {"object": "red", "target": "table"}
+    )
+
+
+@pytest.mark.parametrize(
+    "inv,phrase",
+    [
+        (_inv("identified", "fixed", False), "not forcing"),
+        (_inv("model_inadequate", "unknown", False), "none of my mechanism models"),
+        (_inv("insufficient_information", "revolute", False, 0.7), "not identified"),
+    ],
+)
+def test_planner_declines_to_open_without_a_supported_model(inv, phrase):
+    p = RuleBasedPlanner()
+    scene = _container_scene([_obs("red", 0.4, 0.1)], investigation=inv)
+    act = p.next_action(InRegion("red", "box"), scene, {"satisfied": False}, [])
+    assert isinstance(act, Finish) and not act.success and phrase in act.reason
+
+
+def test_fixed_pull_baseline_never_investigates_and_gives_up_after_its_attempts():
+    p = RuleBasedPlanner(opening="fixed_pull", max_attempts=2)
+    scene = _container_scene([_obs("red", 0.4, 0.1)])
+    goal, unsat = InRegion("red", "box"), {"satisfied": False}
+    call = ToolCall("open_articulated", {"object": "box", "strategy": "fixed_pull"})
+    assert p.next_action(goal, scene, unsat, []) == call
+    pulls = [Step(call, ToolResult("open_articulated", "succeeded"), 0.0)] * 2
+    act = p.next_action(goal, scene, unsat, pulls)
+    assert isinstance(act, Finish) and not act.success
 
 
 def test_planner_reduces_both_goal_types_to_grasp_then_place():
@@ -120,8 +190,14 @@ def _env(seed):
 def test_every_tool_declares_a_schema_and_bad_calls_are_rejected():
     env = _env(5)
     tb = Toolbox(env.embodiment(), env)
-    expected = "observe_scene get_robot_state move_end_effector grasp release place verify_goal"
+    expected = (
+        "observe_scene get_robot_state move_end_effector grasp release place verify_goal "
+        "investigate_physics open_articulated"
+    )
     assert {t["name"] for t in TOOL_SPECS} == set(expected.split())
+    # A tray scene has no articulated object: both tools refuse before touching anything.
+    assert tb.call("investigate_physics", {"object": "drawer"}).status == "rejected"
+    assert tb.call("open_articulated", {"object": "drawer"}).status == "rejected"
     assert tb.call("teleport", {"object": "red"}).status == "rejected"
     assert tb.call("grasp", {}).status == "rejected"
     assert tb.call("grasp", {"object": "red", "force": 100}).status == "rejected"

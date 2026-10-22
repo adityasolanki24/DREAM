@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from dream.sim.compartment import CAVITY_HEIGHT, FLOOR, INNER_HALF
 from dream.sim.tabletop_env import TabletopEnv
 
 REST_SPEED = 0.02  # m/s: an object moving faster than this is not "resting"
@@ -51,3 +52,21 @@ def safety_summary(env: TabletopEnv) -> dict:
         "peak_finger_contact_N": float(r.peak_finger_force),
         "link_collision": bool(r.peak_contact_force > 1.0),
     }
+
+
+def object_in_compartment(env: TabletopEnv, name: str) -> bool:
+    """Centre inside the compartment's cavity (in the frame of the part carrying the floor),
+    below the roof line, and at rest. A cube on the roof or beside the box does not count."""
+    comp = env.privileged_spec().compartment
+    body = env.data.body("compartment_part" if comp.looks_like == "drawer" else "housing")
+    local = body.xmat.reshape(3, 3).T @ (env.privileged_object_pos(name) - body.xpos)
+    inside = np.all(np.abs(local[:2]) < INNER_HALF)
+    below_roof = local[2] < FLOOR + CAVITY_HEIGHT
+    return bool(inside and below_roof and _resting(env, name))
+
+
+def compartment_opening(env: TabletopEnv) -> float:
+    """True joint position of the compartment (m or rad; 0 for the fixed box)."""
+    if env.privileged_spec().compartment.kind == "fixed":
+        return 0.0
+    return float(env.data.joint("compartment_joint").qpos[0])
