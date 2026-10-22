@@ -176,6 +176,24 @@ In the hinge GIF, the sampled hinge lines start scattered and collapse onto the 
 - The live viewer (`--viewer`) was not exercised: development ran in a headless container.
 - Compute: an EIG step takes about 0.6 s to select and 0.5–2 s to update, on one CPU core.
 
+
+### Pending: preregistered fresh adequacy validation
+
+A proposed **three-probe minimum-evidence gate** has been added on a separate
+research branch for evaluation only; it does **not** change the live agent or the
+previously published benchmark results. Run:
+
+```bash
+pytest tests/test_adequacy.py
+python experiments/validate_adequacy.py --workers 4
+```
+
+The runner creates `results/fresh_adequacy_validation/summary.json` on a new
+seed (14819), including both ungated and gated false-alarm rates over ordinary,
+previously unseen, and helical mechanism instances. The threshold remains the
+development-calibrated 0.28. Do not tune against these held-out results.
+No performance claims should be made until the new experiment has actually run.
+
 ## Next steps
 
 1. Evaluate a minimum-evidence rule for the adequacy check on a fresh held-out seed.
