@@ -22,7 +22,7 @@ from dream.types import PartGeometry
 
 # chi2/dof above which the model class is declared inadequate. Calibrated on development
 # families only; see Belief.fit_check and experiments/calibrate_adequacy.py.
-ADEQUACY_THRESHOLD = float("inf")
+ADEQUACY_THRESHOLD = 0.28  # results/adequacy_calibration: max 0.227 over 672 checks, x1.25
 
 
 @dataclass(frozen=True)
