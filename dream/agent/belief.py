@@ -31,6 +31,9 @@ from dream.types import PartGeometry
 # chi2/dof above which the model class is declared inadequate. Calibrated on development
 # families only; see Belief.fit_check and experiments/calibrate_adequacy.py.
 ADEQUACY_THRESHOLD = 0.28  # results/adequacy_calibration: max 0.227 over 672 checks, x1.25
+# No inadequacy alert before this many probes; validated on a fresh held-out seed
+# (results/fresh_adequacy_validation: in-class false alarms 6/108 -> 0/108, detection kept 12/12).
+MIN_EVIDENCE_PROBES = 3
 
 
 @dataclass(frozen=True)
@@ -410,7 +413,8 @@ class Belief:
         below 1. Instead the threshold is calibrated on development mechanism families
         (experiments/calibrate_adequacy.py) and then frozen. Above it, no hypothesis in the
         agent's model class explains the data, and the agent reports an unknown mechanism class
-        instead of trusting its belief.
+        instead of trusting its belief. No alert is raised before ``MIN_EVIDENCE_PROBES``
+        records, because chi2 over one or two records is too noisy.
         """
         if not self.history:
             return {"chi2_per_dof": 0.0, "model_adequate": True}
@@ -418,7 +422,11 @@ class Belief:
         best = f.particles.take(np.array([int(np.argmax(f.ll_hist))]))
         chi2 = float(sq_residuals(best, self.history, self.h0, self.noise).sum())
         per_dof = chi2 / (6 * len(self.history))
-        return {"chi2_per_dof": per_dof, "model_adequate": per_dof <= self.adequacy_threshold}
+        enough = len(self.history) >= MIN_EVIDENCE_PROBES
+        return {
+            "chi2_per_dof": per_dof,
+            "model_adequate": not (enough and per_dof > self.adequacy_threshold),
+        }
 
     def summary(self) -> dict:
         """Human-readable posterior summary (type probabilities, best-type parameter means)."""

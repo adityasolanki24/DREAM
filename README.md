@@ -27,6 +27,11 @@ physical behaviour.
 
 Every row marked "implemented and tested" has passing tests and/or saved results in `results/`.
 
+Last full verification (22 Oct 2026): `pytest` (69 passed, including slow closed-loop
+episodes), `ruff check`/`format`, smoke benchmark, and an independent recomputation of every
+README statistic from the saved `episodes.jsonl`. Environment: Python 3.13.16, MuJoCo 3.16.0,
+NumPy 2.5.3, Linux, CPU only.
+
 | # | Milestone | Status | Evidence |
 |---|---|---|---|
 | 1 | MuJoCo mechanism scenes plus force-limited gantry probing | Implemented and tested | `tests/test_sim.py` |

@@ -158,3 +158,13 @@ def test_evidence_overturns_geometric_prior_for_an_inward_drawer():
         b.update(rec)
     assert b.map_type() == PRISMATIC and b.type_probs()[PRISMATIC] > 0.9
     assert np.dot(b.estimate(PRISMATIC)["axis"], [0, 1, 0]) > 0.98
+
+
+def test_fit_check_never_alerts_before_minimum_evidence():
+    """Validated rule (results/fresh_adequacy_validation): no inadequacy alert before probe 3."""
+    rng = np.random.default_rng(0)
+    b = Belief(GEO, np.random.default_rng(1), n_particles=200, adequacy_threshold=1e-12)
+    records = _simulate_records(_truth(PRISMATIC), PROBES[:3], rng)
+    for i, rec in enumerate(records, start=1):
+        b.update(rec)
+        assert b.fit_check()["model_adequate"] == (i < 3)
