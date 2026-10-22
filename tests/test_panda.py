@@ -53,6 +53,7 @@ def test_pressing_into_the_table_latches_a_protective_stop():
     assert np.max(np.abs(env.robot_state().joint_pos - q)) < 1e-2
 
 
+@pytest.mark.slow  # 10 s; the fast suite must stay under 60 s
 def test_pick_and_place_by_contact():
     env = _env(seed=3)
     robot = env.embodiment()
@@ -89,6 +90,7 @@ def test_grasp_on_nothing_is_reported_as_a_miss():
     assert not r.ok and "missed" in r.reason
 
 
+@pytest.mark.slow
 def test_grip_is_firm_and_cancels_in_the_external_force_estimate():
     """The stiffer grip squeezes ~20 N, yet the wrist-force estimate only sees the cube's weight
     (the opposing finger forces cancel), so grasping is not mistaken for a collision."""
@@ -99,6 +101,7 @@ def test_grip_is_firm_and_cancels_in_the_external_force_estimate():
     assert abs(f[2] + 0.05 * 9.81) < 0.15 and np.linalg.norm(f[:2]) < 0.3
 
 
+@pytest.mark.slow
 def test_off_centre_close_does_not_trip_the_safety_stop():
     """Regression (seed 31): closing straight to full force shoved the cube with one finger."""
     env = TabletopEnv(sample_tabletop(np.random.default_rng(31)), np.random.default_rng(1031))

@@ -135,6 +135,7 @@ class Toolbox:
         self.perception = perception
         self.cancel = cancel or threading.Event()
         self.rng = rng if rng is not None else np.random.default_rng(0)
+        self._grasped: str | None = None  # the object of the last successful grasp
         # Results of investigate_physics in this session (not memory: nothing persists).
         self.investigations: dict[str, discovery.Investigation] = {}
         self.on_discovery_step = None  # optional callback(step: dict, belief) for live displays
@@ -240,6 +241,8 @@ class Toolbox:
         if blockers:
             return ToolResult("grasp", "rejected", f"precondition: {blockers} rest on '{object}'")
         r = self._guard(lambda rb: skills.pick(rb, self.perception, object))
+        if r.ok:
+            self._grasped = object
         if r.ok and self.held_object() != object:
             return ToolResult(
                 "grasp",
@@ -383,19 +386,24 @@ class Toolbox:
         return None
 
     def held_object(self) -> str | None:
-        """Infer what is held from finger opening and the observed object nearest the TCP."""
+        """Infer what is held from finger opening, observations and the last successful grasp.
+
+        An object seen near the TCP is held. A camera may not see a held object at all (the
+        hand hides it), so the object this toolbox last grasped counts as held while the
+        fingers stay closed on something and it is not seen anywhere else.
+        """
         s = self.robot.state()
         if s.gripper_command > 0.01 or s.gripper_width < HOLD_MIN_WIDTH:
+            self._grasped = None
             return None
         objs = self.perception.observe_objects()
-        if not objs:
-            return None
-        nearest = min(objs, key=lambda o: np.linalg.norm(o.position - s.tcp_pos))
-        return (
-            nearest.name
-            if np.linalg.norm(nearest.position - s.tcp_pos) < HOLD_MAX_DISTANCE
-            else None
-        )
+        seen = [o for o in objs if o.visible]
+        near = [o for o in seen if np.linalg.norm(o.position - s.tcp_pos) < HOLD_MAX_DISTANCE]
+        if near:
+            return min(near, key=lambda o: np.linalg.norm(o.position - s.tcp_pos)).name
+        if self._grasped is not None and not any(o.name == self._grasped for o in seen):
+            return self._grasped
+        return None
 
     def target_point(self, object: str, target: str) -> np.ndarray | None:
         """Where the object's centre should end up for a named target."""

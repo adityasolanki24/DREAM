@@ -113,6 +113,45 @@ class ObjectObservation:
     position: np.ndarray  # (3,) m, centre
     yaw: float  # rad, about world z
     size: float  # m, edge length (from the visible extent)
+    position_std: float = 0.0  # m, the backend's 1-sigma position uncertainty (0: not reported)
+    visible: bool = True  # False: last-known estimate of an object not seen in the latest frame
+    last_seen: float | None = None  # s, time of the last frame the object was detected in
+
+
+@dataclass(frozen=True)
+class CameraCalibration:
+    """Pinhole RGB-D camera, MuJoCo convention: looks along its -z axis, x right, y up.
+
+    ``rotation`` maps camera-frame vectors to the world frame; ``position`` is the optical
+    centre in the world. This is the camera's (known) calibration, not scene knowledge.
+    """
+
+    width: int
+    height: int
+    fovy_deg: float
+    position: np.ndarray  # (3,) m
+    rotation: np.ndarray  # (3, 3)
+
+    @property
+    def focal(self) -> float:
+        """Focal length in pixels (square pixels)."""
+        return 0.5 * self.height / np.tan(np.deg2rad(self.fovy_deg) / 2)
+
+
+@dataclass(frozen=True)
+class RGBDFrame:
+    """One synchronised RGB-D image pair, as a depth camera driver delivers it.
+
+    ``depth`` is the distance along the optical axis (m), NaN where there is no return.
+    ``self_mask`` marks pixels on the robot's own body, predicted from its kinematic model and
+    joint encoders (the standard robot self-filter). It carries no information about the scene.
+    """
+
+    time: float  # s
+    rgb: np.ndarray  # (H, W, 3) uint8
+    depth: np.ndarray  # (H, W) float32, m
+    self_mask: np.ndarray  # (H, W) bool
+    calibration: CameraCalibration
 
 
 class Embodiment(Protocol):

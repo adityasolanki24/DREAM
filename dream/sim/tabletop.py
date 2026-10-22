@@ -18,6 +18,7 @@ import mujoco
 import numpy as np
 
 from dream.robot.panda import ROBOT_BODIES
+from dream.sim.camera import CameraSpec, add_camera
 from dream.sim.compartment import CompartmentSpec, add_compartment, sample_compartment
 
 PANDA_XML = (
@@ -102,8 +103,17 @@ def _yaw_quat(yaw: float) -> list[float]:
     return [float(np.cos(yaw / 2)), 0.0, 0.0, float(np.sin(yaw / 2))]
 
 
-def build_model(spec: TabletopSpec, shoulder_armature: float = SHOULDER_ARMATURE) -> mujoco.MjModel:
-    """Compile the scene. ``shoulder_armature=0.1`` restores Menagerie's value (stall case)."""
+def build_model(
+    spec: TabletopSpec,
+    shoulder_armature: float = SHOULDER_ARMATURE,
+    camera: CameraSpec | None = None,
+    light_scale: float = 1.0,
+) -> mujoco.MjModel:
+    """Compile the scene. ``shoulder_armature=0.1`` restores Menagerie's value (stall case).
+
+    ``camera`` mounts the RGB-D camera (default mount if None); ``light_scale`` scales the
+    scene light's diffuse intensity (a lighting variation for perception tests).
+    """
     s = mujoco.MjSpec.from_file(str(PANDA_XML))
     s.option.timestep = 0.002
     s.option.cone = mujoco.mjtCone.mjCONE_ELLIPTIC  # better frictional grasps than pyramidal
@@ -132,7 +142,7 @@ def build_model(spec: TabletopSpec, shoulder_armature: float = SHOULDER_ARMATURE
         name="tcp", pos=[0, 0, TCP_OFFSET], size=[0.005] * 3, rgba=[1, 0, 0, 0.5]
     )
     world = s.worldbody
-    world.add_light(pos=[0.5, 0, 1.5], dir=[0, 0, -1], diffuse=[0.8] * 3)
+    world.add_light(pos=[0.5, 0, 1.5], dir=[0, 0, -1], diffuse=[0.8 * light_scale] * 3)
     world.add_geom(
         name="table",
         type=mujoco.mjtGeom.mjGEOM_PLANE,
@@ -140,6 +150,7 @@ def build_model(spec: TabletopSpec, shoulder_armature: float = SHOULDER_ARMATURE
         rgba=[0.85, 0.83, 0.8, 1],
     )
     world.add_camera(name="overview", pos=[1.35, 0.0, 0.85], xyaxes=[0, 1, 0, -0.5, 0, 0.87])
+    add_camera(world, camera or CameraSpec())
 
     for obj in spec.objects:
         b = world.add_body(name=obj.name, pos=[*obj.xy, obj.half_size], quat=_yaw_quat(obj.yaw))

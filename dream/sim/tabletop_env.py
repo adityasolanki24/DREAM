@@ -19,9 +19,16 @@ import mujoco
 import numpy as np
 
 from dream.robot.panda import HOME_QPOS, Compliance, PandaController, SafetyLimits
+from dream.sim.camera import CameraSpec, RGBDCamera
 from dream.sim.compartment import INNER_HALF
 from dream.sim.tabletop import SHOULDER_ARMATURE, TRAY_FLOOR_TOP, TabletopSpec, build_model
-from dream.types import ArticulatedObservation, CompliantMode, ObjectObservation, RobotState
+from dream.types import (
+    ArticulatedObservation,
+    CompliantMode,
+    ObjectObservation,
+    RGBDFrame,
+    RobotState,
+)
 
 
 @dataclass(frozen=True)
@@ -31,7 +38,13 @@ class TrackerNoise:
 
 
 class TabletopEnv:
-    """One tabletop scene. Physics advances only through ``step`` (one thread at a time)."""
+    """One tabletop scene. Physics advances only through ``step`` (one thread at a time).
+
+    It also implements ``Perception`` as the *oracle* backend: noisy ground-truth trackers,
+    kept for regression, upper-bound comparisons and diagnosing non-perception failures.
+    """
+
+    backend = "oracle"
 
     def __init__(
         self,
@@ -40,11 +53,17 @@ class TabletopEnv:
         noise: TrackerNoise | None = None,
         limits: SafetyLimits | None = None,
         shoulder_armature: float = SHOULDER_ARMATURE,
+        camera: CameraSpec | None = None,
+        light_scale: float = 1.0,
+        camera_seed: int = 0,
     ) -> None:
         self._spec = spec
         self.rng = rng
         self.noise = noise or TrackerNoise()
-        self.model = build_model(spec, shoulder_armature)
+        self.camera_spec = camera or CameraSpec()
+        self.model = build_model(spec, shoulder_armature, self.camera_spec, light_scale)
+        self._camera: RGBDCamera | None = None  # created on first use
+        self.camera_seed = camera_seed
         self.data = mujoco.MjData(self.model)
         self.robot = PandaController(self.model, self.data, limits)
         self.lock = threading.RLock()  # guards data between a physics thread and readers
@@ -101,6 +120,14 @@ class TabletopEnv:
         return False
 
     # ----- sensing ----------------------------------------------------------------------
+
+    def capture_frame(self) -> RGBDFrame:
+        """One RGB-D frame from the fixed camera (sensor data only; see dream/sim/camera.py)."""
+        if self._camera is None:
+            # Its own noise stream, so the oracle tracker's draws are unchanged by camera use.
+            rng = np.random.default_rng([self.camera_seed, 7])
+            self._camera = RGBDCamera(self.model, self.camera_spec, rng)
+        return self._camera.capture(self.data, self.lock)
 
     def robot_state(self) -> RobotState:
         with self.lock:

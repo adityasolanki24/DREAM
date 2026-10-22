@@ -25,6 +25,7 @@ ROT_TOL = np.deg2rad(3.0)
 OPEN_WIDTH = 0.08  # m, fully open
 PRE_SQUEEZE = 0.008  # m below the expected width for the gentle first closing stage
 GRASP_SLACK = 0.03  # m of total opening beyond the object's width before grasping
+RELIABLE_STD = 0.006  # m: a held object's estimate above this is not trusted for placement
 RELEASE_SLACK = 0.012  # m beyond the held width when releasing (wide openings hit walls/neighbours)
 
 
@@ -212,7 +213,12 @@ def pick(robot: Embodiment, perception: Perception, name: str) -> SkillResult:
         return _done(r, robot, t0)
     lifted = find(perception, name)
     width = robot.state().gripper_width
-    if lifted is None or lifted.position[2] < obj.position[2] + 0.05 or width < 0.5 * obj.size:
+    # A camera may not see a lifted object behind the hand. Then the evidence is the grip: the
+    # fingers stopped at about the object's width. A visible object still at its old height
+    # means it was not lifted.
+    hidden = lifted is None or not lifted.visible
+    low = not hidden and lifted.position[2] < obj.position[2] + 0.05
+    if low or width < 0.5 * obj.size:
         z = None if lifted is None else float(lifted.position[2])
         return _done(
             SkillResult(
@@ -223,11 +229,10 @@ def pick(robot: Embodiment, perception: Perception, name: str) -> SkillResult:
             robot,
             t0,
         )
-    return _done(
-        SkillResult(True, "", details={"width": width, "object_z": float(lifted.position[2])}),
-        robot,
-        t0,
-    )
+    details = {"width": width, "verified_by": "grip width (object hidden)" if hidden else "view"}
+    if not hidden:
+        details["object_z"] = float(lifted.position[2])
+    return _done(SkillResult(True, "", details=details), robot, t0)
 
 
 def place(
@@ -251,9 +256,12 @@ def place(
         return SkillResult(False, f"object '{name}' not observed")
     if robot.state().gripper_width < 0.5 * held.size:
         return SkillResult(False, "precondition failed: not holding an object")
-    # The TCP-to-object offset is measured, not assumed: the grasp may not be centred.
+    # The TCP-to-object offset is measured, not assumed: the grasp may not be centred. A camera
+    # sees a held object partly hidden by the hand, and an estimate from its visible faces can be
+    # off by half its size; then the grasp point is used (pick aimed the fingers at the centre).
     st = robot.state()
-    offset = held.position - st.tcp_pos
+    reliable = held.visible and held.position_std <= RELIABLE_STD
+    offset = held.position - st.tcp_pos if reliable else np.zeros(3)
     if yaw is None:
         yaw = tcp_yaw(st.tcp_quat)
     else:  # the held object turns with the hand, so its offset from the TCP turns too
