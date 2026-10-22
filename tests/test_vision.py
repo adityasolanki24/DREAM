@@ -133,3 +133,31 @@ def test_camera_driven_pick_and_place_is_true_in_the_world(task):
     truth = object_in_tray(env, "red") if task == "tray" else object_on_top(env, "red", "blue")
     assert ep.success_claimed and truth
     assert vis.frames >= 3  # decisions came from several camera frames
+
+
+def test_averaging_handle_observations_keeps_what_perception_cannot_measure():
+    """Regression: averaging rebuilt the observation with defaults, so a camera's
+    'orientation not observed' and 'handle not visible' were silently lost, and lid rotations
+    were treated as measured zeros."""
+    import dream.skills.articulation as art
+    from dream.types import ArticulatedObservation
+
+    class Fixed:
+        def observe_articulated(self):
+            return [
+                ArticulatedObservation(
+                    "c",
+                    np.zeros(3),
+                    np.array([1.0, 0, 0, 0]),
+                    np.zeros(3),
+                    np.ones(3),
+                    handle_half=np.ones(3),
+                    orientation_observed=False,
+                    handle_visible=False,
+                    position_std=0.025,
+                )
+            ]
+
+    a = art.observe_handle_averaged(Fixed(), "c")
+    assert not a.orientation_observed and not a.handle_visible
+    assert a.handle_half is not None and a.position_std == 0.025  # identical frames: no gain

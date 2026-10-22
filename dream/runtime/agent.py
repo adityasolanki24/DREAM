@@ -78,12 +78,16 @@ class RuleBasedPlanner:
         if goal.object not in names:
             return Finish(False, f"'{goal.object}' is not visible")
         holding = scene["holding"]
+        if verdict["satisfied"] and holding is None and scene.get("holding_handle") is None:
+            return Finish(True, "goal verified by observation")
         if isinstance(goal, InRegion) and not _accessible(target, goal.object, scene):
             if target not in {a["name"] for a in scene.get("articulated", [])}:
                 if target in scene["fixtures"]:
                     return Finish(False, f"'{target}' is too small for '{goal.object}'")
                 return Finish(False, f"unknown region '{target}'")
             if holding is not None:  # free the gripper before operating the container
+                if _failures(history)["place"] >= self.max_attempts:
+                    return Finish(False, f"could not set '{holding}' aside")
                 return ToolCall("place", {"object": holding, "target": "table"})
             size = next(o["size"] for o in scene["objects"] if o["name"] == goal.object)
             need = round(size / 2 + WALL_CLEARANCE + OPENING_MARGIN, 4)
@@ -100,6 +104,8 @@ class RuleBasedPlanner:
                 return Finish(False, "placement keeps failing")
             return ToolCall("place", {"object": goal.object, "target": target})
         if holding is not None:  # holding something else (e.g. a cleared obstacle): set it aside
+            if failures["place"] >= self.max_attempts:
+                return Finish(False, f"could not set '{holding}' aside")
             return ToolCall("place", {"object": holding, "target": "table"})
         # Anything resting on the object, or on the support we stack onto, must be cleared first.
         observed = [_obs(o) for o in scene["objects"]]

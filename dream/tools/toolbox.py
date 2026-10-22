@@ -147,6 +147,7 @@ class Toolbox:
         self.cancel = cancel or threading.Event()
         self.rng = rng if rng is not None else np.random.default_rng(0)
         self._grasped: str | None = None  # the object of the last successful grasp
+        self._gripped_handle: str | None = None  # an investigation left this handle in the hand
         # Results of investigate_physics in this session (not memory: nothing persists).
         self.investigations: dict[str, discovery.Investigation] = {}
         self.on_discovery_step = None  # optional callback(step: dict, belief) for live displays
@@ -289,7 +290,9 @@ class Toolbox:
             return ToolResult("place", "rejected", f"precondition: {on_target} occupy '{target}'")
         point = self.target_point(object, target)
         if point is None:
-            return ToolResult("place", "rejected", f"unknown or unseen target '{target}'")
+            known = target in self.perception.fixtures() or target == "table"
+            why = "no free spot" if known else "unknown or unseen target"
+            return ToolResult("place", "rejected", f"{why} in '{target}'")
         yaw = self.container_place_yaw(target)
         r = self._guard(lambda rb: skills.place(rb, self.perception, object, point, yaw=yaw))
         return self._from_skill("place", r)
@@ -335,6 +338,7 @@ class Toolbox:
             )
         )
         self.investigations[object] = inv
+        self._gripped_handle = object if inv.opening_supported else None
         # The tool succeeded if the investigation ran to a conclusion, including "fixed",
         # "insufficient information" and "model inadequate"; the data say which.
         status = "failed" if inv.status in ("unsafe", "unobservable", "failed") else "succeeded"
@@ -355,13 +359,19 @@ class Toolbox:
                 return ToolResult(name, "rejected", f"no supported opening strategy ({why})")
             r = self._guard(
                 lambda rb: discovery.open_learned(
-                    rb, self.perception, object, inv, min_opening=min_opening
+                    rb,
+                    self.perception,
+                    object,
+                    inv,
+                    min_opening=min_opening,
+                    already_gripped=self._gripped_handle == object,
                 )
             )
         elif strategy == "fixed_pull":
             r = self._guard(lambda rb: discovery.open_fixed_pull(rb, self.perception, object))
         else:
             return ToolResult(name, "rejected", f"unknown strategy '{strategy}'")
+        self._gripped_handle = None  # opening always ends by letting go
         return self._from_skill(name, r)
 
     # ----- helpers ------------------------------------------------------------------------
@@ -393,12 +403,20 @@ class Toolbox:
         return float(options[np.argmin(np.abs(options - current))])
 
     def held_handle(self) -> str | None:
-        """Name of the articulated object whose handle the closed fingers are on, if any."""
+        """Name of the articulated object whose handle the closed fingers are on, if any.
+
+        The toolbox's own record comes first (an investigation that left the handle in the hand),
+        as long as the fingers stay closed on something: a camera may not recognise a knob half
+        hidden by the fingers. Otherwise a handle perceived at the hand counts.
+        """
         s = self.robot.state()
         if s.gripper_command > 0.005 or s.gripper_width < discovery.GRASP_MIN_WIDTH:
+            self._gripped_handle = None
             return None
+        if self._gripped_handle is not None:
+            return self._gripped_handle
         for a in self.perception.observe_articulated():
-            if np.linalg.norm(a.handle_pos - s.tcp_pos) < 0.025:
+            if np.linalg.norm(a.handle_pos - s.tcp_pos) < max(0.025, discovery.near_handle(a)):
                 return a.name
         return None
 
@@ -412,6 +430,8 @@ class Toolbox:
         s = self.robot.state()
         if s.gripper_command > 0.01 or s.gripper_width < HOLD_MIN_WIDTH:
             self._grasped = None
+            return None
+        if self.held_handle() is not None:  # the fingers are on a handle, not an object
             return None
         objs = self.perception.observe_objects()
         seen = [o for o in objs if o.visible]
@@ -441,6 +461,7 @@ class Toolbox:
                 [],
                 lo,
                 step=0.005,
+                floor_z=float(centre[2]),
             )
             return None if spot is None else np.array([*spot, centre[2] + obj.size / 2])
         if target == "table":
@@ -452,10 +473,20 @@ class Toolbox:
             return None
         return support.position + [0, 0, (support.size + obj.size) / 2]
 
-    def free_spot(self, obj, region, clearance, boxes, prefer, step: float = 0.02):
+    def free_spot(
+        self, obj, region, clearance, boxes, prefer, step: float = 0.02, floor_z: float = 0.0
+    ):
         """Point in ``region`` at least ``clearance`` from other objects and outside ``boxes``,
-        nearest to ``prefer``. Uses observations only. Returns None if nothing fits."""
-        others = [o.position[:2] for o in self.perception.observe_objects() if o.name != obj.name]
+        nearest to ``prefer``. Uses observations only. Returns None if nothing fits.
+
+        Objects resting well above the region's floor (``floor_z``) do not occupy it (for
+        example the knob of a lid standing open above a cavity).
+        """
+        others = [
+            o.position[:2]
+            for o in self.perception.observe_objects()
+            if o.name != obj.name and o.position[2] < floor_z + 2 * obj.size
+        ]
         (x0, x1), (y0, y1) = region
         best, best_d = None, np.inf
         for x in np.arange(x0, x1 + 1e-9, step):

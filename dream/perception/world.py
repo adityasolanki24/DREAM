@@ -23,7 +23,10 @@ import numpy as np
 
 from dream.perception.detect import Detection
 
-GATE = {"small": 0.05, "receptacle": 0.15}  # m: farther same-coloured detections are new
+# m: farther same-coloured detections are new entities. A receptacle's detected centre moves
+# when it opens (a lid rising shifted it by more than 0.15 m); two distinct 20 cm boxes cannot
+# have centres closer than 0.2 m.
+GATE = {"small": 0.05, "receptacle": 0.2}
 MOVED = 0.02  # m: an occluded detection closer than this to its track has not moved
 HANDLE_ON_RECEPTACLE = 0.25  # m from a receptacle's centre for a handle to belong to it
 
@@ -65,6 +68,10 @@ class WorldModel:
             est = replace(t.detection, occluded=True) if keep_old else d
             if t.detection.kind == "handle" and est.kind == "object":
                 est = replace(est, kind="handle", position=est.top_centre)
+            if d.occluded and t.detection.opening is not None:
+                # An occluded view hides cells; it is no evidence that an opening shrank or
+                # closed. Keep the opening last seen in a clear view.
+                est = replace(est, opening=t.detection.opening)
             self.tracks[i] = Track(t.id, est, time, True, t.n_seen + 1, t.articulated)
         for i in unmatched:
             self.tracks[i] = replace(self.tracks[i], visible=False)

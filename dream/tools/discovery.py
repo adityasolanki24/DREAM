@@ -21,7 +21,7 @@ Nothing here reads simulator state. The mechanism is known only through probe ou
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 
@@ -63,6 +63,12 @@ STALL_FRACTION = 0.25  # a segment that advances less than this fraction has hit
 # allowance grows with travel because parameter error compounds along a long arc (a lid's
 # knob travels ~0.3 m); measured deviations of correct models reached 21 mm.
 DEVIATION_TOL = 0.02  # m
+# Rigid-grasp handle measurement: the hand-handle offset changed by at most 2.2 mm over a
+# 6 cm, 12 N probe (results/handle_measurement_calibration, development scenes).
+GRASP_STD = 0.0022  # m
+# chi2/dof threshold for the position-only likelihood; placeholder equal to the 6-dof value
+# until calibrated by experiments/calibrate_panda_adequacy.py --perception vision.
+POSITION_ONLY_ADEQUACY = 0.59
 DEVIATION_PER_TRAVEL = 0.1  # m per m of handle travel from the closed position
 GRASP_MIN_WIDTH = 0.6 * 0.025  # m: fingers closing below this have lost the knob
 
@@ -104,6 +110,7 @@ class Investigation:
     opening_supported: bool
     steps: list[dict] = field(default_factory=list)
     belief: Belief | None = field(default=None, repr=False)
+    handle_source: str = "perception"  # or "grasp": measured through the rigid grasp
 
     def summary(self) -> dict:
         """What a planner sees (no particles, no step logs)."""
@@ -168,6 +175,19 @@ def investigate(
         return _failed(name, f"no articulated object '{name}' observed")
     # The closed-state reference must be read before touching the handle.
     ref = art.observe_handle_averaged(perception, name)
+    probes = [p for p in candidate_probes() if p.max_force <= safety.max_force]
+    selector = make_selector(strategy, probes)
+    g = art.grasp_handle(robot, perception, name)
+    if not g.ok:
+        return _failed(name, f"could not grasp the handle: {g.reason}")
+    width0 = robot.state().gripper_width
+    # Measure the handle with the more certain source. Perception that cannot see it well under
+    # the hand (a camera: 7-25 mm) is replaced by the hand itself through the rigid grasp
+    # (offset change <= 2.2 mm); the camera then only checks for gross slip.
+    via_grasp = ref.position_std > GRASP_STD
+    if via_grasp:
+        art.settle(robot)
+        ref = replace(ref, handle_pos=robot.state().tcp_pos.copy(), position_std=GRASP_STD)
     geometry = geometry_from(ref)
     belief = Belief(
         geometry,
@@ -177,14 +197,10 @@ def investigate(
         # A camera on a round knob measures position only: the reduced likelihood.
         noise=NoiseModel(observed_rotation=ref.orientation_observed),
         controller=probe_controller(),
-        adequacy_threshold=adequacy_threshold,
+        adequacy_threshold=adequacy_threshold
+        if ref.orientation_observed
+        else POSITION_ONLY_ADEQUACY,
     )
-    probes = [p for p in candidate_probes() if p.max_force <= safety.max_force]
-    selector = make_selector(strategy, probes)
-    g = art.grasp_handle(robot, perception, name)
-    if not g.ok:
-        return _failed(name, f"could not grasp the handle: {g.reason}", belief)
-    width0 = robot.state().gripper_width
     steps: list[dict] = []
     status, reason = "insufficient_information", f"budget of {budget} probes spent"
     for t in range(1, budget + 1):
@@ -197,7 +213,9 @@ def investigate(
         pred_pos = pred[0][0][:, :3].mean(axis=0)
         t0 = time.perf_counter()
         o = art.probe(robot, perception, name, probe.direction, probe.distance, probe.max_force)
-        if o.ok and not o.extra.get("handle_visible", True):
+        if via_grasp:  # the hand's pose is the handle measurement; the camera checks slip
+            o = _measured_by_grasp(o)
+        elif o.ok and not o.extra.get("handle_visible", True):
             status = "unobservable"
             reason = "the handle was not visible after a probe, so it gave no measurement"
             break
@@ -242,7 +260,7 @@ def investigate(
         steps.append(step)
         if on_step is not None:
             on_step({k: v for k, v in step.items() if not k.startswith("_")}, belief)
-        unsafe = _unsafe(o, robot, ref, width0, safety)
+        unsafe = _unsafe(o, robot, ref, width0, safety, slip_noise=3 * o.extra.get("slip_std", 0.0))
         if unsafe:
             status, reason = "unsafe", unsafe
             break
@@ -256,6 +274,7 @@ def investigate(
             status, reason = "identified", ""
             break
     inv = _result(name, status, reason, belief, steps, robot.state().time - t_start)
+    inv.handle_source = "grasp" if via_grasp else "perception"
     if not inv.opening_supported:
         released = art.release_handle(robot)
         if not released.ok:  # the conclusion stands, but the robot did not get free safely
@@ -274,10 +293,23 @@ def _confident(belief: Belief) -> bool:
     return k == FIXED or float(belief.estimate(k)["axis_concentration"]) >= AXIS_AGREEMENT
 
 
-def _unsafe(o, robot: Embodiment, ref, width0: float, safety: SafetyConstraints) -> str:
+def _measured_by_grasp(o: art.ProbeOutcome) -> art.ProbeOutcome:
+    """A probe outcome whose handle positions are the hand's (rigid-grasp measurement). Slip is
+    still judged from the camera, so its threshold must allow for the camera's uncertainty."""
+    return replace(
+        o,
+        handle_before=o.tcp_before.copy(),
+        handle_after=o.tcp_after.copy(),
+        extra={**o.extra, "slip_std": o.extra.get("handle_std", 0.0), "source": "grasp"},
+    )
+
+
+def _unsafe(
+    o, robot: Embodiment, ref, width0: float, safety: SafetyConstraints, slip_noise: float = 0.0
+) -> str:
     if not o.ok:
         return f"protective stop: {o.reason}"
-    if o.slip > safety.max_slip:
+    if o.slip > safety.max_slip + slip_noise:
         return f"handle slipped {o.slip * 1000:.0f} mm in the grip"
     if robot.state().gripper_width < min(GRASP_MIN_WIDTH, width0 - 0.008):
         return "grasp on the handle lost"
@@ -334,16 +366,30 @@ def _failed(name: str, reason: str, belief: Belief | None = None) -> Investigati
     )
 
 
+def near_handle(obs) -> float:
+    """Distance (m) within which the closed hand counts as on this handle: 2 cm, or 3 sigma of
+    the perceived handle position if that is wider (a camera sees a held knob poorly)."""
+    return max(0.02, 3.0 * obs.position_std)
+
+
 def _ensure_grasped(robot: Embodiment, perception: Perception, name: str) -> SkillResult:
     """Grasp the handle unless the fingers are already closed on something near it."""
     st = robot.state()
     obs = art.find_articulated(perception, name)
     if obs is None:
         return SkillResult(False, f"no articulated object '{name}' observed")
-    near = np.linalg.norm(obs.handle_pos - st.tcp_pos) < 0.02
+    near = np.linalg.norm(obs.handle_pos - st.tcp_pos) < near_handle(obs)
     if near and st.gripper_command < 0.005 and st.gripper_width > GRASP_MIN_WIDTH:
         return SkillResult(True, "")
     return art.grasp_handle(robot, perception, name)
+
+
+def _handle_now(robot: Embodiment, perception: Perception, name: str, inv: Investigation):
+    """The held handle's position, from the same source the investigation measured with."""
+    if inv.handle_source == "grasp":
+        art.settle(robot)
+        return robot.state().tcp_pos.copy()
+    return art.observe_handle_averaged(perception, name).handle_pos
 
 
 def open_learned(
@@ -353,6 +399,7 @@ def open_learned(
     inv: Investigation,
     safety: SafetyConstraints = DEFAULT_SAFETY,
     min_opening: float | None = None,
+    already_gripped: bool = False,
 ) -> SkillResult:
     """Open along the learned constraint in closed-loop segments, then release the handle.
 
@@ -364,14 +411,17 @@ def open_learned(
         return SkillResult(False, "no supported opening strategy for this object")
     kind = belief.map_type()
     t0 = robot.state().time
-    g = _ensure_grasped(robot, perception, name)
-    if not g.ok:
-        return SkillResult(False, f"could not grasp the handle: {g.reason}")
+    st = robot.state()
+    still_closed = st.gripper_command < 0.005 and st.gripper_width > GRASP_MIN_WIDTH
+    if not (already_gripped and still_closed):
+        g = _ensure_grasped(robot, perception, name)
+        if not g.ok:
+            return SkillResult(False, f"could not grasp the handle: {g.reason}")
     width0 = robot.state().gripper_width
     log, outcome = [], SkillResult(True, "")
     for _ in range(MAX_SEGMENTS):
         st = robot.state()
-        now = art.observe_handle_averaged(perception, name).handle_pos
+        now = _handle_now(robot, perception, name, inv)
         planned = plan_segment(belief, now, SEGMENT[kind])
         if planned is None:
             outcome = SkillResult(False, "belief changed to 'fixed'")
@@ -379,7 +429,7 @@ def open_learned(
         targets, q_now, q_goal = planned
         offset = st.tcp_pos - now  # the grasp offset is measured, not assumed
         r = art.pull_along(robot, [x + offset for x in targets], safety.max_force)
-        after = art.observe_handle_averaged(perception, name).handle_pos
+        after = _handle_now(robot, perception, name, inv)
         q_after, deviation = constraint_deviation(belief, after)
         log.append({"q_before": q_now, "q_after": q_after, "deviation_m": deviation})
         if not r.ok:

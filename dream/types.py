@@ -198,3 +198,4 @@ class ArticulatedObservation:
     # False: the handle is not seen in the latest frame; ``handle_pos`` is its last-known place
     # and must not be used as a measurement.
     handle_visible: bool = True
+    position_std: float = 0.0  # m, 1-sigma uncertainty of handle_pos (0: not reported)

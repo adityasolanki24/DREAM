@@ -282,3 +282,19 @@ def test_an_opening_whose_release_fails_is_reported_as_failed():
     assert with_release(opened, SkillResult(True)).ok
     failed = SkillResult(False, "handle left the learned constraint")
     assert with_release(failed, stuck).reason == failed.reason  # the first failure is the cause
+
+
+def test_setting_an_unwanted_object_aside_is_bounded():
+    """Regression: a perceived 'held object' that could not be set aside was retried until the
+    step budget ran out (15 place calls in one development run)."""
+    p = RuleBasedPlanner(max_attempts=2)
+    objs = [_obs("red", 0.4, 0.1), _obs("grey", 0.5, 0.0, 0.2)]
+    fails = [
+        Step(
+            ToolCall("place", {"object": "grey", "target": "table"}),
+            ToolResult("place", "timeout", "t"),
+            0.0,
+        )
+    ] * 2
+    act = p.next_action(InRegion("red", "tray"), _scene(objs, "grey"), {"satisfied": False}, fails)
+    assert isinstance(act, Finish) and not act.success and "grey" in act.reason

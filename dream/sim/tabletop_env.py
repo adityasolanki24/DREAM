@@ -204,7 +204,13 @@ class TabletopEnv:
             lo, hi = self._compartment_aabb()
         return [
             ArticulatedObservation(
-                "compartment", pos, quat, (lo + hi) / 2, (hi - lo) / 2, comp.handle_half.copy()
+                "compartment",
+                pos,
+                quat,
+                (lo + hi) / 2,
+                (hi - lo) / 2,
+                comp.handle_half.copy(),
+                position_std=self.noise.position_std,
             )
         ]
 

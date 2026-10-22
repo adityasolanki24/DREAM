@@ -31,6 +31,10 @@ from dream.perception.world import Track, WorldModel, entity_class
 from dream.types import ArticulatedObservation, ObjectObservation, RGBDFrame
 
 STD_SCALE = 1.0  # uncertainty inflation (see the README for the measured calibration)
+# Handle position uncertainty, from results/handle_measurement_calibration (development scenes):
+# camera error p90 6.7 mm with the knob in clear view, 24.3 mm with the hand on or above it.
+HANDLE_STD_CLEAR = 0.007  # m
+HANDLE_STD_OCCLUDED = 0.025  # m
 FUSE = {"small": 0.03, "receptacle": 0.1}  # m
 
 
@@ -142,6 +146,7 @@ class VisionPerception:
                     handle_half=_handle_half(h.detection, normal),
                     orientation_observed=False,
                     handle_visible=h.visible,
+                    position_std=HANDLE_STD_OCCLUDED if h.detection.occluded else HANDLE_STD_CLEAR,
                 )
             )
         return out

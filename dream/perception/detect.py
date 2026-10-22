@@ -273,7 +273,8 @@ def _describe(mask, ctx: _Context) -> Detection | None:
             mask, pts, height, valid, centre, sides, angle, top, occluded, bbox, frame
         )
         if container is not None:
-            return replace(container, opening=_opening(ctx, centre, sides, angle, top))
+            rim = float(np.median(height[mask]))
+            return replace(container, opening=_opening(ctx, centre, sides, angle, rim))
         return _box(mask, ctx, top, occluded, bbox)
     if min(sides) < MIN_SIDE:  # a sliver (a shaded edge of something larger), not an object
         return None
@@ -358,7 +359,9 @@ def _box(mask, ctx: _Context, top, occluded, bbox):
     centre, sides, angle = min_area_rect(pts[group][:, :2])
     top = max(top, float(np.percentile(height[group], 97)))
     mask = group
-    opening = _opening(ctx, centre, sides, angle, top)
+    # The rim is the group's median height, not its top: a lid raised a little sticks up above
+    # the box and would make its own surface near the hinge look "below the rim".
+    opening = _opening(ctx, centre, sides, angle, float(np.median(height[mask])))
     return Detection(
         kind="box",
         color=color_name(frame.rgb[mask].mean(axis=0)),

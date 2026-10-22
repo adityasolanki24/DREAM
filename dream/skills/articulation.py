@@ -12,7 +12,7 @@ change in the hand-handle offset, which is measured rather than assumed to be ze
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 
@@ -94,7 +94,11 @@ def grasp_handle(
     r = move_via_travel_height(robot, obs.handle_pos + [0, 0, APPROACH_ABOVE], yaw)
     if not r.ok:
         return _done(r, robot, t0)
-    obs = find_articulated(perception, name)  # re-observe before committing
+    # Re-observe before committing, but never trade a good estimate for a worse one: with the
+    # hand above the knob a camera sees it partly hidden (estimates off by up to ~24 mm).
+    again = find_articulated(perception, name)
+    if again is not None and again.position_std <= obs.position_std + 1e-9:
+        obs = again
     r = move_to(robot, obs.handle_pos, yaw)
     if not r.ok:
         return _done(r, robot, t0)
@@ -113,17 +117,25 @@ def grasp_handle(
 def observe_handle_averaged(
     perception: Perception, name: str, frames: int = TRACKER_FRAMES
 ) -> ArticulatedObservation:
-    """Average several tracker frames of a still handle (single frames have ~2 mm noise)."""
+    """Average several tracker frames of a still handle (single frames have ~2 mm noise).
+
+    Everything else the perception reported is kept (whether the orientation is observed at
+    all, whether the handle is visible). Averaging only reduces the uncertainty when the frames
+    are independent: repeated identical estimates (a camera that has not taken a new frame)
+    leave it unchanged.
+    """
     obs = [find_articulated(perception, name) for _ in range(frames)]
     q_ref = obs[0].handle_quat
     quats = np.array([o.handle_quat * np.sign(np.dot(o.handle_quat, q_ref)) for o in obs])
     q = quats.mean(axis=0)
-    return ArticulatedObservation(
-        name,
-        np.mean([o.handle_pos for o in obs], axis=0),
-        q / np.linalg.norm(q),
-        obs[-1].box_centre,
-        obs[-1].box_half,
+    positions = np.array([o.handle_pos for o in obs])
+    distinct = len({tuple(p) for p in positions.round(9)})
+    return replace(
+        obs[-1],
+        handle_pos=positions.mean(axis=0),
+        handle_quat=q / np.linalg.norm(q),
+        handle_visible=all(o.handle_visible for o in obs),
+        position_std=max(o.position_std for o in obs) / np.sqrt(distinct),
     )
 
 
@@ -182,7 +194,10 @@ def probe(
         ok=not stopped,
         reason=st1.stop_reason if stopped else "",
         # A camera may lose the handle; its position is then last-known, not a measurement.
-        extra={"handle_visible": bool(obs0.handle_visible and obs1.handle_visible)},
+        extra={
+            "handle_visible": bool(obs0.handle_visible and obs1.handle_visible),
+            "handle_std": float(max(obs0.position_std, obs1.position_std)),
+        },
     )
 
 
