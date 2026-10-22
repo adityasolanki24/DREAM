@@ -179,7 +179,7 @@ Before adding any dependency, pretrained model or upstream code:
 dream/types.py      Data passed from the simulator to decision-making code (observations, probes, geometry)
 dream/sim/          MuJoCo scenes, mechanism generator, gantry environment (holds ground truth)
 dream/agent/        Active Physical Discovery: belief, predictive model, probe selection, operation
-dream/eval/         Episode runner and scoring against ground truth (the only place sim meets agent)
+dream/eval/         Episode runner and scoring against ground truth (with experiments/, where sim meets agent)
 experiments/        Reproducible runners, configs, demo
 tests/              pytest suite, including the isolation guard
 results/            Saved outputs that back README claims
