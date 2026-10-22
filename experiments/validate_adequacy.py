@@ -34,19 +34,35 @@ BUDGET = 8
 MIN_PROBES = 3  # fixed before running this validation, not optimized here
 
 
-def _job(args: tuple[str, int]) -> dict:
-    family, index = args
-    spec = sample_mechanism(family, np.random.default_rng([SEED, index, len(family)]))
+FAMILIES = (*DEVELOPMENT_FAMILIES, "sash", "pivot", "rising_hinge")
+
+
+def make_jobs() -> list[tuple[int, str, int]]:
+    return [(f, family, i) for f, family in enumerate(FAMILIES) for i in range(N_PER_FAMILY)]
+
+
+def instance_seeds(job: tuple[int, str, int]) -> tuple[list[int], int]:
+    """(mechanism RNG seed, episode seed), unique per (family, instance).
+
+    Seeds are keyed by the family's position, not by len(family): the original version gave
+    families with equal-length names (e.g. bottom_hinge and rising_hinge) identical streams.
+    """
+    family_index, _, index = job
+    return [SEED, family_index, index], SEED * 10_000 + family_index * 100 + index
+
+
+def _job(job: tuple[int, str, int]) -> dict:
+    _, family, index = job
+    mech_seed, episode_seed = instance_seeds(job)
+    spec = sample_mechanism(family, np.random.default_rng(mech_seed))
     scores = [0.0]  # step zero, before any probes
     run_episode(
         spec,
         EIGSelector(candidate_probes()),
         BUDGET,
-        seed=SEED * 100 + index + 1000 * len(family),
+        seed=episode_seed,
         evaluate=False,
-        on_step=lambda step, belief, info: scores.append(
-            belief.fit_check()["chi2_per_dof"]
-        ),
+        on_step=lambda step, belief, info: scores.append(belief.fit_check()["chi2_per_dof"]),
     )
     return {
         "family": family,
@@ -60,10 +76,8 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--workers", type=int, default=4)
     args = ap.parse_args()
-    families = (*DEVELOPMENT_FAMILIES, "sash", "pivot", "rising_hinge")
-    jobs = [(family, i) for family in families for i in range(N_PER_FAMILY)]
     with ProcessPoolExecutor(max_workers=args.workers) as pool:
-        cases = list(pool.map(_job, jobs))
+        cases = list(pool.map(_job, make_jobs()))
 
     output = {
         "seed": SEED,
@@ -73,6 +87,16 @@ def main() -> None:
         "new_min_probes": MIN_PROBES,
         "unmodified": summarize_detection(cases, ADEQUACY_THRESHOLD, 1),
         "proposed_gate": summarize_detection(cases, ADEQUACY_THRESHOLD, MIN_PROBES),
+        # Supplementary (not preregistered): the same two rules per family.
+        "per_family": {
+            fam: {
+                rule: summarize_detection(
+                    [c for c in cases if c["family"] == fam], ADEQUACY_THRESHOLD, k
+                )
+                for rule, k in (("unmodified", 1), ("proposed_gate", MIN_PROBES))
+            }
+            for fam in FAMILIES
+        },
         "cases": cases,
         "git_sha": subprocess.check_output(
             ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
