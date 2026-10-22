@@ -33,12 +33,13 @@ def main() -> None:
     ap.add_argument("session_dir")
     ap.add_argument("--fps", type=int, default=10)
     ap.add_argument("--every", type=int, default=2, help="use every n-th logged state")
+    ap.add_argument("--width", type=int, default=480)
     args = ap.parse_args()
     d = pathlib.Path(args.session_dir)
     log = json.loads((d / "trajectory.json").read_text())
     model = build_model(sample_tabletop(np.random.default_rng(log["seed"])))
     data = mujoco.MjData(model)
-    renderer = mujoco.Renderer(model, 360, 480)
+    renderer = mujoco.Renderer(model, args.width * 3 // 4, args.width)
     frames = []
     for state in log["states"][:: args.every]:
         data.qpos[:] = state["qpos"]

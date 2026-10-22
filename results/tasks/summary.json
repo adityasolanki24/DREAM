@@ -1,0 +1,459 @@
+{
+  "meta": {
+    "config": {
+      "name": "tasks",
+      "seed0": 2000,
+      "n": 40,
+      "tasks": [
+        "tray",
+        "stack"
+      ],
+      "conditions": [
+        "nominal",
+        "disturbed",
+        "cluttered"
+      ],
+      "methods": [
+        "agent",
+        "agent_no_retry",
+        "fixed_sequence"
+      ]
+    },
+    "git_sha": "db1788b3731a53892aa112a537d54f65da4171bd",
+    "mujoco": "3.16.0"
+  },
+  "cells": {
+    "stack/cluttered": {
+      "agent": {
+        "n": 40,
+        "success": 40,
+        "success_rate": 1.0,
+        "success_ci95": [
+          0.9123754607496077,
+          1.0
+        ],
+        "false_claims": 0,
+        "grasp_success_rate": 1.0,
+        "median_xy_error_mm": 4.260068296643808,
+        "mean_tool_calls": 2.0,
+        "mean_failed_actions": 0.0,
+        "recovered_after_disturbance": null,
+        "mean_sim_time_s": 14.887500000001472,
+        "mean_wall_time_s": 3.6789756071751527,
+        "protective_stops": 0,
+        "link_collisions": 0
+      },
+      "agent_no_retry": {
+        "n": 40,
+        "success": 40,
+        "success_rate": 1.0,
+        "success_ci95": [
+          0.9123754607496077,
+          1.0
+        ],
+        "false_claims": 0,
+        "grasp_success_rate": 1.0,
+        "median_xy_error_mm": 4.260068296643808,
+        "mean_tool_calls": 2.0,
+        "mean_failed_actions": 0.0,
+        "recovered_after_disturbance": null,
+        "mean_sim_time_s": 14.887500000001472,
+        "mean_wall_time_s": 3.4083762118750203,
+        "protective_stops": 0,
+        "link_collisions": 0,
+        "vs_agent": {
+          "agent_only": 0,
+          "this_only": 0,
+          "mcnemar_p": 1.0
+        }
+      },
+      "fixed_sequence": {
+        "n": 40,
+        "success": 38,
+        "success_rate": 0.95,
+        "success_ci95": [
+          0.834958291820748,
+          0.9861796228538989
+        ],
+        "false_claims": 0,
+        "grasp_success_rate": null,
+        "median_xy_error_mm": 3.485634380337084,
+        "mean_tool_calls": 9.0,
+        "mean_failed_actions": 0.05,
+        "recovered_after_disturbance": null,
+        "mean_sim_time_s": 13.662000000001232,
+        "mean_wall_time_s": 3.055698166999991,
+        "protective_stops": 2,
+        "link_collisions": 0,
+        "vs_agent": {
+          "agent_only": 2,
+          "this_only": 0,
+          "mcnemar_p": 0.5
+        }
+      }
+    },
+    "stack/disturbed": {
+      "agent": {
+        "n": 40,
+        "success": 40,
+        "success_rate": 1.0,
+        "success_ci95": [
+          0.9123754607496077,
+          1.0
+        ],
+        "false_claims": 0,
+        "grasp_success_rate": 0.5,
+        "median_xy_error_mm": 3.800879626336999,
+        "mean_tool_calls": 3.0,
+        "mean_failed_actions": 1.0,
+        "recovered_after_disturbance": [
+          40,
+          40
+        ],
+        "mean_sim_time_s": 19.23250000000022,
+        "mean_wall_time_s": 4.177093556525051,
+        "protective_stops": 0,
+        "link_collisions": 0
+      },
+      "agent_no_retry": {
+        "n": 40,
+        "success": 0,
+        "success_rate": 0.0,
+        "success_ci95": [
+          0.0,
+          0.08762453925039232
+        ],
+        "false_claims": 0,
+        "grasp_success_rate": 0.0,
+        "median_xy_error_mm": null,
+        "mean_tool_calls": 1.0,
+        "mean_failed_actions": 1.0,
+        "recovered_after_disturbance": [
+          0,
+          40
+        ],
+        "mean_sim_time_s": 9.325499999999783,
+        "mean_wall_time_s": 1.741017361824993,
+        "protective_stops": 0,
+        "link_collisions": 0,
+        "vs_agent": {
+          "agent_only": 40,
+          "this_only": 0,
+          "mcnemar_p": 1.8189894035458565e-12
+        }
+      },
+      "fixed_sequence": {
+        "n": 40,
+        "success": 0,
+        "success_rate": 0.0,
+        "success_ci95": [
+          0.0,
+          0.08762453925039232
+        ],
+        "false_claims": 0,
+        "grasp_success_rate": null,
+        "median_xy_error_mm": null,
+        "mean_tool_calls": 9.0,
+        "mean_failed_actions": 0.025,
+        "recovered_after_disturbance": [
+          0,
+          39
+        ],
+        "mean_sim_time_s": 14.057000000001363,
+        "mean_wall_time_s": 2.7763496007499953,
+        "protective_stops": 1,
+        "link_collisions": 0,
+        "vs_agent": {
+          "agent_only": 40,
+          "this_only": 0,
+          "mcnemar_p": 1.8189894035458565e-12
+        }
+      }
+    },
+    "stack/nominal": {
+      "agent": {
+        "n": 40,
+        "success": 40,
+        "success_rate": 1.0,
+        "success_ci95": [
+          0.9123754607496077,
+          1.0
+        ],
+        "false_claims": 0,
+        "grasp_success_rate": 1.0,
+        "median_xy_error_mm": 3.544901334834439,
+        "mean_tool_calls": 2.0,
+        "mean_failed_actions": 0.0,
+        "recovered_after_disturbance": null,
+        "mean_sim_time_s": 14.808000000001453,
+        "mean_wall_time_s": 3.2747207722249643,
+        "protective_stops": 0,
+        "link_collisions": 0
+      },
+      "agent_no_retry": {
+        "n": 40,
+        "success": 40,
+        "success_rate": 1.0,
+        "success_ci95": [
+          0.9123754607496077,
+          1.0
+        ],
+        "false_claims": 0,
+        "grasp_success_rate": 1.0,
+        "median_xy_error_mm": 3.544901334834439,
+        "mean_tool_calls": 2.0,
+        "mean_failed_actions": 0.0,
+        "recovered_after_disturbance": null,
+        "mean_sim_time_s": 14.808000000001453,
+        "mean_wall_time_s": 3.239538435200052,
+        "protective_stops": 0,
+        "link_collisions": 0,
+        "vs_agent": {
+          "agent_only": 0,
+          "this_only": 0,
+          "mcnemar_p": 1.0
+        }
+      },
+      "fixed_sequence": {
+        "n": 40,
+        "success": 39,
+        "success_rate": 0.975,
+        "success_ci95": [
+          0.8711834051199223,
+          0.9955732825922052
+        ],
+        "false_claims": 0,
+        "grasp_success_rate": null,
+        "median_xy_error_mm": 3.2067019703608923,
+        "mean_tool_calls": 9.0,
+        "mean_failed_actions": 0.025,
+        "recovered_after_disturbance": null,
+        "mean_sim_time_s": 13.974000000001343,
+        "mean_wall_time_s": 3.029757037149966,
+        "protective_stops": 1,
+        "link_collisions": 0,
+        "vs_agent": {
+          "agent_only": 1,
+          "this_only": 0,
+          "mcnemar_p": 1.0
+        }
+      }
+    },
+    "tray/cluttered": {
+      "agent": {
+        "n": 40,
+        "success": 40,
+        "success_rate": 1.0,
+        "success_ci95": [
+          0.9123754607496077,
+          1.0
+        ],
+        "false_claims": 0,
+        "grasp_success_rate": 1.0,
+        "median_xy_error_mm": 64.2940756617261,
+        "mean_tool_calls": 2.0,
+        "mean_failed_actions": 0.0,
+        "recovered_after_disturbance": null,
+        "mean_sim_time_s": 15.407500000001514,
+        "mean_wall_time_s": 3.7296098370249866,
+        "protective_stops": 0,
+        "link_collisions": 0
+      },
+      "agent_no_retry": {
+        "n": 40,
+        "success": 40,
+        "success_rate": 1.0,
+        "success_ci95": [
+          0.9123754607496077,
+          1.0
+        ],
+        "false_claims": 0,
+        "grasp_success_rate": 1.0,
+        "median_xy_error_mm": 64.2940756617261,
+        "mean_tool_calls": 2.0,
+        "mean_failed_actions": 0.0,
+        "recovered_after_disturbance": null,
+        "mean_sim_time_s": 15.407500000001514,
+        "mean_wall_time_s": 3.462855203150025,
+        "protective_stops": 0,
+        "link_collisions": 0,
+        "vs_agent": {
+          "agent_only": 0,
+          "this_only": 0,
+          "mcnemar_p": 1.0
+        }
+      },
+      "fixed_sequence": {
+        "n": 40,
+        "success": 38,
+        "success_rate": 0.95,
+        "success_ci95": [
+          0.834958291820748,
+          0.9861796228538989
+        ],
+        "false_claims": 0,
+        "grasp_success_rate": null,
+        "median_xy_error_mm": 1.8702580630967518,
+        "mean_tool_calls": 9.0,
+        "mean_failed_actions": 0.05,
+        "recovered_after_disturbance": null,
+        "mean_sim_time_s": 14.443500000001356,
+        "mean_wall_time_s": 3.3271417309248816,
+        "protective_stops": 2,
+        "link_collisions": 0,
+        "vs_agent": {
+          "agent_only": 2,
+          "this_only": 0,
+          "mcnemar_p": 0.5
+        }
+      }
+    },
+    "tray/disturbed": {
+      "agent": {
+        "n": 40,
+        "success": 40,
+        "success_rate": 1.0,
+        "success_ci95": [
+          0.9123754607496077,
+          1.0
+        ],
+        "false_claims": 0,
+        "grasp_success_rate": 0.5,
+        "median_xy_error_mm": 64.59435745463189,
+        "mean_tool_calls": 3.0,
+        "mean_failed_actions": 1.0,
+        "recovered_after_disturbance": [
+          40,
+          40
+        ],
+        "mean_sim_time_s": 19.48450000000008,
+        "mean_wall_time_s": 4.357709724475126,
+        "protective_stops": 0,
+        "link_collisions": 0
+      },
+      "agent_no_retry": {
+        "n": 40,
+        "success": 0,
+        "success_rate": 0.0,
+        "success_ci95": [
+          0.0,
+          0.08762453925039232
+        ],
+        "false_claims": 0,
+        "grasp_success_rate": 0.0,
+        "median_xy_error_mm": null,
+        "mean_tool_calls": 1.0,
+        "mean_failed_actions": 1.0,
+        "recovered_after_disturbance": [
+          0,
+          40
+        ],
+        "mean_sim_time_s": 9.325499999999783,
+        "mean_wall_time_s": 1.673177926874996,
+        "protective_stops": 0,
+        "link_collisions": 0,
+        "vs_agent": {
+          "agent_only": 40,
+          "this_only": 0,
+          "mcnemar_p": 1.8189894035458565e-12
+        }
+      },
+      "fixed_sequence": {
+        "n": 40,
+        "success": 0,
+        "success_rate": 0.0,
+        "success_ci95": [
+          0.0,
+          0.08762453925039232
+        ],
+        "false_claims": 0,
+        "grasp_success_rate": null,
+        "median_xy_error_mm": null,
+        "mean_tool_calls": 9.0,
+        "mean_failed_actions": 0.025,
+        "recovered_after_disturbance": [
+          0,
+          39
+        ],
+        "mean_sim_time_s": 14.24550000000138,
+        "mean_wall_time_s": 2.615708933649921,
+        "protective_stops": 1,
+        "link_collisions": 0,
+        "vs_agent": {
+          "agent_only": 40,
+          "this_only": 0,
+          "mcnemar_p": 1.8189894035458565e-12
+        }
+      }
+    },
+    "tray/nominal": {
+      "agent": {
+        "n": 40,
+        "success": 40,
+        "success_rate": 1.0,
+        "success_ci95": [
+          0.9123754607496077,
+          1.0
+        ],
+        "false_claims": 0,
+        "grasp_success_rate": 1.0,
+        "median_xy_error_mm": 63.255113152160895,
+        "mean_tool_calls": 2.0,
+        "mean_failed_actions": 0.0,
+        "recovered_after_disturbance": null,
+        "mean_sim_time_s": 15.027500000001433,
+        "mean_wall_time_s": 3.3432306271500467,
+        "protective_stops": 0,
+        "link_collisions": 0
+      },
+      "agent_no_retry": {
+        "n": 40,
+        "success": 40,
+        "success_rate": 1.0,
+        "success_ci95": [
+          0.9123754607496077,
+          1.0
+        ],
+        "false_claims": 0,
+        "grasp_success_rate": 1.0,
+        "median_xy_error_mm": 63.255113152160895,
+        "mean_tool_calls": 2.0,
+        "mean_failed_actions": 0.0,
+        "recovered_after_disturbance": null,
+        "mean_sim_time_s": 15.027500000001433,
+        "mean_wall_time_s": 3.3254142410999976,
+        "protective_stops": 0,
+        "link_collisions": 0,
+        "vs_agent": {
+          "agent_only": 0,
+          "this_only": 0,
+          "mcnemar_p": 1.0
+        }
+      },
+      "fixed_sequence": {
+        "n": 40,
+        "success": 39,
+        "success_rate": 0.975,
+        "success_ci95": [
+          0.8711834051199223,
+          0.9955732825922052
+        ],
+        "false_claims": 0,
+        "grasp_success_rate": null,
+        "median_xy_error_mm": 2.422227575647102,
+        "mean_tool_calls": 9.0,
+        "mean_failed_actions": 0.025,
+        "recovered_after_disturbance": null,
+        "mean_sim_time_s": 14.16050000000136,
+        "mean_wall_time_s": 3.148644393049949,
+        "protective_stops": 1,
+        "link_collisions": 0,
+        "vs_agent": {
+          "agent_only": 1,
+          "this_only": 0,
+          "mcnemar_p": 1.0
+        }
+      }
+    }
+  }
+}

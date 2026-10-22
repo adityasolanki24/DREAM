@@ -29,15 +29,25 @@ observable feedback.
 
 ## What exists today (do not overstate it)
 
-One validated research component exists: **Active Physical Discovery**.
+Two validated foundations exist, and they are **not yet connected**.
 
-- A force-limited 3-axis gantry (not yet an arm) probes single-joint mechanisms in MuJoCo:
-  fixed, prismatic and revolute panels, plus a held-out helical mechanism.
-- A per-type SMC belief, a quasi-static predictive model and expected-information-gain probe
-  selection identify those mechanisms. They beat random probing by about 60% in median probes,
-  with paired statistics, and a χ² check flags an out-of-class mechanism.
-- Observations are oracle part poses plus noise. There is no camera perception, no language
-  interface, no task planner, no memory, and no general manipulation skills.
+1. **Active Physical Discovery** (gantry robot, `dream/agent/`):
+   - A force-limited 3-axis gantry probes single-joint mechanisms in MuJoCo: fixed, prismatic
+     and revolute panels, plus a held-out helical mechanism.
+   - A per-type SMC belief, a quasi-static predictive model and expected-information-gain probe
+     selection identify those mechanisms. They beat random probing by about 60% in median
+     probes, with paired statistics.
+   - A χ² check, validated on fresh data, flags an out-of-class mechanism.
+2. **Panda manipulation foundation** (`dream/robot`, `skills`, `tools`, `runtime`):
+   - A simulated Franka Panda (Menagerie model) with a deterministic safety-limited controller.
+   - Contact-based grasping and closed-loop skills.
+   - A typed tool interface and a rule-based task runtime for *structured* goals ("in red
+     tray", "on red blue").
+   - A live session with pause and cancel.
+
+Object poses come from a simulated tracker (oracle plus noise), not cameras. There is no
+natural-language understanding (structured goals only; no LLM is integrated), no memory, and
+discovery is not yet callable as a tool from the runtime.
 
 The README status table is the source of truth for what is done. Anything not marked
 "implemented and tested" there must not be described as working.
@@ -49,14 +59,14 @@ slice needs it, and never create placeholder packages.
 
 | | Component | Responsibility | Status / home |
 |---|---|---|---|
-| A | Embodied reasoning | Interpret goals, choose skills and tools, track multi-step progress. May use pretrained (V)LMs. | planned, `dream/runtime/` |
+| A | Embodied reasoning | Interpret goals, choose skills and tools, track multi-step progress. May use pretrained (V)LMs. | rule-based planner over structured goals: `dream/runtime/` (LLM planner planned) |
 | B | Perception | Object poses, relations, affordances *with uncertainty*, from robot sensors | planned, `dream/perception/` |
-| C | Motor skills | reach, grasp, place, push, pull, follow a constrained path. Reuse existing controllers and policies. | planned, `dream/skills/` |
+| C | Motor skills | reach, grasp, place, push, pull, follow a constrained path. Reuse existing controllers and policies. | reach/grasp/place: `dream/skills/`; typed tools: `dream/tools/` |
 | D | Predictive physics | Interpretable models first; learned dynamics only when they measurably win | exists for mechanisms, `dream/agent/model.py` |
 | E | Active discovery | Choose experiments that reduce uncertainty when knowledge is missing | **exists**, `dream/agent/` |
 | F | Experience memory | Stored outcomes and learned properties that *change future decisions*. Logs alone do not count. | planned, `dream/memory/` |
-| G | Verification and safety | Check expected effects, detect failure or model inadequacy, replan or declare a task unsupported. Deterministic low-level safety limits. | partial: `Belief.fit_check`, force caps |
-| H | Embodiment adapters | Robot-specific actuation behind explicit capability interfaces | planned, `dream/robot/` (the gantry lives in `dream/sim/env.py`) |
+| G | Verification and safety | Check expected effects, detect failure or model inadequacy, replan or declare a task unsupported. Deterministic low-level safety limits. | partial: `verify_goal`, `Belief.fit_check`, Panda safety layer |
+| H | Embodiment adapters | Robot-specific actuation behind explicit capability interfaces | Panda: `dream/robot/panda.py` + `Embodiment` protocol (`dream/types.py`); the gantry lives in `dream/sim/env.py` |
 
 Intended flow, for example: goal → runtime plans "open cabinet, then place cube" → the open
 skill fails or its model is inadequate → the runtime invokes discovery (E) → discovery learns
@@ -176,11 +186,17 @@ Before adding any dependency, pretrained model or upstream code:
 ## Layout
 
 ```
-dream/types.py      Data passed from the simulator to decision-making code (observations, probes, geometry)
-dream/sim/          MuJoCo scenes, mechanism generator, gantry environment (holds ground truth)
+dream/types.py      Shared data and protocols (observations, RobotState, Embodiment, Perception)
+dream/sim/          MuJoCo scenes and environments: mechanisms + gantry, tabletop + Panda (ground truth)
+dream/robot/        Panda controller and safety layer (robot kinematics only, no scene access)
 dream/agent/        Active Physical Discovery: belief, predictive model, probe selection, operation
-dream/eval/         Episode runner and scoring against ground truth (with experiments/, where sim meets agent)
-experiments/        Reproducible runners, configs, demo
+dream/skills/       Closed-loop manipulation skills over Embodiment/Perception
+dream/tools/        Typed tool interface and structured goals
+dream/runtime/      Task agent loop and planners
+dream/session.py    Live session: physics thread + agent thread (wiring, like dream/eval)
+dream/eval/         Episode runners and scoring against ground truth
+experiments/        Reproducible runners, configs, demo, interactive session CLI
+third_party/        Vendored external assets (pinned, with licence and PROVENANCE.txt)
 tests/              pytest suite, including the isolation guard
 results/            Saved outputs that back README claims
 ```

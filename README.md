@@ -7,30 +7,44 @@ physical knowledge by experimenting, verify outcomes, recover from failure and i
 experience, all without a hand-written script per task. This is the direction, **not a current
 capability**. The architecture, invariants and priorities are in [`AGENTS.md`](AGENTS.md).
 
-**What exists today: Active Physical Discovery.** This is the first experimentally validated
-component. A simulated robot meets a mechanism it has never seen, a panel with a handle that
-might be fixed, slide, or swing on a hinge. It keeps competing explanations of how the panel
-moves, picks the physical experiment expected to best tell them apart, predicts what that
-experiment will do, runs it, updates its beliefs from what it measures, and then opens the
-mechanism.
+**What exists today: two foundations, not yet connected.**
+
+1. **Active Physical Discovery** (abstract gantry robot). A simulated robot meets a mechanism it
+   has never seen, a panel with a handle that might be fixed, slide, or swing on a hinge. It
+   keeps competing explanations of how the panel moves, picks the physical experiment expected
+   to best tell them apart, predicts what that experiment will do, runs it, updates its beliefs
+   from what it measures, and then opens the mechanism.
+2. **A Panda manipulation foundation.**
+   - A simulated Franka Panda (MuJoCo Menagerie model) grasps cubes through real finger contact.
+   - Closed-loop skills, a typed tool interface and a rule-based task runtime carry out
+     *structured* goals: "in red tray", or "on red blue" (stack red on blue).
+   - It recovers from dropped objects, clears obstructions, and runs as a live session that can
+     be paused or cancelled.
+   - There is no natural-language understanding, no camera perception (object poses come from a
+     simulated tracker) and no memory yet, and discovery is not yet a tool the runtime can call.
+
+![Panda: red cube into the tray, then blue stacked on green](results/demo/panda_session/replay.gif)
+
+The discovery loop:
 
 ```
 observe -> hypothesise -> predict -> act (probe) -> measure -> update -> ... -> operate
 ```
 
-It is explicit Bayesian system identification with information-seeking probes in MuJoCo, with no
-learned components (Stage Zero and One of the Physics Apprentice research plan). In the long-term
-architecture it becomes a tool that a task-level agent calls when a skill hits unfamiliar
-physical behaviour.
+Discovery is explicit Bayesian system identification with information-seeking probes in MuJoCo,
+with no learned components (Stage Zero and One of the Physics Apprentice research plan). In the
+long-term architecture it becomes a tool that the task runtime calls when a skill meets
+unfamiliar physical behaviour.
 
 ## Status
 
 Every row marked "implemented and tested" has passing tests and/or saved results in `results/`.
 
-Last full verification (22 Oct 2026): `pytest` (69 passed, including slow closed-loop
-episodes), `ruff check`/`format`, smoke benchmark, and an independent recomputation of every
-README statistic from the saved `episodes.jsonl`. Environment: Python 3.13.16, MuJoCo 3.16.0,
-NumPy 2.5.3, Linux, CPU only.
+Last full verification (22 Oct 2026, branch `claude/panda-manipulation`): `pytest` (98 passed,
+including slow closed-loop, persistent-scene and live-session tests; the fast suite is 92 tests
+in about 50 s) and `ruff check`/`format`. The discovery statistics were independently recomputed
+from the saved `episodes.jsonl`. Environment: Python 3.13.16, MuJoCo 3.16.0, NumPy 2.5.3, Linux,
+CPU only.
 
 | # | Milestone | Status | Evidence |
 |---|---|---|---|
@@ -42,11 +56,12 @@ NumPy 2.5.3, Linux, CPU only.
 | 6 | Generalisation (unseen parameters and families), out-of-class detection | Implemented and tested | `results/generalisation`, `results/adequacy_calibration` |
 | 6a | Minimum-evidence (3-probe) gate for adequacy false alarms | Implemented and tested on fresh held-out seed; adopted in `Belief.fit_check` | `results/fresh_adequacy_validation`, `tests/test_adequacy.py` |
 | 6b | Demo GIF and narration / live viewer | Tested / implemented, unverified (no display) | `results/demo`, `experiments/demo.py --viewer` |
-| 7 | **Simulated arm plus reusable deterministic manipulation skills** | **Next: planned** | n/a |
-| 8 | Task runtime with structured tool calling over skills | Planned | n/a |
-| 9 | Several tasks in shared scenes without per-task scripts | Planned | n/a |
+| 7 | Simulated Panda arm, safety-limited controller, contact grasping, reusable skills | Implemented and tested | `tests/test_panda.py`, `results/pick_place` |
+| 8 | Typed tool interface and task runtime (structured goals, rule-based planner) | Implemented and tested | `tests/test_tools_runtime.py`, `results/tasks` |
+| 9 | Two goal types (tray, stack) in shared scenes from the same tools, without per-task scripts | Implemented and tested | `results/tasks` |
+| 9a | Live session: background physics, pause, resume, cancel, logs, replay | Implemented and tested (headless); live viewer implemented, unverified (no display) | `tests/test_session.py` |
 | 10 | Visual perception replacing oracle poses | Planned | n/a |
-| 11 | Discovery invoked on demand by the runtime | Planned | n/a |
+| 11 | **Discovery invoked on demand by the runtime (unfamiliar compartment on the Panda)** | **Next** | n/a |
 | 12 | Experience memory, failure-driven replanning, skill adaptation | Planned | n/a |
 | 13 | Generalisation evaluation across goals, arrangements and task families | Planned | n/a |
 | 14 | Learned world/motor models, mobile or whole-body embodiments | Planned, conditional on evidence and compute | n/a |
@@ -76,7 +91,17 @@ python experiments/run_benchmark.py experiments/configs/generalisation.json --wo
 python experiments/run_benchmark.py experiments/configs/main_geometric_prior.json --workers 4
 python experiments/validate_adequacy.py --workers 4   # fresh held-out adequacy validation (~12 min)
 python experiments/summarise.py results/main          # re-summarise saved episodes
+
+# Panda manipulation
+python experiments/run_pick_place.py --n 50 --seed0 1000              # acceptance test (~1 min)
+python experiments/run_tasks.py experiments/configs/tasks.json         # task evaluation (~10 min)
+python experiments/session.py --seed 0 [--viewer] [--rate 1]           # interactive live session
+python experiments/replay.py results/sessions/<time> --width 320       # session replay GIF
 ```
+
+In the live session, type structured goals such as `in red tray` or `on blue green`, then
+`status`, `scene`, `pause`, `resume`, `cancel` or `quit`. Natural language is rejected with an
+explicit message.
 
 The demo prints, for every probe, the chosen probe and its expected information gain, the
 predicted motion distribution, the observed motion and the updated belief. It writes
@@ -105,6 +130,21 @@ The agent is given the visible panel geometry and the closed-state handle pose (
 **Model validity.** With the *true* parameters, the quasi-static predictor matches MuJoCo with
 about 0.2–2 mm median error (worst case ~9 mm, from hinge inertia during the probe ramp;
 `tests/test_model.py`). The likelihood noise is sized from this measurement.
+
+## How the Panda foundation works
+
+| Layer | File | What it does |
+|---|---|---|
+| Robot model | `third_party/mujoco_menagerie/franka_emika_panda` | Canonical Menagerie Panda, vendored unmodified (Apache-2.0, pinned commit in `PROVENANCE.txt`) |
+| Scene | `dream/sim/tabletop.py`, `tabletop_env.py` | Table, free cubes, tray; physics stepping; object tracker with 2 mm / 2° noise |
+| Control and safety | `dream/robot/panda.py` | Damped-least-squares differential IK with null-space posture; workspace clamp; speed caps; protective stop on link (80 N) or finger (40 N) contact force |
+| Skills | `dream/skills/manipulation.py` | `move_to`, `pick` (yaw chosen for finger clearance, miss and slip detection), `place`; success judged from finger width and observations |
+| Tools | `dream/tools/` | Seven typed tools with schemas, validation, preconditions and status reporting; structured goals and observation-based verification |
+| Runtime | `dream/runtime/agent.py` | One-action-at-a-time loop; rule-based planner that reduces both goal types to grasp → place and clears obstructions; bounded retries |
+| Session | `dream/session.py` | Physics and agent threads, pause, resume and cancel into a safe hold, logs for replay |
+
+`tests/test_isolation.py` keeps skills, tools and runtime away from MuJoCo, the scene code and
+ground truth. Decisions see only `Embodiment` and `Perception`.
 
 ## Results
 
@@ -213,13 +253,89 @@ In the hinge GIF, the sampled hinge lines start scattered and collapse onto the 
 (final axis error 1.5°, hinge-line error 4.9 mm). The rising-hinge run reports
 `DOES NOT FIT: unknown mechanism class` from probe 3 onwards, while P(revolute) = 1.0.
 
+### Panda pick-and-place acceptance (`results/pick_place`)
+
+These are 50 held-out scenes (seeds 1000–1049, never used for development, which used seeds
+0–39). In each, a random cube among three is picked and placed in the tray, with grasps made by
+finger contact only: the scene has no attachment constraint (`tests/test_panda.py` checks this).
+Success is judged from true poses by `dream/eval/manipulation.py`, independently of the skills.
+
+| Success [95% CI] | Grasps | Placement error, median (max) | Protective stops | Link collisions |
+|---|---|---|---|---|
+| 50/50 [92.9, 100] | 50/50 | 3.2 mm (7.3 mm) | 0 | 0 |
+
+### Task-level evaluation (`results/tasks`)
+
+This is a paired design on 40 held-out scenes per cell (seeds 2000–2039): the same scene,
+goal, controller, skills and sensing for each method.
+
+- **Methods:**
+  - `agent` is the runtime;
+  - `agent_no_retry` is an ablation with one attempt per action;
+  - `fixed_sequence` is an open-loop script that plans every waypoint once from the first
+    observation and runs it through the same controller.
+- **Tasks:**
+  - tray, `in X tray`;
+  - stack, `on X Y`.
+- **Conditions:**
+  - nominal (3 cubes);
+  - disturbed: a physical downward tug knocks the held cube out of the hand during its first
+    lift, and it lands within about 1 cm;
+  - cluttered: 4 cubes, never used in development.
+
+| Condition (tray + stack) | agent | agent_no_retry | fixed_sequence |
+|---|---|---|---|
+| Nominal | **80/80** | 80/80 | 78/80 (2 protective stops) |
+| Cluttered | **80/80** | 80/80 | 76/80 (4 protective stops) |
+| Disturbed | **80/80** (recovered 80/80) | 0/80 | 0/80 |
+
+- Per cell (n = 40) every agent result is 40/40, Wilson 95% [91, 100]. On the disturbed
+  condition, agent vs each alternative gives exact McNemar p = 1.8e-12 per task. The nominal and
+  cluttered differences are not significant (p ≥ 0.5).
+- **Interpretation.** In undisturbed scenes, a simple open-loop script is nearly as good. The
+  agent's measured advantage comes from re-observing, verifying and retrying. Its skills' finger
+  clearance also avoids the clutter collisions that stopped the script. The disturbance is one
+  designed failure mode (a drop during the lift), so this shows recovery from that mode, not
+  general robustness.
+- **Other measurements:**
+  - zero false success claims and zero arm-link collisions for any method;
+  - mean 2 tool calls per goal nominally and 3 when disturbed;
+  - about 15 s of simulated time per goal (19 s when disturbed), and 3–4.5 s of wall time.
+- **Placement error:**
+  - for stacking, the top-to-bottom centre offset has a median of 3.5 mm (agent) and 3.2 mm
+    (script);
+  - for the tray, the agent deliberately places into a free corner spot to leave room for more
+    objects, so distance to the tray centre is not an error measure; success (inside, at rest)
+    is.
+- The same scene supports sequences of goals in one session. `tests/test_tools_runtime.py`
+  runs tray, then stack, then a goal whose object is buried under another, which the agent
+  clears first.
+
+### Live session (`dream/session.py`, `experiments/session.py`)
+
+- A physics thread keeps the controller running while goals are planned and executed. Pause
+  and cancel interrupt the current tool, and the robot holds still (tested).
+- Pause then resume completed the goal in 20/20 headless runs at 4× real time, with the result
+  checked against ground truth.
+- In the starved maximum-speed mode (`--rate 0`), one of 20 runs stalled during a grasp lift,
+  and the cause is not yet understood.
+
 ## Limitations (read before citing any number)
 
-- **No camera perception.** The handle pose comes from a simulated tracker with Gaussian noise
-  (the report's "oracle geometry" rung). The report's MOSART warning applies: perception error
-  may dominate on a real system.
-- **Simplified contact.** The grasp is an ideal ball-joint constraint, the mechanism has no
-  collision geometry (joint limits act as stops), and panels are gravity-compensated.
+- **No camera perception, anywhere.** Mechanism handle poses and tabletop object poses come
+  from simulated trackers with Gaussian noise. The report's MOSART warning applies: perception
+  error may dominate on a real system.
+- **No language understanding.** Goals are structured (`in X Y`, `on X Y`). No language model
+  is integrated, and none is available in this environment. The `Planner` protocol is where one
+  would plug in.
+- **Panda scope.**
+  - Cubes of one size, one tray fixture, top-down grasps only.
+  - The rule-based planner covers two goal types plus obstruction clearing.
+  - The gripper's grip force is low (about 2 N, Menagerie's actuator range), which is fine for
+    50 g cubes but untested for heavier objects.
+- **Simplified contact (discovery gantry only).** That grasp is an ideal ball-joint
+  constraint, the mechanism has no collision geometry (joint limits act as stops), and panels
+  are gravity-compensated. The Panda's grasps use real finger contact.
 - **Quasi-static predictor.** It predicts settled outcomes only. Inertial overshoot is absorbed
   by the noise model rather than modelled.
 - **Travel limits** are only learned if a probe reaches them, so predictions near an unvisited
@@ -228,41 +344,36 @@ In the hinge GIF, the sampled hinge lines start scattered and collapse onto the 
   probe against scripts that assume otherwise. See the geometric-prior ablation.
 - **Model-adequacy check:** cannot alert before probe 3, by design. Out-of-class detection
   was tested on only one out-of-class family (the rising hinge).
-- The live viewer (`--viewer`) was not exercised: development ran in a headless container.
+- **Live viewers** (`--viewer` in both demos and the session) were not exercised: development
+  ran in a headless container. Headless replay GIFs are tested.
 - Compute: an EIG step takes about 0.6 s to select and 0.5–2 s to update, on one CPU core.
 
-## Next milestone: 7, simulated arm and reusable skills
+## Next milestone: 11, discovery as a tool on the Panda
 
-This is the dependency for everything after it. The goal is to replace the abstract gantry with a
-real articulated manipulator and a small set of reusable skills, without losing the discovery
-results.
+The goal is "open the unfamiliar compartment and put the cube inside". This connects DREAM's two
+foundations and is the first task that needs physical knowledge the agent lacks.
 
-- **Embodiment.** An existing open model of an arm with a parallel gripper, preferably the Franka
-  Panda from MuJoCo Menagerie. Verify its licence and pin it before vendoring. It sits behind a
-  thin robot-capability adapter (`dream/robot/`) that exposes proprioception and commands but no
-  object ground truth.
-- **Control.** A deterministic Cartesian impedance or operational-space controller, with joint,
-  force, velocity and workspace limits enforced below every higher layer.
-- **Skills** (`dream/skills/`): `reach`, `grasp` (real finger contacts; any attachment
-  constraint must be explicitly labelled as a temporary simplification), `release`, `place`,
-  `pull_along(path)` and `probe(direction, distance, max_force)`. Each skill reports success or
-  failure from measured signals.
+- **Scene.** A compartment (drawer or hinged lid, hidden joint) in the tabletop world. Reuse the
+  mechanism generator, now with collision geometry, so it physically blocks access until opened.
+- **Skills.** `grasp_handle`, `probe(direction, distance, max_force)` and `pull_along(path)` on
+  the Panda, all force-limited. These were in the earlier milestone 7 plan and have not been
+  built.
+- **Tool.** `investigate_physics(object)` runs the existing EIG belief loop through the Panda's
+  probe skill and returns the identified joint, its uncertainty and the adequacy check.
+  The planner calls it when `place` into a closed compartment is impossible or a pull fails.
 - **Gates.**
-  1. The skills pass contract tests (for example, "grasp reports failure when nothing is held"
-     and "a probe never exceeds its force cap").
-  2. The discovery benchmark reruns through the arm's `probe` skill on the main mechanisms. The
-     drop in identification performance relative to the gantry is reported, whatever its size.
-  3. One two-stage task ("open the cabinet, then place the cube inside") runs as a fixed
-     sequence of skill calls. This is the baseline the later task runtime must match without
-     the script.
-- Out of scope for milestone 7: language models, perception and memory.
+  1. The discovery benchmark reruns through the Panda's probe skill. The change in
+     identification performance relative to the gantry is reported, whatever its size.
+  2. On held-out scenes, the open-then-place task beats two baselines: a script that pulls
+     straight out, and the runtime without `investigate_physics`.
 
-Open follow-ups on the current component: test out-of-class detection on more mechanism
-families, learn continuous parameters such as friction and travel limits, and try
-receding-horizon EIG.
+Visual perception (milestone 10) stays planned. Every result above uses tracked poses.
+
+Open follow-ups: test out-of-class detection on more mechanism families; diagnose the
+max-speed live-session stall; learn friction and travel limits; try receding-horizon EIG.
 
 ## Roadmap
 
-Milestones 8–14 in the status table, in order, one vertical slice at a time (see
+The remaining milestones in the status table (10–14), one vertical slice at a time (see
 `AGENTS.md` → Development priorities). Each needs its own baselines and fresh held-out
 evaluation before it is marked done.
