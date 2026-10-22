@@ -1,0 +1,37 @@
+{
+  "name": "vlm",
+  "seed0": 9500,
+  "n": 10,
+  "perception": "vision",
+  "conditions": [
+    "A_rule_based",
+    "B_vlm"
+  ],
+  "instructions": [
+    {
+      "instruction": "Pick up the blue object and put it in the tray.",
+      "goal": "in blue tray"
+    },
+    {
+      "instruction": "Stack the red object on the green object.",
+      "goal": "on red green"
+    },
+    {
+      "instruction": "Could you tidy the green cube away into the grey container?",
+      "goal": "in green tray"
+    },
+    {
+      "instruction": "I want the blue block sitting on top of the red one.",
+      "goal": "on blue red"
+    },
+    {
+      "instruction": "Put the purple cube in the tray.",
+      "goal": "in purple tray",
+      "impossible": true,
+      "_note": "no purple object exists: the correct outcome is a refusal"
+    }
+  ],
+  "gates": {
+    "_note": "Pre-registered before any model run. B: zero false claims; B task success reported with A as the reference, not gated, since this is the first measurement."
+  }
+}

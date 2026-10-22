@@ -15,6 +15,9 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.6"]
+# Local Qwen3-VL inference (dream/runtime/qwen.py). Not needed by the test suite; not yet
+# installed or run in the development environment (no route to the model weights).
+vlm = ["torch>=2.6", "transformers>=4.57", "pillow>=10"]
 
 [tool.setuptools.packages.find]
 include = ["dream*"]
