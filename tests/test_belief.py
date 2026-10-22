@@ -168,3 +168,21 @@ def test_fit_check_never_alerts_before_minimum_evidence():
     for i, rec in enumerate(records, start=1):
         b.update(rec)
         assert b.fit_check()["model_adequate"] == (i < 3)
+
+
+def test_reduced_likelihood_ignores_unobserved_rotation():
+    """With observed_rotation=False (a camera on a round knob), the rotation entries of an
+    observation have no influence, and chi2/dof counts only the 3 observed dimensions."""
+    from dream.agent.belief import NoiseModel
+
+    noise = NoiseModel(observed_rotation=False)
+    y_pred = np.zeros((4, 6))
+    y_start = np.zeros((4, 6))
+    a = np.zeros(6)
+    b = np.array([0, 0, 0, 1.0, -2.0, 0.5])  # wildly different rotations, same position
+    assert np.allclose(noise.loglik(y_pred, a, y_start), noise.loglik(y_pred, b, y_start))
+    full = NoiseModel()
+    assert not np.allclose(full.loglik(y_pred, a, y_start), full.loglik(y_pred, b, y_start))
+    c = np.array([0.01, 0, 0, 0, 0, 0])  # but position still counts
+    assert np.all(noise.loglik(y_pred, c, y_start) < noise.loglik(y_pred, a, y_start))
+    assert noise.dims == slice(0, 3) and full.dims == slice(0, 6)
