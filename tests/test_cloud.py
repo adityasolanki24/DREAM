@@ -218,6 +218,37 @@ def test_concurrent_launches_are_rejected_and_failed_runs_release_the_local_lock
     assert not path.exists()
 
 
+def test_terminated_guest_is_deleted_before_retrieval_without_waiting_for_expiry(monkeypatch):
+    calls = []
+
+    def run(*args):
+        calls.append(args)
+        return '[{"status":"TERMINATED"}]' if args[:3] == ("compute", "instances", "list") else ""
+
+    monkeypatch.setattr(cloud, "gcloud", run)
+    monkeypatch.setattr(
+        cloud.time, "sleep", lambda *args: pytest.fail("terminated VM kept waiting")
+    )
+    cloud.wait_for_guest(_plan())
+    assert len(calls) == 2 and calls[1][:3] == ("compute", "instances", "delete")
+    assert calls[1][3] == "dream-qwen-test"
+
+
+def test_running_guest_does_not_trigger_early_deletion(monkeypatch):
+    replies = iter(['[{"status":"RUNNING"}]', "[]"])
+    calls, sleeps = [], []
+
+    def run(*args):
+        calls.append(args)
+        return next(replies)
+
+    monkeypatch.setattr(cloud, "gcloud", run)
+    monkeypatch.setattr(cloud.time, "sleep", sleeps.append)
+    cloud.wait_for_guest(_plan())
+    assert sleeps == [30]
+    assert all(args[:3] == ("compute", "instances", "list") for args in calls)
+
+
 def test_a_recovery_manifest_cannot_target_another_projects_resources(tmp_path, monkeypatch):
     p = _plan()
     p["router"] = "nerva-router"

@@ -42,7 +42,8 @@ rules, architecture and engineering standards are in [`AGENTS.md`](AGENTS.md).
    matching the classical baseline (2/2), with no false claims or protective stops. This is
    semantic tool selection over classical motor skills, not learned continuous-action control
    or broad generalisation. Raw requests, outputs, RGB-D calibration, timing and GPU telemetry
-   are in `results/qwen_cloud_pilot_dev`. No VLA motor policy or Isaac Sim adapter has run.
+   are in `results/qwen_cloud_pilot_dev`. A learned-action model has since produced one open-loop chunk (below); no learned motor
+   actions have been executed and no Isaac Sim adapter has run.
 
 ![Panda: red cube into the tray, then blue stacked on green](results/demo/panda_session/replay.gif)
 
@@ -107,7 +108,7 @@ these cloud-only changes. The Windows fast-suite duration still exceeds the 60 s
 | 12 | Experience memory, failure-driven replanning, skill adaptation | Planned | n/a |
 | 12a | Vision-language planner (Qwen3-VL-4B-Instruct) choosing typed tools | **Implemented and development-evaluated:** real checkpoint, 2/2 tray tasks; no held-out language benchmark. Caller-bound success, cancellation and rejection contracts | `results/qwen_cloud_pilot_dev`, `tests/test_vlm.py` |
 | 12a-cloud | Capped GPU inference and live-physics pilot | **Executed:** zone c rejected capacity, zone b booted; guest and pilot gates passed. Cleanup error investigated and absence verified | `results/cloud_pilot_allocation_failure`, `cloud/launch.py`, `tests/test_cloud.py` |
-| 12b | Learned motor policy (MolmoAct2-DROID first open-loop candidate; GR00T alternative) | **Partially implemented:** mounted wrist sensor, input/action audit and pinned inference runner CPU-tested. No real action tensors or learned motion yet | `tests/test_molmo.py`, `results/molmo_observation_dev`, source/decision audit below |
+| 12b | Learned motor policy (MolmoAct2-DROID first open-loop candidate; GR00T alternative) | **Partially working:** real checkpoint produced a finite 15×8 chunk on L4; arm joint ranges passed, gripper range failed (4/15). No learned motion executed | `tests/test_molmo.py`, `results/molmo_observation_dev`, source/decision audit below |
 | 13 | Generalisation evaluation across goals, arrangements and task families | Planned | n/a |
 | 14 | Learned world/motor models, mobile or whole-body embodiments | Planned, conditional on evidence and compute | n/a |
 
@@ -830,7 +831,7 @@ unknown. The harness now writes each scored outcome itself, including failures, 
 returning; task success remains report-only. No seeds, controller settings or geometry were
 changed in response.
 
-## Learned-action compatibility checkpoint (inference not yet executed)
+## Learned-action compatibility checkpoint (real open-loop inference executed)
 
 **Decision: inspect MolmoAct2-DROID first; keep GR00T as the alternative.** This selects an
 open-loop experiment, not a validated motor controller. Both require a wrist view and both
@@ -850,10 +851,11 @@ declare a weight licence; this gap is recorded separately rather than assigning 
 licence to weights. Nothing is vendored. The proposed optional inference stack pins Python
 3.12.12, torch 2.8.0, torchvision 0.23.0, transformers 4.57.1, accelerate 1.11.0 (Apache)
 and einops 0.8.1 (MIT), plus hashed transitives in `cloud/molmo.requirements.lock.txt`.
-This combination has not run the model. The upstream server pins a newer torch while its
+This combination successfully loaded the pinned model and predicted once on an L4. The upstream server pins a newer torch while its
 checkpoint config names transformers 5.3.0 and its project permits 4.57; source API inspection
 is not proof of runtime compatibility. The checkpoint card's BF16/autocast path is used without
-patching upstream cache files. GPU memory and numerical validity must be measured.
+patching upstream cache files. The real chunk was finite; CUDA allocator peak was not recorded.
+Periodic `nvidia-smi` telemetry is saved, but is not a measurement of allocator peak.
 
 **Implemented and CPU-tested:** optional body-mounted camera support; a hand-mounted RGB-D
 camera with measured calibration; synchronized exterior/wrist/proprioception capture;
@@ -893,7 +895,7 @@ interfaces; the other projects received README/licence/dependency triage, not ex
 | GraspGen / cuRobo | General grasps / collision-aware motion | NVIDIA custom licence / Apache-2.0 code respectively; extra GPU dependencies deferred. |
 | Isaac Lab / RoboLab / SIMPLE | Simulation, policy clients and recording | BSD-3-Clause / Apache-2.0 / MIT code respectively; not adopted yet. SIMPLE's stated Isaac 4.5/MuJoCo 3.3 stack differs from DREAM's MuJoCo 3.16 baseline. |
 
-**Proposed paid workload, not launched:** `cloud/launch.py plan --workload molmo-openloop`
+**Approved workload executed at `70065f2`:** `cloud/launch.py plan --workload molmo-openloop`
 selects one `g2-standard-8` (one L4, 32 GiB RAM) starting in `us-central1-b`, with sequential
 capacity-only fallback in the same region, the existing pinned Ubuntu 22.04/driver image,
 100 GB auto-deleted disk and Google-enforced 45-minute expiration including setup. It runs
@@ -909,11 +911,50 @@ Isaac Sim loaded. Custom source hashes are checked before importing checkpoint c
 | Storage, output egress and reserve | 0.60 |
 | Total estimate (rounded) | **2.61** |
 
-This is an estimate, not a billing hard cap; requested allowance is US$3 for one workload.
-No paid run is authorized by this proposal. It uses the same private-network lifecycle,
+This was an estimate, not a billing hard cap. The user approved US$3 for this single workload;
+actual billed charges remain unavailable. This approval does not cover another paid workload. It uses the same private-network lifecycle,
 checksum retrieval, scoped cleanup and recovery command as the pilot. Resource names retain
 the launcher's historical `dream-qwen-` prefix; the manifest, label and startup metadata
 explicitly identify `molmo-openloop`. No public policy server or livestream is exposed.
+
+**Actual result (23 Oct 2026):** zone `b` rejected capacity; the checked sequential retry
+allocated zone `c`. Sensor capture, source verification, checkpoint loading and real BF16
+continuous-action inference completed. Guest setup/execution lasted 395 seconds; inference
+itself took **2.925 seconds**. No action was dispatched.
+
+| Frozen inference observation | Outcome |
+|---|---|
+| Finite raw tensor, shape 15×8 | Passed |
+| All predicted arm angles within Panda joint ranges | Passed |
+| Gripper scalar in [0,1] | **Failed: 4/15 values below zero**, range −0.005859375 to 0.00390625 |
+| Physical execution permission | **False**, as required by this inference-only slice |
+
+`results/molmo_cloud_openloop` preserves the exact tensor, observation, inputs, checkpoint
+revision, environment versions, calibration, telemetry and guest logs. Stable files passed
+the guest checksum manifest before bucket deletion; unchecksummed guest-log identifiers
+are redacted in the tracked copy. `experiments/inspect_molmo_actions.py` reproduces the
+column ranges, initial joint-target deltas and invalid-gripper count from those files.
+The largest initial joint-target change was 0.26186 rad. No control-rate assumption or
+velocity/collision safety claim follows from joint-range validity.
+
+The gripper overshoot is preserved without clipping or thresholds tuned against it. The
+Panda-to-DROID hand mapping, camera shift and controller frequency remain unvalidated;
+there is no closed-loop task result, learned motor transfer evidence or Isaac video.
+The torch sampling generator was not explicitly seeded in this run, so bit-identical
+regeneration is not established. The saved tensor is reproducible input for decoding audits.
+The inference `meta.json` describes the initial state (`real_model_executed=false`); the
+final `summary.json` records actual execution (`true`).
+
+The guest exited with code 0 but remained allocated in `TERMINATED`; the acting agent
+explicitly deleted that scoped instance. The launcher then retrieved verified outputs and
+cleaned its remaining resources with no reported errors. Post-audit found no DREAM VMs,
+disks, addresses, routers or networks; separate service-account and bucket lists were empty.
+A general infrastructure correction now handles `TERMINATED` without waiting for expiry,
+with regression tests for both stopped and still-running guests. This correction did not
+change the experiment that produced the tensor.
+After this cloud-only correction, **175 fast tests passed in 48 s**, with Ruff checks
+passing (`results/molmo_cloud_openloop/fast.xml`). The full simulation suite was not rerun;
+the preceding 195-test full pass remains above. No physical code changed.
 
 Isaac Sim is a later, separately approved workload. The official
 [6.0 requirements](https://docs.isaacsim.omniverse.nvidia.com/6.0.0/installation/requirements.html)
@@ -961,9 +1002,9 @@ frames cannot be presented as an unedited execution recording.
 Milestone 11 (discovery as a tool on the Panda) is implemented on a narrowed scene with the
 oracle tracker; see its audit. Milestone 10's first slice (camera pick-and-place) is done. The
 camera-discovery dependency remains open, with its failures preserved. The current research
-branch first evaluates a pretrained learned-action policy for the existing Panda, beginning
-with observation/action compatibility and real open-loop tensors before safe closed-loop
-execution. Only then add an isolated Isaac Sim adapter and real recording; MuJoCo stays the
+branch has obtained a real pretrained open-loop action chunk. The next dependency is
+validating gripper conventions, state mapping and control frequency before connecting a
+safety-checked joint adapter for closed-loop execution. Only then add an isolated Isaac Sim adapter and real recording; MuJoCo stays the
 regression baseline. No Isaac Sim demonstration or continuous learned control is claimed.
 
 The separate camera-discovery follow-up still needs:

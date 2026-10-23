@@ -377,6 +377,39 @@ def launch(p: dict, allowance: float, yes: bool) -> None:
         _launch(p, allowance)
 
 
+def wait_for_guest(p: dict) -> None:
+    """Wait for completion; a stopped guest still owns its disk until explicitly deleted."""
+    deadline = time.monotonic() + (p["max_minutes"] + 5) * 60
+    while True:
+        rows = json.loads(
+            gcloud(
+                "compute",
+                "instances",
+                "list",
+                f"--project={p['project']}",
+                f"--filter=name={p['name']}",
+                "--format=json",
+            )
+        )
+        if not rows:
+            return
+        if all(row.get("status") == "TERMINATED" for row in rows):
+            # Observed in the first real action-inference run: guest shutdown succeeded,
+            # but self-deletion did not. The bucket already holds its final outputs.
+            gcloud(
+                "compute",
+                "instances",
+                "delete",
+                p["name"],
+                f"--project={p['project']}",
+                f"--zone={p['zone']}",
+            )
+            return
+        if time.monotonic() >= deadline:
+            raise TimeoutError("VM still present after its scheduled deletion; cleaning up")
+        time.sleep(30)
+
+
 def _launch(p: dict, allowance: float) -> None:
     state = audit(p["project"])
     if not state["billing_enabled"] or state["dream_instances"]:
@@ -466,23 +499,7 @@ def _launch(p: dict, allowance: float) -> None:
             f"--member=serviceAccount:{account}",
             "--role=roles/compute.instanceAdmin.v1",
         )
-        deadline = time.monotonic() + (p["max_minutes"] + 5) * 60
-        while True:
-            rows = json.loads(
-                gcloud(
-                    "compute",
-                    "instances",
-                    "list",
-                    project,
-                    f"--filter=name={p['name']}",
-                    "--format=json",
-                )
-            )
-            if not rows:
-                break
-            if time.monotonic() >= deadline:
-                raise TimeoutError("VM still present after its scheduled deletion; cleaning up")
-            time.sleep(30)
+        wait_for_guest(p)
         fetch(p, dest)
         retrieved = True
     finally:
