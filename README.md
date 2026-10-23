@@ -1215,7 +1215,7 @@ python experiments/isaac_t1_walk.py --case forward --policy-dir <external-pinned
 | Ideal body velocity/IMU integrated into odometry | Unverified workaround | Not VIO; drift and sensor bias must be evaluated before transfer claims |
 | Empty walled room and training-matched self-collision setting | Environment simplification / narrow initial scope | Not cluttered navigation or full-body collision safety; no existing Panda benchmark was changed |
 
-**Prepared, approval required:** `isaac-t1-walk` is a separate workload using one L4
+**Approved US$4; execution in progress:** `isaac-t1-walk` is a separate workload using one L4
 `g2-standard-8`, 32 GiB RAM, `us-central1-c` with capacity-only regional fallback, a 200 GB
 auto-deleted disk and 45-minute deletion deadline. Candidate stack: Python 3.11.13, Isaac Sim
 5.1.0.0, Torch 2.7/cu128, NumPy **1.26.0** (required by Isaac kernel), ONNX Runtime 1.23.2;
@@ -1277,3 +1277,8 @@ Open follow-ups:
 The remaining milestones in the status table (10–14), one vertical slice at a time (see
 `AGENTS.md` → Development priorities). Each needs its own baselines and fresh held-out
 evaluation before it is marked done.
+
+The initial walking setup was interrupted before VM allocation when archive review found
+a Git-metadata dependency in preflight. Cleanup returned no errors and zero resources.
+`results/t1_archive_preallocation_dev` preserves the diagnosis; a failing regression preceded
+the source-SHA environment correction. Same approved workload, no GPU boot before correction.

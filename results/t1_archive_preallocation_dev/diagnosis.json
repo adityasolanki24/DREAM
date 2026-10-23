@@ -1,0 +1,50 @@
+{
+  "base_git_sha": "7fbc984009c8c6f143b27a7a5cc96f4f867adce9",
+  "original_condition": "Git archive deployed without .git, preflight unconditionally calls git rev-parse HEAD",
+  "failure_category": "deployment metadata contract",
+  "regression": "tests/test_t1_packaging.py failed before fix with archive called git, now passes",
+  "correction": "Use DREAM_CODE_SHA supplied by startup; local checkout retains Git fallback. Explicit root launcher flag for private guest.",
+  "classification": "General algorithmic correction",
+  "gpu_booted": false,
+  "interruption_audit": {
+    "reason": "Pre-allocation packaging defect: archive has no .git; walking preflight must use DREAM_CODE_SHA",
+    "gpu_instances_before_cleanup": [],
+    "cleanup_errors": [],
+    "post_audit": {
+      "billing_enabled": true,
+      "quotas": [
+        {
+          "limit": 200.0,
+          "metric": "CPUS",
+          "usage": 0.0
+        },
+        {
+          "limit": 8.0,
+          "metric": "NVIDIA_L4_GPUS",
+          "usage": 0.0
+        }
+      ],
+      "project_instance_count": 0,
+      "dream_instances": [],
+      "dream_inventory": {
+        "disks": [],
+        "addresses": [],
+        "routers": [],
+        "networks": []
+      },
+      "budget_alert": {
+        "status": "read",
+        "authorization": false,
+        "nerva": [
+          {
+            "specifiedAmount": {
+              "currencyCode": "AUD",
+              "units": "50"
+            }
+          }
+        ]
+      },
+      "remaining_credit_or_spending_allowance": "not established"
+    }
+  }
+}

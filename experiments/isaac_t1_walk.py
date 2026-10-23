@@ -11,6 +11,7 @@ import argparse
 import importlib.metadata
 import importlib.util
 import json
+import os
 import subprocess
 import time
 from pathlib import Path
@@ -40,7 +41,8 @@ def preflight(folder: Path, cfg: dict) -> dict:
             raise ValueError("real actor contract failed")
         actions.append({"command": command, "action": action.tolist()})
     return {
-        "code_sha": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+        "code_sha": os.environ.get("DREAM_CODE_SHA")
+        or subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
         "config": cfg,
         "onnxruntime": importlib.metadata.version("onnxruntime"),
         "real_actor_executed": True,
@@ -56,7 +58,14 @@ def execute(folder: Path, cfg: dict, case: str, out: Path) -> dict:
     """Run actual PhysX; missing simulator raises instead of substituting a test double."""
     from isaacsim import SimulationApp
 
-    app = SimulationApp({"headless": True, "width": 1280, "height": 720})
+    app = SimulationApp(
+        {
+            "headless": True,
+            "width": 1280,
+            "height": 720,
+            "extra_args": ["--allow-root"] if hasattr(os, "geteuid") and os.geteuid() == 0 else [],
+        }
+    )
     rows, frames = [], []
     try:
         from isaacsim.core.api import World
