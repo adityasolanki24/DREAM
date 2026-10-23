@@ -67,3 +67,30 @@ def test_application_enables_sensor_extensions_before_adapter_import(monkeypatch
     )
     assert runner.start_application() is app
     assert events == ["application", "isaacsim.sensors.camera", "isaacsim.storage.native"]
+
+
+@pytest.mark.parametrize("fails", [False, True])
+def test_episode_evidence_precedes_process_terminating_shutdown(tmp_path, monkeypatch, fails):
+    """Kit shutdown may terminate Python before execute returns to its caller."""
+
+    def close():
+        raise SystemExit(0)
+
+    monkeypatch.setattr(runner, "start_application", lambda: SimpleNamespace(close=close))
+
+    def episode(*args):
+        if fails:
+            raise ValueError("diagnostic failure before first action")
+        return {"gate_pass": False, "physics_executed": True}
+
+    monkeypatch.setattr(runner, "run_episode", episode, raising=False)
+    with pytest.raises(SystemExit):
+        runner.execute(tmp_path, {}, "stand", tmp_path)
+    assert json.loads((tmp_path / "partial_trace.json").read_text()) == []
+    if fails:
+        failure = json.loads((tmp_path / "failure.json").read_text())
+        assert failure["type"] == "ValueError"
+        assert "diagnostic failure" in failure["traceback"]
+        assert not (tmp_path / "episode.json").exists()
+    else:
+        assert json.loads((tmp_path / "episode.json").read_text())["gate_pass"] is False

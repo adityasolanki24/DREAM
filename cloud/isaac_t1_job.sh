@@ -44,4 +44,7 @@ for CASE in stand forward left; do
   [ "$LEFT" -gt 0 ] || exit 124
   timeout --signal=TERM --kill-after=30s "${LEFT}s" python experiments/isaac_t1_walk.py \
     --policy-dir /work/t1-policy --case "$CASE" --out "/work/out/$CASE"
+  # Kit shutdown may exit Python with status zero even during exception unwinding.
+  # Persisted episode evidence is required before spending time on the next case.
+  test -s "/work/out/$CASE/episode.json"
 done
