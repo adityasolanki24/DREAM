@@ -40,7 +40,7 @@ tasks.
 
 The objective is a system that can:
 
-- receive an unfamiliar physical goal;
+- receive an unfamiliar natural-language physical goal;
 - understand its environment and work out what needs to happen;
 - use the physical capabilities it has;
 - acquire missing knowledge through observation and experimentation;
@@ -52,7 +52,9 @@ The long-term question DREAM should be able to answer is:
 > Given what I can observe, what I can physically do, and what I have learned so far, how can I
 > accomplish this new goal?
 
-It must not need a complete task-specific program for every new objective.
+It must not need a complete task-specific program for every new objective. The research
+direction includes long-horizon, feedback-driven skill composition and transfer across
+embodiments, including future humanoid systems; none is established by architectural intent.
 
 **Target behaviours.** These are directions, not claims:
 
@@ -111,9 +113,10 @@ there must not be described as working. In summary:
    objects, not open-world vision. Camera-driven mechanism discovery does not work yet, so
    handle poses for discovery still come from the oracle-assisted tracker.
 
-There is no language understanding (goals are structured; no LLM is integrated) and no
-experience memory. The only embodiment used for manipulation is a simulated Panda with a
-top-down parallel gripper.
+A pretrained multimodal runtime now selects typed tools from language and camera observations;
+its measured scope belongs in the README. Its motor execution is classical. No learned-action
+policy, persistent experience memory or Isaac Sim embodiment is validated. The manipulation
+embodiment remains a simulated Panda with a top-down parallel gripper.
 
 ---
 
@@ -404,9 +407,17 @@ than separate demonstrations. Build each component only when a vertical slice ne
 never create placeholder packages. The MuJoCo Panda is the first manipulation embodiment, not a
 limit of the architecture. Mechanism discovery is one tool, not the project's purpose.
 
+The intended hierarchy combines multimodal goal understanding; bounded programmatic skill
+composition; persistent object-centric and relational world representation; reusable learned
+manipulation policies over robot-specific controllers; active discovery; learned predictive
+models only when validated; experience and acquired-skill memory; deterministic safety with
+independent evaluation; and embodiment adapters. Planned components are not created until a
+vertical slice uses and tests them. Generated task programs must use typed operations, explicit
+preconditions and predicates, bounded loops/retries and cancellation, never arbitrary Python.
+
 | | Component | Responsibility | Status / home |
 |---|---|---|---|
-| A | Embodied reasoning and task planning | Interpret goals, choose skills and tools, track multi-step progress; may use pretrained (V)LMs behind an interface | rule-based planner over structured goals with preconditions: `dream/runtime/` (LLM planner planned) |
+| A | Embodied reasoning and task planning | Interpret goals, choose skills and tools, track multi-step progress; may use pretrained (V)LMs behind an interface | structured-goal planner and multimodal typed-tool runtime: `dream/runtime/`; bounded task-program composition planned |
 | B | Perception and scene understanding | Object poses, relations, affordances *with uncertainty*, from robot sensors | camera backend `dream/perception/` (RGB-D detection, world model; camera driver `dream/sim/camera.py`); oracle-assisted trackers in `dream/sim/tabletop_env.py` as the baseline |
 | C | Reusable motor skills and control | Reach, grasp, place, probe, pull along a constraint, release; reuse existing controllers | `dream/skills/` (manipulation, articulation); typed tools in `dream/tools/` |
 | D | Physical prediction and world modelling | Interpretable models first; learned dynamics only when they measurably win | quasi-static mechanism model, `dream/agent/model.py` |
@@ -501,28 +512,34 @@ Work on **one coherent vertical slice at a time**. The README names the current 
 3. A task runtime with structured tool calling.
 4. Several tasks in shared scenes without a script per task.
 
-**Current: camera-driven perception, then camera-driven discovery.** Milestone 11 (discovery
-in Panda task execution) is implemented with the oracle tracker on a narrowed scene and audited
-in the README. Camera pick-and-place works; mechanism discovery from camera measurements is the
-next dependency. The discovery milestone's goals remain: The milestone must
-demonstrate that DREAM can do the following, with held-out evidence and a clear account of the
-simplifications used:
-- encounter an unfamiliar mechanism and recognise that knowledge is missing;
-- select informative experiments and execute them through the real controller;
-- update its physical understanding and operate using the discovered constraint;
-- compose that with other skills;
-- verify the task, and recover or decline when appropriate.
+**Current: real learned-action policy compatibility and execution.** The multimodal tool
+runtime has development evidence, but classical skills still generate its motions. Select one
+maintained pretrained motor policy, verify cameras, state, units, frames, normalisation,
+action horizon and control frequency, then record real open-loop output tensors. Only after
+those checks connect a deterministic safety-checked adapter to real closed-loop simulation.
+Compare matching initial states against classical control. No silent classical fallback.
 
 **Next, in order:**
-1. Camera-based perception instead of oracle-assisted poses.
-2. Real language or vision-language reasoning and tool calling, behind the `Planner` interface,
-   with a deterministic stub in tests.
-3. Persistent experience memory that changes decisions, measured against no memory.
-4. More general manipulation skills and task compositions, removing recorded simplifications
-   (for example, handle types and collision-aware placement).
-5. Broader generalisation tests across physical environments.
-6. Learned motor or world models, where demonstrably beneficial.
-7. More embodiments and whole-body control, when justified.
+1. Validate one learned-action path on the Panda, preserving classical baselines.
+2. Add bounded typed skill composition and failure-driven recovery where the slice needs it.
+3. Validate an isolated Isaac Sim adapter with compatible pinned versions and RTX hardware;
+   preserve MuJoCo and independently score each simulator.
+4. Record genuine simulation frames and action events, including original footage and timing;
+   edited video labels model, controller, simulator, speed changes and verified outcome.
+5. Evaluate new compositions and shifted conditions before claiming transfer.
+6. Add persistent experience retrieval only with evidence that it changes useful decisions.
+7. Broaden manipulation and embodiments when justified.
+
+Camera-driven mechanism discovery remains partial. Keep lid successes, drawer failures,
+fixed refusals and all original hard cases reproducible; no scene simplification to improve a
+video. Its unresolved dependencies include calibrated handle uncertainty, slip discrimination,
+position-only adequacy checks and grasping from uncertain vision estimates.
+
+Before each new paid workload provide exact hardware/region, software compatibility, runtime,
+itemised storage/network/compute estimate, automatic expiry and recovery/cleanup procedure,
+then obtain explicit user approval. An earlier workload's allowance does not authorize a new
+VLA or simulator workload. Keep original outputs and failures. Weights, caches, credentials
+and large videos stay outside Git and OneDrive; link recorded artifacts after verifying them.
 
 Avoid tangents. Do not jump to impressive but unrelated experiments, and do not optimise
 drawer-opening indefinitely when the next general capability is ready to build. More variants of

@@ -21,7 +21,7 @@ rules, architecture and engineering standards are in [`AGENTS.md`](AGENTS.md).
      *structured* goals: "in red tray", or "on red blue" (stack red on blue).
    - It recovers from dropped objects, clears obstructions, and runs as a live session that can
      be paused or cancelled.
-   - There is no natural-language understanding and no memory yet.
+   - This baseline takes structured goals. The separate model runtime accepts language; no experience memory is implemented.
 3. **Discovery as a tool on the Panda (milestone 11).** For "in red compartment", the Panda
    probes a closed box whose mechanism is hidden (drawer, lid or fixed) through its own compliant
    controller, using the same belief and EIG code as the gantry. It then opens the box along the
@@ -36,13 +36,13 @@ rules, architecture and engineering standards are in [`AGENTS.md`](AGENTS.md).
    unreliable: the original development run was 0/12; the continuation diagnostic completed
    both lids but neither drawer on two new development seeds. Held-out compartment results
    still use the oracle tracker.
-5. **Foundation-model integration: interface only, no model run yet.** A model-driven agent
-   (`dream/runtime/vlm.py`) lets a vision-language model (selected: Qwen3-VL-4B-Instruct) choose
-   DREAM's typed tools from a natural-language instruction and the camera image. Its contracts
-   are tested with a scripted test double. **No pretrained model has been executed in this
-   repository**: the current Windows host can reach model hosts, but has insufficient free
-   RAM for the selected full planner checkpoint and no CUDA GPU (see
-   [Foundation models](#foundation-models-dreamruntimevlmpy-resultsfoundation_model_audit)).
+5. **Real multimodal tool calling, evaluated on two development tasks.** Qwen3-VL-4B-Instruct
+   ran on an NVIDIA L4 and selected named tools from language, camera frames and fresh scene
+   observations. Both red/blue tray tasks completed with independent verification (2/2),
+   matching the classical baseline (2/2), with no false claims or protective stops. This is
+   semantic tool selection over classical motor skills, not learned continuous-action control
+   or broad generalisation. Raw requests, outputs, RGB-D calibration, timing and GPU telemetry
+   are in `results/qwen_cloud_pilot_dev`. No VLA motor policy or Isaac Sim adapter has run.
 
 ![Panda: red cube into the tray, then blue stacked on green](results/demo/panda_session/replay.gif)
 
@@ -103,8 +103,8 @@ these cloud-only changes. The Windows fast-suite duration still exceeds the 60 s
 | 10 | Visual perception replacing oracle poses | **Tabletop pick-and-place: implemented and tested** (classical RGB-D baseline). Camera discovery: partial development success, **not held-out validated** | `tests/test_vision.py`, `results/vision`, `results/compartment_vision_dev`, `results/compartment_vision_continuation_dev` |
 | 11 | **Discovery invoked on demand by the runtime (unfamiliar compartment on the Panda)** | **In progress**: implemented and tested on the narrowed scene; held-out evaluation below; challenge variants open | `tests/test_compartment.py`, `results/compartment`, audit table |
 | 12 | Experience memory, failure-driven replanning, skill adaptation | Planned | n/a |
-| 12a | Vision-language planner (Qwen3-VL-4B-Instruct) choosing typed tools | Interface implemented and contract-tested with test doubles. **Model inference not run**; caller-bound success contract, atomic call rejection and cancellation checks | `tests/test_vlm.py`; hardware audit below |
-| 12a-cloud | Capped GPU inference and live-physics pilot | First allocation failed before boot; cleanup verified. Sequential retries authorized within US$10 total; capacity failover contract-tested, model inference still pending | `results/cloud_pilot_allocation_failure`, `cloud/launch.py`, `tests/test_cloud.py` |
+| 12a | Vision-language planner (Qwen3-VL-4B-Instruct) choosing typed tools | **Implemented and development-evaluated:** real checkpoint, 2/2 tray tasks; no held-out language benchmark. Caller-bound success, cancellation and rejection contracts | `results/qwen_cloud_pilot_dev`, `tests/test_vlm.py` |
+| 12a-cloud | Capped GPU inference and live-physics pilot | **Executed:** zone c rejected capacity, zone b booted; guest and pilot gates passed. Cleanup error investigated and absence verified | `results/cloud_pilot_allocation_failure`, `cloud/launch.py`, `tests/test_cloud.py` |
 | 12b | Learned motor policy (GR00T N1.7-LIBERO) | **Feasibility inspected; adapter not implemented**. Checkpoint/configs reachable; missing wrist camera, rotation/control mapping and CUDA inference hardware | Hardware and source-contract audit below |
 | 13 | Generalisation evaluation across goals, arrangements and task families | Planned | n/a |
 | 14 | Learned world/motor models, mobile or whole-body embodiments | Planned, conditional on evidence and compute | n/a |
@@ -683,7 +683,7 @@ execution here; passing these action values directly to DREAM would be incorrect
   waypoint from continuing during model latency. After every dispatched call the model gets
   fresh scene and robot-state results as well as the action outcome. Robot-state time is
   explicit. These are general algorithmic corrections, tested against real robot state;
-  pretrained-model performance remains unmeasured.
+  the development pilot below supplies real-model evidence for two tray tasks only.
 - Backends: local transformers inference (`QwenTransformersBackend`, the model's chat template
   with `tools`), or an OpenAI-compatible server such as vLLM (`OpenAICompatibleBackend`).
 - `experiments/run_vlm.py` compares condition A (rule-based planner given the structured goal)
@@ -701,7 +701,7 @@ any model's ability.**
 The CPU backend remains unvalidated with model weights. GR00T needs a CUDA inference host
 and a validated observation/action mapping before any DREAM execution.
 
-### Capped cloud pilot (allocation failed before boot)
+### Capped cloud pilot (real inference and physics completed)
 
 The deployment follows NERVA's proven private-job lifecycle, inspected at local revision
 `0b4388a` (cloud scripts last changed at `6b05692`): committed archive, pinned GPU image,
@@ -727,12 +727,13 @@ the bucket. The final audit found no DREAM VMs, disks, addresses, routers, netwo
 service accounts or buckets. Actual billing is not established; brief network/storage charges
 may apply, so zero cost is not claimed.
 
-The next run starts in `us-central1-c`, with the same
+The successful retry at `94b4d9f` began in `us-central1-c`, rejected capacity, then booted
+in `us-central1-b`, with the same
 `g2-standard-8`: 1 L4 (24 GB VRAM), 32 GiB
 host RAM, 100 GB auto-deleted boot disk, fixed image
 `common-cu129-ubuntu-2204-nvidia-580-v20261019`, at most 45 minutes including setup.
-The 8.88 GB checkpoint leaves space for image/context processing, but actual peak GPU memory
-is an acceptance observation, not yet measured. No simultaneous motor model is loaded.
+The checkpoint and image/context processing used **10,013,174,784 bytes peak CUDA allocated**
+(9.33 GiB); this excludes other driver allocations. No simultaneous motor model was loaded.
 Python 3.12.12, torch 2.8.0, torchvision 0.23.0, transformers 4.57.1 and transitive packages
 are pinned in the optional hashed Linux lockfile; CPU tests do not require them. Optional
 package licences: torch/torchvision BSD, transformers Apache-2.0, Pillow HPND.
@@ -752,7 +753,32 @@ Booted job failures are inspected before another paid run, with each full pilot'
 estimate reserved against the aggregate allowance. Actual billing can lag and is not a hard
 dollar cap. The launcher also checks the guest exit code, summary completeness and frozen
 acceptance gates after retrieval; successful cleanup alone cannot count as a passed pilot.
-Task success remains report-only under the original pilot configuration.
+Task success remains report-only under the original pilot configuration. The actual result:
+
+| Condition | Development seeds | Independently successful | False claims | Protective stops / link collisions |
+|---|---|---|---|---|
+| Classical planner + camera + classical skills | 201, 202 | 2/2 | 0 | 0 / 0 |
+| Qwen + camera + classical skills | 201, 202 | 2/2 | 0 | 0 / 0 |
+
+Both model episodes selected `grasp`, `place`, `verify_goal`, then `finish`, without a supplied
+call sequence. There were zero invalid outputs or rejected calls. The measured model times
+per episode ranged from 1.6 to 8.7 seconds per call. The offline call also passed. These are
+two development instances from the familiar generator, not a held-out or transfer result.
+Guest setup and execution ran 01:49:13–01:58:14 UTC on 23 Oct 2026 (541 seconds). The
+US$2.16 reservation is an estimate; actual billed cost remains unavailable.
+
+Stable outputs were checksum-verified before bucket deletion. The launcher returned failure
+because one network-delete command returned an error; its later audit already showed the
+network absent, and an explicit describe confirmed not-found. No DREAM service accounts,
+buckets, instances, disks, addresses, routers or networks remained. This run did not report a
+service-account deletion failure. The original cleanup error is retained in the result summary.
+`results/qwen_cloud_pilot_dev/raw` preserves raw inference, sensor frames, configuration,
+versions, telemetry and guest logs (deployment identifiers redacted in the unchecksummed log).
+No full motion video or continuous joint trace was recorded by this pilot.
+
+The retry objective is satisfied; no further Qwen retry is needed. The US$10 pilot allowance
+**does not authorize a VLA/Isaac Sim workload**. A new paid run requires an itemized proposal
+and explicit approval.
 The retry checkpoint passed **167 fast tests in 83 s** plus Ruff lint/format
 (`results/cloud_retry_validation`); capacity failover tests use mocked cloud responses,
 not allocated GPUs. The full simulation suite was not rerun for these infrastructure changes.
@@ -791,9 +817,9 @@ python cloud/launch.py audit --project <project-id>
 
 `results/cloud_runs` is ignored; copy only reviewed, claim-supporting results to a new tracked
 results directory. Failed cleanup is reported and audited, never treated as proof of zero
-resources. Local tests cover the harness and real classical physics; they **do not** show
-Qwen inference. GR00T execution, new language-driven task composition, experience retrieval
-and held-out model comparisons remain subsequent work after this pilot runs.
+resources. Local tests cover interface contracts; the separate GPU pilot is the real-model
+evidence. Learned motor execution, new language-driven task composition, experience retrieval,
+Isaac Sim recording and held-out model comparisons remain subsequent work.
 The first harness test originally failed in the complete suite because it demanded task
 success on every run of an unvalidated live-camera scene. The subsequent repeat completed
 with a verified grasp and placement (`results/cloud_pilot_validation/repeat_baseline_episode.json`).
@@ -809,9 +835,9 @@ changed in response.
   discovery has mixed development results only. The import order matters for headless
   rendering: MuJoCo picks its GL backend when first imported, so scripts set `MUJOCO_GL` first
   (`dream/__init__.py`, runners, `tests/conftest.py`).
-- **No language understanding has been demonstrated.** The rule-based planner takes structured
-  goals (`in X Y`, `on X Y`). The model-driven agent accepts language, but no model has been run
-  through it, so there is no evidence of any model's ability on these tasks.
+- **Language scope.** A real model completed two development tray instructions through named
+  tools. This does not establish unfamiliar composition, complex language understanding,
+  learned motor actions, persistent memory or generalisation.
 - **Panda scope.**
   - Cubes of one size, one tray fixture, top-down grasps only.
   - The rule-based planner covers two goal types plus obstruction clearing.
@@ -833,11 +859,17 @@ changed in response.
   ran in a headless container. Headless replay GIFs are tested.
 - Compute: an EIG step takes about 0.6 s to select and 0.5–2 s to update, on one CPU core.
 
-## Next milestone: camera-driven discovery
+## Next milestone: a validated learned-action path, then Isaac Sim recording
 
 Milestone 11 (discovery as a tool on the Panda) is implemented on a narrowed scene with the
 oracle tracker; see its audit. Milestone 10's first slice (camera pick-and-place) is done. The
-next technical dependency joins them: **mechanism discovery from camera measurements**.
+camera-discovery dependency remains open, with its failures preserved. The current research
+branch first evaluates a pretrained learned-action policy for the existing Panda, beginning
+with observation/action compatibility and real open-loop tensors before safe closed-loop
+execution. Only then add an isolated Isaac Sim adapter and real recording; MuJoCo stays the
+regression baseline. No Isaac Sim demonstration or continuous learned control is claimed.
+
+The separate camera-discovery follow-up still needs:
 1. A measurement model for a tracked handle: noise and bias calibrated on development frames,
    including partial occlusion by the fingers.
 2. Slip detection that does not mistake measurement shifts for slip.

@@ -1,0 +1,104 @@
+{
+  "code_git_sha": "94b4d9fbf75c0d3381abcac2b4162c8f6019c031",
+  "zone": "us-central1-b",
+  "machine": "g2-standard-8",
+  "allocation_attempts": [
+    {
+      "zone": "us-central1-c",
+      "status": "capacity_rejected"
+    },
+    {
+      "zone": "us-central1-b",
+      "status": "allocated"
+    }
+  ],
+  "authorization_total_usd": 10,
+  "reserved_usd": 2.16,
+  "actual_billed_usd": null,
+  "started_utc": "2026-10-23T01:49:13Z",
+  "finished_utc": "2026-10-23T01:58:14Z",
+  "guest_duration_s": 541,
+  "peak_cuda_allocated_bytes": 10013174784,
+  "gpu": "NVIDIA L4",
+  "offline_gate_pass": true,
+  "false_claim_gate_pass": true,
+  "episodes": [
+    {
+      "condition": "A_rule_based",
+      "seed": 201,
+      "success": true,
+      "claimed": true,
+      "false_claim": false,
+      "protective_stop": false,
+      "link_collision": false
+    },
+    {
+      "condition": "B_vlm",
+      "seed": 201,
+      "success": true,
+      "claimed": true,
+      "false_claim": false,
+      "protective_stop": false,
+      "link_collision": false
+    },
+    {
+      "condition": "A_rule_based",
+      "seed": 202,
+      "success": true,
+      "claimed": true,
+      "false_claim": false,
+      "protective_stop": false,
+      "link_collision": false
+    },
+    {
+      "condition": "B_vlm",
+      "seed": 202,
+      "success": true,
+      "claimed": true,
+      "false_claim": false,
+      "protective_stop": false,
+      "link_collision": false
+    }
+  ],
+  "original_cleanup_errors": [
+    "network deletion returned error; subsequent audit absent"
+  ],
+  "final_cleanup": "network describe returned not found; all DREAM service accounts and buckets absent; post-audit no instances, disks, addresses, routers, networks",
+  "post_audit": {
+    "billing_enabled": true,
+    "quotas": [
+      {
+        "limit": 200.0,
+        "metric": "CPUS",
+        "usage": 0.0
+      },
+      {
+        "limit": 8.0,
+        "metric": "NVIDIA_L4_GPUS",
+        "usage": 0.0
+      }
+    ],
+    "project_instance_count": 0,
+    "dream_instances": [],
+    "dream_inventory": {
+      "disks": [],
+      "addresses": [],
+      "routers": [],
+      "networks": []
+    },
+    "budget_alert": {
+      "status": "read",
+      "authorization": false,
+      "nerva": [
+        {
+          "specifiedAmount": {
+            "currencyCode": "AUD",
+            "units": "50"
+          }
+        }
+      ]
+    },
+    "remaining_credit_or_spending_allowance": "not established"
+  },
+  "interpretation": "Two development seeds only, semantic tool selection over classical skills; no learned continuous actions or generalisation claim."
+}
