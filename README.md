@@ -42,9 +42,9 @@ rules, architecture and engineering standards are in [`AGENTS.md`](AGENTS.md).
    matching the classical baseline (2/2), with no false claims or protective stops. This is
    semantic tool selection over classical motor skills, not learned continuous-action control
    or broad generalisation. Raw requests, outputs, RGB-D calibration, timing and GPU telemetry
-   are in `results/qwen_cloud_pilot_dev`. A learned-action model has since produced one open-loop
-   chunk, and its first saved target has been physically replayed through the separate joint
-   controller (below). Fresh learned feedback and Isaac Sim execution remain untested.
+   are in `results/qwen_cloud_pilot_dev`. A learned-action model has since executed six fresh
+   predicted joint targets with measured tracking, but failed its manipulation task (below).
+   Useful learned manipulation, humanoid walking and Isaac Sim execution remain unvalidated.
 
 ![Panda: red cube into the tray, then blue stacked on green](results/demo/panda_session/replay.gif)
 
@@ -109,7 +109,8 @@ these cloud-only changes. The Windows fast-suite duration still exceeds the 60 s
 | 12 | Experience memory, failure-driven replanning, skill adaptation | Planned | n/a |
 | 12a | Vision-language planner (Qwen3-VL-4B-Instruct) choosing typed tools | **Implemented and development-evaluated:** real checkpoint, 2/2 tray tasks; no held-out language benchmark. Caller-bound success, cancellation and rejection contracts | `results/qwen_cloud_pilot_dev`, `tests/test_vlm.py` |
 | 12a-cloud | Capped GPU inference and live-physics pilot | **Executed:** zone c rejected capacity, zone b booted; guest and pilot gates passed. Cleanup error investigated and absence verified | `results/cloud_pilot_allocation_failure`, `cloud/launch.py`, `tests/test_cloud.py` |
-| 12b | Learned motor policy (MolmoAct2-DROID first open-loop candidate; GR00T alternative) | **Partially working:** real checkpoint produced a finite 15×8 chunk on L4; raw gripper range failed (4/15). Source contract audited; one genuine saved target physically replayed through the separate controller. Fresh learned feedback and task success remain untested | `tests/test_molmo.py`, `results/molmo_observation_dev`, source/decision audit below |
+| 12b | Learned motor policy (MolmoAct2-DROID first open-loop candidate; GR00T alternative) | **Partially working:** real checkpoint produced a finite 15×8 chunk on L4; raw gripper range failed (4/15). Source contract audited; six fresh predictions physically reached (6/6). Learned task failed, classical succeeded. No manipulation transfer established | `tests/test_molmo.py`, `results/molmo_observation_dev`, source/decision audit below |
+| 12c | Booster T1 locomotion / visual navigation research | **CPU contract tested:** genuine PPO actor 81→23 inference, typed waypoint guards and isolated Isaac runner. Physical walking and NavGPT inference **not validated** | `results/t1_actor_preflight_dev`, `results/navigation_source_audit`, `tests/test_navigation.py` |
 | 13 | Generalisation evaluation across goals, arrangements and task families | Planned | n/a |
 | 14 | Learned world/motor models, mobile or whole-body embodiments | Planned, conditional on evidence and compute | n/a |
 
@@ -960,15 +961,11 @@ After this cloud-only correction, **175 fast tests passed in 48 s**, with Ruff c
 passing (`results/molmo_cloud_openloop/fast.xml`). The full simulation suite was not rerun;
 the preceding 195-test full pass remains above. No physical code changed.
 
-Isaac Sim is a later, separately approved workload. The official
-[6.0 requirements](https://docs.isaacsim.omniverse.nvidia.com/6.0.0/installation/requirements.html)
-call for RTX support, at least 16 GB VRAM and 32 GB RAM; A100/H100 without RT cores are
-unsupported. The inspected 5.1 documentation marks that release unsupported. No mutually
-validated Isaac/Isaac Lab/model environment has been selected yet. L4 memory cannot be
-assumed sufficient for concurrent rendering and model inference; separate processes or hosts
-must be measured. There is no Isaac Sim adapter, learned-action execution, policy server or
-Isaac video. The Qwen pilot recorded decision frames, not a continuous motion video, so those
-frames cannot be presented as an unedited execution recording.
+Isaac Sim requires a separately approved workload. The isolated T1 adapter below is prepared
+but unexecuted; no Isaac video or validated simulator/locomotion combination exists in DREAM.
+Concurrent RTX rendering and navigation inference must be measured, not assumed to fit L4.
+The Qwen pilot recorded decision frames, not continuous motion footage, so those frames must
+not be presented as an unedited execution recording.
 
 ## Limitations (read before citing any number)
 
@@ -1124,16 +1121,140 @@ useful separate reference, but its knuckle-angle/30 Hz wrapper differs from DROI
 cancellation and an active simulation-time budget. Three-target tests pass on independent
 development seeds 225/226 with unchanged safety limits. Class: engineering extension, not a
 demonstrated policy correction or continuous 15 Hz tracking. No second paid attempt launched.
+`experiments/replay_molmo_prefix.py` then replayed the first genuine pilot prediction with
+1-, 3- and 15-target prefixes from the same scene and limits. All prefixes reached their
+targets without protective stops; all independently failed the task. Evidence is in
+`results/molmo_recorded_prefix_validated` (earlier formatting-only runner versions remain
+in `_dev` and `_confirmed`). This is recorded replay, not six fresh predictions or an
+improved closed-loop policy. More chunk coverage alone did not establish manipulation.
 
-## Next milestone: a validated learned-action path, then Isaac Sim recording
+## Humanoid navigation: contract audited, physical walking pending
+
+This direction tests whether visual navigation can eventually compose with DREAM's existing
+manipulation and active discovery. No humanoid currently performs those combined capabilities.
+The Panda environment and its validated classical skills remain the regression baseline.
+
+Pinned source hashes and explicit contract facts are in `results/navigation_source_audit`
+and `experiments/configs/navigation_sources.json`:
+
+| Source | Pinned revision | Reuse decision |
+|---|---|---|
+| NavGPT-3 | `f71232985b8a2edd2e2b57cc751f679c2f2b51b7` | Use the observation/waypoint contract; no inference or wholesale harness installation yet |
+| ZEOS | `58683959647541fc1952ae4a0feeffec835f1734` | Scheduling/protection reference only; AGPL-3.0; not a locomotion policy, not installed |
+| APM reference | `f74e2dec7ab162f9c9df0468afc2ec6381682772` | Audit the Isaac Lab T1 v2 PPO and deployment conventions; no APM imports or modifications |
+
+The [NavGPT-3 paper](https://arxiv.org/html/2610.10787v1) separates reasoning, visual action
+prediction and runtime motion authority. Its public repository releases Habitat evaluation;
+the ZEOS-based Unitree deployment code is listed as unreleased. Runtime review/interruption
+and spatial tools are useful design references, not evidence of DREAM implementing them.
+
+The actual navigation boundary is:
+
+- Eight **cumulative** waypoints relative to the current observation: x forward, y left
+  (metres), heading counter-clockwise (radians). They are not increments or joint actions.
+- Normalized output scales are `(1.0, 0.433, 2π/3)`; upstream `NavGPTVLA.act` already scales
+  them. `decode_waypoints` requires an explicit normalized/metric choice to prevent double scaling.
+- Input order is front/right/back/left, 400×400 RGB, 120° FOV, up to 16 retained observations,
+  sharing a 3,072-token budget. A spatial horizon does not specify waypoint execution times.
+- The released API chooses waypoint index 1 and converts it into a Habitat **TELEPORT** using
+  global GPS and WXYZ compass; the paper describes committing the first waypoint. This
+  discrepancy must be explicit in a future inference experiment. DREAM imports neither the
+  teleport action nor privileged GPS. A humanoid controller must physically track a target.
+- The service emits no STOP. The upstream caller's repeated collapsed-horizon heuristic is
+  not independent semantic arrival verification. Episode histories must reset between tasks.
+
+[NavGPT3-4B](https://huggingface.co/Metacognition-AI/NavGPT3-4B/tree/782538e69e5e04bd2b10d90ea083ab9e51031424)
+and [NavGPT3-8B](https://huggingface.co/Metacognition-AI/NavGPT3-8B/tree/873b41011aa6a80bf25dc05708ddc7df4c876e2e)
+weights are **AGPL-3.0**, separately from Apache-2.0 repository code and MIT VLA service files.
+Declared downloads are about 9.7/17.6 GB; activations/history/rendering require more memory.
+No peak VRAM has been measured here. Upstream uses Python 3.11, Torch 2.6 and Transformers
+5.18.0; Habitat uses its own Python 3.8/0.1.7 environment. These do not replace DREAM's
+Molmo environment. Running navigation and RTX rendering together on an L4 is not assumed safe.
+No NavGPT weights were downloaded or inference integrated before walking validation.
+
+**Implemented locally:** typed requests, timestamped local targets and outcomes; scale/frame
+checks; a turn/forward tracker using estimated local odometry; revoked command authority;
+stale waypoint/depth rejection; tilt, clearance and time limits. CPU tests explicitly use
+controlled states, not humanoid physics. Reactive depth veto is not furniture routing, and
+reaching an odometric waypoint does not mean the language goal was achieved.
+
+`dream/robot/t1.py` verifies the external ONNX actor/config hashes, matches joints by name,
+constructs the PPO's **81-value** observation (body linear velocity, gyro, projected gravity,
+command, 23 joint offsets, 23 velocities and 23 previous actions), and validates 23 output
+joint targets. Default plus 0.5×action matches the audited Isaac Lab policy. This is different
+from Booster's 47-input/12-leg-action policy and the older MuJoCo-trained gait. The actual
+reviewed APM actor ran on CPU for three diagnostic commands with finite 23D outputs;
+`results/t1_actor_preflight_dev` records the inputs/outputs. **No physics ran.** The small actor
+and config stay in an external LOCALAPPDATA cache, outside Git/OneDrive. ONNX Runtime 1.23.2
+is an optional MIT dependency. No APM code/weights or NVIDIA assets are vendored. No explicit
+APM repository/weight licence was found; this uses the owner's requested research reference,
+not a claim of a redistribution licence.
+
+`dream/sim/isaac_t1.py` and `experiments/isaac_t1_walk.py` prepare an isolated **unexecuted**
+Isaac Sim 5.1 adapter: stock T1 locomotion USD, training-matched gains, 200 Hz physics/50 Hz
+actor, RGB-D calibration, ideal own-robot velocity/IMU measurements integrated into odometry,
+bounded commands and tilt stop. True world translation is used only for independent scoring.
+Ideal proprioception is not validated VIO. Self-collision is disabled to match PPO training;
+collision-count instrumentation is still absent. Initial tests use an empty walled room;
+open-space depth no-returns stop conservatively. The runner records camera frames, actions,
+partial failures and score poses, and refuses to substitute a stand-in when Isaac is missing.
+Independent walking gates require final position error below 0.15 m, settled speed below
+0.1 m/s and no fall/tilt stop; a claimed reached waypoint alone cannot pass.
+No walking, obstacle avoidance, semantic grounding or video result is claimed.
+
+```powershell
+pip install -e ".[locomotion]"
+python experiments/isaac_t1_walk.py --preflight --policy-dir <external-pinned-policy> --out results/<new-preflight>
+# Only in a compatible Isaac environment, with approved paid resources if needed:
+python experiments/isaac_t1_walk.py --case forward --policy-dir <external-pinned-policy> --out <external-run-output>
+```
+
+| New integration choice | Rule 3 class | Scope / falsification |
+|---|---|---|
+| Turn/forward waypoint tracker and fixed prototype guards | Task-specific heuristic | Flat, locally reachable targets only; sideways motion, furniture routing and semantic arrival unsupported |
+| Ideal body velocity/IMU integrated into odometry | Unverified workaround | Not VIO; drift and sensor bias must be evaluated before transfer claims |
+| Empty walled room and training-matched self-collision setting | Environment simplification / narrow initial scope | Not cluttered navigation or full-body collision safety; no existing Panda benchmark was changed |
+
+**Prepared, approval required:** `isaac-t1-walk` is a separate workload using one L4
+`g2-standard-8`, 32 GiB RAM, `us-central1-c` with capacity-only regional fallback, a 200 GB
+auto-deleted disk and 45-minute deletion deadline. Candidate stack: Python 3.11.13, Isaac Sim
+5.1.0.0, Torch 2.7/cu128, NumPy **1.26.0** (required by Isaac kernel), ONNX Runtime 1.23.2;
+Isaac Lab v2.3.2 is the policy's training reference, not an extra runtime dependency. Setup
+may take 15–30 minutes; three cases each permit 12 simulated seconds/180 wall seconds.
+The environment is a first compatibility experiment, not an already validated install.
+NVIDIA's [5.1 requirements](https://docs.isaacsim.omniverse.nvidia.com/5.1.0/installation/requirements.html)
+require RT-capable graphics and sufficient VRAM; CUDA success alone is inadequate. Startup
+checks matching NVIDIA GL/Vulkan libraries. The local Intel Iris Xe cannot validate this.
+The APM reference ran this simulator family on L4, but this independent install may still fail.
+Isaac 5.1 is now an unsupported release; it is pinned here to the audited policy environment.
+
+`cloud/launch.py plan --workload isaac-t1-walk --project <project>` estimates **US$3.72**:
+$0.6402 VM + $0.0210 disk + $0.0048 NAT gateway/IP + $2.25 for a 50 GiB NAT reserve + $0.80
+storage/egress/reserve. Request **US$4 for one workload**, not a recurring allowance; estimate
+is not a hard billing cap. No NavGPT, Qwen or Molmo inference runs alongside it. Google expiry,
+guest termination and host cleanup remove the VM/disk, scoped network/NAT/IAM and bucket only
+after verified result retrieval. No new resources were launched. Walking must pass before
+NavGPT inference integration, held-out navigation or a humanoid demonstration is attempted.
+
+Validation checkpoint: **225 full tests passed in 408.107 s** and
+**203 final fast tests passed in 85.375 s**. Ruff and shell syntax checks pass.
+The fast-suite **under-60-second target was missed** on this machine; existing belief and vision
+tests dominate the timing report. No tests were removed or reclassified to hide that result.
+The full pass precedes reporting fields and a stricter settled-stop gate in the unexecuted
+Isaac path; its focused regression and the final fast suite pass. XML, exact source hashes,
+CPU actor evidence and the proposed workload plan are preserved in
+`results/navigation_source_audit`. These checks do not establish Isaac walking performance.
+
+## Next milestone: ordinary humanoid walking before visual navigation
 
 Milestone 11 (discovery as a tool on the Panda) is implemented on a narrowed scene with the
 oracle tracker; see its audit. Milestone 10's first slice (camera pick-and-place) is done. The
 camera-discovery dependency remains open, with its failures preserved. The current research
-branch has obtained a real pretrained open-loop action chunk, audited its training-data
-contract and physically replayed its first target with safety retiming. The next dependency
-is a separately approved fresh-inference feedback pilot, then useful manipulation before
-typed high-level delegation and an isolated Isaac Sim adapter/recording. MuJoCo stays the
+branch has audited a real policy contract and physically reached six fresh targets, while
+preserving its failed manipulation task and testing recorded chunk replay. The next dependency
+is ordinary Booster T1 walking validation in isolated Isaac Sim, followed by visual-navigation
+integration only when walking passes. Useful learned manipulation remains a separate open
+capability; its failed pilot is preserved and bounded chunk execution is locally tested. MuJoCo stays the
 regression baseline. No Isaac Sim demonstration or continuous learned control is claimed.
 
 The separate camera-discovery follow-up still needs:

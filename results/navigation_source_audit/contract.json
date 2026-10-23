@@ -1,0 +1,85 @@
+{
+  "source_revisions": {
+    "metacognitionai__NavGPT-3": "f71232985b8a2edd2e2b57cc751f679c2f2b51b7",
+    "metacognitionai__zeos": "58683959647541fc1952ae4a0feeffec835f1734",
+    "adityasolanki24__affective-processing-module": "f74e2dec7ab162f9c9df0468afc2ec6381682772"
+  },
+  "navgpt_models": {
+    "NavGPT3-4B": {
+      "revision": "782538e69e5e04bd2b10d90ea083ab9e51031424",
+      "weight_licence": "AGPL-3.0",
+      "declared_download_gb": 9.7
+    },
+    "NavGPT3-8B": {
+      "revision": "873b41011aa6a80bf25dc05708ddc7df4c876e2e",
+      "weight_licence": "AGPL-3.0",
+      "declared_download_gb": 17.6
+    }
+  },
+  "contract": {
+    "shape": [
+      8,
+      3
+    ],
+    "coordinates": [
+      "forward_metres",
+      "left_metres",
+      "CCW_heading_radians"
+    ],
+    "reference_frame": "cumulative from current observation, not waypoint-to-waypoint deltas",
+    "normalization_scales": [
+      1.0,
+      0.433,
+      2.0943951023931953
+    ],
+    "prediction_timing": "spatial horizon, no fixed waypoint timestamp/duration",
+    "observation_order": [
+      "front",
+      "right",
+      "back",
+      "left"
+    ],
+    "image_shape": [
+      400,
+      400,
+      3
+    ],
+    "hfov_deg": 120,
+    "history_steps_max": 16,
+    "visual_tokens": 3072,
+    "source_service_execution": "waypoint index 1 to Habitat TELEPORT, needs global GPS and compass",
+    "paper_execution": "states first waypoint; index discrepancy must be explicit",
+    "stop": "service never emits STOP; planner/harness decides. Two collapsed-horizon hits is upstream heuristic, not semantic verification",
+    "DREAM": "waypoints only; no teleport, global GPS or direct humanoid joint authority"
+  },
+  "runtime": {
+    "zeos": "Scheduling, interruptions, capability boundaries; not a locomotion controller. Public Unitree deployment layer is not released. Not installed.",
+    "reuse_decision": "Thin geometry/control boundary; no wholesale harness or SDK adoption before validated walking. No NavGPT inference integrated yet."
+  },
+  "t1": {
+    "actor_input": 81,
+    "actor_output": 23,
+    "control_hz": 50,
+    "physics_hz": 200,
+    "action_scale": 0.5,
+    "policy_reference": "APM Isaac Lab v2 PPO, not the distinct Booster 47-input leg actor or MuJoCo gait",
+    "observation": "body linear3, gyro3, gravity3, command3, named joint offsets23, velocities23, prior actions23",
+    "licence": "APM root LICENSE absent; own-user-authorized reference reuse. No code or weights redistributed.",
+    "local_physics": "Unavailable: Intel Iris Xe, no Isaac installation",
+    "depth_and_odometry": "ideal robot proprioception + integrated local velocity; not validated VIO or open-world perception"
+  },
+  "gpu_note": {
+    "4B_bf16_storage_gb_lower_bound": 9.7,
+    "8B_bf16_storage_gb_lower_bound": 17.6,
+    "peak_runtime_memory": "not measured; activation, visual history and rendering are additional",
+    "cohosting": "Not assumed. Validate locomotion on its own before separate NavGPT GPU inference."
+  },
+  "dependency_licences": {
+    "onnxruntime1.23.2": "MIT",
+    "NavGPT_source": "Apache-2.0; VLA service MIT component",
+    "ZEOS": "AGPL-3.0 (audited LICENSE); not adopted",
+    "Isaac": "NVIDIA Isaac Sim software/material terms; no assets redistributed"
+  },
+  "paid_resources_launched_after_Molmo": false,
+  "paper": "https://arxiv.org/html/2610.10787v1"
+}

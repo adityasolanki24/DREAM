@@ -29,6 +29,7 @@ WORKLOAD_CONFIGS = {
     "qwen-pilot": CONFIG,
     "molmo-openloop": ROOT / "experiments/configs/cloud_molmo_openloop.json",
     "molmo-closedloop": ROOT / "experiments/configs/cloud_molmo_closedloop.json",
+    "isaac-t1-walk": ROOT / "experiments/configs/cloud_isaac_t1_walk.json",
 }
 
 
@@ -73,6 +74,9 @@ def plan(project: str, cfg: dict, name: str) -> dict:
     workload = cfg.get("workload", "qwen-pilot")
     if workload not in WORKLOAD_CONFIGS:
         raise ValueError("unsupported workload")
+    disk_gb = cfg.get("disk_gb", 100)
+    if disk_gb != (200 if workload == "isaac-t1-walk" else 100):
+        raise ValueError("unsupported workload disk size")
     if not isinstance(minutes, int) or isinstance(minutes, bool) or not 1 <= minutes <= 45:
         raise ValueError("the pilot lifetime must be an integer in 1..45 minutes")
     hours = minutes / 60
@@ -91,6 +95,7 @@ def plan(project: str, cfg: dict, name: str) -> dict:
         "zone": cfg["zone"],
         "region": "us-central1",
         "machine": cfg["machine"],
+        "disk_gb": disk_gb,
         "max_minutes": minutes,
         "bucket": name,
         "network": name,
@@ -124,7 +129,7 @@ def create_command(p: dict, sha: str, archive_hash: str, startup: Path | None = 
         f"--machine-type={p['machine']}",
         f"--image={p['image']}",
         "--image-project=deeplearning-platform-release",
-        "--boot-disk-size=100GB",
+        f"--boot-disk-size={p.get('disk_gb', 100)}GB",
         "--boot-disk-type=pd-balanced",
         "--boot-disk-auto-delete",
         "--no-address",
@@ -199,6 +204,44 @@ def check_pilot(out: Path, workload: str = "qwen-pilot") -> None:
     """A retrieved guest failure is not a pass. Keep preregistered task success report-only."""
     if (out / "EXIT_CODE").read_text().strip() != "0":
         raise RuntimeError("guest failed; inspect preserved outputs before another paid run")
+    if workload == "isaac-t1-walk":
+        import numpy as np
+
+        for case in ("stand", "forward", "left"):
+            path = out / case / "episode.json"
+            if not path.is_file():
+                raise RuntimeError("physical walking episode missing")
+            record = json.loads(path.read_text())
+            if (
+                record.get("physics_executed") is not True
+                or record.get("real_actor_executed") is not True
+                or record.get("navgpt_executed") is not False
+                or record.get("gate_pass") is not True
+                or not record.get("rows")
+            ):
+                raise RuntimeError("physical walking gate failed")
+            rows = record["rows"]
+            times = np.array([r.get("time_s", float("nan")) for r in rows])
+            tilts = np.array([r.get("tilt_rad", float("nan")) for r in rows])
+            final = np.array(record.get("score_final_position_m", []))
+            target = np.array(record.get("score_target_m", []))
+            if (
+                final.shape != (3,)
+                or target.shape != (3,)
+                or not np.isfinite(final).all()
+                or not np.isfinite(target).all()
+                or not np.isfinite(times).all()
+                or not np.all(np.diff(times) > 0)
+                or not np.isfinite(tilts).all()
+                or np.max(tilts) > math.radians(25)
+                or np.linalg.norm(final[:2] - target[:2]) >= 0.15
+                or not 0 <= record.get("final_speed_m_s", float("inf")) < 0.1
+                or record.get("status") != "waypoint reached"
+                or not list((out / case).glob("sensor_*.npz"))
+                or not (out / case / "sensor_calibration.json").is_file()
+            ):
+                raise RuntimeError("physical walking measurements failed")
+        return
     if workload == "molmo-closedloop":
         import numpy as np
 

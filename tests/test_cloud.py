@@ -28,6 +28,54 @@ def test_pilot_is_private_isolated_and_deleted_even_if_the_job_hangs():
     assert not any("nerva" in arg for arg in command)
 
 
+def test_walking_workload_is_separate_capped_and_needs_physical_evidence(tmp_path):
+    cfg = json.loads(cloud.WORKLOAD_CONFIGS["isaac-t1-walk"].read_text())
+    p = cloud.plan("example-project", cfg, "dream-qwen-test")
+    assert p["estimated_usd"] < 4 and p["disk_gb"] == 200
+    command = cloud.create_command(p, "a" * 40, "b" * 64)
+    assert "--boot-disk-size=200GB" in command and "--max-run-duration=45m" in command
+    (tmp_path / "EXIT_CODE").write_text("0\n")
+    with pytest.raises(RuntimeError, match="physical"):
+        cloud.check_pilot(tmp_path, "isaac-t1-walk")
+    for case in ("stand", "forward", "left"):
+        (tmp_path / case).mkdir()
+        (tmp_path / case / "episode.json").write_text(
+            json.dumps(
+                {
+                    "physics_executed": False,
+                    "real_actor_executed": True,
+                    "navgpt_executed": False,
+                    "gate_pass": True,
+                    "rows": [{}],
+                }
+            )
+        )
+    with pytest.raises(RuntimeError, match="gate failed"):
+        cloud.check_pilot(tmp_path, "isaac-t1-walk")
+    # Even explicit physics flags cannot replace an independently measured settled stop.
+    for case in ("stand", "forward", "left"):
+        folder = tmp_path / case
+        record = {
+            "physics_executed": True,
+            "real_actor_executed": True,
+            "navgpt_executed": False,
+            "gate_pass": True,
+            "rows": [{"time_s": 1, "tilt_rad": 0}],
+            "score_final_position_m": [0, 0, 0.7],
+            "score_target_m": [0, 0, 0.7],
+            "status": "waypoint reached",
+            "final_speed_m_s": 0.2,
+        }
+        (folder / "episode.json").write_text(json.dumps(record))
+        (folder / "sensor_calibration.json").write_text("{}")
+        np.savez_compressed(folder / "sensor_0000.npz", rgb=np.zeros((2, 2, 3)))
+    with pytest.raises(RuntimeError, match="measurements"):
+        cloud.check_pilot(tmp_path, "isaac-t1-walk")
+    cfg["disk_gb"] = 500
+    with pytest.raises(ValueError, match="disk"):
+        cloud.plan("example-project", cfg, "dream-qwen-test")
+
+
 @pytest.mark.parametrize("zone", ["us-central1-a", "us-central1-b", "us-central1-c"])
 def test_reviewed_regional_zones_keep_the_same_hardware_budget_and_deadline(zone):
     cfg = json.loads(cloud.CONFIG.read_text())

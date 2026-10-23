@@ -1,0 +1,51 @@
+{
+  "research_role": "development locomotion contract; NavGPT inference disabled until physical walking gate passes",
+  "isaac_sim": "5.1.0",
+  "isaac_lab_training_reference": "v2.3.2",
+  "physics_dt_s": 0.005,
+  "control_dt_s": 0.02,
+  "policy_source_revision": "f74e2dec7ab162f9c9df0468afc2ec6381682772",
+  "policy_url_root": "https://raw.githubusercontent.com/adityasolanki24/affective-processing-module/f74e2dec7ab162f9c9df0468afc2ec6381682772/experiments/M_release/policies/t1_isaaclab_v2",
+  "policy_hashes": {
+    "env_cfg.json": "c4f641afcc66886254b93348374f19305d1a62d98b49d3a38542fe29dcc642e1",
+    "policy.onnx": "26aff54d7dc792c77a4791ceb0f816958d688cf544e330045409bd803d2cf549"
+  },
+  "asset_relative_url": "/Isaac/Robots/BoosterRobotics/BoosterT1/T1_locomotion.usd",
+  "policy_licence": "No explicit repository/weight licence found; user-authorized research reuse of their reference, no redistribution of weights",
+  "cases": {
+    "stand": {
+      "forward_m": 0.0,
+      "left_m": 0.0,
+      "heading_rad": 0.0
+    },
+    "forward": {
+      "forward_m": 0.5,
+      "left_m": 0.0,
+      "heading_rad": 0.0
+    },
+    "left": {
+      "forward_m": 0.3,
+      "left_m": 0.3,
+      "heading_rad": 0.5
+    }
+  },
+  "seed": 301,
+  "max_sim_s": 12,
+  "max_wall_s": 180,
+  "gates": {
+    "real_actor": true,
+    "no_fall": true,
+    "final_position_error_m": 0.15,
+    "max_tilt_rad": 0.4363323129985824,
+    "valid_rgb_depth": true,
+    "final_speed_m_s": 0.1
+  },
+  "notes": [
+    "Prototype gains/physics follow audited PPO training setup; do not tune after final evaluation.",
+    "Self-collision disabled matches training, not general collision safety. Flat ground is an explicitly narrow development scope.",
+    "Ideal body-velocity and IMU sensing; dead reckoning is not validated VIO. Ground-truth translation is scoring only.",
+    "No semantic target grounding, furniture avoidance, NavGPT inference or humanoid manipulation claimed."
+  ],
+  "seed_role": "301 reserved for future randomized scenes; initial cases use fixed deterministic initialization, no RNG",
+  "environment": "Empty 10x10 m walled room, flat ground; no furniture or semantic target"
+}

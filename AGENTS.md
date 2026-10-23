@@ -521,15 +521,27 @@ those checks connect a deterministic safety-checked adapter to real closed-loop 
 Compare matching initial states against classical control. No silent classical fallback.
 
 **Next, in order:**
-1. Validate one learned-action path on the Panda, preserving classical baselines.
-2. Add bounded typed skill composition and failure-driven recovery where the slice needs it.
-3. Validate an isolated Isaac Sim adapter with compatible pinned versions and RTX hardware;
-   preserve MuJoCo and independently score each simulator.
+1. Preserve and diagnose learned Panda manipulation failures; test bounded chunk execution
+   without changing safety limits to fit a demonstration.
+2. Validate ordinary goal-directed Booster T1 walking with a compatible pretrained Isaac Lab
+   locomotion policy in an isolated Isaac Sim environment. Preserve the Panda baseline.
+3. Audit NavGPT-3's observation and cumulative local-waypoint contract, then connect it only
+   after locomotion validation. Navigation predictions never authorize teleports or joint
+   commands. Runtime authority, sensor freshness, deterministic safety and independent scoring
+   stay outside the model. Habitat harness compatibility is not Isaac humanoid transfer.
 4. Record genuine simulation frames and action events, including original footage and timing;
    edited video labels model, controller, simulator, speed changes and verified outcome.
 5. Evaluate new compositions and shifted conditions before claiming transfer.
 6. Add persistent experience retrieval only with evidence that it changes useful decisions.
 7. Broaden manipulation and embodiments when justified.
+
+The humanoid direction tests whether visual navigation can compose with DREAM's existing
+manipulation and discovery capabilities. Audit APM/NERVA only as references; DREAM owns its
+adapter and never changes their checkout or cloud resources. Reuse requires verified source,
+policy observation/action conventions, software compatibility and recorded licensing. A CPU
+policy invocation or deterministic waypoint test is not evidence of physical walking. Do not
+integrate real NavGPT inference before ordinary walking is validated, or claim navigation,
+manipulation and discovery are one humanoid capability until that composition is executed.
 
 Camera-driven mechanism discovery remains partial. Keep lid successes, drawer failures,
 fixed refusals and all original hard cases reproducible; no scene simplification to improve a

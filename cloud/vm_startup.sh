@@ -48,6 +48,10 @@ export PYOPENGL_PLATFORM=osmesa
 export OPENBLAS_NUM_THREADS=1
 export TOKENIZERS_PARALLELISM=false
 export HF_HUB_DISABLE_TELEMETRY=1
+if [ "$WORKLOAD" = isaac-t1-walk ]; then
+  source /work/DREAM/cloud/isaac_t1_job.sh
+  exit 0
+fi
 apt-get update -q
 apt-get install -y -q libosmesa6 python3-pip
 python3 -m pip install uv==0.9.4

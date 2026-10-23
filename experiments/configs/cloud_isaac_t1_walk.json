@@ -1,0 +1,23 @@
+{
+  "machine": "g2-standard-8",
+  "zone": "us-central1-c",
+  "max_minutes": 45,
+  "image": "common-cu129-ubuntu-2204-nvidia-580-v20261019",
+  "cost": {
+    "checked_date": "2026-10-23",
+    "vm_usd_per_hour": 0.853624312,
+    "disk_usd_per_hour": 0.028,
+    "nat_gateway_and_ip_usd_per_hour": 0.0064,
+    "nat_usd_per_gib": 0.045,
+    "nat_download_gib": 50,
+    "storage_egress_and_reserve_usd": 0.8,
+    "sources": [
+      "https://cloud.google.com/products/compute/pricing/accelerator-optimized",
+      "https://cloud.google.com/nat/pricing",
+      "https://cloud.google.com/compute/disks-image-pricing"
+    ],
+    "note": "Separate approval required. Candidate Isaac Sim 5.1 environment, L4 RTX/Vulkan compatibility checked before execution. 200 GB auto-deleted disk, 45 minute absolute VM lifetime. Three deterministic waypoint cases using real T1 PPO only. No NavGPT/LLM inference or NavGPT weights. Small pinned T1 actor downloaded only to external VM cache. Estimate, not a billing cap."
+  },
+  "workload": "isaac-t1-walk",
+  "disk_gb": 200
+}

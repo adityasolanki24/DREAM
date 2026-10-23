@@ -11,7 +11,7 @@ import pathlib
 import pytest
 
 DREAM = pathlib.Path(__file__).resolve().parents[1] / "dream"
-DECISION_PACKAGES = ("agent", "skills", "tools", "runtime", "perception")
+DECISION_PACKAGES = ("agent", "skills", "tools", "runtime", "perception", "navigation")
 FORBIDDEN_FOR_DECISIONS = ("mujoco", "dream.sim", "dream.eval", "dream.robot")
 FORBIDDEN_FOR_ROBOT = ("dream.sim", "dream.eval", "dream.agent", "dream.skills")
 FORBIDDEN_NAMES = ("privileged", "MechanismSpec", "TabletopSpec", "CompartmentSpec", "_spec")
