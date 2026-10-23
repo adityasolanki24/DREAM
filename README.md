@@ -1057,7 +1057,7 @@ Final validation: **209 tests passed in 213.159 s**; **187 fast tests passed in 
 Ruff checks and formatting passed. XML and exact source hashes are preserved in
 `results/joint_controller_confirmed`; CPU tests do not load policy weights. The same prepared
 harness's classical condition also completed development seed 223 without a protective stop
-(`classical_smoke`); the learned condition has no real fresh-inference result yet.
+(`classical_smoke`). Fresh-inference results follow below.
 
 Reproduce without GPU or network:
 
@@ -1066,14 +1066,14 @@ python experiments/validate_joint_controller.py --out results/<new-joint-validat
 pytest tests/test_joint.py tests/test_molmo.py tests/test_molmo_feedback.py
 ```
 
-**Prepared, not launched:** `molmo-closedloop` selects one `g2-standard-8` (one L4, 32 GiB
+**Approved and executed at `0078e53`:** `molmo-closedloop` used one `g2-standard-8` (one L4, 32 GiB
 RAM), `us-central1-c` with sequential capacity-only regional fallback, the pinned Ubuntu
 image and an auto-deleted 100 GB disk. Maximum runtime is 45 minutes including setup;
 expected setup/model load is roughly 7–15 minutes based on the previous pilot, followed by
 at most 120 seconds of learned execution and the classical comparison. Estimated total is
 **US$2.61**, comprising approximately $0.64 VM, $0.01 disk, $0.005 NAT gateway/IP,
 $1.35 NAT data reserve and $0.60 storage/egress/reserve; this is an estimate, not a billing cap.
-Request a separate **US$3 allowance for this one workload** before launch.
+The user approved US$3 for this one workload. Actual billing is unavailable.
 `experiments/configs/molmo_closedloop.json` freezes development seed 223, policy seed 233,
 six fresh predictions, one bounded target each and an identical-scene classical comparison.
 Each real prediction saves input images/state, untouched output, saturation, timing and
@@ -1082,7 +1082,48 @@ first gate; task completion is report-only. Test stubs validate wiring only. The
 is downloaded once into the VM cache and reused. No Qwen or Isaac workload runs alongside it.
 Guest expiration/self-deletion plus host-finally cleanup remove the VM/disk, scoped IAM,
 network/NAT and bucket after checksum-verified retrieval; cleanup absence must be verified.
-No new paid resources were created at this checkpoint.
+The workload completed; cleanup returned no errors and resource absence was verified.
+
+### Fresh-inference development pilot (23 Oct 2026)
+
+`results/molmo_cloud_feedback_dev` preserves six genuine 15×8 predictions, input cameras,
+proprioception, physical traces, versions and guest checksums. Stable files passed checksum
+verification before bucket deletion. `inspect_molmo_feedback.py` reproduces the analyses.
+The L4 allocated in zone c without retry; guest setup/execution lasted 440 seconds. Actual
+billing is unavailable; US$2.61 remains an estimate. Cleanup had no errors: zero instances,
+CPU/L4 usage and DREAM disks, addresses, networks or routers. Bucket and service account
+absence were checked separately.
+
+| Measurement | Learned joint condition | Classical reference |
+|---|---|---|
+| Fresh predictions / reached targets | 6 / 6 | No learned inference |
+| Arm-target error | 0.001596–0.001785 rad | Different Cartesian controller |
+| Independently scored task completion | **Failed** | **Succeeded** |
+| Protective stops / link collisions | 0 / 0 | 0 / 0 |
+| Executed gripper saturation | 6/6, fully open | Contact grasp and release |
+| Inference latency | 2.943 s first; 1.094–1.118 s subsequent | n/a |
+| Command duration / nominal interval | 4.326–18.444× | n/a |
+
+This demonstrates fresh prediction → physical target tracking → fresh sensing, not useful
+learned manipulation. No classical fallback ran. Identical initial scenes/cameras but
+different controllers, action sets and limits make this a system reference, **not a fair
+component ablation**. The classical controller lacks the learned controller's joint
+acceleration guard; its measured contact transient cannot justify relaxing that guard.
+
+Offline diagnosis: TCP height decreased from 0.5211 to 0.4285 m; aperture stayed about 0.08 m
+and no finger contact occurred. Distance to the reconstructed initial red-object center
+decreased from 0.5355 to 0.4601 m. Object trajectories were not logged; those are initial-scene
+diagnostics, not measured later object poses. All six full chunks predicted near-zero closure,
+not just their executed first row. Unused arm targets differ from row 0 by up to 0.242–0.598
+rad. Discarding 14/15 targets may matter, but executing them is not yet shown to improve tasks.
+The initial 0.262 rad jump and rest-to-rest acceleration bound explain substantial retiming.
+Camera/hand distribution shifts remain unvalidated. Official FR3/Robotiq simulation is a
+useful separate reference, but its knuckle-angle/30 Hz wrapper differs from DROID training.
+
+`execute_chunk` now supports an explicitly bounded prefix, measured settling per target,
+cancellation and an active simulation-time budget. Three-target tests pass on independent
+development seeds 225/226 with unchanged safety limits. Class: engineering extension, not a
+demonstrated policy correction or continuous 15 Hz tracking. No second paid attempt launched.
 
 ## Next milestone: a validated learned-action path, then Isaac Sim recording
 

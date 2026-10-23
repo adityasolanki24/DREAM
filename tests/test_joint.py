@@ -97,6 +97,22 @@ def test_measured_limits_are_enforced_while_holding():
     assert env.robot.protective_stop and "velocity" in env.robot.stop_reason
 
 
+@pytest.mark.parametrize("seed,sign", [(225, 1), (226, -1)])
+def test_bounded_multi_target_prefix_tracks_physics_and_stops_on_budget(seed, sign):
+    from dream.eval.joint import execute_chunk
+
+    env = make_env(seed)
+    q = np.tile(env.robot_state().joint_pos, (3, 1))
+    q[:, 6] += sign * np.array([0.015, 0.03, 0.045])
+    result = execute_chunk(env, q, np.full(3, 0.08), 1 / 15, max_targets=3, max_sim_s=5)
+    assert result["completed"] and len(result["steps"]) == 3
+    assert all(s["target_reached"] for s in result["steps"])
+    assert abs(env.robot_state().joint_pos[6] - q[-1, 6]) < 0.01
+    assert not env.robot_state().protective_stop
+    result = execute_chunk(env, q, np.full(3, 0.08), 1 / 15, max_targets=3, max_sim_s=0.01)
+    assert not result["completed"] and not env.robot.moving
+
+
 def test_joint_hold_remains_safe_while_real_physics_continues_during_inference():
     import time
 
