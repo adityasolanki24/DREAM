@@ -9,8 +9,9 @@ Both conditions use the same scenes, perception backend, toolbox, skills and saf
 - B receives the natural-language instruction and the camera image, and must choose tools
   itself.
 Instructions are deliberately phrased differently (``instructions`` in the config). They are
-the model's input, never matched against a list. The structured goal is used only by condition
-A and by the evaluator. Success is ground truth (dream/eval/manipulation.py).
+the model's input, never matched against a list. The structured goal is used by condition A,
+by B's success verifier (withheld from the model) and by the independent evaluator. Success is
+ground truth (dream/eval/manipulation.py).
 
 This runner refuses to run condition B without a real model backend. There is no stand-in.
 """
@@ -80,7 +81,7 @@ def episode(seed: int, item: dict, condition: str, backend, perception: str) -> 
         }
     else:
         agent = VLMAgent(tb, backend, camera=lambda: env.capture_frame().rgb)
-        ep = agent.run(item["instruction"])
+        ep = agent.run(item["instruction"], expected_goal=goal)
         record = {
             "tool_calls": ep.tool_calls,
             "claimed": ep.success_claimed,

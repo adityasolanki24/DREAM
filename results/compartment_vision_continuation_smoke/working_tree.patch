@@ -1,0 +1,228 @@
+diff --git a/dream/runtime/qwen.py b/dream/runtime/qwen.py
+index 9b778e4..454fb2c 100644
+--- a/dream/runtime/qwen.py
++++ b/dream/runtime/qwen.py
+@@ -18,6 +18,8 @@ from __future__ import annotations
+ import base64
+ import io
+ import json
++import threading
++import time
+ import urllib.request
+ 
+ import numpy as np
+@@ -40,19 +42,40 @@ class QwenTransformersBackend:
+         device: str = "cpu",
+         max_new_tokens: int = 384,
+         dtype: str = "bfloat16",
++        timeout_s: float = 60.0,
+     ) -> None:
+         import torch
+         from transformers import AutoProcessor, Qwen3VLForConditionalGeneration
+ 
+         self.name = f"qwen3-vl:{model_path}"
+         self._torch = torch
+-        self.model = Qwen3VLForConditionalGeneration.from_pretrained(
+-            model_path, torch_dtype=getattr(torch, dtype), device_map=device
++        self.model = (
++            Qwen3VLForConditionalGeneration.from_pretrained(
++                model_path, torch_dtype=getattr(torch, dtype)
++            )
++            .to(device)
++            .eval()
+         )
+         self.processor = AutoProcessor.from_pretrained(model_path)
+         self.max_new_tokens = max_new_tokens
++        self.timeout_s = timeout_s
++        self.cancel = threading.Event()
++
++    def set_cancel_event(self, cancel: threading.Event) -> None:
++        self.cancel = cancel
+ 
+     def generate(self, messages: list[dict], tools: list[dict]) -> str:
++        from transformers import StoppingCriteria, StoppingCriteriaList
++
++        if self.cancel.is_set():
++            raise RuntimeError("inference cancelled")
++        deadline = time.monotonic() + self.timeout_s
++        cancel = self.cancel
++
++        class Interrupted(StoppingCriteria):
++            def __call__(self, input_ids, scores, **kwargs):
++                return cancel.is_set() or time.monotonic() >= deadline
++
+         msgs = [
+             {
+                 "role": m["role"],
+@@ -70,9 +93,18 @@ class QwenTransformersBackend:
+             add_generation_prompt=True,
+             return_dict=True,
+             return_tensors="pt",
+-        ).to(self.model.device)
++        ).to(self.model.device, self.model.dtype)
++        if self.cancel.is_set() or time.monotonic() >= deadline:
++            raise TimeoutError("inference interrupted during preprocessing")
+         with self._torch.inference_mode():
+-            out = self.model.generate(**inputs, max_new_tokens=self.max_new_tokens, do_sample=False)
++            out = self.model.generate(
++                **inputs,
++                max_new_tokens=self.max_new_tokens,
++                do_sample=False,
++                stopping_criteria=StoppingCriteriaList([Interrupted()]),
++            )
++        if time.monotonic() >= deadline:
++            raise TimeoutError("inference exceeded its time budget")
+         new = out[0, inputs["input_ids"].shape[1] :]
+         # Keep <tool_call> markers; drop end-of-turn tokens.
+         text = self.processor.decode(new, skip_special_tokens=False)
+@@ -94,8 +126,14 @@ class OpenAICompatibleBackend:
+         self.url = base_url.rstrip("/") + "/v1/chat/completions"
+         self.model, self.api_key = model, api_key
+         self.timeout_s, self.max_tokens = timeout_s, max_tokens
++        self.cancel = threading.Event()
++
++    def set_cancel_event(self, cancel: threading.Event) -> None:
++        self.cancel = cancel
+ 
+     def generate(self, messages: list[dict], tools: list[dict]) -> str:
++        if self.cancel.is_set():
++            raise RuntimeError("inference cancelled")
+         body = {
+             "model": self.model,
+             "messages": [_openai_message(m) for m in messages],
+@@ -111,12 +149,17 @@ class OpenAICompatibleBackend:
+         )
+         with urllib.request.urlopen(req, timeout=self.timeout_s) as resp:
+             choice = json.loads(resp.read())["choices"][0]["message"]
++        if self.cancel.is_set():
++            raise RuntimeError("inference cancelled")
+         calls = choice.get("tool_calls") or []
+         if calls:  # a server-side tool parser: re-emit in the model's own format
+-            fn = calls[0]["function"]
+-            args = fn.get("arguments", "{}")
+-            args = json.loads(args) if isinstance(args, str) else args
+-            return f"<tool_call>{json.dumps({'name': fn['name'], 'arguments': args})}</tool_call>"
++            # Preserve every call so the runtime can reject an unsupported batch atomically.
++            output = []
++            for c in calls:
++                fn = c["function"]
++                payload = {"name": fn["name"], "arguments": fn.get("arguments", {})}
++                output.append(f"<tool_call>{json.dumps(payload)}</tool_call>")
++            return "\n".join(output)
+         return choice.get("content") or ""
+ 
+ 
+diff --git a/dream/runtime/vlm.py b/dream/runtime/vlm.py
+index 753bd69..d51fda0 100644
+--- a/dream/runtime/vlm.py
++++ b/dream/runtime/vlm.py
+@@ -121,10 +121,12 @@ _CALL = re.compile(r"<tool_call>\s*(.*?)\s*</tool_call>", re.DOTALL)
+ 
+ 
+ def parse_tool_call(text: str) -> tuple[dict | None, str]:
+-    """The first tool call in a model output, or (None, error message). JSON only."""
++    """Exactly one tool call, or (None, error message). Never execute a partial batch."""
+     found = _CALL.findall(text)
+     if not found:
+         return None, "no <tool_call> found; call exactly one tool per turn"
++    if len(found) != 1 or text.count("<tool_call>") != 1 or text.count("</tool_call>") != 1:
++        return None, "call exactly one tool per turn; multiple or incomplete calls rejected"
+     try:
+         call = json.loads(found[0])
+     except json.JSONDecodeError as e:
+@@ -212,8 +214,22 @@ class VLMAgent:
+         self.max_steps = max_steps
+         self.max_invalid = max_invalid
+         self.schemas = tool_schemas()
++        set_cancel = getattr(backend, "set_cancel_event", None)
++        if set_cancel is not None:
++            set_cancel(toolbox.cancel)
+ 
+-    def run(self, instruction: str, on_event: Callable[[str, dict], None] | None = None):
++    def run(
++        self,
++        instruction: str,
++        on_event: Callable[[str, dict], None] | None = None,
++        *,
++        expected_goal: Goal | None = None,
++    ):
++        """Run tools for an instruction. Accepted success requires a caller-bound objective.
++
++        ``expected_goal`` is a trusted task contract, not an extra model input. Without one,
++        physical tool use and refusals work, but semantic completion cannot be certified.
++        """
+         emit = on_event or (lambda kind, data: None)
+         emit("goal", {"instruction": instruction})
+         scene = self.tools.call("observe_scene")
+@@ -231,13 +247,22 @@ class VLMAgent:
+                     ep, False, "robot in protective stop (operator reset needed)", emit
+                 )
+             t0 = time.perf_counter()
+-            output = self.backend.generate(_bounded_images(messages), self.schemas)
++            try:
++                output = self.backend.generate(_bounded_images(messages), self.schemas)
++            except (TimeoutError, OSError, ValueError, RuntimeError) as e:
++                self.tools.robot.hold()
++                return self._end(ep, False, f"model inference failed: {type(e).__name__}", emit)
+             model_s = time.perf_counter() - t0
++            if self.tools.cancel.is_set():
++                self.tools.robot.hold()
++                return self._end(ep, False, "cancelled by user during inference", emit)
++            if self.tools.robot.state().protective_stop:
++                return self._end(ep, False, "robot entered protective stop during inference", emit)
+             messages.append({"role": "assistant", "content": [{"type": "text", "text": output}]})
+             call, error = parse_tool_call(output)
+             result, tool_s = None, 0.0
+             if call is not None and call["name"] == "finish":
+-                done, error = self._finish(call["arguments"], ep)
++                done, error = self._finish(call["arguments"], ep, expected_goal)
+                 if done:
+                     ep.steps.append(VLMStep(output, call, None, "", model_s, 0.0))
+                     return self._end(ep, ep.success_claimed, ep.reason, emit)
+@@ -272,7 +297,7 @@ class VLMAgent:
+             messages.append(self._user(f"{call['name']} result:\n{_brief(result)}"))
+         return self._end(ep, False, f"step budget ({self.max_steps}) exhausted", emit)
+ 
+-    def _finish(self, args: dict, ep: VLMEpisode) -> tuple[bool, str]:
++    def _finish(self, args: dict, ep: VLMEpisode, expected_goal: Goal | None) -> tuple[bool, str]:
+         """(accepted, error). A success claim must verify on fresh observations."""
+         success, reason = args.get("success"), args.get("reason", "")
+         if not isinstance(success, bool) or not isinstance(reason, str):
+@@ -285,7 +310,11 @@ class VLMAgent:
+         except (ValueError, AttributeError, TypeError) as e:
+             return False, f"finish(success=true) needs a valid structured goal ({e})"
+         ep.declared_goal = goal
+-        v = self.tools.call("verify_goal", {"goal": goal})
++        if expected_goal is None:
++            return False, "success rejected: no caller-bound goal to verify instruction completion"
++        if goal != expected_goal:
++            return False, "success rejected: declared goal is different from the caller-bound goal"
++        v = self.tools.call("verify_goal", {"goal": expected_goal})
+         holding = self.tools.held_object()
+         if v.ok and v.data.get("satisfied") and holding is None:
+             ep.success_claimed, ep.reason = True, f"verified: {reason}"
+diff --git a/dream/tools/toolbox.py b/dream/tools/toolbox.py
+index 754177d..1964415 100644
+--- a/dream/tools/toolbox.py
++++ b/dream/tools/toolbox.py
+@@ -186,6 +186,9 @@ class Toolbox:
+                 "position": np.round(o.position, 4).tolist(),
+                 "yaw": round(o.yaw, 3),
+                 "size": o.size,
++                "visible": o.visible,
++                "last_seen": o.last_seen,
++                "position_std": o.position_std,
+             }
+             for o in self.perception.observe_objects()
+         ]
+@@ -199,6 +202,10 @@ class Toolbox:
+                 "handle_position": np.round(a.handle_pos, 4).tolist(),
+                 "box_centre": np.round(a.box_centre, 4).tolist(),
+                 "box_half": np.round(a.box_half, 4).tolist(),
++                "handle_visible": a.handle_visible,
++                "last_seen": a.last_seen,
++                "position_std": a.position_std,
++                "orientation_observed": a.orientation_observed,
+             }
+             for a in self.perception.observe_articulated()
+         ]

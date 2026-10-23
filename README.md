@@ -38,7 +38,8 @@ rules, architecture and engineering standards are in [`AGENTS.md`](AGENTS.md).
    (`dream/runtime/vlm.py`) lets a vision-language model (selected: Qwen3-VL-4B-Instruct) choose
    DREAM's typed tools from a natural-language instruction and the camera image. Its contracts
    are tested with a scripted test double. **No pretrained model has been executed in this
-   repository**: this environment has no route to the model hosts and no GPU (see
+   repository**: the current Windows host can reach model hosts, but has insufficient free
+   RAM for the selected full planner checkpoint and no CUDA GPU (see
    [Foundation models](#foundation-models-dreamruntimevlmpy-resultsfoundation_model_audit)).
 
 ![Panda: red cube into the tray, then blue stacked on green](results/demo/panda_session/replay.gif)
@@ -80,8 +81,8 @@ MuJoCo 3.16.0, NumPy 2.5.3, Linux, CPU only.
 | 10 | Visual perception replacing oracle poses | **Tabletop pick-and-place: implemented and tested** (classical RGB-D baseline). Camera-driven discovery: implemented, **not working** (negative result) | `tests/test_vision.py`, `results/vision`, `results/compartment_vision_dev` |
 | 11 | **Discovery invoked on demand by the runtime (unfamiliar compartment on the Panda)** | **In progress**: implemented and tested on the narrowed scene; held-out evaluation below; challenge variants open | `tests/test_compartment.py`, `results/compartment`, audit table |
 | 12 | Experience memory, failure-driven replanning, skill adaptation | Planned | n/a |
-| 12a | Vision-language planner (Qwen3-VL-4B-Instruct) choosing typed tools | Interface implemented and contract-tested with a scripted test double. **Model inference not run** (hosts blocked here) | `tests/test_vlm.py`, `results/foundation_model_audit` |
-| 12b | Learned motor policy (GR00T N1.7-LIBERO) behind `run_learned_policy` | **Not started**: checkpoint, licence and conventions unverifiable here; needs a GPU | `results/foundation_model_audit` |
+| 12a | Vision-language planner (Qwen3-VL-4B-Instruct) choosing typed tools | Interface implemented and contract-tested with test doubles. **Model inference not run**; caller-bound success contract, atomic call rejection and cancellation checks | `tests/test_vlm.py`; hardware audit below |
+| 12b | Learned motor policy (GR00T N1.7-LIBERO) | **Feasibility inspected; adapter not implemented**. Checkpoint/configs reachable; missing wrist camera, rotation/control mapping and CUDA inference hardware | Hardware and source-contract audit below |
 | 13 | Generalisation evaluation across goals, arrangements and task families | Planned | n/a |
 | 14 | Learned world/motor models, mobile or whole-body embodiments | Planned, conditional on evidence and compute | n/a |
 
@@ -93,6 +94,10 @@ Python >= 3.10 (developed on 3.13). CPU only.
 pip install -e ".[dev]"            # mujoco==3.16.0, numpy, matplotlib, pytest, ruff
 sudo apt-get install libosmesa6    # only for headless rendering of the demo GIF
 ```
+
+On Windows, use GLFW instead of Linux OSMesa. In PowerShell, set
+`$env:MUJOCO_GL='glfw'; $env:PYOPENGL_PLATFORM='win32'` before running tests or experiments.
+The continuation uses an isolated `.venv`; its interpreter is `.\.venv\Scripts\python`.
 
 ## Run
 
@@ -546,7 +551,7 @@ Measured: **0/12 drawers and lids, 0 false claims**. The fixed boxes were declin
   camera measurements;
 - position-only evidence misidentified lids as prismatic.
 
-**Since then (development work; no saved re-measurement yet).**
+**Since then (development work; continuation smoke below).**
 - *Handle measurement calibrated* (`experiments/calibrate_handle_measurement.py`,
   `results/handle_measurement_calibration`, development seeds 0–9, 30 scenes, with the true
   handle pose used only for scoring):
@@ -568,6 +573,12 @@ Measured: **0/12 drawers and lids, 0 false claims**. The fixed boxes were declin
   supply a recent release position for one re-grasp when vision still shows an old, uncertain
   estimate. A lost grasp or failed release supplies no such estimate. The time limits and
   contact fallback are uncalibrated heuristics, not demonstrated transfer or learning.
+- Saved continuation smoke (`results/compartment_vision_continuation_smoke`, inspected
+  development seed 1): drawer and lid both completed and verified; fixed box identified and
+  declined, zero false claims and protective stops. This is a pipeline smoke, not a success
+  rate estimate or a controlled attribution to these changes. It ran at `7ef4d8a` with the
+  uncommitted tool-result metadata changes preserved in `working_tree.patch`; the summary
+  records `dirty=true`. The original negative result remains above.
 - Still open: grasping the knob again from a camera estimate, the grasp being lost while
   opening, verification right after placing (the cube estimate is occluded), and the
   position-only adequacy threshold (still the 0.59 placeholder).
@@ -575,19 +586,40 @@ Measured: **0/12 drawers and lids, 0 false claims**. The fixed boxes were declin
 ### Foundation models (`dream/runtime/vlm.py`, `results/foundation_model_audit`)
 
 **Selected models.**
-- Planner: **Qwen/Qwen3-VL-4B-Instruct** (Apache-2.0, per its model card; the card could not be
-  re-checked from here). About 9 GB of memory in bfloat16.
-- Learned motor policy: **NVIDIA GR00T N1.7-LIBERO**, with OpenVLA-OFT as the comparison or
-  fallback. Neither is integrated. Their checkpoints, licences, camera and state conventions,
-  action representation and normalisation must be read from the official repositories before
-  an adapter is written, and none of those could be reached.
+- Planner: **Qwen/Qwen3-VL-4B-Instruct**, Apache-2.0 per the reachable
+  [official model card](https://huggingface.co/Qwen/Qwen3-VL-4B-Instruct).
+  The checkpoint index lists 8.88 GB of weights before inference buffers.
+- Learned motor policy: **NVIDIA GR00T N1.7-LIBERO**. The
+  [model card](https://huggingface.co/nvidia/GR00T-N1.7-LIBERO) specifies NVIDIA Open Model
+  License Agreement; upstream inference code is Apache-2.0. No upstream assets or model
+  dependencies have been added. OpenVLA remains an untested fallback.
 
-**Audit** (`experiments/audit_foundation_models.py`, saved run at `8366bfe`):
+**Original Linux audit** (`experiments/audit_foundation_models.py`, saved run at `8366bfe`):
 - 4 CPUs, 16.5 GB RAM, 31.5 GB free disk, **no GPU**, no torch or transformers installed.
 - huggingface.co, github.com, modelscope.cn and download.pytorch.org are refused by the
   environment's network policy (403 at the proxy); pypi.org is reachable.
-- So Qwen3-VL cannot be downloaded here, and GR00T could not be run even with its checkpoint:
+- Qwen3-VL could not be downloaded in that environment, nor could GR00T run with its checkpoint:
   it needs a CUDA GPU.
+
+**Windows continuation audit** (`results/foundation_model_audit_windows_sources/audit.json`):
+all checked hosts returned HTTP 200. The host has 16.8 GB total RAM, 3.96 GB available at
+the audit, no `nvidia-smi`, and no inference packages installed in `.venv`. Qwen's full
+checkpoint exceeds available RAM before buffers; no hosted endpoint was provided. Model
+inference was not attempted, and no weights were downloaded. The audit records the script's
+hash and dirty working state as well as the base revision; the earlier Linux audit is preserved.
+
+The audit also records pinned official source URLs and hashes. GR00T's `libero_10` configuration
+uses an external image plus wrist image, eight state values (xyz, three rotation-vector
+components despite the names roll/pitch/yaw, two finger positions), and a 16-step chunk of
+seven action values. The official wrapper uses 256-square RGB views flipped in both axes,
+and transforms gripper commands from [0,1] to a binary command with inverted sign. The
+processor config labels actions `ABSOLUTE/NON_EEF`; that label alone does **not** establish
+world-frame position commands because the wrapper passes them into LIBERO's controller.
+OSC scaling, reference frames and frequency remain unverified for DREAM. DREAM lacks the
+wrist camera, per-finger state interface and validated arbitrary-orientation action mapping for a
+faithful mapping. The [upstream hardware requirements](https://github.com/NVIDIA/Isaac-GR00T#hardware-requirements)
+specify a GPU with at least 16 GB VRAM. There is no validated motor adapter or learned action
+execution here; passing these action values directly to DREAM would be incorrect.
 
 **What exists** (`dream/runtime/vlm.py`, `dream/runtime/qwen.py`):
 - `VLMAgent` gives the model the instruction, the camera image (at most two images kept in
@@ -596,11 +628,20 @@ Measured: **0/12 drawers and lids, 0 false claims**. The fixed boxes were declin
 - Output is parsed only as JSON inside the model's own `<tool_call>` format. Nothing it
   writes is executed as code. Tool arguments go through the same toolbox validation,
   preconditions, budgets and safety limits as the rule-based planner.
-- A success claim is accepted only if `verify_goal` confirms it on a fresh observation with
-  nothing in the hand; otherwise the rejection is fed back. Invalid or rejected calls are
+- A success claim must match a caller-bound structured objective, which is not shown to the
+  model, and `verify_goal` must confirm it with nothing in the hand. Without a trusted objective,
+  the runtime can use tools or decline but cannot certify natural-language completion.
+  Multiple calls are rejected together; hosted responses preserve all calls for this check.
+  Invalid or rejected calls are
   bounded (`max_invalid`), and the run stops.
 - The model chooses tools; it never supplies coordinates from images, motor commands or
-  mechanism types. Discovery stays the only way a mechanism is identified.
+  mechanism types. Coordinate-level moves and the fixed-pull benchmark strategy are rejected
+  at the model interface. Discovery stays the only way a mechanism is identified.
+- Tool observations expose visibility, timestamps and uncertainty. Cancellation is checked
+  after inference before dispatch. Local generation checks cancellation/time between tokens;
+  it cannot interrupt a blocked kernel or loading. Hosted requests can remain blocked until
+  their socket timeout, but a cancelled result cannot trigger an action. Inference errors
+  stop the episode and hold the robot.
 - Backends: local transformers inference (`QwenTransformersBackend`, the model's chat template
   with `tools`), or an OpenAI-compatible server such as vLLM (`OpenAICompatibleBackend`).
 - `experiments/run_vlm.py` compares condition A (rule-based planner given the structured goal)
@@ -612,8 +653,8 @@ image budget, and one scripted episode through real physics (`tests/test_vlm.py`
 double replays fixed outputs. These tests show the plumbing works. **They are not evidence of
 any model's ability.**
 
-**To run the model:** allow huggingface.co (and github.com for GR00T) in the environment's
-network settings, install `pip install -e ".[vlm]"`, download the checkpoint, then
+**To run the model:** on a host with enough available memory, install
+`pip install -e ".[vlm]"`, download the checkpoint, then
 `python experiments/run_vlm.py experiments/configs/vlm.json --model-path <dir>`. CPU
 inference works but is slow. GR00T needs a machine with an NVIDIA GPU.
 

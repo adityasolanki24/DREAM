@@ -186,6 +186,9 @@ class Toolbox:
                 "position": np.round(o.position, 4).tolist(),
                 "yaw": round(o.yaw, 3),
                 "size": o.size,
+                "visible": o.visible,
+                "last_seen": o.last_seen,
+                "position_std": o.position_std,
             }
             for o in self.perception.observe_objects()
         ]
@@ -199,6 +202,10 @@ class Toolbox:
                 "handle_position": np.round(a.handle_pos, 4).tolist(),
                 "box_centre": np.round(a.box_centre, 4).tolist(),
                 "box_half": np.round(a.box_half, 4).tolist(),
+                "handle_visible": a.handle_visible,
+                "last_seen": a.last_seen,
+                "position_std": a.position_std,
+                "orientation_observed": a.orientation_observed,
             }
             for a in self.perception.observe_articulated()
         ]

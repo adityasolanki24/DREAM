@@ -13,9 +13,11 @@ Safety and validity do not depend on the model:
   preconditions and runs skills on the safety-limited controller;
 - invalid outputs get a short error message back, and a run stops after ``max_invalid``
   consecutive invalid turns;
-- the model ends a task with ``finish``. A claim of success is accepted only if the structured
-  goal the model declares is verified by ``verify_goal`` on fresh observations, and nothing is
-  left in the gripper. A rejected claim is reported back to the model.
+- the model ends a task with ``finish``. Its declared goal must equal the caller-bound goal,
+  verified by ``verify_goal`` on fresh observations, with nothing left in the gripper. Without
+  a trusted objective, the agent cannot certify instruction completion;
+- named skills choose metric targets from sensors. Coordinate-level moves and benchmark-only
+  fixed pulls are rejected at this model interface.
 
 The model sits behind ``VLMBackend``. Backends for Qwen3-VL (local transformers checkpoint, or
 an OpenAI-compatible server such as vLLM) are in ``dream/runtime/qwen.py``. Tests use a
@@ -71,6 +73,9 @@ explain why."""
 # Images are large in the model's context: keep only the most recent ones.
 MAX_IMAGES_IN_CONTEXT = 2
 MAX_RESULT_CHARS = 3000
+# The toolbox's coordinate-level tool remains available to measured controllers, but the
+# model interface has no provenance check for generated coordinates. Offer named skills only.
+MODEL_EXCLUDED_TOOLS = {"move_end_effector"}
 
 
 class VLMBackend(Protocol):
@@ -84,7 +89,7 @@ class VLMBackend(Protocol):
 
 
 def tool_schemas() -> list[dict]:
-    """The toolbox's typed tools (and ``finish``) as JSON-schema function definitions."""
+    """Named physical tools (and ``finish``), using the toolbox's existing definitions."""
     kinds = {
         "string": {"type": "string"},
         "number": {"type": "number"},
@@ -102,6 +107,8 @@ def tool_schemas() -> list[dict]:
     }
     out = []
     for spec in [*TOOL_SPECS, FINISH_SPEC]:
+        if spec["name"] in MODEL_EXCLUDED_TOOLS:
+            continue
         props = {k: dict(kinds[p["type"]]) for k, p in spec["parameters"].items()}
         required = [k for k, p in spec["parameters"].items() if p.get("required")]
         out.append(
@@ -121,10 +128,12 @@ _CALL = re.compile(r"<tool_call>\s*(.*?)\s*</tool_call>", re.DOTALL)
 
 
 def parse_tool_call(text: str) -> tuple[dict | None, str]:
-    """The first tool call in a model output, or (None, error message). JSON only."""
+    """Exactly one tool call, or (None, error message). Never execute a partial batch."""
     found = _CALL.findall(text)
     if not found:
         return None, "no <tool_call> found; call exactly one tool per turn"
+    if len(found) != 1 or text.count("<tool_call>") != 1 or text.count("</tool_call>") != 1:
+        return None, "call exactly one tool per turn; multiple or incomplete calls rejected"
     try:
         call = json.loads(found[0])
     except json.JSONDecodeError as e:
@@ -212,8 +221,22 @@ class VLMAgent:
         self.max_steps = max_steps
         self.max_invalid = max_invalid
         self.schemas = tool_schemas()
+        set_cancel = getattr(backend, "set_cancel_event", None)
+        if set_cancel is not None:
+            set_cancel(toolbox.cancel)
 
-    def run(self, instruction: str, on_event: Callable[[str, dict], None] | None = None):
+    def run(
+        self,
+        instruction: str,
+        on_event: Callable[[str, dict], None] | None = None,
+        *,
+        expected_goal: Goal | None = None,
+    ):
+        """Run tools for an instruction. Accepted success requires a caller-bound objective.
+
+        ``expected_goal`` is a trusted task contract, not an extra model input. Without one,
+        physical tool use and refusals work, but semantic completion cannot be certified.
+        """
         emit = on_event or (lambda kind, data: None)
         emit("goal", {"instruction": instruction})
         scene = self.tools.call("observe_scene")
@@ -231,20 +254,41 @@ class VLMAgent:
                     ep, False, "robot in protective stop (operator reset needed)", emit
                 )
             t0 = time.perf_counter()
-            output = self.backend.generate(_bounded_images(messages), self.schemas)
+            try:
+                output = self.backend.generate(_bounded_images(messages), self.schemas)
+            except (TimeoutError, OSError, ValueError, RuntimeError) as e:
+                self.tools.robot.hold()
+                return self._end(ep, False, f"model inference failed: {type(e).__name__}", emit)
             model_s = time.perf_counter() - t0
+            if self.tools.cancel.is_set():
+                self.tools.robot.hold()
+                return self._end(ep, False, "cancelled by user during inference", emit)
+            if self.tools.robot.state().protective_stop:
+                return self._end(ep, False, "robot entered protective stop during inference", emit)
             messages.append({"role": "assistant", "content": [{"type": "text", "text": output}]})
             call, error = parse_tool_call(output)
             result, tool_s = None, 0.0
             if call is not None and call["name"] == "finish":
-                done, error = self._finish(call["arguments"], ep)
+                done, error = self._finish(call["arguments"], ep, expected_goal)
                 if done:
                     ep.steps.append(VLMStep(output, call, None, "", model_s, 0.0))
                     return self._end(ep, ep.success_claimed, ep.reason, emit)
             elif call is not None:
                 emit("action", {"tool": call["name"], "args": call["arguments"]})
                 t1 = time.perf_counter()
-                result = self.tools.call(call["name"], call["arguments"])
+                if call["name"] in MODEL_EXCLUDED_TOOLS:
+                    result = ToolResult(
+                        call["name"], "rejected", "use named skills, not generated coordinates"
+                    )
+                elif (
+                    call["name"] == "open_articulated"
+                    and call["arguments"].get("strategy", "learned") != "learned"
+                ):
+                    result = ToolResult(
+                        call["name"], "rejected", "opening requires a discovered constraint"
+                    )
+                else:
+                    result = self.tools.call(call["name"], call["arguments"])
                 tool_s = time.perf_counter() - t1
                 emit(
                     "result",
@@ -272,7 +316,7 @@ class VLMAgent:
             messages.append(self._user(f"{call['name']} result:\n{_brief(result)}"))
         return self._end(ep, False, f"step budget ({self.max_steps}) exhausted", emit)
 
-    def _finish(self, args: dict, ep: VLMEpisode) -> tuple[bool, str]:
+    def _finish(self, args: dict, ep: VLMEpisode, expected_goal: Goal | None) -> tuple[bool, str]:
         """(accepted, error). A success claim must verify on fresh observations."""
         success, reason = args.get("success"), args.get("reason", "")
         if not isinstance(success, bool) or not isinstance(reason, str):
@@ -285,7 +329,11 @@ class VLMAgent:
         except (ValueError, AttributeError, TypeError) as e:
             return False, f"finish(success=true) needs a valid structured goal ({e})"
         ep.declared_goal = goal
-        v = self.tools.call("verify_goal", {"goal": goal})
+        if expected_goal is None:
+            return False, "success rejected: no caller-bound goal to verify instruction completion"
+        if goal != expected_goal:
+            return False, "success rejected: declared goal is different from the caller-bound goal"
+        v = self.tools.call("verify_goal", {"goal": expected_goal})
         holding = self.tools.held_object()
         if v.ok and v.data.get("satisfied") and holding is None:
             ep.success_claimed, ep.reason = True, f"verified: {reason}"
