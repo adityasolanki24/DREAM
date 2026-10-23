@@ -24,6 +24,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "experiments/configs/cloud_qwen_pilot.json"
+ZONES = ("us-central1-c", "us-central1-b", "us-central1-a")
 
 
 @contextmanager
@@ -61,7 +62,7 @@ def plan(project: str, cfg: dict, name: str) -> dict:
         raise ValueError("supply a valid --project or DREAM_GCP_PROJECT")
     if not re.fullmatch(r"dream-qwen-[a-z0-9-]{1,35}", name):
         raise ValueError("run names must be DREAM-specific")
-    if cfg["machine"] != "g2-standard-8" or cfg["zone"] not in ("us-central1-a", "us-central1-c"):
+    if cfg["machine"] != "g2-standard-8" or cfg["zone"] not in ZONES:
         raise ValueError("this pilot is restricted to one reviewed L4 configuration")
     minutes = cfg["max_minutes"]
     if not isinstance(minutes, int) or isinstance(minutes, bool) or not 1 <= minutes <= 45:
@@ -129,6 +130,81 @@ def create_command(p: dict, sha: str, archive_hash: str, startup: Path | None = 
         f"--metadata-from-file=startup-script={startup or ROOT / 'cloud/vm_startup.sh'}",
         "--metadata=" + ",".join(f"{k}={v}" for k, v in metadata.items()),
     ]
+
+
+def allocate(p: dict, sha: str, checksum: str, startup: Path, dest: Path) -> None:
+    """Retry explicit stockouts only, sharing regional resources and never duplicating VMs.
+
+    Three zones are supported by the same regional L4 configuration. Other failures,
+    including ambiguous timeouts, require inspection rather than another allocation.
+    """
+    zones = [p["zone"], *(z for z in ZONES if z != p["zone"])]
+    records = []
+    for zone in zones:
+        p["zone"] = zone
+        (dest / "manifest.json").write_text(json.dumps(p, indent=2), encoding="utf-8")
+        record = {
+            "zone": zone,
+            "status": "requested",
+            "time_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        }
+        records.append(record)
+        path = dest / "allocation_attempts.json"
+        path.write_text(json.dumps(records, indent=2), encoding="utf-8")
+        print(f"Allocating {p['machine']} in {zone}", flush=True)
+        try:
+            gcloud(*create_command(p, sha, checksum, startup))
+        except subprocess.CalledProcessError as error:
+            detail = error.stderr or ""
+            capacity = "ZONE_RESOURCE_POOL_EXHAUSTED" in detail.upper()
+            record.update(status="capacity_rejected" if capacity else "failed", stderr=detail)
+            path.write_text(json.dumps(records, indent=2), encoding="utf-8")
+            if not capacity:
+                raise
+            for kind in ("instances", "disks"):
+                rows = json.loads(
+                    gcloud(
+                        "compute",
+                        kind,
+                        "list",
+                        f"--project={p['project']}",
+                        f"--filter=name={p['name']}",
+                        "--format=json",
+                    )
+                )
+                if rows:
+                    raise RuntimeError(
+                        f"allocation uncertain: {kind} still present; no retry"
+                    ) from error
+            print(f"No capacity in {zone}; absence verified, trying the next zone", flush=True)
+            if zone == zones[-1]:
+                raise
+        else:
+            record["status"] = "allocated"
+            path.write_text(json.dumps(records, indent=2), encoding="utf-8")
+            return
+
+
+def check_pilot(out: Path) -> None:
+    """A retrieved guest failure is not a pass. Keep preregistered task success report-only."""
+    if (out / "EXIT_CODE").read_text().strip() != "0":
+        raise RuntimeError("guest failed; inspect preserved outputs before another paid run")
+    path = out / "pilot/summary.json"
+    if not path.is_file():
+        raise RuntimeError("pilot summary missing")
+    summary = json.loads(path.read_text())
+    cfg = json.loads((ROOT / "experiments/configs/vlm_cloud_pilot.json").read_text())
+    expected = {(e["seed"], c) for e in cfg["episodes"] for c in ("A_rule_based", "B_vlm")}
+    episodes = summary.get("episodes", [])
+    observed = {(e.get("seed"), e.get("condition")) for e in episodes}
+    if (
+        not summary.get("offline_contract", {}).get("valid_named_call")
+        or summary.get("false_claim_gate_pass") is not True
+        or len(episodes) != len(expected)
+        or observed != expected
+        or any(e.get("false_claim") is not False for e in episodes)
+    ):
+        raise RuntimeError("pilot acceptance gate failed or episodes incomplete")
 
 
 def audit(project: str) -> dict:
@@ -348,7 +424,7 @@ def _launch(p: dict, allowance: float) -> None:
             startup.write_text(
                 git("show", "HEAD:cloud/vm_startup.sh") + "\n", encoding="utf-8", newline="\n"
             )
-            gcloud(*create_command(p, p["git_sha"], checksum, startup))
+            allocate(p, p["git_sha"], checksum, startup, dest)
         # Instance-scoped deletion permission, rather than project-wide access to NERVA VMs.
         gcloud(
             "compute",
@@ -387,6 +463,12 @@ def _launch(p: dict, allowance: float) -> None:
         )
         if errors:
             print("Cleanup needs audit; inspect", dest / "cleanup_errors.json")
+    if errors:
+        raise RuntimeError("cleanup incomplete; resolve before another paid run")
+    check_pilot(dest / "out")
+    print(
+        "Pilot completed; preregistered gates passed. Task success remains report-only.", flush=True
+    )
 
 
 def recover(manifest: Path, yes: bool) -> None:

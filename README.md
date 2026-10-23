@@ -104,7 +104,7 @@ these cloud-only changes. The Windows fast-suite duration still exceeds the 60 s
 | 11 | **Discovery invoked on demand by the runtime (unfamiliar compartment on the Panda)** | **In progress**: implemented and tested on the narrowed scene; held-out evaluation below; challenge variants open | `tests/test_compartment.py`, `results/compartment`, audit table |
 | 12 | Experience memory, failure-driven replanning, skill adaptation | Planned | n/a |
 | 12a | Vision-language planner (Qwen3-VL-4B-Instruct) choosing typed tools | Interface implemented and contract-tested with test doubles. **Model inference not run**; caller-bound success contract, atomic call rejection and cancellation checks | `tests/test_vlm.py`; hardware audit below |
-| 12a-cloud | Capped GPU inference and live-physics pilot | Approved allocation attempted; zone `us-central1-a` lacked L4 capacity. No VM boot or inference; cleanup verified. Zone `c` proposal awaits approval | `results/cloud_pilot_allocation_failure`, `cloud/launch.py`, `tests/test_cloud.py` |
+| 12a-cloud | Capped GPU inference and live-physics pilot | First allocation failed before boot; cleanup verified. Sequential retries authorized within US$10 total; capacity failover contract-tested, model inference still pending | `results/cloud_pilot_allocation_failure`, `cloud/launch.py`, `tests/test_cloud.py` |
 | 12b | Learned motor policy (GR00T N1.7-LIBERO) | **Feasibility inspected; adapter not implemented**. Checkpoint/configs reachable; missing wrist camera, rotation/control mapping and CUDA inference hardware | Hardware and source-contract audit below |
 | 13 | Generalisation evaluation across goals, arrangements and task families | Planned | n/a |
 | 14 | Learned world/motor models, mobile or whole-body embodiments | Planned, conditional on evidence and compute | n/a |
@@ -727,7 +727,7 @@ the bucket. The final audit found no DREAM VMs, disks, addresses, routers, netwo
 service accounts or buckets. Actual billing is not established; brief network/storage charges
 may apply, so zero cost is not claimed.
 
-The reviewable next proposal changes only the zone to `us-central1-c`, with the same
+The next run starts in `us-central1-c`, with the same
 `g2-standard-8`: 1 L4 (24 GB VRAM), 32 GiB
 host RAM, 100 GB auto-deleted boot disk, fixed image
 `common-cu129-ubuntu-2204-nvidia-580-v20261019`, at most 45 minutes including setup.
@@ -742,11 +742,20 @@ disk/NAT charges, a 20 GiB download estimate, and storage/egress reserve. The pu
 [G2 rate](https://cloud.google.com/products/compute/pricing/accelerator-optimized) used is
 US$0.853624312/hour; [NAT](https://cloud.google.com/nat/pricing) adds US$0.045/GiB plus
 gateway/IP time. This is an estimate, **not a hard dollar cap**; traffic, tax and FX can vary.
-No existing credit or alert is counted as permission. The zone change requires renewed
-approval for one attempt under the same US$3 allowance and 45-minute cap; it has not been
-launched. The launcher permits the two reviewed zones, `a` and `c`, without automatic failover.
-Recovery validates the original manifest's zone even after the next configuration changes;
-regression tests cover both zones and recovery of the earlier attempt.
+The user subsequently authorized sequential retries until the pilot passes, within **US$10
+total**, retaining the 45-minute cap per VM. Capacity rejection now tries `c`, `b`, then `a`
+with the same regional network and bucket. Only an explicit capacity error is retried, after
+checking that no instance or boot disk remains. Permission failures and ambiguous timeouts
+stop for inspection. Allocation errors and zone changes are recorded before the next request;
+recovery uses the actual manifest zone. There is no concurrent GPU job or hardware escalation.
+Booted job failures are inspected before another paid run, with each full pilot's US$2.16
+estimate reserved against the aggregate allowance. Actual billing can lag and is not a hard
+dollar cap. The launcher also checks the guest exit code, summary completeness and frozen
+acceptance gates after retrieval; successful cleanup alone cannot count as a passed pilot.
+Task success remains report-only under the original pilot configuration.
+The retry checkpoint passed **167 fast tests in 83 s** plus Ruff lint/format
+(`results/cloud_retry_validation`); capacity failover tests use mocked cloud responses,
+not allocated GPUs. The full simulation suite was not rerun for these infrastructure changes.
 This is an infrastructure correction, with no changes to physical algorithms, task scenes,
 model prompts or evaluation gates.
 

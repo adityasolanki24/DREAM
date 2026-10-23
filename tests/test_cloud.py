@@ -28,7 +28,7 @@ def test_pilot_is_private_isolated_and_deleted_even_if_the_job_hangs():
     assert not any("nerva" in arg for arg in command)
 
 
-@pytest.mark.parametrize("zone", ["us-central1-a", "us-central1-c"])
+@pytest.mark.parametrize("zone", ["us-central1-a", "us-central1-b", "us-central1-c"])
 def test_reviewed_regional_zones_keep_the_same_hardware_budget_and_deadline(zone):
     cfg = json.loads(cloud.CONFIG.read_text())
     cfg["zone"] = zone
@@ -55,6 +55,76 @@ def test_recovery_keeps_the_manifest_zone_when_the_next_pilot_changes_zone(tmp_p
     monkeypatch.setattr(cloud, "audit", lambda *args: {})
     cloud.recover(manifest, True)
     assert "--zone=us-central1-a" in calls[0]
+
+
+def test_capacity_failover_records_failures_and_checks_absence_before_next_zone(
+    tmp_path, monkeypatch
+):
+    p = _plan()
+    calls = []
+
+    def run(*args):
+        calls.append(args)
+        if args[:3] == ("compute", "instances", "create") and "--zone=us-central1-c" in args:
+            raise subprocess.CalledProcessError(1, args, stderr="ZONE_RESOURCE_POOL_EXHAUSTED")
+        return "[]"
+
+    monkeypatch.setattr(cloud, "gcloud", run)
+    cloud.allocate(p, "a" * 40, "b" * 64, tmp_path / "startup.sh", tmp_path)
+    creates = [c for c in calls if c[:3] == ("compute", "instances", "create")]
+    assert len(creates) == 2 and "--zone=us-central1-b" in creates[-1]
+    assert p["zone"] == "us-central1-b"
+    assert calls[1][:3] == ("compute", "instances", "list")
+    assert calls[2][:3] == ("compute", "disks", "list")
+    records = json.loads((tmp_path / "allocation_attempts.json").read_text())
+    assert [r["status"] for r in records] == ["capacity_rejected", "allocated"]
+    assert json.loads((tmp_path / "manifest.json").read_text())["zone"] == p["zone"]
+
+
+@pytest.mark.parametrize(
+    "detail,rows",
+    [("PERMISSION_DENIED", "[]"), ("ZONE_RESOURCE_POOL_EXHAUSTED", '[{"name":"existing"}]')],
+)
+def test_allocation_never_retries_permissions_or_a_possibly_existing_vm(
+    tmp_path, monkeypatch, detail, rows
+):
+    calls = []
+
+    def run(*args):
+        calls.append(args)
+        if args[:3] == ("compute", "instances", "create"):
+            raise subprocess.CalledProcessError(1, args, stderr=detail)
+        return rows
+
+    monkeypatch.setattr(cloud, "gcloud", run)
+    with pytest.raises((subprocess.CalledProcessError, RuntimeError)):
+        cloud.allocate(_plan(), "a" * 40, "b" * 64, tmp_path / "startup.sh", tmp_path)
+    assert sum(c[:3] == ("compute", "instances", "create") for c in calls) == 1
+
+
+def test_guest_failure_or_missing_evidence_cannot_be_reported_as_a_pass(tmp_path):
+    (tmp_path / "EXIT_CODE").write_text("1\n")
+    with pytest.raises(RuntimeError, match="guest"):
+        cloud.check_pilot(tmp_path)
+    (tmp_path / "EXIT_CODE").write_text("0\n")
+    with pytest.raises(RuntimeError, match="summary"):
+        cloud.check_pilot(tmp_path)
+    (tmp_path / "pilot").mkdir()
+    summary = {
+        "offline_contract": {"valid_named_call": True},
+        "false_claim_gate_pass": True,
+        "episodes": [
+            {"seed": seed, "condition": condition, "false_claim": False, "success": False}
+            for seed in (201, 202)
+            for condition in ("A_rule_based", "B_vlm")
+        ],
+    }
+    (tmp_path / "pilot/summary.json").write_text(json.dumps(summary))
+    cloud.check_pilot(tmp_path)  # Task success remains report-only, as preregistered.
+    summary["episodes"][0]["false_claim"] = True
+    (tmp_path / "pilot/summary.json").write_text(json.dumps(summary))
+    with pytest.raises(RuntimeError, match="gate"):
+        cloud.check_pilot(tmp_path)
 
 
 @pytest.mark.parametrize(
