@@ -110,8 +110,9 @@ there must not be described as working. In summary:
 
 4. **Camera perception, first slice** (`dream/perception/`): a classical RGB-D pipeline replaces
    the object tracker for tabletop pick-and-place. It is a colour-and-depth baseline for box-like
-   objects, not open-world vision. Camera-driven mechanism discovery does not work yet, so
-   handle poses for discovery still come from the oracle-assisted tracker.
+   objects, not open-world vision. Camera-driven mechanism discovery has mixed development
+   outcomes and is not held-out validated; validated compartment results still use the
+   oracle-assisted handle tracker. Keep successes and failures visible in the README.
 
 A pretrained multimodal runtime now selects typed tools from language and camera observations;
 its measured scope belongs in the README. Its motor execution is classical. No learned-action

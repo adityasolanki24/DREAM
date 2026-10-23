@@ -106,6 +106,7 @@ def test_guest_failure_or_missing_evidence_cannot_be_reported_as_a_pass(tmp_path
     (tmp_path / "EXIT_CODE").write_text("1\n")
     with pytest.raises(RuntimeError, match="guest"):
         cloud.check_pilot(tmp_path)
+
     (tmp_path / "EXIT_CODE").write_text("0\n")
     with pytest.raises(RuntimeError, match="summary"):
         cloud.check_pilot(tmp_path)
@@ -125,6 +126,37 @@ def test_guest_failure_or_missing_evidence_cannot_be_reported_as_a_pass(tmp_path
     (tmp_path / "pilot/summary.json").write_text(json.dumps(summary))
     with pytest.raises(RuntimeError, match="gate"):
         cloud.check_pilot(tmp_path)
+
+
+def test_openloop_workload_is_explicit_and_never_accepts_a_task_summary(tmp_path):
+    cfg = json.loads(cloud.WORKLOAD_CONFIGS["molmo-openloop"].read_text())
+    p = cloud.plan("example-project", cfg, "dream-qwen-test")
+    command = cloud.create_command(p, "a" * 40, "b" * 64)
+    assert any("dream-workload=molmo-openloop" in arg for arg in command)
+    assert "--max-run-duration=45m" in command and p["estimated_usd"] < 3
+    (tmp_path / "EXIT_CODE").write_text("0\n")
+    with pytest.raises(RuntimeError, match="summary"):
+        cloud.check_pilot(tmp_path, "molmo-openloop")
+    (tmp_path / "molmo").mkdir()
+    summary = {
+        "real_model_executed": True,
+        "finite": True,
+        "shape": [15, 8],
+        "execution_permitted": False,
+    }
+    (tmp_path / "molmo/summary.json").write_text(json.dumps(summary))
+    with pytest.raises(RuntimeError, match="gate"):
+        cloud.check_pilot(tmp_path, "molmo-openloop")
+    np.save(tmp_path / "molmo/raw_actions.npy", np.zeros((15, 8)))
+    cloud.check_pilot(tmp_path, "molmo-openloop")
+    np.save(tmp_path / "molmo/raw_actions.npy", np.full((15, 8), np.nan))
+    with pytest.raises(RuntimeError, match="tensor"):
+        cloud.check_pilot(tmp_path, "molmo-openloop")
+    np.save(tmp_path / "molmo/raw_actions.npy", np.zeros((15, 8)))
+    summary["execution_permitted"] = True
+    (tmp_path / "molmo/summary.json").write_text(json.dumps(summary))
+    with pytest.raises(RuntimeError, match="gate"):
+        cloud.check_pilot(tmp_path, "molmo-openloop")
 
 
 @pytest.mark.parametrize(

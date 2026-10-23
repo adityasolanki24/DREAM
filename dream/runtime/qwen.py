@@ -9,8 +9,8 @@ Two ways to run the selected model, Qwen/Qwen3-VL-4B-Instruct (Apache-2.0):
   ``/v1/chat/completions`` API (for example vLLM serving the same checkpoint with the hermes
   tool parser). Narrow interface: messages with images as PNG data URLs, plus tool schemas.
 
-Tests exercise these interfaces with test doubles, without loading model weights. Neither
-backend has run pretrained inference in this repository. See the current README hardware audit.
+Tests exercise contracts with test doubles. The local CUDA backend also has real checkpoint
+and physics evidence in results/qwen_cloud_pilot_dev. The hosted backend remains unvalidated.
 """
 
 from __future__ import annotations

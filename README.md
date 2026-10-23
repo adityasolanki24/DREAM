@@ -61,13 +61,15 @@ unfamiliar physical behaviour.
 
 Every row marked "implemented and tested" has passing tests and/or saved results in `results/`.
 
-Last full verification (23 Oct 2026, code `21969bf`, branch
-`codex/camera-discovery-continuation`): **163 passed** in 411 s, including slow closed-loop,
-compartment, vision and live-session tests; Ruff lint/format passed. The fast suite passed
-142 tests in 71 s on this Windows host, exceeding the 60 s target. Python 3.13.14,
-MuJoCo 3.16.0, NumPy 2.5.4, GLFW; CPU control with Intel graphics for rendering. The full
-suite ran alongside the development diagnostic. XML and environment metadata are saved in
-`results/continuation_validation`. Earlier Linux verification was 132 tests in about 6 min.
+Latest full verification (23 Oct 2026, research branch based on `386a818`): **195 passed**
+in 226 s; fast suite **173 passed** in 44 s. Ruff lint/format and cloud Bash syntax passed.
+The suite covers classical manipulation, live sessions, discovery, cameras, isolation and
+new inference-only contracts. These CPU tests do not execute a learned motor checkpoint.
+Exact source hashes and XML are in `results/vla_source_audit/validation_final_meta.json`,
+`full_final.xml` and `fast_final.xml`. Python 3.13.14, MuJoCo 3.16.0, NumPy 2.5.4, GLFW;
+CPU control with Intel graphics for rendering. Earlier full verification at `21969bf` passed
+163 tests in 411 s (`results/continuation_validation`); its earlier fast suite exceeded the
+60 s target. The original Linux verification was 132 tests in about 6 min.
 
 Cloud-pilot checkpoint: the initial complete run at `c3a40d0` had **180 passed and one failed**
 in 556 s. The new live-vision harness test asserted guaranteed success on development seed
@@ -105,7 +107,7 @@ these cloud-only changes. The Windows fast-suite duration still exceeds the 60 s
 | 12 | Experience memory, failure-driven replanning, skill adaptation | Planned | n/a |
 | 12a | Vision-language planner (Qwen3-VL-4B-Instruct) choosing typed tools | **Implemented and development-evaluated:** real checkpoint, 2/2 tray tasks; no held-out language benchmark. Caller-bound success, cancellation and rejection contracts | `results/qwen_cloud_pilot_dev`, `tests/test_vlm.py` |
 | 12a-cloud | Capped GPU inference and live-physics pilot | **Executed:** zone c rejected capacity, zone b booted; guest and pilot gates passed. Cleanup error investigated and absence verified | `results/cloud_pilot_allocation_failure`, `cloud/launch.py`, `tests/test_cloud.py` |
-| 12b | Learned motor policy (GR00T N1.7-LIBERO) | **Feasibility inspected; adapter not implemented**. Checkpoint/configs reachable; missing wrist camera, rotation/control mapping and CUDA inference hardware | Hardware and source-contract audit below |
+| 12b | Learned motor policy (MolmoAct2-DROID first open-loop candidate; GR00T alternative) | **Partially implemented:** mounted wrist sensor, input/action audit and pinned inference runner CPU-tested. No real action tensors or learned motion yet | `tests/test_molmo.py`, `results/molmo_observation_dev`, source/decision audit below |
 | 13 | Generalisation evaluation across goals, arrangements and task families | Planned | n/a |
 | 14 | Learned world/motor models, mobile or whole-body embodiments | Planned, conditional on evidence and compute | n/a |
 
@@ -827,6 +829,101 @@ The initial failure lacks an episode trace, so its underlying action/perception 
 unknown. The harness now writes each scored outcome itself, including failures, before
 returning; task success remains report-only. No seeds, controller settings or geometry were
 changed in response.
+
+## Learned-action compatibility checkpoint (inference not yet executed)
+
+**Decision: inspect MolmoAct2-DROID first; keep GR00T as the alternative.** This selects an
+open-loop experiment, not a validated motor controller. Both require a wrist view and both
+have unresolved transfer to DREAM's Panda hand. Molmo's absolute seven-joint output is the
+smaller decoding problem; its single observation and 15-step chunk avoid GR00T DROID's
+additional EEF rotation representation and temporal observation history. No policy stack or
+upstream robotics framework is installed into the CPU environment.
+
+| Candidate | Inspected contract | Decision / remaining gap |
+|---|---|---|
+| MolmoAct2-DROID, checkpoint `d8c1abd8a27d8e859455bbe514df2bcc617db0fb` | Continuous 15×8 output, raw joint state, `franka_droid` quantile statistics; absolute joint pose; exterior/exterior-duplicate/wrist order allowed by model card | First open-loop candidate. Joint radians and gripper scalar remain distinct. Official simulator uses FR3 + Robotiq, while DREAM has Panda + Panda hand; closure conversion is an explicit unvalidated hypothesis. Control frequency and closed-loop transfer unvalidated. |
+| GR00T N1.7 LIBERO / DROID, code `944fe70` | LIBERO uses external+wrist views and controller-specific Cartesian actions. Current DROID tag uses two camera times, 17D EEF/gripper/joint state and 40-step actions, with relative EEF/joint representations | Genuine alternative, not rejected as unavailable. Requires more frame/rotation/postprocessing work; never pass raw values into DREAM's TCP controller. Code Apache-2.0; checkpoint licence separately recorded in earlier audit. |
+| openpi / LeRobot / tau-0-vla | Pretrained policy serving, data/normalisation pipelines, typed checkpoint contracts | Reviewed as alternatives. No broad framework adoption: each adds an environment and embodiment contract to verify. |
+
+The Molmo repository at `6070080` is Apache-2.0. Its checkpoint card/file listing does **not**
+declare a weight licence; this gap is recorded separately rather than assigning the code
+licence to weights. Nothing is vendored. The proposed optional inference stack pins Python
+3.12.12, torch 2.8.0, torchvision 0.23.0, transformers 4.57.1, accelerate 1.11.0 (Apache)
+and einops 0.8.1 (MIT), plus hashed transitives in `cloud/molmo.requirements.lock.txt`.
+This combination has not run the model. The upstream server pins a newer torch while its
+checkpoint config names transformers 5.3.0 and its project permits 4.57; source API inspection
+is not proof of runtime compatibility. The checkpoint card's BF16/autocast path is used without
+patching upstream cache files. GPU memory and numerical validity must be measured.
+
+**Implemented and CPU-tested:** optional body-mounted camera support; a hand-mounted RGB-D
+camera with measured calibration; synchronized exterior/wrist/proprioception capture;
+input validation; checksum verification of pinned custom code and normalisation metadata;
+and a raw action auditor that checks finite 15×8 chunks and Panda joint ranges without
+clipping, renormalising twice, or dispatching. A shape-valid chunk never authorizes execution.
+The wrist mount is experimental, not a reproduction of DROID calibration. The camera-mount
+test compares masses, inertia, actuator parameters and actual simulated trajectories with
+the original scene. The default scene's camera and physics settings are unchanged.
+Rule 3 classification: sensor-interface extension; the Panda-to-DROID closure mapping and
+camera viewpoint are **unverified workarounds**, confined to inspecting predictions. They
+must not be presented as calibration or validated cross-embodiment execution.
+
+`experiments/molmo_openloop.py capture` actually rendered the images in
+`results/molmo_observation_confirmed` (initial capture retained in
+`results/molmo_observation_dev`); **no learned actions were produced**. The inference command
+requires a separate reviewed checkpoint outside Git/OneDrive and cannot fall back to a stub.
+
+```powershell
+python experiments/molmo_openloop.py capture --out results/<new-capture>
+python experiments/molmo_openloop.py infer --observation results/<capture>/observation.npz --model-path <external-cache>/<pinned-revision> --out results/<new-inference>
+python experiments/audit_vla_sources.py --out results/<new-source-audit>.json
+```
+
+**Reuse audit:** `results/vla_source_audit` records pinned revisions, licences and source
+hashes. The reproducible audit re-fetched 72 small source/configuration files; it downloaded
+no model weights. Source review is deepest for the two motor candidates and orchestration
+interfaces; the other projects received README/licence/dependency triage, not execution.
+
+| Upstream | Useful direction | Scope decision |
+|---|---|---|
+| VoLoAgent | Periodic subgoal monitoring and action-chunk replacement | Reuse the idea behind typed DREAM contracts; do not import its optional GT-based failure detector into acting code. |
+| Show-Harness | Small semantic action vocabulary and embodiment interpreters | Useful interface example; semantic motion tokens are not evidence of a learned continuous-action policy. |
+| SpaceTools-Toolshed | Tool schemas and spatial-model services | No arbitrary code executor or broad service framework added. Custom NVIDIA licence recorded. |
+| RelateAnything | Object relations | AGPL-3.0 code; deferred until relational observations are a measured bottleneck. |
+| behavior_prompting | Composing reusable behaviours | MIT; reference only until a validated motor slice needs composition. |
+| GraspGen / cuRobo | General grasps / collision-aware motion | NVIDIA custom licence / Apache-2.0 code respectively; extra GPU dependencies deferred. |
+| Isaac Lab / RoboLab / SIMPLE | Simulation, policy clients and recording | BSD-3-Clause / Apache-2.0 / MIT code respectively; not adopted yet. SIMPLE's stated Isaac 4.5/MuJoCo 3.3 stack differs from DREAM's MuJoCo 3.16 baseline. |
+
+**Proposed paid workload, not launched:** `cloud/launch.py plan --workload molmo-openloop`
+selects one `g2-standard-8` (one L4, 32 GiB RAM) starting in `us-central1-b`, with sequential
+capacity-only fallback in the same region, the existing pinned Ubuntu 22.04/driver image,
+100 GB auto-deleted disk and Google-enforced 45-minute expiration including setup. It runs
+sensor capture plus open-loop continuous-action inference only, with neither Qwen nor
+Isaac Sim loaded. Custom source hashes are checked before importing checkpoint code.
+
+| Estimated maximum-duration item | USD |
+|---|---:|
+| VM, 0.75 h × 0.853624312 | 0.64 |
+| Boot disk, 0.75 h × 0.014 | 0.01 |
+| NAT gateway/IP time, 0.75 h × 0.0064 | <0.01 |
+| NAT download, 30 GiB × 0.045 | 1.35 |
+| Storage, output egress and reserve | 0.60 |
+| Total estimate (rounded) | **2.61** |
+
+This is an estimate, not a billing hard cap; requested allowance is US$3 for one workload.
+No paid run is authorized by this proposal. It uses the same private-network lifecycle,
+checksum retrieval, scoped cleanup and recovery command as the pilot. Resource names retain
+the launcher's historical `dream-qwen-` prefix; the manifest, label and startup metadata
+explicitly identify `molmo-openloop`. No public policy server or livestream is exposed.
+
+Isaac Sim is a later, separately approved workload. The official
+[6.0 requirements](https://docs.isaacsim.omniverse.nvidia.com/6.0.0/installation/requirements.html)
+call for RTX support, at least 16 GB VRAM and 32 GB RAM; A100/H100 without RT cores are
+unsupported. The inspected 5.1 documentation marks that release unsupported. No mutually
+validated Isaac/Isaac Lab/model environment has been selected yet. L4 memory cannot be
+assumed sufficient for concurrent rendering and model inference; separate processes or hosts
+must be measured. There is no Isaac Sim adapter, learned-action execution, policy server or
+Isaac video. The Qwen pilot recorded decision frames, not a continuous motion video, so those
+frames cannot be presented as an unedited execution recording.
 
 ## Limitations (read before citing any number)
 

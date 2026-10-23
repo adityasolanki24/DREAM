@@ -1,0 +1,58 @@
+{
+  "config": {
+    "checkpoint": "allenai/MolmoAct2-DROID",
+    "revision": "d8c1abd8a27d8e859455bbe514df2bcc617db0fb",
+    "source_revision": "6070080a20321b4f498ab30f28e1d09ac465edb7",
+    "seed": 210,
+    "seed_role": "development observation capture; not a task-success benchmark",
+    "instruction": "Pick up the red object and put it in the tray.",
+    "wrist_camera": {
+      "name": "wrist",
+      "mount_body": "hand",
+      "position": [
+        0.05,
+        0.0,
+        0.03
+      ],
+      "target": [
+        0.0,
+        0.0,
+        0.18
+      ],
+      "width": 320,
+      "height": 180
+    },
+    "state_mapping": "q1..q7 rad, experimental closure fraction 1-width_m/0.08",
+    "camera_order": [
+      "exterior",
+      "exterior_duplicate",
+      "wrist"
+    ],
+    "action_contract": {
+      "horizon": 15,
+      "dimension": 8,
+      "norm_tag": "franka_droid",
+      "mode": "continuous",
+      "units": "robot scale returned by predict_action; seven absolute joint angles, gripper convention unvalidated"
+    },
+    "gates": {
+      "finite_shape": [
+        15,
+        8
+      ],
+      "physical_execution_permitted": false
+    },
+    "limitations": [
+      "Panda hand differs from DROID Robotiq",
+      "camera mount is experimental, not a reproduced DROID calibration",
+      "control frequency unvalidated",
+      "checkpoint card omits a weight licence declaration; code repo Apache-2.0 does not establish weight licence"
+    ],
+    "note": "Inference-only. No action dispatch or classical fallback. Paid execution requires separate approval. No claim of a functioning learned motor controller."
+  },
+  "git_sha": "386a8187b995aee5408c1b4aa5d28615253fcdf1",
+  "dirty": true,
+  "python": "3.13.14 | packaged by Anaconda, Inc. | (main, Jul  9 2026, 14:26:41) [MSC v.1942 64 bit (AMD64)]",
+  "command": "capture",
+  "real_model_executed": false
+}

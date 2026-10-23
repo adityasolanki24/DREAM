@@ -11,6 +11,7 @@ ZONE=$(basename "$(meta instance/zone)")
 PROJECT=$(meta project/project-id)
 export DREAM_CODE_SHA=$(meta instance/attributes/dream-code-sha)
 CAP=$(meta instance/attributes/dream-max-minutes)
+WORKLOAD=$(meta instance/attributes/dream-workload)
 mkdir -p /work/out
 exec > >(tee -a /work/out/vm.log) 2>&1
 sync_out() { gsutil -q -m rsync -r /work/out "gs://$BUCKET/out" || true; }
@@ -52,12 +53,21 @@ apt-get install -y -q libosmesa6 python3-pip
 python3 -m pip install uv==0.9.4
 uv venv --python 3.12.12 /work/venv
 source /work/venv/bin/activate
-uv pip install --require-hashes -r /work/DREAM/cloud/requirements.lock.txt
+LOCK=requirements.lock.txt
+[ "$WORKLOAD" = molmo-openloop ] && LOCK=molmo.requirements.lock.txt
+uv pip install --require-hashes -r "/work/DREAM/cloud/$LOCK"
 uv pip install --no-deps -e /work/DREAM
 uv pip freeze > /work/out/pip-freeze.txt
 cd /work/DREAM
 UP=$(cut -d. -f1 /proc/uptime)
 LEFT=$(( CAP * 60 - 120 - UP ))
 [ "$LEFT" -gt 0 ] || exit 124
-timeout --signal=TERM --kill-after=30s "${LEFT}s" \
-  python experiments/cloud_qwen_pilot.py --out /work/out/pilot
+case "$WORKLOAD" in
+  qwen-pilot)
+    timeout --signal=TERM --kill-after=30s "${LEFT}s" \
+      python experiments/cloud_qwen_pilot.py --out /work/out/pilot ;;
+  molmo-openloop)
+    timeout --signal=TERM --kill-after=30s "${LEFT}s" \
+      python experiments/cloud_molmo_openloop.py --out /work/out ;;
+  *) echo "Unsupported workload: $WORKLOAD"; exit 2 ;;
+esac

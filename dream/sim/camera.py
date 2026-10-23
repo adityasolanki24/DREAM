@@ -52,6 +52,7 @@ class CameraSpec:
     # then rotation about world x, y, z in degrees). Perception only ever sees the report.
     calibration_error: tuple[float, ...] = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
     name: str = CAMERA_NAME
+    mount_body: str | None = None  # None: world mount; otherwise position/target are body-local
 
     def xyaxes(self) -> list[float]:
         f = np.subtract(self.target, self.position)

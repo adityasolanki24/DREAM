@@ -1,0 +1,154 @@
+diff --git a/cloud/launch.py b/cloud/launch.py
+index 3af3644..4ffce09 100644
+--- a/cloud/launch.py
++++ b/cloud/launch.py
+@@ -27,0 +28,4 @@ ZONES = ("us-central1-c", "us-central1-b", "us-central1-a")
++WORKLOAD_CONFIGS = {
++    "qwen-pilot": CONFIG,
++    "molmo-openloop": ROOT / "experiments/configs/cloud_molmo_openloop.json",
++}
+@@ -67,0 +72,3 @@ def plan(project: str, cfg: dict, name: str) -> dict:
++    workload = cfg.get("workload", "qwen-pilot")
++    if workload not in WORKLOAD_CONFIGS:
++        raise ValueError("unsupported workload")
+@@ -80,0 +88 @@ def plan(project: str, cfg: dict, name: str) -> dict:
++        "workload": workload,
+@@ -105,0 +114 @@ def create_command(p: dict, sha: str, archive_hash: str, startup: Path | None =
++        "dream-workload": p.get("workload", "qwen-pilot"),
+@@ -129 +138 @@ def create_command(p: dict, sha: str, archive_hash: str, startup: Path | None =
+-        "--labels=dream=1,purpose=qwen-pilot",
++        f"--labels=dream=1,purpose={p.get('workload', 'qwen-pilot')}",
+@@ -188 +197 @@ def allocate(p: dict, sha: str, checksum: str, startup: Path, dest: Path) -> Non
+-def check_pilot(out: Path) -> None:
++def check_pilot(out: Path, workload: str = "qwen-pilot") -> None:
+@@ -191,0 +201,21 @@ def check_pilot(out: Path) -> None:
++    if workload == "molmo-openloop":
++        path = out / "molmo/summary.json"
++        if not path.is_file():
++            raise RuntimeError("action summary missing")
++        summary = json.loads(path.read_text())
++        if (
++            summary.get("real_model_executed") is not True
++            or summary.get("finite") is not True
++            or summary.get("shape") != [15, 8]
++            or summary.get("execution_permitted") is not False
++            or not (out / "molmo/raw_actions.npy").is_file()
++        ):
++            raise RuntimeError("open-loop inference gate failed")
++        import numpy as np
++
++        actions = np.load(out / "molmo/raw_actions.npy", allow_pickle=False)
++        if actions.shape != (15, 8) or not np.isfinite(actions).all():
++            raise RuntimeError("saved action tensor is invalid")
++        return
++    if workload != "qwen-pilot":
++        raise ValueError("unsupported workload")
+@@ -468 +498 @@ def _launch(p: dict, allowance: float) -> None:
+-    check_pilot(dest / "out")
++    check_pilot(dest / "out", p.get("workload", "qwen-pilot"))
+@@ -480 +510,5 @@ def recover(manifest: Path, yes: bool) -> None:
+-    cfg = {**json.loads(CONFIG.read_text()), "zone": p["zone"]}
++    workload = p.get("workload", "qwen-pilot")
++    if workload not in WORKLOAD_CONFIGS:
++        raise ValueError("unsupported recovery workload")
++    config_path = CONFIG if workload == "qwen-pilot" else WORKLOAD_CONFIGS[workload]
++    cfg = {**json.loads(config_path.read_text()), "zone": p["zone"]}
+@@ -513,0 +548 @@ def main() -> None:
++    ap.add_argument("--workload", choices=list(WORKLOAD_CONFIGS), default="qwen-pilot")
+@@ -520 +555 @@ def main() -> None:
+-    cfg = json.loads(CONFIG.read_text())
++    cfg = json.loads(WORKLOAD_CONFIGS[args.workload].read_text())
+diff --git a/cloud/vm_startup.sh b/cloud/vm_startup.sh
+index a158ff4..88fcddd 100644
+--- a/cloud/vm_startup.sh
++++ b/cloud/vm_startup.sh
+@@ -13,0 +14 @@ CAP=$(meta instance/attributes/dream-max-minutes)
++WORKLOAD=$(meta instance/attributes/dream-workload)
+@@ -55 +56,3 @@ source /work/venv/bin/activate
+-uv pip install --require-hashes -r /work/DREAM/cloud/requirements.lock.txt
++LOCK=requirements.lock.txt
++[ "$WORKLOAD" = molmo-openloop ] && LOCK=molmo.requirements.lock.txt
++uv pip install --require-hashes -r "/work/DREAM/cloud/$LOCK"
+@@ -62,2 +65,9 @@ LEFT=$(( CAP * 60 - 120 - UP ))
+-timeout --signal=TERM --kill-after=30s "${LEFT}s" \
+-  python experiments/cloud_qwen_pilot.py --out /work/out/pilot
++case "$WORKLOAD" in
++  qwen-pilot)
++    timeout --signal=TERM --kill-after=30s "${LEFT}s" \
++      python experiments/cloud_qwen_pilot.py --out /work/out/pilot ;;
++  molmo-openloop)
++    timeout --signal=TERM --kill-after=30s "${LEFT}s" \
++      python experiments/cloud_molmo_openloop.py --out /work/out ;;
++  *) echo "Unsupported workload: $WORKLOAD"; exit 2 ;;
++esac
+diff --git a/dream/runtime/qwen.py b/dream/runtime/qwen.py
+index d04440d..eec8aa4 100644
+--- a/dream/runtime/qwen.py
++++ b/dream/runtime/qwen.py
+@@ -12,2 +12,2 @@ Two ways to run the selected model, Qwen/Qwen3-VL-4B-Instruct (Apache-2.0):
+-Tests exercise these interfaces with test doubles, without loading model weights. Neither
+-backend has run pretrained inference in this repository. See the current README hardware audit.
++Tests exercise contracts with test doubles. The local CUDA backend also has real checkpoint
++and physics evidence in results/qwen_cloud_pilot_dev. The hosted backend remains unvalidated.
+diff --git a/dream/sim/camera.py b/dream/sim/camera.py
+index 0022a0f..1237f23 100644
+--- a/dream/sim/camera.py
++++ b/dream/sim/camera.py
+@@ -54,0 +55 @@ class CameraSpec:
++    mount_body: str | None = None  # None: world mount; otherwise position/target are body-local
+diff --git a/dream/sim/tabletop.py b/dream/sim/tabletop.py
+index 4e87b51..a0e9df4 100644
+--- a/dream/sim/tabletop.py
++++ b/dream/sim/tabletop.py
+@@ -159 +159 @@ def build_model(
+-        add_camera(world, extra)
++        add_camera(s.body(extra.mount_body) if extra.mount_body else world, extra)
+diff --git a/pyproject.toml b/pyproject.toml
+index df51184..300225b 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -18,2 +18,2 @@ dev = ["pytest>=8", "ruff>=0.6"]
+-# Local Qwen3-VL inference (dream/runtime/qwen.py). Not needed by the test suite; not yet
+-# executed with weights yet. The optional cloud pilot has a separate hashed Linux lockfile.
++# Local Qwen3-VL inference (dream/runtime/qwen.py). Not needed by the CPU test suite.
++# The validated GPU pilot uses a separate hashed Linux lockfile.
+@@ -20,0 +21 @@ vlm = ["torch==2.8.0", "torchvision==0.23.0", "transformers==4.57.1", "pillow==1
++vla = ["torch==2.8.0", "torchvision==0.23.0", "transformers==4.57.1", "pillow==11.3.0", "accelerate==1.11.0", "einops==0.8.1"]
+diff --git a/tests/test_cloud.py b/tests/test_cloud.py
+index 8933200..aced408 100644
+--- a/tests/test_cloud.py
++++ b/tests/test_cloud.py
+@@ -108,0 +109 @@ def test_guest_failure_or_missing_evidence_cannot_be_reported_as_a_pass(tmp_path
++
+@@ -129,0 +131,31 @@ def test_guest_failure_or_missing_evidence_cannot_be_reported_as_a_pass(tmp_path
++def test_openloop_workload_is_explicit_and_never_accepts_a_task_summary(tmp_path):
++    cfg = json.loads(cloud.WORKLOAD_CONFIGS["molmo-openloop"].read_text())
++    p = cloud.plan("example-project", cfg, "dream-qwen-test")
++    command = cloud.create_command(p, "a" * 40, "b" * 64)
++    assert any("dream-workload=molmo-openloop" in arg for arg in command)
++    assert "--max-run-duration=45m" in command and p["estimated_usd"] < 3
++    (tmp_path / "EXIT_CODE").write_text("0\n")
++    with pytest.raises(RuntimeError, match="summary"):
++        cloud.check_pilot(tmp_path, "molmo-openloop")
++    (tmp_path / "molmo").mkdir()
++    summary = {
++        "real_model_executed": True,
++        "finite": True,
++        "shape": [15, 8],
++        "execution_permitted": False,
++    }
++    (tmp_path / "molmo/summary.json").write_text(json.dumps(summary))
++    with pytest.raises(RuntimeError, match="gate"):
++        cloud.check_pilot(tmp_path, "molmo-openloop")
++    np.save(tmp_path / "molmo/raw_actions.npy", np.zeros((15, 8)))
++    cloud.check_pilot(tmp_path, "molmo-openloop")
++    np.save(tmp_path / "molmo/raw_actions.npy", np.full((15, 8), np.nan))
++    with pytest.raises(RuntimeError, match="tensor"):
++        cloud.check_pilot(tmp_path, "molmo-openloop")
++    np.save(tmp_path / "molmo/raw_actions.npy", np.zeros((15, 8)))
++    summary["execution_permitted"] = True
++    (tmp_path / "molmo/summary.json").write_text(json.dumps(summary))
++    with pytest.raises(RuntimeError, match="gate"):
++        cloud.check_pilot(tmp_path, "molmo-openloop")
++
++

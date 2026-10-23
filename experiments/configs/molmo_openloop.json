@@ -1,0 +1,63 @@
+{
+  "checkpoint": "allenai/MolmoAct2-DROID",
+  "revision": "d8c1abd8a27d8e859455bbe514df2bcc617db0fb",
+  "source_revision": "6070080a20321b4f498ab30f28e1d09ac465edb7",
+  "seed": 210,
+  "seed_role": "development observation capture; not a task-success benchmark",
+  "instruction": "Pick up the red object and put it in the tray.",
+  "wrist_camera": {
+    "name": "wrist",
+    "mount_body": "hand",
+    "position": [
+      0.05,
+      0.0,
+      0.03
+    ],
+    "target": [
+      0.0,
+      0.0,
+      0.18
+    ],
+    "width": 320,
+    "height": 180
+  },
+  "state_mapping": "q1..q7 rad, experimental closure fraction 1-width_m/0.08",
+  "camera_order": [
+    "exterior",
+    "exterior_duplicate",
+    "wrist"
+  ],
+  "action_contract": {
+    "horizon": 15,
+    "dimension": 8,
+    "norm_tag": "franka_droid",
+    "mode": "continuous",
+    "units": "robot scale returned by predict_action; seven absolute joint angles, gripper convention unvalidated"
+  },
+  "gates": {
+    "finite_shape": [
+      15,
+      8
+    ],
+    "physical_execution_permitted": false
+  },
+  "limitations": [
+    "Panda hand differs from DROID Robotiq",
+    "camera mount is experimental, not a reproduced DROID calibration",
+    "control frequency unvalidated",
+    "checkpoint card omits a weight licence declaration; code repo Apache-2.0 does not establish weight licence"
+  ],
+  "note": "Inference-only. No action dispatch or classical fallback. Paid execution requires separate approval. No claim of a functioning learned motor controller.",
+  "checkpoint_source_sha256": {
+    "config.json": "80faf9afa5b87b01dd4dceac6c53e5194680b5f965287de213fbce73e0775100",
+    "norm_stats.json": "9cc29b5018604be4b785dd6519be3c86d0420675da7364755c58155afccb131d",
+    "README.md": "04da7804b4edcfaa23fc1fe3a0a010c1a19a6837942cbb187d065e2004d68231",
+    "tokenizer_config.json": "0ffb85ef66d5b354f53a341ff01edc5137c324981bf37928b86bcdee2b265415",
+    "configuration_molmoact2.py": "ccc1b24db7ab42b30705414b14de9601b1d82fba6f6d85393b0e9cbe1052fac4",
+    "image_processing_molmoact2.py": "bb623a013e7f897ffb938990bd02374b61dabcabd87f9f19d59111ec88ecf675",
+    "inference.py": "14a328aa9c8094fe5bf6d99aa98d49d0337485ff48f828cc1944bb66318cc67d",
+    "modeling_molmoact2.py": "3e0090b8cc045d59911c0a579815ebd17ce0423f9fdd03be887412df5c7b8b49",
+    "processing_molmoact2.py": "61ec88c04cf70844dc98ab518d332911ec32cf5f24f052b7413ddd5d61483109",
+    "video_processing_molmoact2.py": "8da721aa638da65aaa35e458920037c16b81dca344a623bb08db2b73f9ce9992"
+  }
+}

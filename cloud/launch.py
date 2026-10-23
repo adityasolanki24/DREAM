@@ -25,6 +25,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "experiments/configs/cloud_qwen_pilot.json"
 ZONES = ("us-central1-c", "us-central1-b", "us-central1-a")
+WORKLOAD_CONFIGS = {
+    "qwen-pilot": CONFIG,
+    "molmo-openloop": ROOT / "experiments/configs/cloud_molmo_openloop.json",
+}
 
 
 @contextmanager
@@ -65,6 +69,9 @@ def plan(project: str, cfg: dict, name: str) -> dict:
     if cfg["machine"] != "g2-standard-8" or cfg["zone"] not in ZONES:
         raise ValueError("this pilot is restricted to one reviewed L4 configuration")
     minutes = cfg["max_minutes"]
+    workload = cfg.get("workload", "qwen-pilot")
+    if workload not in WORKLOAD_CONFIGS:
+        raise ValueError("unsupported workload")
     if not isinstance(minutes, int) or isinstance(minutes, bool) or not 1 <= minutes <= 45:
         raise ValueError("the pilot lifetime must be an integer in 1..45 minutes")
     hours = minutes / 60
@@ -78,6 +85,7 @@ def plan(project: str, cfg: dict, name: str) -> dict:
     estimate += rates["storage_egress_and_reserve_usd"]
     return {
         "name": name,
+        "workload": workload,
         "project": project,
         "zone": cfg["zone"],
         "region": "us-central1",
@@ -103,6 +111,7 @@ def create_command(p: dict, sha: str, archive_hash: str, startup: Path | None = 
         "dream-code-sha": sha,
         "dream-archive-sha256": archive_hash,
         "dream-max-minutes": str(p["max_minutes"]),
+        "dream-workload": p.get("workload", "qwen-pilot"),
     }
     return [
         "compute",
@@ -126,7 +135,7 @@ def create_command(p: dict, sha: str, archive_hash: str, startup: Path | None = 
         "--scopes=cloud-platform",
         f"--max-run-duration={p['max_minutes']}m",
         "--instance-termination-action=DELETE",
-        "--labels=dream=1,purpose=qwen-pilot",
+        f"--labels=dream=1,purpose={p.get('workload', 'qwen-pilot')}",
         f"--metadata-from-file=startup-script={startup or ROOT / 'cloud/vm_startup.sh'}",
         "--metadata=" + ",".join(f"{k}={v}" for k, v in metadata.items()),
     ]
@@ -185,10 +194,31 @@ def allocate(p: dict, sha: str, checksum: str, startup: Path, dest: Path) -> Non
             return
 
 
-def check_pilot(out: Path) -> None:
+def check_pilot(out: Path, workload: str = "qwen-pilot") -> None:
     """A retrieved guest failure is not a pass. Keep preregistered task success report-only."""
     if (out / "EXIT_CODE").read_text().strip() != "0":
         raise RuntimeError("guest failed; inspect preserved outputs before another paid run")
+    if workload == "molmo-openloop":
+        path = out / "molmo/summary.json"
+        if not path.is_file():
+            raise RuntimeError("action summary missing")
+        summary = json.loads(path.read_text())
+        if (
+            summary.get("real_model_executed") is not True
+            or summary.get("finite") is not True
+            or summary.get("shape") != [15, 8]
+            or summary.get("execution_permitted") is not False
+            or not (out / "molmo/raw_actions.npy").is_file()
+        ):
+            raise RuntimeError("open-loop inference gate failed")
+        import numpy as np
+
+        actions = np.load(out / "molmo/raw_actions.npy", allow_pickle=False)
+        if actions.shape != (15, 8) or not np.isfinite(actions).all():
+            raise RuntimeError("saved action tensor is invalid")
+        return
+    if workload != "qwen-pilot":
+        raise ValueError("unsupported workload")
     path = out / "pilot/summary.json"
     if not path.is_file():
         raise RuntimeError("pilot summary missing")
@@ -465,7 +495,7 @@ def _launch(p: dict, allowance: float) -> None:
             print("Cleanup needs audit; inspect", dest / "cleanup_errors.json")
     if errors:
         raise RuntimeError("cleanup incomplete; resolve before another paid run")
-    check_pilot(dest / "out")
+    check_pilot(dest / "out", p.get("workload", "qwen-pilot"))
     print(
         "Pilot completed; preregistered gates passed. Task success remains report-only.", flush=True
     )
@@ -477,7 +507,11 @@ def recover(manifest: Path, yes: bool) -> None:
         raise ValueError("--yes is required to stop and clean up this DREAM run")
     p = json.loads(manifest.read_text())
     # A later pilot's zone must not redirect recovery of an earlier allocation attempt.
-    cfg = {**json.loads(CONFIG.read_text()), "zone": p["zone"]}
+    workload = p.get("workload", "qwen-pilot")
+    if workload not in WORKLOAD_CONFIGS:
+        raise ValueError("unsupported recovery workload")
+    config_path = CONFIG if workload == "qwen-pilot" else WORKLOAD_CONFIGS[workload]
+    cfg = {**json.loads(config_path.read_text()), "zone": p["zone"]}
     expected = plan(p["project"], cfg, p["name"])
     for field in ("zone", "region", "bucket", "network", "subnet", "router", "nat", "account"):
         if p[field] != expected[field]:
@@ -511,13 +545,14 @@ def main() -> None:
     ap.add_argument("--project", default=os.environ.get("DREAM_GCP_PROJECT", ""))
     ap.add_argument("--yes", action="store_true")
     ap.add_argument("--allowance-usd", type=float, default=0.0)
+    ap.add_argument("--workload", choices=list(WORKLOAD_CONFIGS), default="qwen-pilot")
     args = ap.parse_args()
     if args.command == "recover":
         if args.manifest is None:
             ap.error("recover requires --manifest")
         recover(args.manifest, args.yes)
         return
-    cfg = json.loads(CONFIG.read_text())
+    cfg = json.loads(WORKLOAD_CONFIGS[args.workload].read_text())
     name = f"dream-qwen-{time.strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:6]}"
     p = plan(args.project, cfg, name)
     if args.command == "audit":
