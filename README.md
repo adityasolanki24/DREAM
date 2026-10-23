@@ -32,8 +32,10 @@ rules, architecture and engineering standards are in [`AGENTS.md`](AGENTS.md).
    RGB-D pipeline replace the object tracker for tabletop pick-and-place: the Panda finds cubes
    and the tray in images, grasps and places from those estimates, and verifies from new frames
    (held-out 39/40 against the oracle tracker's 40/40). It is a colour-and-depth baseline for
-   box-like objects, not open-world vision. Camera-driven *mechanism discovery* does not work
-   yet (0/12 on development scenes); the oracle tracker remains in use there.
+   box-like objects, not open-world vision. Camera-driven *mechanism discovery* remains
+   unreliable: the original development run was 0/12; the continuation diagnostic completed
+   both lids but neither drawer on two new development seeds. Held-out compartment results
+   still use the oracle tracker.
 5. **Foundation-model integration: interface only, no model run yet.** A model-driven agent
    (`dream/runtime/vlm.py`) lets a vision-language model (selected: Qwen3-VL-4B-Instruct) choose
    DREAM's typed tools from a natural-language instruction and the camera image. Its contracts
@@ -59,10 +61,13 @@ unfamiliar physical behaviour.
 
 Every row marked "implemented and tested" has passing tests and/or saved results in `results/`.
 
-Last full verification (22 Oct 2026, branch `claude/vision-perception`): `pytest` (132 passed
-in about 6 min, including slow closed-loop, compartment, vision and live-session tests; the fast
-suite is 112 tests in about 55 s) and `ruff check`/`format`. Environment: Python 3.13.16,
-MuJoCo 3.16.0, NumPy 2.5.3, Linux, CPU only.
+Last full verification (23 Oct 2026, code `21969bf`, branch
+`codex/camera-discovery-continuation`): **163 passed** in 411 s, including slow closed-loop,
+compartment, vision and live-session tests; Ruff lint/format passed. The fast suite passed
+142 tests in 71 s on this Windows host, exceeding the 60 s target. Python 3.13.14,
+MuJoCo 3.16.0, NumPy 2.5.4, GLFW; CPU control with Intel graphics for rendering. The full
+suite ran alongside the development diagnostic. XML and environment metadata are saved in
+`results/continuation_validation`. Earlier Linux verification was 132 tests in about 6 min.
 
 | # | Milestone | Status | Evidence |
 |---|---|---|---|
@@ -78,7 +83,7 @@ MuJoCo 3.16.0, NumPy 2.5.3, Linux, CPU only.
 | 8 | Typed tool interface and task runtime (structured goals, rule-based planner) | Implemented and tested | `tests/test_tools_runtime.py`, `results/tasks` |
 | 9 | Two goal types (tray, stack) in shared scenes from the same tools, without per-task scripts | Implemented and tested | `results/tasks` |
 | 9a | Live session: background physics, pause, resume, cancel, logs, replay | Implemented and tested (headless); live viewer implemented, unverified (no display) | `tests/test_session.py` |
-| 10 | Visual perception replacing oracle poses | **Tabletop pick-and-place: implemented and tested** (classical RGB-D baseline). Camera-driven discovery: implemented, **not working** (negative result) | `tests/test_vision.py`, `results/vision`, `results/compartment_vision_dev` |
+| 10 | Visual perception replacing oracle poses | **Tabletop pick-and-place: implemented and tested** (classical RGB-D baseline). Camera discovery: partial development success, **not held-out validated** | `tests/test_vision.py`, `results/vision`, `results/compartment_vision_dev`, `results/compartment_vision_continuation_dev` |
 | 11 | **Discovery invoked on demand by the runtime (unfamiliar compartment on the Panda)** | **In progress**: implemented and tested on the narrowed scene; held-out evaluation below; challenge variants open | `tests/test_compartment.py`, `results/compartment`, audit table |
 | 12 | Experience memory, failure-driven replanning, skill adaptation | Planned | n/a |
 | 12a | Vision-language planner (Qwen3-VL-4B-Instruct) choosing typed tools | Interface implemented and contract-tested with test doubles. **Model inference not run**; caller-bound success contract, atomic call rejection and cancellation checks | `tests/test_vlm.py`; hardware audit below |
@@ -126,7 +131,7 @@ python experiments/demo_vision.py                                      # recorde
 python experiments/run_compartment.py experiments/configs/compartment.json  # discovery on the Panda
 python experiments/replay.py results/sessions/<time> --width 320       # session replay GIF
 python experiments/calibrate_handle_measurement.py                     # camera handle-measurement calibration
-python experiments/audit_foundation_models.py                          # hardware and model-host audit
+python experiments/audit_foundation_models.py --name foundation_model_audit_local  # new output directory
 python experiments/run_vlm.py experiments/configs/vlm.json --model-path <dir>  # needs the checkpoint
 ```
 
@@ -442,7 +447,7 @@ conditions remain available as parameters (`CompartmentSpec.handle`, `cavity_hei
 | Place yaw aligned with the container's front face | Task-specific heuristic | Deep-cavity lids still fail. Open: general collision-aware placement. |
 | Release retreat toward 0.5 m radius | Heuristic | Development failures only |
 | Open only until the opening is wide enough | General (task-directed stopping from perception) | n/a |
-| Retain occluded opening evidence, accepting wider measurements and clear closure | General algorithmic correction | Synthetic regression contracts in `tests/test_vision.py`; camera task remeasurement pending |
+| Retain occluded opening evidence, accepting wider measurements and clear closure | General algorithmic correction | Regression contracts; continuation development: lids 2/2, drawers 0/2, no causal attribution to this change alone |
 | Five-second lifetime for old openings and released-handle estimates | Task-specific heuristic (uncalibrated freshness policy) | Expiry tests; does not model how fast a released mechanism can close |
 | Recent release position as a fallback for an unchanged, uncertain handle track | Task-specific heuristic (rigid knob grasp) | Scoped to a successful opening and confirmed finger width, same track, one immediate retry; clear newer vision wins; rotating/slipping grasps remain unsupported |
 | Failed release fails the opening | General correction | Regression test |
@@ -522,8 +527,8 @@ learning. This is a classical baseline, not open-world perception. The backend c
 behind `Perception` without touching skills or the runtime.
 
 - **Open-vocabulary and unseen-object segmenters** (for example Grounding-DINO-like detectors,
-  SAM-like segmenters) were not added. There is no GPU or network here, and this slice did not
-  need them. Their licences and versions were not verified in this session.
+  SAM-like segmenters) were not added. The original Linux environment had no GPU or model-host
+  access, and that slice did not need them. Their licences and versions remain unverified.
 - **Compute:** one camera frame takes about 0.35 s to render on CPU (OSMesa), and detection
   about 0.25 s.
 - **Live demo** (`results/demo_vision/`): "in red tray" then "on blue green" in one live vision
@@ -573,12 +578,22 @@ Measured: **0/12 drawers and lids, 0 false claims**. The fixed boxes were declin
   supply a recent release position for one re-grasp when vision still shows an old, uncertain
   estimate. A lost grasp or failed release supplies no such estimate. The time limits and
   contact fallback are uncalibrated heuristics, not demonstrated transfer or learning.
+  Colour/nearest-neighbour detection association can still confuse indistinguishable handles
+  crossing in the image; persistent ownership does not solve that perception ambiguity.
 - Saved continuation smoke (`results/compartment_vision_continuation_smoke`, inspected
   development seed 1): drawer and lid both completed and verified; fixed box identified and
   declined, zero false claims and protective stops. This is a pipeline smoke, not a success
   rate estimate or a controlled attribution to these changes. It ran at `7ef4d8a` with the
-  uncommitted tool-result metadata changes preserved in `working_tree.patch`; the summary
+  uncommitted code snapshot preserved in the `patch` field of `working_tree.json`; the summary
   records `dirty=true`. The original negative result remains above.
+- Frozen continuation diagnostic (`results/compartment_vision_continuation_dev`, development
+  seeds 12–13, clean code at `21969bf`): lids 2/2, drawers 0/2, fixed identified and declined
+  2/2; zero false claims (the pre-registered gate passed), one protective stop. Drawer 12 opened
+  physically but the release triggered the 40 N hand-force protective stop. Drawer 13 opened and grasped
+  the cube, then placement was rejected three times with "no free spot in compartment".
+  The log establishes the rejection, not its underlying perception/geometry cause. No safety
+  threshold or scene geometry was changed in response. These are within-generator development
+  outcomes, not a paired causal comparison or a generalisation result.
 - Still open: grasping the knob again from a camera estimate, the grasp being lost while
   opening, verification right after placing (the cube estimate is occluded), and the
   position-only adequacy threshold (still the 0.59 placeholder).
@@ -601,12 +616,13 @@ Measured: **0/12 drawers and lids, 0 false claims**. The fixed boxes were declin
 - Qwen3-VL could not be downloaded in that environment, nor could GR00T run with its checkpoint:
   it needs a CUDA GPU.
 
-**Windows continuation audit** (`results/foundation_model_audit_windows_sources/audit.json`):
-all checked hosts returned HTTP 200. The host has 16.8 GB total RAM, 3.96 GB available at
-the audit, no `nvidia-smi`, and no inference packages installed in `.venv`. Qwen's full
+**Windows continuation audit** (`results/foundation_model_audit_windows_final/audit.json`,
+clean code at `21969bf`): all checked hosts returned HTTP 200. The host has 16.8 GB total RAM,
+1.91 GB available at the audit, no `nvidia-smi`, and no inference packages installed in `.venv`. Qwen's full
 checkpoint exceeds available RAM before buffers; no hosted endpoint was provided. Model
 inference was not attempted, and no weights were downloaded. The audit records the script's
-hash and dirty working state as well as the base revision; the earlier Linux audit is preserved.
+hash and code revision. The earlier Linux audit and initial dirty Windows diagnostic
+(`results/foundation_model_audit_windows_sources`) are preserved.
 
 The audit also records pinned official source URLs and hashes. GR00T's `libero_10` configuration
 uses an external image plus wrist image, eight state values (xyz, three rotation-vector
@@ -623,8 +639,8 @@ execution here; passing these action values directly to DREAM would be incorrect
 
 **What exists** (`dream/runtime/vlm.py`, `dream/runtime/qwen.py`):
 - `VLMAgent` gives the model the instruction, the camera image (at most two images kept in
-  context), the structured scene, tool results and investigation findings. Every tool is
-  offered as a JSON-schema function, plus `finish`.
+  context), the structured scene, tool results and investigation findings. Named physical tools
+  are offered as JSON-schema functions, plus `finish`.
 - Output is parsed only as JSON inside the model's own `<tool_call>` format. Nothing it
   writes is executed as code. Tool arguments go through the same toolbox validation,
   preconditions, budgets and safety limits as the rule-based planner.
@@ -655,14 +671,15 @@ any model's ability.**
 
 **To run the model:** on a host with enough available memory, install
 `pip install -e ".[vlm]"`, download the checkpoint, then
-`python experiments/run_vlm.py experiments/configs/vlm.json --model-path <dir>`. CPU
-inference works but is slow. GR00T needs a machine with an NVIDIA GPU.
+`python experiments/run_vlm.py experiments/configs/vlm.json --model-path <dir>`.
+The CPU backend remains unvalidated with model weights. GR00T needs a CUDA inference host
+and a validated observation/action mapping before any DREAM execution.
 
 ## Limitations (read before citing any number)
 
 - **Perception.** Tabletop pick-and-place runs from camera images (classical RGB-D baseline,
-  above). Mechanism discovery and every compartment result use the oracle-assisted handle
-  tracker; camera-driven discovery does not work yet. The import order matters for headless
+  above). Held-out compartment results use the oracle-assisted handle tracker; camera-driven
+  discovery has mixed development results only. The import order matters for headless
   rendering: MuJoCo picks its GL backend when first imported, so scripts set `MUJOCO_GL` first
   (`dream/__init__.py`, runners, `tests/conftest.py`).
 - **No language understanding has been demonstrated.** The rule-based planner takes structured
