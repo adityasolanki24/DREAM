@@ -72,10 +72,12 @@ def start_application():
 
         for name in ("isaacsim.sensors.camera", "isaacsim.storage.native"):
             enable_extension(name)
-    except Exception:
-        app.close()
+    except BaseException:
+        # Kit may exit before execute can see an extension failure.
+        traceback.print_exc()
         raise
     return app
+
 
 def mark_stage(out: Path, stage: str) -> None:
     """Persist progress before Isaac Sim can shut down the process."""
@@ -85,6 +87,12 @@ def mark_stage(out: Path, stage: str) -> None:
         log.flush()
         os.fsync(log.fileno())
     print(f"DREAM_T1_STAGE: {stage}", flush=True)
+
+
+def last_stage(out: Path) -> str | None:
+    path = out / "stages.jsonl"
+    return json.loads(path.read_text().splitlines()[-1])["stage"] if path.exists() else None
+
 
 def execute(folder: Path, cfg: dict, case: str, out: Path) -> dict:
     """Persist outcomes before Kit shutdown, which may terminate the Python process."""
@@ -97,6 +105,20 @@ def execute(folder: Path, cfg: dict, case: str, out: Path) -> dict:
         result = run_episode(folder, cfg, case, out, rows)
         (out / "episode.json").write_text(json.dumps(result, indent=2) + "\n")
         mark_stage(out, "episode_saved")
+        if cfg.get("record_video"):
+            (out / "spectator/episode.json").write_text(json.dumps(result, indent=2) + "\n")
+            (out / "spectator/source.json").write_text(
+                json.dumps(
+                    {
+                        "code_sha": os.environ.get("DREAM_CODE_SHA")
+                        or subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+                        "config": cfg,
+                        "camera_role": "spectator only; never policy input",
+                    },
+                    indent=2,
+                )
+                + "\n"
+            )
         return result
     except BaseException as error:
         (out / "failure.json").write_text(
@@ -105,6 +127,7 @@ def execute(folder: Path, cfg: dict, case: str, out: Path) -> dict:
                     "type": type(error).__name__,
                     "message": str(error),
                     "traceback": traceback.format_exc(),
+                    "last_stage": last_stage(out),
                 },
                 indent=2,
             )
@@ -155,16 +178,54 @@ def run_episode(folder: Path, cfg: dict, case: str, out: Path, rows: list) -> di
         get_assets_root_path() + cfg["asset_relative_url"],
         folder,
         cfg["policy_hashes"],
+        checkpoint=lambda stage: mark_stage(out, stage),
+        diagnostic_dir=out,
     )
     mark_stage(out, "t1_initialized")
     # Stand initialization under the actor, never direct state writes after initialization.
     mark_stage(out, "warmup_started")
-    for _ in range(50):
-        body.advance(0, 0)
+    recorder = camera = None
+    if cfg.get("record_video"):
+        from experiments.t1_recording import FrameRecorder, spectator_camera
+
+        camera = spectator_camera()
+        recorder = FrameRecorder(out / "spectator")
+
+    def record(phase: str) -> None:
+        if recorder is None or body.time - recorder.last_time < 0.04 - 1e-6:
+            return
+        world.render()
+        rgba = camera.get_rgba()
+        if rgba is None:
+            raise RuntimeError("spectator frame unavailable")
+        position, _ = body.art.get_world_pose()
+        recorder.capture(
+            rgba,
+            body.time,
+            {
+                "phase": phase,
+                "command": body.command.tolist(),
+                "position_m": np.asarray(position).tolist(),
+                "speed_m_s": float(np.linalg.norm(body.art.get_linear_velocity())),
+            },
+        )
+
+    warmup = []
+    with (out / "warmup.jsonl").open("w", encoding="utf-8") as log:
+        for _ in range(50):
+            row = body.advance(0, 0)
+            warmup.append(row)
+            log.write(json.dumps(row) + "\n")
+            log.flush()
+            if body.stopped:
+                raise RuntimeError("tilt stop during standing warmup")
+            record("standing warmup")
     mark_stage(out, "warmup_completed")
+    body.initialize_camera()
     mark_stage(out, "camera_capture_started")
     rgb, depth = body.capture()
     mark_stage(out, "camera_captured")
+    np.savez_compressed(out / "sensor_initial.npz", rgb=rgb, depth=depth)
     captured_time = body.time
     start_state = body.navigation_state(depth, captured_time)
     calibration = {
@@ -218,15 +279,21 @@ def run_episode(folder: Path, cfg: dict, case: str, out: Path, rows: list) -> di
         pos, _ = body.art.get_world_pose()
         row.update(score_position_m=np.asarray(pos).tolist(), status=result.status)
         rows.append(row)
+        record(case)
         status = result.status
-        if body.stopped or status != "tracking":
+        holding_stand = case == "stand" and k < 150 and status == "waypoint reached"
+        if body.stopped or (status != "tracking" and not holding_stand):
             break
     mark_stage(out, "walking_loop_exited")
     body.command[:] = 0
     for _ in range(25):
         if body.sensors()["tilt"] > np.deg2rad(50):
             break
-        body.advance(0, 0)
+        row = body.advance(0, 0)
+        position, _ = body.art.get_world_pose()
+        row.update(score_position_m=np.asarray(position).tolist(), status="settling")
+        rows.append(row)
+        record("controlled stop")
     final, _ = body.art.get_world_pose()
     error = float(np.linalg.norm(np.asarray(final)[:2] - target[:2]))
     final_speed = float(np.linalg.norm(body.art.get_linear_velocity()))
@@ -242,6 +309,8 @@ def run_episode(folder: Path, cfg: dict, case: str, out: Path, rows: list) -> di
         "final_speed_m_s": final_speed,
         "status": status,
         "rows": rows,
+        "warmup_steps": len(warmup),
+        "physics_steps": world.current_time_step_index,
         "frames": frames,
         "gate_pass": bool(
             rows
@@ -261,9 +330,14 @@ def main() -> None:
     parser.add_argument("--policy-dir", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--preflight", action="store_true")
+    parser.add_argument("--record-video", action="store_true")
     parser.add_argument("--case", choices=("stand", "forward", "left"), default="forward")
     args = parser.parse_args()
     cfg = json.loads((ROOT / "experiments/configs/t1_walk.json").read_text())
+    if args.record_video:
+        if "onedrive" in str(args.out.resolve()).lower() or ROOT in args.out.resolve().parents:
+            raise ValueError("video output must stay outside Git and OneDrive")
+        cfg["record_video"] = True
     args.out.mkdir(parents=True, exist_ok=False)
     metadata = preflight(args.policy_dir, cfg)
     (args.out / "preflight.json").write_text(json.dumps(metadata, indent=2) + "\n")

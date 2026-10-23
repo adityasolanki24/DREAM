@@ -91,6 +91,7 @@ def test_episode_evidence_precedes_process_terminating_shutdown(tmp_path, monkey
         failure = json.loads((tmp_path / "failure.json").read_text())
         assert failure["type"] == "ValueError"
         assert "diagnostic failure" in failure["traceback"]
+        assert failure["last_stage"] == "simulation_started"
         assert not (tmp_path / "episode.json").exists()
     else:
         assert json.loads((tmp_path / "episode.json").read_text())["gate_pass"] is False

@@ -30,6 +30,7 @@ WORKLOAD_CONFIGS = {
     "molmo-openloop": ROOT / "experiments/configs/cloud_molmo_openloop.json",
     "molmo-closedloop": ROOT / "experiments/configs/cloud_molmo_closedloop.json",
     "isaac-t1-walk": ROOT / "experiments/configs/cloud_isaac_t1_walk.json",
+    "isaac-t1-stand": ROOT / "experiments/configs/cloud_isaac_t1_stand.json",
 }
 
 
@@ -105,7 +106,7 @@ def plan(project: str, cfg: dict, name: str) -> dict:
     if workload not in WORKLOAD_CONFIGS:
         raise ValueError("unsupported workload")
     disk_gb = cfg.get("disk_gb", 100)
-    if disk_gb != (200 if workload == "isaac-t1-walk" else 100):
+    if disk_gb != (200 if workload in ("isaac-t1-walk", "isaac-t1-stand") else 100):
         raise ValueError("unsupported workload disk size")
     if not isinstance(minutes, int) or isinstance(minutes, bool) or not 1 <= minutes <= 45:
         raise ValueError("the pilot lifetime must be an integer in 1..45 minutes")
@@ -234,10 +235,13 @@ def check_pilot(out: Path, workload: str = "qwen-pilot") -> None:
     """A retrieved guest failure is not a pass. Keep preregistered task success report-only."""
     if (out / "EXIT_CODE").read_text().strip() != "0":
         raise RuntimeError("guest failed; inspect preserved outputs before another paid run")
-    if workload == "isaac-t1-walk":
+    if workload in ("isaac-t1-walk", "isaac-t1-stand"):
         import numpy as np
 
-        for case in ("stand", "forward", "left"):
+        cases = ("stand",) if workload == "isaac-t1-stand" else ("stand", "forward", "left")
+        for case in cases:
+            if (out / case / "failure.json").exists():
+                raise RuntimeError("physical walking failure report present")
             path = out / case / "episode.json"
             if not path.is_file():
                 raise RuntimeError("physical walking episode missing")
@@ -260,6 +264,7 @@ def check_pilot(out: Path, workload: str = "qwen-pilot") -> None:
                 or target.shape != (3,)
                 or not np.isfinite(final).all()
                 or not np.isfinite(target).all()
+                or len(times) < 2
                 or not np.isfinite(times).all()
                 or not np.all(np.diff(times) > 0)
                 or not np.isfinite(tilts).all()
@@ -271,6 +276,16 @@ def check_pilot(out: Path, workload: str = "qwen-pilot") -> None:
                 or not (out / case / "sensor_calibration.json").is_file()
             ):
                 raise RuntimeError("physical walking measurements failed")
+            for frame_path in (out / case).glob("sensor_*.npz"):
+                with np.load(frame_path, allow_pickle=False) as frame:
+                    rgb, depth = frame["rgb"], frame["depth"]
+                    if (
+                        rgb.shape != (400, 400, 3)
+                        or rgb.dtype != np.uint8
+                        or depth.shape != (400, 400)
+                        or not np.any(np.isfinite(depth) & (depth > 0))
+                    ):
+                        raise RuntimeError("physical walking camera evidence invalid")
         return
     if workload == "molmo-closedloop":
         import numpy as np

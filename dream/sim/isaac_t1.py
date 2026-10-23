@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Callable
 from math import acos, cos, sin
 from pathlib import Path
 
@@ -16,6 +17,11 @@ import numpy as np
 
 from dream.navigation.control import NavigationState
 from dream.robot.t1 import T1Policy
+
+
+def joint_armature(name: str) -> float:
+    """Match pinned lab/t1.py: head inertia 0.005, other joints 0.01 kg m²."""
+    return 0.005 if name in ("AAHead_yaw", "Head_pitch") else 0.01
 
 
 def rotation_wxyz(q) -> np.ndarray:
@@ -39,15 +45,24 @@ class IsaacT1:
     available only to the independent runner's scoring. Depth veto is reactive, not routing.
     """
 
-    def __init__(self, world, asset_url: str, policy_dir: Path, hashes: dict):
+    def __init__(
+        self,
+        world,
+        asset_url: str,
+        policy_dir: Path,
+        hashes: dict,
+        checkpoint: Callable[[str], None] = lambda _: None,
+        diagnostic_dir: Path | None = None,
+    ):
         from isaacsim.core.prims import SingleArticulation
         from isaacsim.core.utils.stage import add_reference_to_stage
-        from isaacsim.sensors.camera import Camera
         from pxr import PhysxSchema, UsdPhysics
 
+        self.checkpoint = checkpoint
         self.world = world
         self.cfg = json.loads((policy_dir / "env_cfg.json").read_text())
         add_reference_to_stage(asset_url, "/World/T1")
+        checkpoint("asset_referenced")
         roots, heads = [], []
         for prim in world.stage.Traverse():
             if not (
@@ -63,15 +78,22 @@ class IsaacT1:
             if prim.HasAPI(UsdPhysics.RigidBodyAPI):
                 PhysxSchema.PhysxRigidBodyAPI.Apply(prim).CreateMaxDepenetrationVelocityAttr(1.0)
             if prim.IsA(UsdPhysics.RevoluteJoint):
-                PhysxSchema.PhysxJointAPI.Apply(prim).CreateArmatureAttr(0.01)
+                PhysxSchema.PhysxJointAPI.Apply(prim).CreateArmatureAttr(
+                    joint_armature(prim.GetName())
+                )
             if prim.GetName() == "H2":
                 heads.append(str(prim.GetPath()))
         if len(roots) != 1 or len(heads) != 1:
             raise ValueError("T1 asset articulation/head contract mismatch")
+        self.head_path = heads[0]
+        checkpoint("asset_contract_checked")
         self.art = world.scene.add(SingleArticulation(roots[0], name="dream_t1"))
+        checkpoint("articulation_reset_started")
         world.reset()
+        checkpoint("articulation_reset_completed")
         names = list(self.art.dof_names)
         self.actor = T1Policy.load(policy_dir, hashes, names)
+        checkpoint("policy_loaded")
         # Match the audited PPO training actuator gains, rather than the stock USD drives.
         gains = {
             ".*_Hip_.*": (100, 3),
@@ -92,14 +114,46 @@ class IsaacT1:
             kp.append(p)
             kd.append(d)
         self.art.get_articulation_controller().set_gains(kps=np.array(kp), kds=np.array(kd))
-        self.limits = np.asarray(self.art.get_dof_limits()).reshape(23, 2)
+        # SingleArticulation exposes structured DOF properties; get_dof_limits is
+        # the plural Articulation API, not a method of this single-prim wrapper.
+        self.limits = np.column_stack(
+            (self.art.dof_properties["lower"], self.art.dof_properties["upper"])
+        )
+        if diagnostic_dir is not None:
+            (diagnostic_dir / "articulation.json").write_text(
+                json.dumps(
+                    {
+                        "root": roots[0],
+                        "head": heads[0],
+                        "joint_names": names,
+                        "policy_indices": self.actor.indices.tolist(),
+                        "kp": kp,
+                        "kd": kd,
+                        "limits_rad": self.limits.tolist(),
+                        "asset_url": asset_url,
+                    },
+                    indent=2,
+                )
+                + "\n"
+            )
+        checkpoint("joint_contract_checked")
         initial = np.zeros(23)
         initial[self.actor.indices] = self.actor.default
         # Scene initialization only; subsequent changes use articulation actions and physics.
         self.art.set_joint_positions(initial)
         self.art.set_joint_velocities(np.zeros(23))
         self.art.set_world_pose(position=np.array([0, 0, 0.70]), orientation=np.array([1, 0, 0, 0]))
-        self.camera = Camera(prim_path=heads[0] + "/dream_eye", resolution=(400, 400))
+        self.odom = np.zeros(3)
+        self.time = 0.0
+        self.command = np.zeros(3)
+        self.stopped = False
+
+    def initialize_camera(self) -> None:
+        """Initialize head RGB-D only after standing physics is observable."""
+        from isaacsim.sensors.camera import Camera
+
+        self.checkpoint("camera_initialization_started")
+        self.camera = Camera(prim_path=self.head_path + "/dream_eye", resolution=(400, 400))
         self.camera.initialize()
         self.camera.set_local_pose(
             translation=np.array([0.10, 0, 0.16]),
@@ -109,10 +163,7 @@ class IsaacT1:
         self.camera.set_horizontal_aperture(20.955)
         self.camera.set_focal_length(20.955 / (2 * np.tan(np.deg2rad(120) / 2)))
         self.camera.add_distance_to_image_plane_to_frame()
-        self.odom = np.zeros(3)
-        self.time = 0.0
-        self.command = np.zeros(3)
-        self.stopped = False
+        self.checkpoint("camera_initialized")
 
     def sensors(self) -> dict:
         # Only orientation is read here; the true robot translation is withheld.
@@ -134,8 +185,15 @@ class IsaacT1:
             self.world.render()
         rgb = self.camera.get_rgba()
         depth = self.camera.get_depth()
-        if rgb is None or depth is None or not rgb.size or not depth.size:
-            raise RuntimeError("RGB-D frame unavailable")
+        if (
+            rgb is None
+            or depth is None
+            or rgb.shape != (400, 400, 4)
+            or rgb.dtype != np.uint8
+            or depth.shape != (400, 400)
+            or not np.any(np.isfinite(depth) & (depth > 0))
+        ):
+            raise RuntimeError("RGB-D frame unavailable or invalid")
         return rgb[..., :3].copy(), depth.copy()
 
     def navigation_state(self, depth: np.ndarray, captured_time_s: float) -> NavigationState:
@@ -173,8 +231,11 @@ class IsaacT1:
             self.limits,
         )
         self.art.apply_action(ArticulationAction(joint_positions=target))
+        before = self.world.current_time_step_index
         for _ in range(4):
             self.world.step(render=False)
+        if self.world.current_time_step_index - before != 4:
+            raise RuntimeError("physics did not advance four steps")
         yaw = self.odom[2]
         vx, vy = sensor["linear"][:2]
         self.odom += 0.02 * np.array(

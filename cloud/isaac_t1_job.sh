@@ -39,7 +39,9 @@ for name,digest in cfg['policy_hashes'].items():
     if hashlib.sha256(data).hexdigest()!=digest: raise ValueError('policy checksum mismatch')
     (dst/name).write_bytes(data)
 PY
-for CASE in stand forward left; do
+CASES="stand forward left"
+[ "$WORKLOAD" != isaac-t1-stand ] || CASES="stand"
+for CASE in $CASES; do
   LEFT=$(( CAP * 60 - 120 - $(cut -d. -f1 /proc/uptime) ))
   [ "$LEFT" -gt 0 ] || exit 124
   timeout --signal=TERM --kill-after=30s "${LEFT}s" python experiments/isaac_t1_walk.py \
@@ -47,4 +49,6 @@ for CASE in stand forward left; do
   # Kit shutdown may exit Python with status zero even during exception unwinding.
   # Persisted episode evidence is required before spending time on the next case.
   test -s "/work/out/$CASE/episode.json"
+  test ! -e "/work/out/$CASE/failure.json"
+  python -c 'import json,sys; assert json.load(open(sys.argv[1]))["gate_pass"] is True' "/work/out/$CASE/episode.json"
 done

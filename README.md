@@ -63,7 +63,13 @@ unfamiliar physical behaviour.
 
 Every row marked "implemented and tested" has passing tests and/or saved results in `results/`.
 
-Latest full verification (23 Oct 2026, research branch based on `386a818`): **195 passed**
+Latest local verification (24 Oct 2026): **241 full tests passed in 396.191 s**;
+**219 fast tests passed in 101.024 s**. Ruff lint/format, Python compilation,
+Bash syntax and `git diff --check` pass. Exact dirty-source hashes, original failed reports,
+API regressions and final XML are in `results/t1_validation_checkpoint`. These validate CPU
+contracts and the MuJoCo baseline, not Isaac walking. The fast suite still exceeds 60 s.
+
+Prior verification (23 Oct 2026, research branch based on `386a818`): **195 passed**
 in 226 s; fast suite **173 passed** in 44 s. Ruff lint/format and cloud Bash syntax passed.
 The suite covers classical manipulation, live sessions, discovery, cameras, isolation and
 new inference-only contracts. These CPU tests do not execute a learned motor checkpoint.
@@ -110,7 +116,7 @@ these cloud-only changes. The Windows fast-suite duration still exceeds the 60 s
 | 12a | Vision-language planner (Qwen3-VL-4B-Instruct) choosing typed tools | **Implemented and development-evaluated:** real checkpoint, 2/2 tray tasks; no held-out language benchmark. Caller-bound success, cancellation and rejection contracts | `results/qwen_cloud_pilot_dev`, `tests/test_vlm.py` |
 | 12a-cloud | Capped GPU inference and live-physics pilot | **Executed:** zone c rejected capacity, zone b booted; guest and pilot gates passed. Cleanup error investigated and absence verified | `results/cloud_pilot_allocation_failure`, `cloud/launch.py`, `tests/test_cloud.py` |
 | 12b | Learned motor policy (MolmoAct2-DROID first open-loop candidate; GR00T alternative) | **Partially working:** real checkpoint produced a finite 15×8 chunk on L4; raw gripper range failed (4/15). Source contract audited; six fresh predictions physically reached (6/6). Learned task failed, classical succeeded. No manipulation transfer established | `tests/test_molmo.py`, `results/molmo_observation_dev`, source/decision audit below |
-| 12c | Booster T1 locomotion / visual navigation research | **CPU contract tested:** genuine PPO actor 81→23 inference, typed waypoint guards and isolated Isaac runner. Physical walking and NavGPT inference **not validated** | `results/t1_actor_preflight_dev`, `results/navigation_source_audit`, `tests/test_navigation.py` |
+| 12c | Booster T1 locomotion / visual navigation research | **CPU contract tested; Isaac initialization attempt failed:** genuine PPO actor 81→23 inference and waypoint guards. No recorded walking steps; NavGPT inference **not validated** | `results/t1_actor_preflight_dev`, `results/t1_isaac_initialization_failure`, `tests/test_navigation.py` |
 | 13 | Generalisation evaluation across goals, arrangements and task families | Planned | n/a |
 | 14 | Learned world/motor models, mobile or whole-body embodiments | Planned, conditional on evidence and compute | n/a |
 
@@ -1190,8 +1196,8 @@ is an optional MIT dependency. No APM code/weights or NVIDIA assets are vendored
 APM repository/weight licence was found; this uses the owner's requested research reference,
 not a claim of a redistribution licence.
 
-`dream/sim/isaac_t1.py` and `experiments/isaac_t1_walk.py` prepare an isolated **unexecuted**
-Isaac Sim 5.1 adapter: stock T1 locomotion USD, training-matched gains, 200 Hz physics/50 Hz
+`dream/sim/isaac_t1.py` and `experiments/isaac_t1_walk.py` provide an isolated
+Isaac Sim 5.1 adapter with **failed initialization evidence, no walking validation**: stock T1 locomotion USD, training-matched gains, 200 Hz physics/50 Hz
 actor, RGB-D calibration, ideal own-robot velocity/IMU measurements integrated into odometry,
 bounded commands and tilt stop. True world translation is used only for independent scoring.
 Ideal proprioception is not validated VIO. Self-collision is disabled to match PPO training;
@@ -1215,7 +1221,7 @@ python experiments/isaac_t1_walk.py --case forward --policy-dir <external-pinned
 | Ideal body velocity/IMU integrated into odometry | Unverified workaround | Not VIO; drift and sensor bias must be evaluated before transfer claims |
 | Empty walled room and training-matched self-collision setting | Environment simplification / narrow initial scope | Not cluttered navigation or full-body collision safety; no existing Panda benchmark was changed |
 
-**Approved US$4; execution in progress:** `isaac-t1-walk` is a separate workload using one L4
+**Previous US$4 workload (failed, cleaned up):** `isaac-t1-walk` is a separate workload using one L4
 `g2-standard-8`, 32 GiB RAM, `us-central1-c` with capacity-only regional fallback, a 200 GB
 auto-deleted disk and 45-minute deletion deadline. Candidate stack: Python 3.11.13, Isaac Sim
 5.1.0.0, Torch 2.7/cu128, NumPy **1.26.0** (required by Isaac kernel), ONNX Runtime 1.23.2;
@@ -1233,7 +1239,7 @@ $0.6402 VM + $0.0210 disk + $0.0048 NAT gateway/IP + $2.25 for a 50 GiB NAT rese
 storage/egress/reserve. Request **US$4 for one workload**, not a recurring allowance; estimate
 is not a hard billing cap. No NavGPT, Qwen or Molmo inference runs alongside it. Google expiry,
 guest termination and host cleanup remove the VM/disk, scoped network/NAT/IAM and bucket only
-after verified result retrieval. No new resources were launched. Walking must pass before
+after verified result retrieval. The paid compatibility attempt below did launch and fail. Walking must pass before
 NavGPT inference integration, held-out navigation or a humanoid demonstration is attempted.
 
 Validation checkpoint: **225 full tests passed in 408.107 s** and
@@ -1244,6 +1250,107 @@ The full pass precedes reporting fields and a stricter settled-stop gate in the 
 Isaac path; its focused regression and the final fast suite pass. XML, exact source hashes,
 CPU actor evidence and the proposed workload plan are preserved in
 `results/navigation_source_audit`. These checks do not establish Isaac walking performance.
+
+## Isaac initialization failure and diagnostic recording pipeline
+
+The real L4 attempt at `a2b09fa` ran from 12:01:10 to 12:09:18 UTC on 23 October
+(488 seconds of guest time, not a measured bill). Isaac application startup and T1 USD
+loading appear in the log. All three cases (`stand`, `forward`, `left`) have zero recorded
+steps, no episode and no calibration. Guest `EXIT_CODE=0` does **not** mean success.
+`results/t1_isaac_initialization_failure` preserves checksummed outputs and the zero-resource
+cleanup audit. Only the unchecksummed VM log has deployment names redacted.
+Reproduce the offline audit with:
+
+```powershell
+python -m experiments.audit_t1_run results/t1_isaac_initialization_failure/raw --summary <new-summary.json>
+```
+
+**Confirmed reporting defect:** the runner formerly saved its result after `SimulationApp.close()`.
+Isaac's default fast shutdown can terminate Python before that return, also hiding an exception
+being unwound. Outcomes and exception tracebacks now persist before close. The underlying
+initialization exception was not preserved, so its exact cause remains unknown. Do not infer
+that PPO instability, joint limits or the camera caused it from an empty trace.
+
+**Confirmed API blocker:** the original adapter called `SingleArticulation.get_dof_limits()`,
+which is absent from the pinned 5.1 class and its base wrapper. The documented public
+`dof_properties["lower"]` / `["upper"]` fields supply limits in radians. That API mismatch
+would raise before warmup; the adapter now uses those fields. Both independent range cases
+fail with `AttributeError` before correction and pass afterward. Exact upstream hashes,
+method audit and regression XML are in `results/t1_validation_checkpoint/isaac_api_audit.json`
+and `single_api_before.xml` / `single_api_after.xml`.
+See the [5.1 single-articulation API](https://docs.isaacsim.omniverse.nvidia.com/5.1.0/py/source/extensions/isaacsim.core.prims/docs/index.html#isaacsim.core.prims.SingleArticulation.dof_properties).
+This establishes a real initialization defect, not that the old guest reached it before any
+other error. A physical rerun is still needed. The intermediate full rerun was stopped for
+this confirmed correction; `interrupted_rerun.json` records that it was not a pass.
+
+The next diagnostic records asset reference, articulation reset, policy load, joint configuration,
+standing warmup, camera initialization/capture and walking stages as fsynced JSON lines.
+Failures include the last stage. Joint names, policy mapping, gains and limits are saved before
+warmup, every standing action is logged, and initial RGB-D is saved immediately. Camera setup
+now follows standing warmup to isolate those boundaries; physics must advance four steps per
+50 Hz policy call. A stand case observes three seconds beyond its initial one-second warmup,
+with the existing tilt and final-speed gates. Stopping or falling is a failed result.
+
+Source inspection found one deployment mismatch: pinned training uses head armature 0.005 kg m²,
+while the original adapter used 0.01 for every joint. The head values now match training;
+other joints stay at 0.01. This is a **general algorithmic correction to deployment parity**,
+not independently measured physical calibration, and is not established as the failure's cause.
+Remaining physics compatibility (including contacts, drive behavior and ground material) needs
+actual execution evidence. No safety threshold or scene geometry was relaxed.
+
+An optional 1920×1080 static spectator camera is separate from the head RGB-D and all policy
+inputs. It records original PNGs, timestamps, hashes and score-only pose/speed telemetry at
+25 Hz simulation time. The offline encoder adds command/time/position/speed/status overlays,
+outputs H.264 MP4 at 30 FPS without changing duration, and retains the originals. Metadata
+records source revision/configuration, policy hashes, frame count and physical gate status.
+Changed frames and nonuniform timestamps are rejected. Short episodes are not padded into a
+30–60 second success demonstration. Continuous forward/turn/stop composition and its closing
+summary remain pending ordinary walking validation.
+
+```powershell
+# Compatible approved Isaac environment only; video output must be outside Git/OneDrive:
+python experiments/isaac_t1_walk.py --case forward --record-video --policy-dir <external-policy> --out <external-new-output>
+# Encode after the simulator process ends; FFmpeg/ffprobe must be installed:
+python -m experiments.t1_recording <external-new-output>/spectator
+```
+
+Pillow 13.0.0 (MIT-CMU, optional `demo` extra) and the locally installed FFmpeg 9.0.2 GPL build
+provide encoding. No binaries or weights are vendored. Local tests encode a **mock** one-second
+clip, verify 30 decodable frames, preserve raw PNGs and reject malformed evidence. A mock
+encoder test is not a humanoid demonstration. **No real demo MP4 exists.**
+
+The initial complete diagnostic-pipeline suite had 238 passes and one encoder failure: a
+loop reused the source-metadata variable for a frame path, preventing final JSON serialization
+after MP4 creation. That report remains in `results/t1_validation_checkpoint/full_diagnostic_pipeline.xml`.
+The variable collision is corrected; the focused recording/camera/shutdown tests pass.
+`mock_encoder_metadata.json` records the verified mock stream; the small test clip stays outside
+OneDrive in `LOCALAPPDATA/DREAM/artifacts/t1_encoder_mock_20261024`.
+
+**Prepared, not approved or launched:** `isaac-t1-stand` uses one L4 `g2-standard-8` in
+`us-central1-c` (capacity-only fallback to b/a), 32 GiB RAM and a 200 GB auto-deleted disk.
+The previously installed stack is pinned: Python 3.11.13, Isaac Sim 5.1.0.0, Torch 2.7/cu128,
+ONNX Runtime 1.23.2, NumPy 1.26.0, driver 580 image plus matching Vulkan libraries.
+This is still a compatibility diagnostic. It runs **only stand**, with no NavGPT or video.
+Google-enforced VM deletion is 25 minutes; guest timeout leaves two minutes for retrieval,
+and host cleanup removes scoped IAM/NAT/network/disk/bucket after checksum verification.
+Interrupted retrieval preserves the bucket for `cloud/launch.py recover`; cleanup is audited.
+Installation is included in the deadline, not just simulated time.
+
+The saved-rate estimate is **US$3.42**: compute $0.3557, disk $0.0117, NAT gateway/IP $0.0027,
+50 GiB NAT reserve $2.25, and storage/egress/contingency $0.80. New approval requested: **US$3.50**.
+This is an estimate with enforced runtime, not a hard provider billing cap; no remaining credits
+are assumed. Previous allowances do not authorize this diagnostic. Plan without allocating:
+
+```powershell
+python cloud/launch.py plan --project <project> --workload isaac-t1-stand
+```
+
+| Diagnostic/recording change | Rule 3 class | Evidence limit |
+|---|---|---|
+| Save results/failures before Kit shutdown; reject incomplete guest output | General algorithmic correction | CPU shutdown doubles and preserved failed run; simulator retry pending |
+| Use single-prim public limit API; match training head armature | General algorithmic correction | Pinned source and failing/passing regressions; physical effect unmeasured |
+| Camera after standing; longer stand observation; extra checkpoints | Diagnostic harness change | Local interfaces only; no task simplification |
+| Spectator recording and offline annotation | Measurement/engineering only | Mock encoding tested; Isaac capture pending |
 
 ## Next milestone: ordinary humanoid walking before visual navigation
 

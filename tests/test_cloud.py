@@ -102,6 +102,18 @@ def test_walking_workload_is_separate_capped_and_needs_physical_evidence(tmp_pat
         cloud.plan("example-project", cfg, "dream-qwen-test")
 
 
+def test_stand_diagnostic_is_shorter_and_rejects_saved_failure(tmp_path):
+    cfg = json.loads(cloud.WORKLOAD_CONFIGS["isaac-t1-stand"].read_text())
+    plan = cloud.plan("example-project", cfg, "dream-qwen-test")
+    assert plan["max_minutes"] == 25 and plan["estimated_usd"] < 3.5
+    assert "--max-run-duration=25m" in cloud.create_command(plan, "a" * 40, "b" * 64)
+    (tmp_path / "EXIT_CODE").write_text("0")
+    (tmp_path / "stand").mkdir()
+    (tmp_path / "stand/failure.json").write_text('{"type":"ValueError"}')
+    with pytest.raises(RuntimeError, match="failure report"):
+        cloud.check_pilot(tmp_path, "isaac-t1-stand")
+
+
 @pytest.mark.parametrize("zone", ["us-central1-a", "us-central1-b", "us-central1-c"])
 def test_reviewed_regional_zones_keep_the_same_hardware_budget_and_deadline(zone):
     cfg = json.loads(cloud.CONFIG.read_text())

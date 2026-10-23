@@ -1,0 +1,21 @@
+{
+  "release": "v5.1.0",
+  "licence": "Apache-2.0",
+  "sources": [
+    {
+      "url": "https://raw.githubusercontent.com/isaac-sim/IsaacSim/v5.1.0/source/extensions/isaacsim.core.prims/python/impl/single_articulation.py",
+      "sha256": "086c94ac60aa4f8f1ffac0c921fe8eb4a5b118604d4e108b891d827635382234",
+      "has_get_dof_limits_method": false,
+      "has_getattr_delegation": false,
+      "has_dof_properties": true
+    },
+    {
+      "url": "https://raw.githubusercontent.com/isaac-sim/IsaacSim/v5.1.0/source/extensions/isaacsim.core.prims/python/impl/single_prim_wrapper.py",
+      "sha256": "30cad6463a0ffa514ec357640f3fcff2fe076d241179c809f5f05e2b85b41333",
+      "has_get_dof_limits_method": false,
+      "has_getattr_delegation": false,
+      "has_dof_properties": false
+    }
+  ],
+  "finding": "SingleArticulation and its base expose no get_dof_limits method or __getattr__ delegation. Public dof_properties lower/upper are SI joint limits. Confirmed API defect; no original guest traceback to establish whether it was the first error reached."
+}
