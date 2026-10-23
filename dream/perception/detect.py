@@ -162,12 +162,28 @@ def detect(
     ids, counts = np.unique(labels[labels >= 0], return_counts=True)
     hue, sat = _hue_sat(frame.rgb)
     ctx = _Context(pts, height, valid, fg, hue, sat, frame)
+    masks = []
     for lab in ids[counts >= MIN_PIXELS]:
         mask = labels == lab
         d = _describe(mask, ctx)
         if d is not None:
             out.append(d)
-    return _assign_handles(_absorb_container_fragments(out)), plane
+            masks.append(mask)
+    kept = _absorb_container_fragments(out)
+    # Second pass: receptacle openings, knowing which pixels are other objects (contents).
+    objects = [
+        m
+        for d, m in zip(out, masks, strict=True)
+        if d.kind == "object" and any(d is k for k in kept)
+    ]
+    if objects and any(d.kind in ("box", "container") for d in out):
+        ctx = replace(ctx, contents=np.any(objects, axis=0))
+        out = [
+            _describe(m, ctx) if d.kind in ("box", "container") else d
+            for d, m in zip(out, masks, strict=True)
+        ]
+        kept = _absorb_container_fragments(out)
+    return _assign_handles(kept), plane
 
 
 HANDLE_REACH = 0.07  # m: how far outside a box's side a handle may protrude
@@ -197,17 +213,27 @@ def _absorb_container_fragments(dets: list[Detection]) -> list[Detection]:
     - same-coloured objects on a container's wall band, or inside a box's grouped footprint
       (walls broken up by shading or occlusion, a drawer's separate side pieces);
     - same-coloured boxes whose centres are within 0.1 m (one box seen as two components):
-      the one with more pixels is kept.
+      the one with more pixels is kept, with the largest opening any of them showed (each
+      piece groups a slightly different footprint; an opening seen in one is open space, as
+      in ``fuse`` across cameras).
     Assumes objects contrast in colour with the receptacle they are in or next to."""
     recs = sorted([d for d in dets if d.kind in ("container", "box")], key=lambda d: -d.pixels)
     kept_recs: list[Detection] = []
     for r in recs:
-        dup = any(
-            k.color == r.color and np.linalg.norm(k.position[:2] - r.position[:2]) < 0.1
-            for k in kept_recs
+        dup = next(
+            (
+                i
+                for i, k in enumerate(kept_recs)
+                if k.color == r.color and np.linalg.norm(k.position[:2] - r.position[:2]) < 0.1
+            ),
+            None,
         )
-        if not dup:
+        if dup is None:
             kept_recs.append(r)
+            continue
+        k = kept_recs[dup]
+        if r.opening is not None and (k.opening is None or r.opening[1] > k.opening[1]):
+            kept_recs[dup] = replace(k, opening=r.opening)
     keep = list(kept_recs)
     for d in dets:
         if d.kind in ("container", "box"):
@@ -252,6 +278,7 @@ class _Context:
     hue: np.ndarray
     sat: np.ndarray
     frame: RGBDFrame
+    contents: np.ndarray | None = None  # pixels of separately detected objects (second pass)
 
 
 BOX_GROUP_RADIUS = 0.35  # m: same-coloured foreground this close belongs to one box
@@ -340,6 +367,9 @@ def _container(mask, pts, height, valid, centre, sides, angle, top, occluded, bb
 
 OPENING_CELL = 0.01  # m
 OPENING_BELOW_RIM = 0.012  # m: a cell this far below the box's top is open
+# m: the median-height rim estimate reads 7-15 mm below the true rim of an open box
+# (development scenes, drawer and lid, seed 3), so contents may reach this far above it.
+CONTENTS_ABOVE_RIM = 0.02
 
 
 def _box(mask, ctx: _Context, top, occluded, bbox):
@@ -379,7 +409,14 @@ def _box(mask, ctx: _Context, top, occluded, bbox):
 
 def _opening(ctx: _Context, centre, sides, angle, top) -> tuple[np.ndarray, float] | None:
     """Largest square of observed cells inside a footprint whose surface lies well below the
-    rim: (floor-top centre, axis-aligned half width), or None. Unobserved cells are not open."""
+    rim: (floor-top centre, axis-aligned half width), or None. Unobserved cells are not open.
+
+    A separately detected object inside the footprint and no higher than the rim is
+    *contents* resting in the cavity: its cells count as open, as the oracle tracker counts
+    them (an object low inside the cavity). Otherwise a cube put into the cavity makes its own
+    cells look closed and the opening moves off it. An object well above the rim, such as a
+    cube lying on a closed lid or a knob on a raised lid, still closes its cells.
+    """
     pts, height, valid = ctx.pts, ctx.height, ctx.valid
     c, s = np.cos(angle), np.sin(angle)
     local = (pts[..., :2] - centre) @ np.array([[c, -s], [s, c]])
@@ -387,35 +424,99 @@ def _opening(ctx: _Context, centre, sides, angle, top) -> tuple[np.ndarray, floa
     inside = valid & np.all(np.abs(local) < half, axis=-1)
     if not inside.any():
         return None
+    contents = np.zeros_like(inside) if ctx.contents is None else ctx.contents
+    contents = inside & contents & (height < top + CONTENTS_ABOVE_RIM)
+    surface = inside & ~contents
     nx, ny = (np.ceil(2 * half / OPENING_CELL)).astype(int)
     loc = np.where(inside[..., None], local, 0.0)
     ix = np.clip(((loc[..., 0] + half[0]) / OPENING_CELL).astype(int), 0, nx - 1)
     iy = np.clip(((loc[..., 1] + half[1]) / OPENING_CELL).astype(int), 0, ny - 1)
     cell_max = np.full((nx, ny), -np.inf)
-    np.maximum.at(cell_max, (ix[inside], iy[inside]), height[inside])
-    open_cells = np.isfinite(cell_max) & (cell_max < top - OPENING_BELOW_RIM)
-    n, i0, j0 = _largest_square(open_cells)
+    np.maximum.at(cell_max, (ix[surface], iy[surface]), height[surface])
+    held = np.zeros((nx, ny), bool)
+    held[ix[contents], iy[contents]] = True
+    seen = np.isfinite(cell_max)
+    below = _shadow_bound(ctx, contents, centre, c, s, half, cell_max)
+    open_cells = (
+        (seen & (cell_max < top - OPENING_BELOW_RIM))
+        | (held & ~seen)
+        | (~seen & ~held & (below < top + CONTENTS_ABOVE_RIM))  # floor or more contents
+    )
+    n, i0, j0 = _largest_square(open_cells, prefer=held)
     if n < 3:
         return None
     lc = np.array([(i0 + n / 2) * OPENING_CELL - half[0], (j0 + n / 2) * OPENING_CELL - half[1]])
     world = centre + lc @ np.array([[c, s], [-s, c]])
     cells = np.zeros_like(open_cells)
     cells[i0 : i0 + n, j0 : j0 + n] = True
-    sel = inside & cells[ix, iy]
+    sel = surface & cells[ix, iy]
+    if not sel.any():  # the floor is entirely covered by contents
+        sel = inside & cells[ix, iy]
     floor_z = float(np.nanpercentile(pts[..., 2][sel], 20))
     return np.array([world[0], world[1], floor_z]), n * OPENING_CELL / 2 / (abs(c) + abs(s))
 
 
-def _largest_square(grid: np.ndarray) -> tuple[int, int, int]:
-    """Side (cells) and lower-left index of the largest all-True square (dynamic programming)."""
+SHADOW_STEP = 0.005  # m along the ray: half an opening cell
+SHADOW_REACH = 0.15  # m: farther than any cavity is wide
+
+
+def _shadow_bound(ctx: _Context, contents, centre, c, s, half, cell_max) -> np.ndarray:
+    """Per cell, an upper bound on the hidden surface in cells the contents hide from the camera.
+
+    A cell nobody sees, behind a cube in the cavity, holds nothing above the lines of sight
+    that graze the cube and pass over it (else those rays would have hit it). So the hidden
+    surface lies below the extension of the camera rays beyond the contents. If that bound is
+    within the contents limit, whatever is hidden there is floor or more contents: open. Each ray is
+    followed until it reaches the table or enters an observed cell whose surface it would have
+    hit. Cells no such ray reaches stay unbounded (+inf): unobserved is still not open.
+    """
+    bound = np.full(cell_max.shape, -np.inf)
+    if not contents.any():
+        return np.full(cell_max.shape, np.inf)
+    cam = ctx.frame.calibration.position
+    p, h = ctx.pts[contents], ctx.height[contents]
+    d = p - cam
+    d /= np.linalg.norm(d, axis=1, keepdims=True)
+    t = np.arange(1, int(SHADOW_REACH / SHADOW_STEP) + 1) * SHADOW_STEP
+    xy = p[:, None, :2] + t[None, :, None] * d[:, None, :2]
+    z = h[:, None] + t[None, :] * d[:, None, 2]
+    local = (xy - centre) @ np.array([[c, -s], [s, c]])
+    nx, ny = cell_max.shape
+    i = np.floor((local[..., 0] + half[0]) / OPENING_CELL).astype(int)
+    j = np.floor((local[..., 1] + half[1]) / OPENING_CELL).astype(int)
+    ok = (i >= 0) & (i < nx) & (j >= 0) & (j < ny) & (z > 0)
+    ic, jc = np.clip(i, 0, nx - 1), np.clip(j, 0, ny - 1)
+    blocked = ok & (cell_max[ic, jc] >= z)
+    ok &= ~(np.cumsum(blocked | ~ok, axis=1) > 0)  # stop at the first hit or exit
+    np.maximum.at(bound, (ic[ok], jc[ok]), z[ok])
+    return np.where(np.isfinite(bound), bound, np.inf)
+
+
+def _largest_square(grid: np.ndarray, prefer: np.ndarray | None = None) -> tuple[int, int, int]:
+    """Side (cells) and lower-left index of the largest all-True square (dynamic programming).
+
+    An open area longer than it is wide holds many largest squares. Take the one covering the
+    most ``prefer`` cells (contents already in the receptacle: its region should contain what
+    is in it), then the one nearest the middle of the open cells, so the region does not jump
+    along the area from frame to frame with noise at its far ends.
+    """
     n, m = grid.shape
     dp = np.zeros((n + 1, m + 1), int)
-    best, bi, bj = 0, 0, 0
     for i in range(n):
         for j in range(m):
             if grid[i, j]:
                 dp[i + 1, j + 1] = 1 + min(dp[i, j + 1], dp[i + 1, j], dp[i, j])
-                if dp[i + 1, j + 1] > best:
-                    best = dp[i + 1, j + 1]
-                    bi, bj = i + 1 - best, j + 1 - best
-    return best, bi, bj
+    best = int(dp.max())
+    if best == 0:
+        return 0, 0, 0
+    mid = np.argwhere(grid).mean(axis=0)
+    ends = np.argwhere(dp[1:, 1:] == best)  # upper-right cell of each largest square
+    starts = ends - best + 1
+    dist = np.linalg.norm(starts + (best - 1) / 2 - mid, axis=1)
+    covered = np.zeros(len(starts))
+    if prefer is not None:
+        cs = np.pad(np.cumsum(np.cumsum(prefer, 0), 1), ((1, 0), (1, 0)))
+        a, b = starts[:, 0], starts[:, 1]
+        covered = cs[a + best, b + best] - cs[a, b + best] - cs[a + best, b] + cs[a, b]
+    k = int(np.lexsort((dist, -covered))[0])
+    return best, int(starts[k, 0]), int(starts[k, 1])

@@ -12,6 +12,7 @@ from dream.perception.geometry import backproject, project
 from dream.perception.vision import VisionPerception
 from dream.sim.tabletop import TabletopSpec, sample_tabletop
 from dream.sim.tabletop_env import TabletopEnv
+from dream.tools.toolbox import WALL_CLEARANCE
 
 
 def _env(seed=3, spec=None, **kw):
@@ -161,3 +162,55 @@ def test_averaging_handle_observations_keeps_what_perception_cannot_measure():
     a = art.observe_handle_averaged(Fixed(), "c")
     assert not a.orientation_observed and not a.handle_visible
     assert a.handle_half is not None and a.position_std == 0.025  # identical frames: no gain
+
+
+def _compartment_with_cameras(kind):
+    from dream.sim.camera import SIDE_CAMERA, CameraSpec
+    from dream.sim.tabletop import sample_compartment_scene
+
+    spec = sample_compartment_scene(kind, np.random.default_rng([3, 0]))
+    env = TabletopEnv(spec, np.random.default_rng(4), extra_cameras=(CameraSpec(**SIDE_CAMERA),))
+    vis = VisionPerception(env.frame_sources(), lambda: env.time, np.random.default_rng(0))
+    return env, vis
+
+
+def _put(env, name, xyz):
+    import mujoco
+
+    q = env.model.joint(f"{name}_free").qposadr[0]
+    env.data.qpos[q : q + 7] = [*xyz, 1, 0, 0, 0]
+    mujoco.mj_forward(env.model, env.data)
+    env.step(200)
+
+
+@pytest.mark.parametrize("kind,q", [("drawer", 0.18), ("lid", 1.45)])
+def test_an_object_inside_an_open_compartment_does_not_shrink_its_opening(kind, q):
+    """Contents are not walls. A cube resting in the open cavity stays inside the opening the
+    camera reports (the oracle tracker counts such cells as open too), so verification can find
+    it there. Lid seed 1 in development: a placed cube read as "outside region" because its top
+    made its own cells look closed and the square moved off it."""
+    import mujoco
+
+    env, vis = _compartment_with_cameras(kind)
+    assert "compartment" not in vis.fixtures()  # seen closed first, as in a task
+    j = env.model.joint("compartment_joint")
+    env.data.qpos[j.qposadr[0]] = q  # scene setup: open it partly, as an opening would
+    mujoco.mj_forward(env.model, env.data)
+    env.step(5)
+    assert "compartment" in vis.fixtures()
+    centre, _ = env._visible_cavity()  # scene setup only: where to put the cube
+    _put(env, "red", [centre[0], centre[1], centre[2] + 0.021])
+    c, half = vis.fixtures()["compartment"]
+    red = env.privileged_object_pos("red")
+    # Still accessible for this cube (so the planner does not reopen it), and the cube is in
+    # the region verification uses.
+    assert half >= 0.02 + WALL_CLEARANCE
+    assert np.all(np.abs(red[:2] - c[:2]) <= half)
+
+
+def test_a_cube_on_a_closed_lid_is_not_an_opening():
+    """The other side of the same rule: only contents *below* the rim count as open."""
+    env, vis = _compartment_with_cameras("lid")
+    lo, hi = env._compartment_aabb()
+    _put(env, "red", [*((lo + hi) / 2)[:2], hi[2] + 0.021])
+    assert "compartment" not in vis.fixtures()
