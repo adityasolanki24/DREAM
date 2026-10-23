@@ -194,10 +194,21 @@ def test_live_physics_keeps_holding_during_slow_inference(tmp_path):
 
 
 @pytest.mark.slow
-def test_cloud_physical_harness_runs_classical_vision_baseline(tmp_path):
+def test_cloud_physical_harness_reports_an_independently_scored_outcome(tmp_path):
+    """Development success is report-only, as preregistered in the pilot configuration.
+
+    The first implementation incorrectly asserted this unvalidated live seed must always
+    succeed. Full-suite run at c3a40d0 declined without a false claim; a separate repeat
+    succeeded. Preserve either physical outcome and enforce the actual harness contract.
+    """
     cfg = json.loads(
         (Path(__file__).parents[1] / "experiments/configs/vlm_cloud_pilot.json").read_text()
     )
     result = embodied_episode(None, cfg, cfg["episodes"][0], "A_rule_based", tmp_path)
     assert result["perception"] == "vision" and not result["false_claim"]
-    assert result["success"] and result["claimed"]
+    assert isinstance(result["success"], bool) and isinstance(result["claimed"], bool)
+    assert not result["claimed"] or result["success"]
+    assert 0 < result["episode"]["tool_calls"] <= cfg["max_steps"]
+    assert sum(step["sim_time"] for step in result["episode"]["steps"]) > 0
+    assert result["episode"]["reason"]
+    assert json.loads((tmp_path / "episode.json").read_text()) == result

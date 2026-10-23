@@ -152,7 +152,7 @@ def embodied_episode(backend, cfg: dict, item: dict, condition: str, out: Path) 
         with session.env.lock:
             success = object_in_tray(session.env, goal.object)
             safety = safety_summary(session.env)
-        return {
+        result = {
             "condition": condition,
             "seed": item["seed"],
             "instruction": item["instruction"],
@@ -164,6 +164,8 @@ def embodied_episode(backend, cfg: dict, item: dict, condition: str, out: Path) 
             "episode": ep.to_dict(),
             **safety,
         }
+        write_json(out / "episode.json", result)
+        return result
     finally:
         session.close()
 

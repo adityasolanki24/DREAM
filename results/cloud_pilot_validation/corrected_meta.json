@@ -1,0 +1,20 @@
+{
+  "base_git_sha": "c3a40d0012503026fc387e73191319e544dd8e8f",
+  "dirty": true,
+  "patch": "diff --git a/experiments/cloud_qwen_pilot.py b/experiments/cloud_qwen_pilot.py\nindex 5ca6ccb..d3bc295 100644\n--- a/experiments/cloud_qwen_pilot.py\n+++ b/experiments/cloud_qwen_pilot.py\n@@ -152,7 +152,7 @@ def embodied_episode(backend, cfg: dict, item: dict, condition: str, out: Path)\n         with session.env.lock:\n             success = object_in_tray(session.env, goal.object)\n             safety = safety_summary(session.env)\n-        return {\n+        result = {\n             \"condition\": condition,\n             \"seed\": item[\"seed\"],\n             \"instruction\": item[\"instruction\"],\n@@ -164,6 +164,8 @@ def embodied_episode(backend, cfg: dict, item: dict, condition: str, out: Path)\n             \"episode\": ep.to_dict(),\n             **safety,\n         }\n+        write_json(out / \"episode.json\", result)\n+        return result\n     finally:\n         session.close()\n \ndiff --git a/tests/test_cloud.py b/tests/test_cloud.py\nindex 69986ed..e6c2c5f 100644\n--- a/tests/test_cloud.py\n+++ b/tests/test_cloud.py\n@@ -194,10 +194,21 @@ def test_live_physics_keeps_holding_during_slow_inference(tmp_path):\n \n \n @pytest.mark.slow\n-def test_cloud_physical_harness_runs_classical_vision_baseline(tmp_path):\n+def test_cloud_physical_harness_reports_an_independently_scored_outcome(tmp_path):\n+    \"\"\"Development success is report-only, as preregistered in the pilot configuration.\n+\n+    The first implementation incorrectly asserted this unvalidated live seed must always\n+    succeed. Full-suite run at c3a40d0 declined without a false claim; a separate repeat\n+    succeeded. Preserve either physical outcome and enforce the actual harness contract.\n+    \"\"\"\n     cfg = json.loads(\n         (Path(__file__).parents[1] / \"experiments/configs/vlm_cloud_pilot.json\").read_text()\n     )\n     result = embodied_episode(None, cfg, cfg[\"episodes\"][0], \"A_rule_based\", tmp_path)\n     assert result[\"perception\"] == \"vision\" and not result[\"false_claim\"]\n-    assert result[\"success\"] and result[\"claimed\"]\n+    assert isinstance(result[\"success\"], bool) and isinstance(result[\"claimed\"], bool)\n+    assert not result[\"claimed\"] or result[\"success\"]\n+    assert 0 < result[\"episode\"][\"tool_calls\"] <= cfg[\"max_steps\"]\n+    assert sum(step[\"sim_time\"] for step in result[\"episode\"][\"steps\"]) > 0\n+    assert result[\"episode\"][\"reason\"]\n+    assert json.loads((tmp_path / \"episode.json\").read_text()) == result\n",
+  "patch_sha256": "d4421339240a37f5cbfa078b5e84301688a567336b7deca96f610d5a3dd2a47b",
+  "platform": "Windows-11-10.0.26100-SP0",
+  "python": "3.13.14 | packaged by Anaconda, Inc. | (main, Jul  9 2026, 14:26:41) [MSC v.1942 64 bit (AMD64)]",
+  "commands": [
+    "python -m pytest -m \"not slow\" --junitxml=results/cloud_pilot_validation/fast_corrected.xml",
+    "python -m pytest tests/test_cloud.py -m slow --junitxml=results/cloud_pilot_validation/physical_corrected.xml"
+  ],
+  "environment": {
+    "MUJOCO_GL": "glfw",
+    "PYOPENGL_PLATFORM": "win32",
+    "OPENBLAS_NUM_THREADS": "1"
+  },
+  "interpretation": "Corrected report-only development outcome contract; no robot algorithm or environment change. No clean full-suite rerun is claimed. Initial full failure is retained.",
+  "model_inference": false,
+  "spending_authorized": false
+}

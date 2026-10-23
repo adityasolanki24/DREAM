@@ -69,6 +69,18 @@ MuJoCo 3.16.0, NumPy 2.5.4, GLFW; CPU control with Intel graphics for rendering.
 suite ran alongside the development diagnostic. XML and environment metadata are saved in
 `results/continuation_validation`. Earlier Linux verification was 132 tests in about 6 min.
 
+Cloud-pilot checkpoint: the initial complete run at `c3a40d0` had **180 passed and one failed**
+in 556 s. The new live-vision harness test asserted guaranteed success on development seed
+201, despite the pilot's preregistered report-only success metric. The task failed without
+claiming success; a separate identical-seed repeat succeeded. The test now enforces actual
+execution, bounded termination, saved outcomes and no false claims rather than an unmeasured
+success guarantee. The failed report remains in `results/cloud_pilot_validation/initial_full.xml`.
+This corrects the test contract; it does **not** fix or explain the intermittent physical failure.
+After the correction, the fast suite passed 159 tests and the affected live-physics test passed
+separately; Ruff and shell syntax checks passed. No clean full-suite rerun is claimed after
+that test-contract change. The exact patch, test XML and actual physical outcome are preserved
+in `results/cloud_pilot_validation`.
+
 | # | Milestone | Status | Evidence |
 |---|---|---|---|
 | 1 | MuJoCo mechanism scenes plus force-limited gantry probing | Implemented and tested | `tests/test_sim.py` |
@@ -750,6 +762,13 @@ results directory. Failed cleanup is reported and audited, never treated as proo
 resources. Local tests cover the harness and real classical physics; they **do not** show
 Qwen inference. GR00T execution, new language-driven task composition, experience retrieval
 and held-out model comparisons remain subsequent work after this pilot runs.
+The first harness test originally failed in the complete suite because it demanded task
+success on every run of an unvalidated live-camera scene. The subsequent repeat completed
+with a verified grasp and placement (`results/cloud_pilot_validation/repeat_baseline_episode.json`).
+The initial failure lacks an episode trace, so its underlying action/perception cause is
+unknown. The harness now writes each scored outcome itself, including failures, before
+returning; task success remains report-only. No seeds, controller settings or geometry were
+changed in response.
 
 ## Limitations (read before citing any number)
 
