@@ -77,15 +77,26 @@ def start_application():
         raise
     return app
 
+def mark_stage(out: Path, stage: str) -> None:
+    """Persist progress before Isaac Sim can shut down the process."""
+    record = {"stage": stage, "timestamp": time.time()}
+    with (out / "stages.jsonl").open("a", encoding="utf-8") as log:
+        log.write(json.dumps(record) + "\n")
+        log.flush()
+        os.fsync(log.fileno())
+    print(f"DREAM_T1_STAGE: {stage}", flush=True)
 
 def execute(folder: Path, cfg: dict, case: str, out: Path) -> dict:
     """Persist outcomes before Kit shutdown, which may terminate the Python process."""
     rows = []
     app = None
     try:
+        mark_stage(out, "simulation_starting")
         app = start_application()
+        mark_stage(out, "simulation_started")
         result = run_episode(folder, cfg, case, out, rows)
         (out / "episode.json").write_text(json.dumps(result, indent=2) + "\n")
+        mark_stage(out, "episode_saved")
         return result
     except BaseException as error:
         (out / "failure.json").write_text(
@@ -117,6 +128,7 @@ def run_episode(folder: Path, cfg: dict, case: str, out: Path, rows: list) -> di
     from dream.sim.isaac_t1 import IsaacT1
 
     world = World(stage_units_in_meters=1, physics_dt=0.005, rendering_dt=0.02)
+    mark_stage(out, "world_created")
     world.scene.add_default_ground_plane()
     # Fixed, empty development room; no semantic targets or privileged route hints.
     # Walls give the depth camera finite returns. Open-space no-return sensing is not
@@ -137,16 +149,22 @@ def run_episode(folder: Path, cfg: dict, case: str, out: Path, rows: list) -> di
                 scale=np.array(scale),
             )
         )
+    mark_stage(out, "t1_initialization_started")
     body = IsaacT1(
         world,
         get_assets_root_path() + cfg["asset_relative_url"],
         folder,
         cfg["policy_hashes"],
     )
+    mark_stage(out, "t1_initialized")
     # Stand initialization under the actor, never direct state writes after initialization.
+    mark_stage(out, "warmup_started")
     for _ in range(50):
         body.advance(0, 0)
+    mark_stage(out, "warmup_completed")
+    mark_stage(out, "camera_capture_started")
     rgb, depth = body.capture()
+    mark_stage(out, "camera_captured")
     captured_time = body.time
     start_state = body.navigation_state(depth, captured_time)
     calibration = {
@@ -185,6 +203,7 @@ def run_episode(folder: Path, cfg: dict, case: str, out: Path, rows: list) -> di
         ]
     )
     begin, status = time.monotonic(), "not started"
+    mark_stage(out, "walking_started")
     for k in range(int(cfg["max_sim_s"] / 0.02)):
         if time.monotonic() - begin >= cfg["max_wall_s"]:
             status = "wall timeout"
@@ -202,6 +221,7 @@ def run_episode(folder: Path, cfg: dict, case: str, out: Path, rows: list) -> di
         status = result.status
         if body.stopped or status != "tracking":
             break
+    mark_stage(out, "walking_loop_exited")
     body.command[:] = 0
     for _ in range(25):
         if body.sensors()["tilt"] > np.deg2rad(50):

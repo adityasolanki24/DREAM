@@ -94,3 +94,17 @@ def test_episode_evidence_precedes_process_terminating_shutdown(tmp_path, monkey
         assert not (tmp_path / "episode.json").exists()
     else:
         assert json.loads((tmp_path / "episode.json").read_text())["gate_pass"] is False
+
+
+def test_persistent_stage_logging(tmp_path):
+    runner.mark_stage(tmp_path, "simulation_starting")
+    runner.mark_stage(tmp_path, "world_created")
+
+    lines = (tmp_path / "stages.jsonl").read_text().splitlines()
+    records = [json.loads(line) for line in lines]
+
+    assert [r["stage"] for r in records] == [
+        "simulation_starting",
+        "world_created",
+    ]
+    assert all(isinstance(r["timestamp"], float) for r in records)
