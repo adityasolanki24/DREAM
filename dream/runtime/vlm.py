@@ -239,10 +239,15 @@ class VLMAgent:
         """
         emit = on_event or (lambda kind, data: None)
         emit("goal", {"instruction": instruction})
+        self.tools.robot.hold()
         scene = self.tools.call("observe_scene")
+        robot = self.tools.call("get_robot_state")
         messages = [
             {"role": "system", "content": [{"type": "text", "text": SYSTEM_PROMPT}]},
-            self._user(f"Instruction: {instruction}\n\nobserve_scene result:\n{_brief(scene)}"),
+            self._user(
+                f"Instruction: {instruction}\n\nobserve_scene result:\n{_brief(scene)}"
+                f"\nget_robot_state result:\n{_brief(robot)}"
+            ),
         ]
         ep = VLMEpisode(instruction, self.backend.name, False, "", None)
         invalid_run = 0
@@ -254,6 +259,7 @@ class VLMAgent:
                     ep, False, "robot in protective stop (operator reset needed)", emit
                 )
             t0 = time.perf_counter()
+            self.tools.robot.hold()  # inference latency must not continue an old motion target
             try:
                 output = self.backend.generate(_bounded_images(messages), self.schemas)
             except (TimeoutError, OSError, ValueError, RuntimeError) as e:
@@ -313,7 +319,15 @@ class VLMAgent:
                 return self._end(
                     ep, False, f"{invalid_run} invalid model calls in a row: {result.message}", emit
                 )
-            messages.append(self._user(f"{call['name']} result:\n{_brief(result)}"))
+            scene = self.tools.call("observe_scene")
+            robot = self.tools.call("get_robot_state")
+            messages.append(
+                self._user(
+                    f"{call['name']} result:\n{_brief(result)}\n"
+                    f"observe_scene result:\n{_brief(scene)}\n"
+                    f"get_robot_state result:\n{_brief(robot)}"
+                )
+            )
         return self._end(ep, False, f"step budget ({self.max_steps}) exhausted", emit)
 
     def _finish(self, args: dict, ep: VLMEpisode, expected_goal: Goal | None) -> tuple[bool, str]:

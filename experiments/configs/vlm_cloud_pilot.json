@@ -1,0 +1,14 @@
+{
+  "checkpoint": "Qwen/Qwen3-VL-4B-Instruct",
+  "revision": "ebb281ec70b05090aa6165b016eac8ec08e71b17",
+  "seed_role": "development only; not held-out evaluation",
+  "offline_seed": 200,
+  "max_steps": 12,
+  "timeout_s": 60,
+  "episodes": [
+    {"seed": 201, "instruction": "Pick up the red object and put it in the tray.", "goal": "in red tray"},
+    {"seed": 202, "instruction": "Please move the blue cube into the tray.", "goal": "in blue tray"}
+  ],
+  "gates": {"offline_valid_tool_call": true, "max_false_claims": 0},
+  "note": "Run the offline image/structured-state contract first; only a valid named tool call permits the physical phase. Both planners use the same seeds, vision backend and live deterministic controller. Task success is report-only. No expected tool sequence is provided to the model. No learned motor policy in this pilot."
+}

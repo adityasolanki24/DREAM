@@ -93,6 +93,19 @@ def test_cancellation_during_inference_prevents_dispatch(monkeypatch):
     assert not ep.tool_calls
 
 
+def test_inference_holds_current_pose_instead_of_continuing_an_old_target(monkeypatch):
+    env, agent, backend = _agent([])
+    start = env.robot_state()
+    env.embodiment().move_tcp(start.tcp_pos + [0.05, 0.0, 0.0], start.tcp_quat)
+
+    def inspect_hold(*args):
+        assert np.linalg.norm(env.robot.target_pos - env.robot_state().tcp_pos) < 0.001
+        return call("finish", success=False, reason="test")
+
+    monkeypatch.setattr(backend, "generate", inspect_hold)
+    agent.run("Test holding during cloud inference")
+
+
 def test_hosted_backend_does_not_drop_additional_tool_calls(monkeypatch):
     import io
     import urllib.request

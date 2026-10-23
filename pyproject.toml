@@ -16,8 +16,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.6"]
 # Local Qwen3-VL inference (dream/runtime/qwen.py). Not needed by the test suite; not yet
-# installed or run in the development environment (no route to the model weights).
-vlm = ["torch>=2.6", "transformers>=4.57", "pillow>=10"]
+# executed with weights yet. The optional cloud pilot has a separate hashed Linux lockfile.
+vlm = ["torch==2.8.0", "torchvision==0.23.0", "transformers==4.57.1", "pillow==11.3.0"]
 
 [tool.setuptools.packages.find]
 include = ["dream*"]

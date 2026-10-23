@@ -1,0 +1,203 @@
+"""Cloud lifecycle contracts without cloud access, money or inference packages."""
+
+import hashlib
+import json
+import subprocess
+import time
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+from cloud import launch as cloud
+from dream.session import LiveSession
+from experiments.cloud_qwen_pilot import RecordedBackend, embodied_episode, offline_contract
+
+
+def _plan():
+    return cloud.plan("example-project", json.loads(cloud.CONFIG.read_text()), "dream-qwen-test")
+
+
+def test_pilot_is_private_isolated_and_deleted_even_if_the_job_hangs():
+    p = _plan()
+    command = cloud.create_command(p, "a" * 40, "b" * 64)
+    assert "--no-address" in command and "--instance-termination-action=DELETE" in command
+    assert "--max-run-duration=45m" in command and "--boot-disk-auto-delete" in command
+    assert "--network=dream-qwen-test" in command
+    assert p["estimated_usd"] < 3.0
+    assert not any("nerva" in arg for arg in command)
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("max_minutes", 46),
+        ("max_minutes", True),
+        ("zone", "europe-west1-b"),
+        ("machine", "a2-highgpu-1g"),
+    ],
+)
+def test_unreviewed_cost_or_hardware_expansion_is_rejected(field, value):
+    cfg = json.loads(cloud.CONFIG.read_text())
+    cfg[field] = value
+    with pytest.raises(ValueError):
+        cloud.plan("example-project", cfg, "dream-qwen-test")
+
+
+def test_approval_is_checked_before_any_cloud_or_git_access(monkeypatch):
+    def forbidden(*args):
+        pytest.fail("approval gate contacted an external service")
+
+    monkeypatch.setattr(cloud, "gcloud", forbidden)
+    monkeypatch.setattr(cloud, "git", forbidden)
+    for yes, allowance in [(False, 3.0), (True, 0.0), (True, float("nan")), (True, float("inf"))]:
+        with pytest.raises(ValueError, match="approval"):
+            cloud.launch(_plan(), allowance, yes)
+
+
+def test_cleanup_preserves_unretrieved_evidence_and_never_touches_nerva(monkeypatch):
+    calls = []
+    monkeypatch.setattr(cloud, "gcloud", lambda *args: calls.append(args) or "")
+    assert cloud.cleanup(_plan(), remove_results=False) == []
+    assert not any(args[0] == "storage" for args in calls)
+    assert all(not any("nerva" in arg for arg in args) for args in calls)
+    assert any("dream-qwen-test-nat" in args for args in calls)
+
+
+def test_cleanup_accepts_self_deleted_vm_but_reports_permission_failures(monkeypatch):
+    def missing(*args):
+        raise subprocess.CalledProcessError(1, args, stderr="resource was not found")
+
+    monkeypatch.setattr(cloud, "gcloud", missing)
+    assert cloud.cleanup(_plan(), remove_results=False) == []
+
+    def denied(*args):
+        raise subprocess.CalledProcessError(1, args, stderr="PERMISSION_DENIED")
+
+    monkeypatch.setattr(cloud, "gcloud", denied)
+    assert len(cloud.cleanup(_plan(), remove_results=False)) == 6
+
+
+def test_concurrent_launches_are_rejected_and_failed_runs_release_the_local_lock(tmp_path):
+    path = tmp_path / "active.lock"
+    with pytest.raises(TimeoutError), cloud.single_run_lock(path):
+        with pytest.raises(RuntimeError, match="audit first"), cloud.single_run_lock(path):
+            pytest.fail("a second launch acquired the same lock")
+        raise TimeoutError("simulated interruption")
+    assert not path.exists()
+
+
+def test_a_recovery_manifest_cannot_target_another_projects_resources(tmp_path, monkeypatch):
+    p = _plan()
+    p["router"] = "nerva-router"
+    path = tmp_path / "manifest.json"
+    path.write_text(json.dumps(p))
+    monkeypatch.setattr(cloud, "gcloud", lambda *args: pytest.fail("unsafe manifest reached cloud"))
+    with pytest.raises(ValueError, match="manifest resource mismatch"):
+        cloud.recover(path, True)
+
+
+def test_result_retrieval_detects_corruption_before_remote_deletion(tmp_path):
+    data = b"measured output"
+    (tmp_path / "episode.json").write_bytes(data)
+    manifest = tmp_path / "MANIFEST.sha256"
+    (tmp_path / "EXIT_CODE").write_bytes(b"0\n")
+    manifest.write_text(
+        hashlib.sha256(data).hexdigest()
+        + "  ./episode.json\n"
+        + hashlib.sha256(b"0\n").hexdigest()
+        + "  ./EXIT_CODE\n"
+    )
+    cloud.verify_results(tmp_path)
+    (tmp_path / "episode.json").write_bytes(b"partial download")
+    with pytest.raises(RuntimeError, match="checksum differs"):
+        cloud.verify_results(tmp_path)
+    manifest.write_text(hashlib.sha256(data).hexdigest() + "  ../outside.json\n")
+    with pytest.raises(ValueError, match="manifest path"):
+        cloud.verify_results(tmp_path)
+
+
+def test_empty_manifest_cannot_trigger_remote_result_deletion(tmp_path):
+    (tmp_path / "MANIFEST.sha256").write_text("")
+    with pytest.raises(RuntimeError, match="final status"):
+        cloud.verify_results(tmp_path)
+
+
+def test_cleanup_retries_dependency_release_and_fetch_failures_keep_remote_results(monkeypatch):
+    calls = []
+    sleeps = []
+
+    def transient(*args):
+        calls.append(args)
+        if len(calls) == 1:
+            raise subprocess.CalledProcessError(1, args, stderr="resource is being used")
+        return ""
+
+    monkeypatch.setattr(cloud, "gcloud", transient)
+    monkeypatch.setattr(cloud.time, "sleep", sleeps.append)
+    assert cloud.cleanup(_plan(), remove_results=False) == []
+    assert calls[0] == calls[1] and sleeps == [5]
+
+
+class ScriptedBackend:
+    """An interface test double. Never evidence of model inference."""
+
+    name = "scripted-test-double"
+
+    def generate(self, messages, tools):
+        assert any(p["type"] == "image" for m in messages for p in m["content"])
+        return '<tool_call>{"name":"observe_scene","arguments":{}}</tool_call>'
+
+
+def test_offline_contract_preserves_actual_sensor_frame_and_model_inputs(tmp_path):
+    result = offline_contract(ScriptedBackend(), {"offline_seed": 200}, tmp_path)
+    assert result["valid_named_call"]
+    frame = np.load(tmp_path / "rgbd.npz")
+    assert frame["rgb"].shape == (360, 480, 3) and np.isfinite(frame["depth"]).all()
+    request = json.loads((tmp_path / "inference/000_input.json").read_text())
+    text = request["messages"][-1]["content"][-1]["text"]
+    assert '"scene"' in text and '"robot"' in text and '"frame_time"' in text
+
+
+def test_recording_an_inference_error_does_not_turn_it_into_a_model_reply(tmp_path):
+    class Broken:
+        name = "broken-test-double"
+
+        def generate(self, *args):
+            raise TimeoutError("test")
+
+    with pytest.raises(TimeoutError):
+        RecordedBackend(Broken(), tmp_path, lambda: 1.0).generate([], [])
+    assert json.loads((tmp_path / "000_output.json").read_text())["error"] == "TimeoutError"
+
+
+def test_live_physics_keeps_holding_during_slow_inference(tmp_path):
+    session = LiveSession(seed=200, rate=1.0, perception="vision")
+    session.start()
+    try:
+        before = session.env.robot_state()
+
+        class Slow:
+            name = "slow-test-double"
+
+            def generate(self, *args):
+                time.sleep(0.3)
+                return "test"
+
+        RecordedBackend(Slow(), tmp_path, lambda: session.env.time).generate([], [])
+        after = session.env.robot_state()
+        assert after.time - before.time > 0.1
+        assert np.linalg.norm(after.tcp_pos - before.tcp_pos) < 0.002
+        assert not after.protective_stop
+    finally:
+        session.close()
+
+
+@pytest.mark.slow
+def test_cloud_physical_harness_runs_classical_vision_baseline(tmp_path):
+    cfg = json.loads(
+        (Path(__file__).parents[1] / "experiments/configs/vlm_cloud_pilot.json").read_text()
+    )
+    result = embodied_episode(None, cfg, cfg["episodes"][0], "A_rule_based", tmp_path)
+    assert result["perception"] == "vision" and not result["false_claim"]
+    assert result["success"] and result["claimed"]

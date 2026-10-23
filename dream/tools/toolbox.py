@@ -228,6 +228,7 @@ class Toolbox:
             "get_robot_state",
             "succeeded",
             data={
+                "time": s.time,
                 "joint_pos": np.round(s.joint_pos, 4).tolist(),
                 "tcp_pos": np.round(s.tcp_pos, 4).tolist(),
                 "tcp_yaw": round(skills.tcp_yaw(s.tcp_quat), 3),

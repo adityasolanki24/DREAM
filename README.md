@@ -87,6 +87,7 @@ suite ran alongside the development diagnostic. XML and environment metadata are
 | 11 | **Discovery invoked on demand by the runtime (unfamiliar compartment on the Panda)** | **In progress**: implemented and tested on the narrowed scene; held-out evaluation below; challenge variants open | `tests/test_compartment.py`, `results/compartment`, audit table |
 | 12 | Experience memory, failure-driven replanning, skill adaptation | Planned | n/a |
 | 12a | Vision-language planner (Qwen3-VL-4B-Instruct) choosing typed tools | Interface implemented and contract-tested with test doubles. **Model inference not run**; caller-bound success contract, atomic call rejection and cancellation checks | `tests/test_vlm.py`; hardware audit below |
+| 12a-cloud | Capped GPU inference and live-physics pilot | Locally tested harness prepared; **cloud launch awaits spending approval**. No GPU inference claim | `cloud/launch.py`, `experiments/cloud_qwen_pilot.py`, `tests/test_cloud.py` |
 | 12b | Learned motor policy (GR00T N1.7-LIBERO) | **Feasibility inspected; adapter not implemented**. Checkpoint/configs reachable; missing wrist camera, rotation/control mapping and CUDA inference hardware | Hardware and source-contract audit below |
 | 13 | Generalisation evaluation across goals, arrangements and task families | Planned | n/a |
 | 14 | Learned world/motor models, mobile or whole-body embodiments | Planned, conditional on evidence and compute | n/a |
@@ -133,6 +134,9 @@ python experiments/replay.py results/sessions/<time> --width 320       # session
 python experiments/calibrate_handle_measurement.py                     # camera handle-measurement calibration
 python experiments/audit_foundation_models.py --name foundation_model_audit_local  # new output directory
 python experiments/run_vlm.py experiments/configs/vlm.json --model-path <dir>  # needs the checkpoint
+# Read-only cloud preparation (no resources created):
+python cloud/launch.py plan --project <project-id>
+python cloud/launch.py audit --project <project-id>
 ```
 
 In the live session, type structured goals such as `in red tray` or `on blue green`, then
@@ -658,6 +662,11 @@ execution here; passing these action values directly to DREAM would be incorrect
   it cannot interrupt a blocked kernel or loading. Hosted requests can remain blocked until
   their socket timeout, but a cancelled result cannot trigger an action. Inference errors
   stop the episode and hold the robot.
+- Before inference the arm holds its current measured pose, preventing a stale unfinished
+  waypoint from continuing during model latency. After every dispatched call the model gets
+  fresh scene and robot-state results as well as the action outcome. Robot-state time is
+  explicit. These are general algorithmic corrections, tested against real robot state;
+  pretrained-model performance remains unmeasured.
 - Backends: local transformers inference (`QwenTransformersBackend`, the model's chat template
   with `tools`), or an OpenAI-compatible server such as vLLM (`OpenAICompatibleBackend`).
 - `experiments/run_vlm.py` compares condition A (rule-based planner given the structured goal)
@@ -674,6 +683,73 @@ any model's ability.**
 `python experiments/run_vlm.py experiments/configs/vlm.json --model-path <dir>`.
 The CPU backend remains unvalidated with model weights. GR00T needs a CUDA inference host
 and a validated observation/action mapping before any DREAM execution.
+
+### Capped cloud pilot (prepared, not launched)
+
+The deployment follows NERVA's proven private-job lifecycle, inspected at local revision
+`0b4388a` (cloud scripts last changed at `6b05692`): committed archive, pinned GPU image,
+private VM, temporary NAT, Google-enforced deletion deadline, periodic result sync and
+post-run audit. DREAM's implementation is independent; NERVA's scripts and resources are
+unchanged. Deployment identifiers come from the shell/CLI and are excluded from Git.
+
+Read-only checks on 23 Oct 2026 found active GCP authentication, billing enabled, regional
+L4 quota 8 with usage 0, no project VMs, and no DREAM network/disk/address resources.
+Quota availability is not a promise of zonal capacity. The existing NERVA budget alert is
+AUD$50; it is neither a spending cap nor authorization to spend on DREAM. Available credits
+and actual remaining budget were not established.
+
+The proposed first run is one `g2-standard-8` in `us-central1-a`: 1 L4 (24 GB VRAM), 32 GiB
+host RAM, 100 GB auto-deleted boot disk, fixed image
+`common-cu129-ubuntu-2204-nvidia-580-v20261019`, at most 45 minutes including setup.
+The 8.88 GB checkpoint leaves space for image/context processing, but actual peak GPU memory
+is an acceptance observation, not yet measured. No simultaneous motor model is loaded.
+Python 3.12.12, torch 2.8.0, torchvision 0.23.0, transformers 4.57.1 and transitive packages
+are pinned in the optional hashed Linux lockfile; CPU tests do not require them. Optional
+package licences: torch/torchvision BSD, transformers Apache-2.0, Pillow HPND.
+
+`experiments/configs/cloud_qwen_pilot.json` estimates **US$2.16**, including 45-minute compute,
+disk/NAT charges, a 20 GiB download estimate, and storage/egress reserve. The published
+[G2 rate](https://cloud.google.com/products/compute/pricing/accelerator-optimized) used is
+US$0.853624312/hour; [NAT](https://cloud.google.com/nat/pricing) adds US$0.045/GiB plus
+gateway/IP time. This is an estimate, **not a hard dollar cap**; traffic, tax and FX can vary.
+No existing credit or alert is counted as permission. The requested initial allowance is
+US$3 for this single run, with no automatic retries or additional paid jobs.
+
+The job first passes a real camera frame, structured scene, robot state and existing tool
+definitions to the pinned checkpoint (`ebb281ec70b05090aa6165b016eac8ec08e71b17`). Only a
+schema-valid named tool reply permits the physical phase. It then compares two development
+instructions against the deterministic planner, with the same vision backend and seeds,
+using `LiveSession`'s continuous physics/control thread. The model selects tools; no call
+sequence is supplied. Independent ground-truth scoring stays in the experiment runner.
+Raw model messages/outputs, RGB frames, an initial RGB-D frame with calibration, timings,
+GPU telemetry and failures are saved. No model weights enter Git, OneDrive or fetched results;
+the model cache lives in `/work/model-cache` on the disposable VM.
+
+Only after explicit spending approval:
+
+```powershell
+python cloud/launch.py run --project <project-id> --allowance-usd 3 --yes
+```
+
+The launcher refuses a dirty checkout or a concurrent DREAM run. Each run uses a dedicated
+private VPC/subnet/NAT, private results bucket and service account; there is no public endpoint
+or public VM IP. The account can access its bucket and delete its own instance, without
+project-wide compute-admin permission. The attached launcher retrieves and checksums stable
+outputs, then deletes the run's network, account and bucket. If retrieval fails, the bucket
+is preserved for recovery. VM deletion is enforced by Google even if the guest or launcher
+fails; NAT cleanup still requires the attached launcher or recovery command. Stale local locks
+must be investigated, not silently overridden.
+
+```powershell
+python cloud/launch.py recover --manifest results/cloud_runs/<run>/manifest.json --yes
+python cloud/launch.py audit --project <project-id>
+```
+
+`results/cloud_runs` is ignored; copy only reviewed, claim-supporting results to a new tracked
+results directory. Failed cleanup is reported and audited, never treated as proof of zero
+resources. Local tests cover the harness and real classical physics; they **do not** show
+Qwen inference. GR00T execution, new language-driven task composition, experience retrieval
+and held-out model comparisons remain subsequent work after this pilot runs.
 
 ## Limitations (read before citing any number)
 
