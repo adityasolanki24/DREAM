@@ -1282,3 +1282,13 @@ The initial walking setup was interrupted before VM allocation when archive revi
 a Git-metadata dependency in preflight. Cleanup returned no errors and zero resources.
 `results/t1_archive_preallocation_dev` preserves the diagnosis; a failing regression preceded
 the source-SHA environment correction. Same approved workload, no GPU boot before correction.
+
+Walking startup failure at `51d7c01`: the guest stopped after five seconds before installing
+Isaac because Windows Git archived the sourced shell helper with CRLF. Stable failure files
+are in `results/t1_cloud_startup_failure`. A failing real-archive regression precedes an
+explicit `cloud/*.sh text eol=lf` correction. The actor and physics did not run. Reserve
+US$0.10 of the same approved US$4 for this failed setup; US$3.90 remains for the unchanged
+US$3.72-estimate workload. This reserve is not an actual billing measurement.
+
+The failed-startup launcher completed cleanup with no errors; post-audit shows zero project
+instances and zero CPU/L4 use, and no DREAM disks, addresses, networks or routers.
