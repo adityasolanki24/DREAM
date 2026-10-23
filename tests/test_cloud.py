@@ -18,6 +18,32 @@ def _plan():
     return cloud.plan("example-project", json.loads(cloud.CONFIG.read_text()), "dream-qwen-test")
 
 
+def test_new_service_account_propagation_retries_only_its_missing_identity(monkeypatch):
+    account = "dream-test@example-project.iam.gserviceaccount.com"
+    calls, sleeps = [], []
+
+    def grant(*args):
+        calls.append(args)
+        if len(calls) < 3:
+            raise subprocess.CalledProcessError(
+                1, args, stderr=f"Service account {account} does not exist."
+            )
+        return ""
+
+    monkeypatch.setattr(cloud, "gcloud", grant)
+    monkeypatch.setattr(cloud.time, "sleep", sleeps.append)
+    cloud.grant_result_access("dream-qwen-test", account)
+    assert len(calls) == 3 and sleeps == [5, 10] and calls[0] == calls[1] == calls[2]
+
+    def denied(*args):
+        raise subprocess.CalledProcessError(1, args, stderr="Permission denied")
+
+    monkeypatch.setattr(cloud, "gcloud", denied)
+    with pytest.raises(subprocess.CalledProcessError):
+        cloud.grant_result_access("dream-qwen-test", account)
+    assert sleeps == [5, 10]
+
+
 def test_pilot_is_private_isolated_and_deleted_even_if_the_job_hangs():
     p = _plan()
     command = cloud.create_command(p, "a" * 40, "b" * 64)

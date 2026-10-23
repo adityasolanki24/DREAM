@@ -54,8 +54,8 @@ def preflight(folder: Path, cfg: dict) -> dict:
     }
 
 
-def execute(folder: Path, cfg: dict, case: str, out: Path) -> dict:
-    """Run actual PhysX; missing simulator raises instead of substituting a test double."""
+def start_application():
+    """Start Kit, then explicitly enable sensor/storage modules before importing them."""
     from isaacsim import SimulationApp
 
     app = SimulationApp(
@@ -66,6 +66,20 @@ def execute(folder: Path, cfg: dict, case: str, out: Path) -> dict:
             "extra_args": ["--allow-root"] if hasattr(os, "geteuid") and os.geteuid() == 0 else [],
         }
     )
+    try:
+        from isaacsim.core.utils.extensions import enable_extension
+
+        for name in ("isaacsim.sensors.camera", "isaacsim.storage.native"):
+            enable_extension(name)
+    except Exception:
+        app.close()
+        raise
+    return app
+
+
+def execute(folder: Path, cfg: dict, case: str, out: Path) -> dict:
+    """Run actual PhysX; missing simulator raises instead of substituting a test double."""
+    app = start_application()
     rows, frames = [], []
     try:
         from isaacsim.core.api import World

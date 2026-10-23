@@ -1292,3 +1292,13 @@ US$3.72-estimate workload. This reserve is not an actual billing measurement.
 
 The failed-startup launcher completed cleanup with no errors; post-audit shows zero project
 instances and zero CPU/L4 use, and no DREAM disks, addresses, networks or routers.
+
+A second setup attempt at `36109f9` stopped before VM allocation: Storage IAM did not yet
+recognize the newly created service account (Cloud Audit Logs status 3). Its empty bucket
+and scoped resources were removed; no GPU booted. `results/t1_iam_propagation_failure`
+preserves the cause and audit. A regression precedes bounded retries for only that exact
+missing identity, without broadening permissions. Same US$4 workload allowance.
+
+The corrected launcher also enables the camera/storage extensions explicitly after Kit
+startup and before adapter imports, following the pinned reference. Offline bootstrap
+ordering tests pass; runtime compatibility still requires the approved physical attempt.

@@ -62,6 +62,36 @@ def git(*args: str) -> str:
     return subprocess.check_output(["git", "-C", str(ROOT), *args], text=True).strip()
 
 
+def grant_result_access(bucket: str, account: str) -> None:
+    """Wait narrowly for a newly created identity to propagate to Storage IAM.
+
+    Observed in the walking pilot: account creation succeeded, but the next bucket
+    binding rejected that same identity as nonexistent. Never retry a permission denial
+    or broaden the role. Four attempts give bounded 5/10/20-second propagation waits.
+    """
+    for attempt in range(4):
+        try:
+            gcloud(
+                "storage",
+                "buckets",
+                "add-iam-policy-binding",
+                f"gs://{bucket}",
+                f"--member=serviceAccount:{account}",
+                "--role=roles/storage.objectAdmin",
+            )
+            return
+        except subprocess.CalledProcessError as error:
+            detail = (error.stderr or "").lower()
+            if (
+                attempt == 3
+                or account.lower() not in detail
+                or "service account" not in detail
+                or "does not exist" not in detail
+            ):
+                raise
+            time.sleep(5 * 2**attempt)
+
+
 def plan(project: str, cfg: dict, name: str) -> dict:
     """Build an inspectable plan. No cloud calls, uploads, IAM changes or resource creation."""
     if not re.fullmatch(r"[a-z][a-z0-9-]{4,61}[a-z0-9]", project):
@@ -520,14 +550,7 @@ def _launch(p: dict, allowance: float) -> None:
             "--public-access-prevention",
         )
         gcloud("iam", "service-accounts", "create", p["account"], project)
-        gcloud(
-            "storage",
-            "buckets",
-            "add-iam-policy-binding",
-            f"gs://{p['bucket']}",
-            f"--member=serviceAccount:{account}",
-            "--role=roles/storage.objectAdmin",
-        )
+        grant_result_access(p["bucket"], account)
         gcloud("compute", "networks", "create", p["network"], project, "--subnet-mode=custom")
         gcloud(
             "compute",

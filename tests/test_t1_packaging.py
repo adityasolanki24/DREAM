@@ -2,6 +2,7 @@
 
 import json
 import subprocess
+import sys
 import tarfile
 from types import SimpleNamespace
 
@@ -48,3 +49,21 @@ def test_linux_guest_scripts_stay_lf_in_archive_with_windows_git_settings(tmp_pa
         for name in ("cloud/vm_startup.sh", "cloud/isaac_t1_job.sh"):
             contents = source.extractfile(name).read()
             assert b"\r\n" not in contents, f"Linux script archived with CRLF: {name}"
+
+
+def test_application_enables_sensor_extensions_before_adapter_import(monkeypatch):
+    events = []
+    app = SimpleNamespace(close=lambda: events.append("close"))
+
+    def launch(cfg):
+        events.append("application")
+        return app
+
+    monkeypatch.setitem(sys.modules, "isaacsim", SimpleNamespace(SimulationApp=launch))
+    monkeypatch.setitem(
+        sys.modules,
+        "isaacsim.core.utils.extensions",
+        SimpleNamespace(enable_extension=lambda name: events.append(name)),
+    )
+    assert runner.start_application() is app
+    assert events == ["application", "isaacsim.sensors.camera", "isaacsim.storage.native"]
