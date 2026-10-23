@@ -81,10 +81,15 @@ def handle_closing_yaw(obs: ArticulatedObservation, current_yaw: float) -> float
 
 
 def grasp_handle(
-    robot: Embodiment, perception: Perception, name: str, handle_size: float = 0.025
+    robot: Embodiment,
+    perception: Perception,
+    name: str,
+    handle_size: float = 0.025,
+    estimate: ArticulatedObservation | None = None,
 ) -> SkillResult:
     """Top-down grasp across the handle. Verified by finger width (closed on the handle)."""
-    obs = find_articulated(perception, name)
+    visual = find_articulated(perception, name)
+    obs = estimate if estimate is not None else visual
     if obs is None:
         return SkillResult(False, f"no handle observed on '{name}'")
     t0 = robot.state().time
@@ -97,7 +102,24 @@ def grasp_handle(
     # Re-observe before committing, but never trade a good estimate for a worse one: with the
     # hand above the knob a camera sees it partly hidden (estimates off by up to ~24 mm).
     again = find_articulated(perception, name)
-    if again is not None and again.position_std <= obs.position_std + 1e-9:
+    changed = (
+        visual is not None
+        and again is not None
+        and again.handle_visible
+        and np.linalg.norm(again.handle_pos - visual.handle_pos)
+        > 3 * np.hypot(again.position_std, visual.position_std)
+    )
+    clear_new = (
+        again is not None
+        and again.handle_visible
+        and again.last_seen is not None
+        and obs.last_seen is not None
+        and again.last_seen > obs.last_seen
+        and again.position_std < obs.position_std
+    )
+    if again is not None and (
+        changed or clear_new or (estimate is None and again.position_std <= obs.position_std + 1e-9)
+    ):
         obs = again
     r = move_to(robot, obs.handle_pos, yaw)
     if not r.ok:

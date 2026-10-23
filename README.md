@@ -437,6 +437,9 @@ conditions remain available as parameters (`CompartmentSpec.handle`, `cavity_hei
 | Place yaw aligned with the container's front face | Task-specific heuristic | Deep-cavity lids still fail. Open: general collision-aware placement. |
 | Release retreat toward 0.5 m radius | Heuristic | Development failures only |
 | Open only until the opening is wide enough | General (task-directed stopping from perception) | n/a |
+| Retain occluded opening evidence, accepting wider measurements and clear closure | General algorithmic correction | Synthetic regression contracts in `tests/test_vision.py`; camera task remeasurement pending |
+| Five-second lifetime for old openings and released-handle estimates | Task-specific heuristic (uncalibrated freshness policy) | Expiry tests; does not model how fast a released mechanism can close |
+| Recent release position as a fallback for an unchanged, uncertain handle track | Task-specific heuristic (rigid knob grasp) | Scoped to a successful opening and confirmed finger width, same track, one immediate retry; clear newer vision wins; rotating/slipping grasps remain unsupported |
 | Failed release fails the opening | General correction | Regression test |
 | Cubes kept out of the drawer's path and in the validated workspace | **Environment simplification** | The agent does not reason about objects blocking an opening |
 | Drawer- or lid-specific code | None in planning or discovery: segment sizes depend on the *learned* joint class. The fixed-pull baseline is a drawer strategy by definition. | `dream/runtime`, `dream/tools/discovery.py` |
@@ -558,6 +561,13 @@ Measured: **0/12 drawers and lids, 0 false claims**. The fixed boxes were declin
   regression test.
 - Runtime fixes found on these scenes: no re-grasp of a knob already held, bounded set-aside
   attempts, one compartment track across its closed and open states.
+- Continuation branch: occluded opening measurements can widen retained space; clear views
+  can shrink or remove it. Retained space expires for placement after five simulated seconds
+  without supporting evidence. Handle associations stay attached to their original perception
+  track rather than switching to whichever handle moves nearest. A successful opening can
+  supply a recent release position for one re-grasp when vision still shows an old, uncertain
+  estimate. A lost grasp or failed release supplies no such estimate. The time limits and
+  contact fallback are uncalibrated heuristics, not demonstrated transfer or learning.
 - Still open: grasping the knob again from a camera estimate, the grasp being lost while
   opening, verification right after placing (the cube estimate is occluded), and the
   position-only adequacy threshold (still the 0.59 placeholder).

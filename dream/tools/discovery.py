@@ -43,7 +43,7 @@ from dream.agent.model import (
 )
 from dream.agent.operate import constraint_deviation, plan_segment
 from dream.skills.manipulation import SkillResult
-from dream.types import Embodiment, PartGeometry, Perception
+from dream.types import ArticulatedObservation, Embodiment, PartGeometry, Perception
 
 CONFIDENCE = 0.95  # posterior probability of the most probable mechanism class
 # Declaring "fixed" ends the task, and four uninformative probes once gave a real drawer
@@ -71,6 +71,56 @@ GRASP_STD = 0.0022  # m
 POSITION_ONLY_ADEQUACY = 0.59
 DEVIATION_PER_TRAVEL = 0.1  # m per m of handle travel from the closed position
 GRASP_MIN_WIDTH = 0.6 * 0.025  # m: fingers closing below this have lost the knob
+# Uncalibrated freshness policy, limited to an immediate retry after release. A released
+# mechanism can move; a historical contact is never evidence of a continuing attachment.
+RELEASE_MAX_AGE_S = 5.0
+
+
+@dataclass(frozen=True)
+class ReleasedHandle:
+    object: str
+    handle_id: int | None
+    position: np.ndarray
+    visual_position: np.ndarray
+    position_std: float
+    time: float
+
+
+def best_handle_estimate(
+    obs: ArticulatedObservation, released: ReleasedHandle | None, time: float
+) -> ArticulatedObservation:
+    """Use a recent confirmed contact if vision still shows its old, uncertain location.
+
+    Clear measurements newer than release win. A changed visual position outside the joint
+    3-sigma allowance also wins, including conflicting evidence. The fallback is last-known
+    only: it neither follows the current TCP nor claims visibility or a rigid attachment.
+    """
+    if (
+        released is None
+        or obs.name != released.object
+        or obs.handle_id is None
+        or obs.handle_id != released.handle_id
+        or not 0 <= time - released.time <= RELEASE_MAX_AGE_S
+    ):
+        return obs
+    fresh_clear = (
+        obs.handle_visible
+        and obs.last_seen is not None
+        and obs.last_seen > released.time
+        and obs.position_std < released.position_std
+    )
+    changed = obs.handle_visible and np.linalg.norm(
+        obs.handle_pos - released.visual_position
+    ) > 3 * np.hypot(obs.position_std, released.position_std)
+    if fresh_clear or changed:
+        return obs
+    return replace(
+        obs,
+        handle_pos=released.position.copy(),
+        handle_visible=False,
+        position_std=max(obs.position_std, released.position_std),
+        last_seen=released.time,
+    )
 
 
 @dataclass(frozen=True)
@@ -111,6 +161,7 @@ class Investigation:
     steps: list[dict] = field(default_factory=list)
     belief: Belief | None = field(default=None, repr=False)
     handle_source: str = "perception"  # or "grasp": measured through the rigid grasp
+    released_handle: ReleasedHandle | None = field(default=None, repr=False)
 
     def summary(self) -> dict:
         """What a planner sees (no particles, no step logs)."""
@@ -372,7 +423,9 @@ def near_handle(obs) -> float:
     return max(0.02, 3.0 * obs.position_std)
 
 
-def _ensure_grasped(robot: Embodiment, perception: Perception, name: str) -> SkillResult:
+def _ensure_grasped(
+    robot: Embodiment, perception: Perception, name: str, inv: Investigation | None = None
+) -> SkillResult:
     """Grasp the handle unless the fingers are already closed on something near it."""
     st = robot.state()
     obs = art.find_articulated(perception, name)
@@ -381,7 +434,12 @@ def _ensure_grasped(robot: Embodiment, perception: Perception, name: str) -> Ski
     near = np.linalg.norm(obs.handle_pos - st.tcp_pos) < near_handle(obs)
     if near and st.gripper_command < 0.005 and st.gripper_width > GRASP_MIN_WIDTH:
         return SkillResult(True, "")
-    return art.grasp_handle(robot, perception, name)
+    estimate = best_handle_estimate(obs, inv.released_handle, st.time) if inv else obs
+    if inv is not None:
+        inv.released_handle = None  # consume once; a failed retry cannot renew old contact
+    return art.grasp_handle(
+        robot, perception, name, estimate=estimate if estimate is not obs else None
+    )
 
 
 def _handle_now(robot: Embodiment, perception: Perception, name: str, inv: Investigation):
@@ -414,7 +472,7 @@ def open_learned(
     st = robot.state()
     still_closed = st.gripper_command < 0.005 and st.gripper_width > GRASP_MIN_WIDTH
     if not (already_gripped and still_closed):
-        g = _ensure_grasped(robot, perception, name)
+        g = _ensure_grasped(robot, perception, name, inv)
         if not g.ok:
             return SkillResult(False, f"could not grasp the handle: {g.reason}")
     width0 = robot.state().gripper_width
@@ -451,7 +509,28 @@ def open_learned(
         seen = perception.fixtures().get(name)
         if min_opening is not None and seen is not None and seen[1] >= min_opening:
             break
+    inv.released_handle = None
+    st = robot.state()
+    obs = art.find_articulated(perception, name)
+    if (
+        outcome.ok
+        and inv.handle_source == "grasp"
+        and obs is not None
+        and obs.handle_id is not None
+        and st.gripper_command < 0.005
+        and st.gripper_width >= GRASP_MIN_WIDTH
+    ):
+        inv.released_handle = ReleasedHandle(
+            name,
+            obs.handle_id,
+            st.tcp_pos.copy(),
+            obs.handle_pos.copy(),
+            max(obs.position_std, GRASP_STD),
+            st.time,
+        )
     released = art.release_handle(robot)
+    if not released.ok:
+        inv.released_handle = None
     details = {
         "segments": log,
         "q_reached": log[-1]["q_after"] if log else 0.0,

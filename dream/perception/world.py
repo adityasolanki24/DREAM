@@ -29,6 +29,9 @@ from dream.perception.detect import Detection
 GATE = {"small": 0.05, "receptacle": 0.2}
 MOVED = 0.02  # m: an occluded detection closer than this to its track has not moved
 HANDLE_ON_RECEPTACLE = 0.25  # m from a receptacle's centre for a handle to belong to it
+# Conservative, uncalibrated freshness policy: historical open space may bridge brief arm
+# occlusions, but cannot justify placement indefinitely. Not a dynamics prediction.
+OPENING_MAX_AGE_S = 5.0
 
 
 def entity_class(kind: str) -> str:
@@ -43,6 +46,8 @@ class Track:
     visible: bool  # seen in the latest frame
     n_seen: int
     articulated: bool = False  # a receptacle on which a handle has been seen
+    opening_last_seen: float | None = None  # when the retained open space was measured
+    handle_id: int | None = None  # stable association once observed, not nearest each frame
 
 
 class WorldModel:
@@ -58,7 +63,16 @@ class WorldModel:
         for d in sorted(detections, key=lambda d: d.occluded):  # full views claim tracks first
             i = self._match(d, unmatched, detections)
             if i is None:
-                new.append(Track(self._next, d, time, True, 1))
+                new.append(
+                    Track(
+                        self._next,
+                        d,
+                        time,
+                        True,
+                        1,
+                        opening_last_seen=time if d.opening is not None else None,
+                    )
+                )
                 self._next += 1
                 continue
             unmatched.remove(i)
@@ -68,24 +82,65 @@ class WorldModel:
             est = replace(t.detection, occluded=True) if keep_old else d
             if t.detection.kind == "handle" and est.kind == "object":
                 est = replace(est, kind="handle", position=est.top_centre)
-            if d.occluded and t.detection.opening is not None:
-                # An occluded view hides cells; it is no evidence that an opening shrank or
-                # closed. Keep the opening last seen in a clear view.
-                est = replace(est, opening=t.detection.opening)
-            self.tracks[i] = Track(t.id, est, time, True, t.n_seen + 1, t.articulated)
+            opening_time = time if d.opening is not None else None
+            previous = t.detection.opening
+            if d.occluded and previous is not None:
+                # A partial view cannot disprove old open space. Newly observed wider space
+                # can replace it, but only at a compatible floor location; disjoint openings
+                # are conflicting evidence, not proof that the old region is still clear.
+                compatible = (
+                    d.opening is not None
+                    and np.linalg.norm(d.opening[0] - previous[0]) <= previous[1] - d.opening[1]
+                )
+                if d.opening is None or (d.opening[1] < previous[1] and compatible):
+                    est = replace(est, opening=previous)
+                    opening_time = t.opening_last_seen
+                else:
+                    est = replace(est, opening=d.opening)
+            else:
+                est = replace(est, opening=d.opening)
+            self.tracks[i] = replace(
+                t,
+                detection=est,
+                last_seen=time,
+                visible=True,
+                n_seen=t.n_seen + 1,
+                opening_last_seen=opening_time,
+            )
         for i in unmatched:
             self.tracks[i] = replace(self.tracks[i], visible=False)
         self.tracks.extend(new)
         self._mark_articulated()
 
     def _mark_articulated(self) -> None:
-        handles = [t.detection.position for t in self.tracks if t.detection.kind == "handle"]
+        assigned = {t.handle_id for t in self.tracks if t.handle_id is not None}
+        handles = [
+            t
+            for t in self.tracks
+            if t.visible and t.detection.kind == "handle" and t.id not in assigned
+        ]
         for i, t in enumerate(self.tracks):
             if entity_class(t.detection.kind) != "receptacle" or t.articulated:
                 continue
             centre = t.detection.position[:2]
-            if any(np.linalg.norm(h[:2] - centre) < HANDLE_ON_RECEPTACLE for h in handles):
-                self.tracks[i] = replace(t, articulated=True)
+            nearby = sorted(
+                handles, key=lambda h: np.linalg.norm(h.detection.position[:2] - centre)
+            )
+            if not nearby:
+                continue
+            nearest = nearby[0]
+            distance = np.linalg.norm(nearest.detection.position[:2] - centre)
+            if distance >= HANDLE_ON_RECEPTACLE:
+                continue
+            if len(nearby) > 1:
+                other_distance = np.linalg.norm(nearby[1].detection.position[:2] - centre)
+                # Ambiguous visual association needs another observation, not a guess.
+                if other_distance - distance <= 3 * max(
+                    nearest.detection.position_std, nearby[1].detection.position_std
+                ):
+                    continue
+            self.tracks[i] = replace(t, articulated=True, handle_id=nearest.id)
+            handles.remove(nearest)
 
     def _match(self, d: Detection, free: list[int], detections: list[Detection]) -> int | None:
         same = [i for i in free if self._compatible(self.tracks[i].detection, d)]
@@ -104,12 +159,8 @@ class WorldModel:
         return entity_class(a.kind) == entity_class(b.kind) and a.color == b.color
 
     def handle_of(self, receptacle: Track) -> Track | None:
-        """The handle track nearest to an articulated receptacle, visible or last-known."""
-        handles = [t for t in self.tracks if t.detection.kind == "handle"]
-        if not handles:
-            return None
-        centre = receptacle.detection.position[:2]
-        return min(handles, key=lambda t: np.linalg.norm(t.detection.position[:2] - centre))
+        """The originally associated handle, even when opening moves another handle closer."""
+        return next((t for t in self.tracks if t.id == receptacle.handle_id), None)
 
     def names(self) -> dict[int, str]:
         """Track id -> name. Objects are named by colour, numbered when a colour repeats.

@@ -284,6 +284,83 @@ def test_an_opening_whose_release_fails_is_reported_as_failed():
     assert with_release(failed, stuck).reason == failed.reason  # the first failure is the cause
 
 
+def test_a_re_grasp_uses_where_the_hand_let_go_unless_the_camera_shows_the_handle_moved():
+    from dataclasses import replace
+
+    from dream.tools.discovery import ReleasedHandle, best_handle_estimate
+    from dream.types import ArticulatedObservation
+
+    obs = ArticulatedObservation(
+        "box",
+        np.array([0.5, 0.0, 0.1]),
+        np.array([1.0, 0.0, 0.0, 0.0]),
+        np.zeros(3),
+        np.ones(3),
+        position_std=0.025,
+        handle_id=7,
+        last_seen=1.0,
+    )
+    released = ReleasedHandle(
+        "box", 7, np.array([0.5, 0.0, 0.3]), obs.handle_pos.copy(), 0.025, 2.0
+    )
+    est = best_handle_estimate(obs, released, 3.0)
+    assert np.allclose(est.handle_pos, released.position)
+    assert est.position_std >= released.position_std  # historical estimate, not current contact
+    moved = replace(obs, handle_pos=np.array([0.5, 0.0, 0.24]), position_std=0.007, last_seen=3.0)
+    assert best_handle_estimate(moved, released, 3.0) is moved
+    for unusable in (replace(obs, name="other"), replace(obs, handle_id=8)):
+        assert best_handle_estimate(unusable, released, 3.0) is unusable
+    assert best_handle_estimate(obs, None, 3.0) is obs
+    assert best_handle_estimate(obs, released, 100.0) is obs
+
+
+@pytest.mark.parametrize("lost,release_ok", [(False, True), (True, True), (False, False)])
+def test_only_a_confirmed_grasp_and_successful_release_leave_a_regrasp_estimate(
+    monkeypatch, lost, release_ok
+):
+    from types import SimpleNamespace
+
+    from dream.skills.manipulation import SkillResult
+    from dream.tools import discovery as d
+    from dream.types import ArticulatedObservation
+
+    state = SimpleNamespace(
+        time=2.0, gripper_command=0.0, gripper_width=0.025, tcp_pos=np.array([0.5, 0.0, 0.3])
+    )
+    robot = SimpleNamespace(state=lambda: state)
+    obs = ArticulatedObservation(
+        "box",
+        state.tcp_pos,
+        np.array([1.0, 0.0, 0.0, 0.0]),
+        np.zeros(3),
+        np.ones(3),
+        handle_id=7,
+        position_std=0.025,
+    )
+    inv = SimpleNamespace(
+        belief=SimpleNamespace(map_type=lambda: d.REVOLUTE, h0=np.zeros(3)),
+        opening_supported=True,
+        handle_source="grasp",
+        released_handle=None,
+    )
+    monkeypatch.setattr(d, "MAX_SEGMENTS", 1)
+    monkeypatch.setattr(d, "_ensure_grasped", lambda *a: SkillResult(True))
+    monkeypatch.setattr(d, "_handle_now", lambda *a: state.tcp_pos)
+    monkeypatch.setattr(d, "plan_segment", lambda *a: ([state.tcp_pos], 0.0, 0.25))
+    monkeypatch.setattr(d, "constraint_deviation", lambda *a: (0.25, 0.0))
+    monkeypatch.setattr(d.art, "find_articulated", lambda *a: obs)
+    monkeypatch.setattr(d.art, "release_handle", lambda *a: SkillResult(release_ok))
+
+    def pull(*args):
+        if lost:
+            state.gripper_width = 0.0
+        return SkillResult(True)
+
+    monkeypatch.setattr(d.art, "pull_along", pull)
+    d.open_learned(robot, SimpleNamespace(fixtures=lambda: {}), "box", inv)
+    assert (inv.released_handle is not None) == (not lost and release_ok)
+
+
 def test_setting_an_unwanted_object_aside_is_bounded():
     """Regression: a perceived 'held object' that could not be set aside was retried until the
     step budget ran out (15 place calls in one development run)."""

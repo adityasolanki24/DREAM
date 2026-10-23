@@ -199,3 +199,5 @@ class ArticulatedObservation:
     # and must not be used as a measurement.
     handle_visible: bool = True
     position_std: float = 0.0  # m, 1-sigma uncertainty of handle_pos (0: not reported)
+    handle_id: int | None = None  # perception track identity, never a simulator identifier
+    last_seen: float | None = None  # s, last actual handle detection

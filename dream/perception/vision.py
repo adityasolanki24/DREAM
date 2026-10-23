@@ -27,7 +27,7 @@ from dataclasses import replace
 import numpy as np
 
 from dream.perception.detect import Detection, detect
-from dream.perception.world import Track, WorldModel, entity_class
+from dream.perception.world import OPENING_MAX_AGE_S, Track, WorldModel, entity_class
 from dream.types import ArticulatedObservation, ObjectObservation, RGBDFrame
 
 STD_SCALE = 1.0  # uncertainty inflation (see the README for the measured calibration)
@@ -114,7 +114,12 @@ class VisionPerception:
             if entity_class(d.kind) != "receptacle":
                 continue
             if t.articulated:
-                if d.opening is not None:
+                if (
+                    d.opening is not None
+                    and t.visible
+                    and t.opening_last_seen is not None
+                    and self._clock() - t.opening_last_seen <= OPENING_MAX_AGE_S
+                ):
                     out[names[t.id]] = (d.opening[0].copy(), float(d.opening[1]))
             elif d.kind == "container":
                 out[names[t.id]] = (d.position.copy(), d.inner_half)
@@ -147,6 +152,8 @@ class VisionPerception:
                     orientation_observed=False,
                     handle_visible=h.visible,
                     position_std=HANDLE_STD_OCCLUDED if h.detection.occluded else HANDLE_STD_CLEAR,
+                    handle_id=h.id,
+                    last_seen=h.last_seen,
                 )
             )
         return out
