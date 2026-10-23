@@ -21,7 +21,7 @@
     "width": 320,
     "height": 180
   },
-  "state_mapping": "q1..q7 rad, experimental closure fraction 1-width_m/0.08",
+  "state_mapping": "q1..q7 radians and normalized measured aperture closure, 1-width_m/0.08; follows original DROID training data, not ManiSkill knuckle-angle wrapper",
   "camera_order": [
     "exterior",
     "exterior_duplicate",
@@ -32,7 +32,7 @@
     "dimension": 8,
     "norm_tag": "franka_droid",
     "mode": "continuous",
-    "units": "robot scale returned by predict_action; seven absolute joint angles, gripper convention unvalidated"
+    "units": "seven absolute joint angles in radians and normalized gripper closure; original DROID controller projects closure to [0,1] before aperture conversion"
   },
   "gates": {
     "finite_shape": [
@@ -42,10 +42,10 @@
     "physical_execution_permitted": false
   },
   "limitations": [
-    "Panda hand differs from DROID Robotiq",
-    "camera mount is experimental, not a reproduced DROID calibration",
-    "control frequency unvalidated",
-    "checkpoint card omits a weight licence declaration; code repo Apache-2.0 does not establish weight licence"
+    "Equal fractional aperture does not reproduce Robotiq geometry on the Panda hand",
+    "Experimental camera pose differs from DROID calibration",
+    "15 Hz is the dataset rate; ManiSkill evaluates at 30 Hz; safe controller retimes targets explicitly",
+    "Checkpoint card omits a weight licence declaration; code Apache-2.0 does not establish weight licence"
   ],
   "note": "Inference-only. No action dispatch or classical fallback. Paid execution requires separate approval. No claim of a functioning learned motor controller.",
   "checkpoint_source_sha256": {
@@ -59,5 +59,7 @@
     "modeling_molmoact2.py": "3e0090b8cc045d59911c0a579815ebd17ce0423f9fdd03be887412df5c7b8b49",
     "processing_molmoact2.py": "61ec88c04cf70844dc98ab518d332911ec32cf5f24f052b7413ddd5d61483109",
     "video_processing_molmoact2.py": "8da721aa638da65aaa35e458920037c16b81dca344a623bb08db2b73f9ce9992"
-  }
+  },
+  "inference_seed": 232,
+  "nominal_frequency_hz": 15
 }

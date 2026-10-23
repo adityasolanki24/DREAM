@@ -127,7 +127,7 @@ def main() -> None:
     os.environ.setdefault("HF_HUB_OFFLINE", "1")
     start = time.perf_counter()
     try:
-        backend = MolmoBackend(model)
+        backend = MolmoBackend(model, seed=cfg["inference_seed"])
         start = time.perf_counter()
         actions = backend.predict(request)
         np.save(args.out / "raw_actions.npy", actions, allow_pickle=False)

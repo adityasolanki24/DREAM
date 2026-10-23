@@ -42,8 +42,9 @@ rules, architecture and engineering standards are in [`AGENTS.md`](AGENTS.md).
    matching the classical baseline (2/2), with no false claims or protective stops. This is
    semantic tool selection over classical motor skills, not learned continuous-action control
    or broad generalisation. Raw requests, outputs, RGB-D calibration, timing and GPU telemetry
-   are in `results/qwen_cloud_pilot_dev`. A learned-action model has since produced one open-loop chunk (below); no learned motor
-   actions have been executed and no Isaac Sim adapter has run.
+   are in `results/qwen_cloud_pilot_dev`. A learned-action model has since produced one open-loop
+   chunk, and its first saved target has been physically replayed through the separate joint
+   controller (below). Fresh learned feedback and Isaac Sim execution remain untested.
 
 ![Panda: red cube into the tray, then blue stacked on green](results/demo/panda_session/replay.gif)
 
@@ -108,7 +109,7 @@ these cloud-only changes. The Windows fast-suite duration still exceeds the 60 s
 | 12 | Experience memory, failure-driven replanning, skill adaptation | Planned | n/a |
 | 12a | Vision-language planner (Qwen3-VL-4B-Instruct) choosing typed tools | **Implemented and development-evaluated:** real checkpoint, 2/2 tray tasks; no held-out language benchmark. Caller-bound success, cancellation and rejection contracts | `results/qwen_cloud_pilot_dev`, `tests/test_vlm.py` |
 | 12a-cloud | Capped GPU inference and live-physics pilot | **Executed:** zone c rejected capacity, zone b booted; guest and pilot gates passed. Cleanup error investigated and absence verified | `results/cloud_pilot_allocation_failure`, `cloud/launch.py`, `tests/test_cloud.py` |
-| 12b | Learned motor policy (MolmoAct2-DROID first open-loop candidate; GR00T alternative) | **Partially working:** real checkpoint produced a finite 15×8 chunk on L4; arm joint ranges passed, gripper range failed (4/15). No learned motion executed | `tests/test_molmo.py`, `results/molmo_observation_dev`, source/decision audit below |
+| 12b | Learned motor policy (MolmoAct2-DROID first open-loop candidate; GR00T alternative) | **Partially working:** real checkpoint produced a finite 15×8 chunk on L4; raw gripper range failed (4/15). Source contract audited; one genuine saved target physically replayed through the separate controller. Fresh learned feedback and task success remain untested | `tests/test_molmo.py`, `results/molmo_observation_dev`, source/decision audit below |
 | 13 | Generalisation evaluation across goals, arrangements and task families | Planned | n/a |
 | 14 | Learned world/motor models, mobile or whole-body embodiments | Planned, conditional on evidence and compute | n/a |
 
@@ -833,8 +834,9 @@ changed in response.
 
 ## Learned-action compatibility checkpoint (real open-loop inference executed)
 
-**Decision: inspect MolmoAct2-DROID first; keep GR00T as the alternative.** This selects an
-open-loop experiment, not a validated motor controller. Both require a wrist view and both
+**Decision: inspect MolmoAct2-DROID first; keep GR00T as the alternative.** Local controller
+and saved-target replay checks now follow the initial open-loop experiment below. Useful
+learned manipulation remains unvalidated. Both require a wrist view and both
 have unresolved transfer to DREAM's Panda hand. Molmo's absolute seven-joint output is the
 smaller decoding problem; its single observation and 15-step chunk avoid GR00T DROID's
 additional EEF rotation representation and temporal observation history. No policy stack or
@@ -842,7 +844,7 @@ upstream robotics framework is installed into the CPU environment.
 
 | Candidate | Inspected contract | Decision / remaining gap |
 |---|---|---|
-| MolmoAct2-DROID, checkpoint `d8c1abd8a27d8e859455bbe514df2bcc617db0fb` | Continuous 15×8 output, raw joint state, `franka_droid` quantile statistics; absolute joint pose; exterior/exterior-duplicate/wrist order allowed by model card | First open-loop candidate. Joint radians and gripper scalar remain distinct. Official simulator uses FR3 + Robotiq, while DREAM has Panda + Panda hand; closure conversion is an explicit unvalidated hypothesis. Control frequency and closed-loop transfer unvalidated. |
+| MolmoAct2-DROID, checkpoint `d8c1abd8a27d8e859455bbe514df2bcc617db0fb` | Continuous 15×8 output, raw joint state, `franka_droid` quantile statistics; absolute joint pose; exterior/exterior-duplicate/wrist order allowed by model card | First open-loop candidate. Joint radians and gripper scalar remain distinct. Official simulator uses FR3 + Robotiq, while DREAM has Panda + Panda hand. Training-data closure and 15 Hz timing are source-backed; equal normalized aperture and camera/embodiment transfer remain unvalidated. |
 | GR00T N1.7 LIBERO / DROID, code `944fe70` | LIBERO uses external+wrist views and controller-specific Cartesian actions. Current DROID tag uses two camera times, 17D EEF/gripper/joint state and 40-step actions, with relative EEF/joint representations | Genuine alternative, not rejected as unavailable. Requires more frame/rotation/postprocessing work; never pass raw values into DREAM's TCP controller. Code Apache-2.0; checkpoint licence separately recorded in earlier audit. |
 | openpi / LeRobot / tau-0-vla | Pretrained policy serving, data/normalisation pipelines, typed checkpoint contracts | Reviewed as alternatives. No broad framework adoption: each adds an environment and embodiment contract to verify. |
 
@@ -865,9 +867,10 @@ clipping, renormalising twice, or dispatching. A shape-valid chunk never authori
 The wrist mount is experimental, not a reproduction of DROID calibration. The camera-mount
 test compares masses, inertia, actuator parameters and actual simulated trajectories with
 the original scene. The default scene's camera and physics settings are unchanged.
-Rule 3 classification: sensor-interface extension; the Panda-to-DROID closure mapping and
-camera viewpoint are **unverified workarounds**, confined to inspecting predictions. They
-must not be presented as calibration or validated cross-embodiment execution.
+Rule 3 classification: sensor-interface extension. The closure representation is now
+source-backed (see contract audit below); equal normalized aperture between different hands
+and the camera viewpoint remain **unverified workarounds**. Neither is physical calibration
+or evidence of cross-embodiment transfer.
 
 `experiments/molmo_openloop.py capture` actually rendered the images in
 `results/molmo_observation_confirmed` (initial capture retained in
@@ -937,8 +940,9 @@ column ranges, initial joint-target deltas and invalid-gripper count from those 
 The largest initial joint-target change was 0.26186 rad. No control-rate assumption or
 velocity/collision safety claim follows from joint-range validity.
 
-The gripper overshoot is preserved without clipping or thresholds tuned against it. The
-Panda-to-DROID hand mapping, camera shift and controller frequency remain unvalidated;
+The raw gripper overshoot is preserved without clipping or thresholds tuned against it.
+The later source-backed physical decoder is separate from this original audit. Hand/camera
+transfer and policy performance under safety-retimed control remain unvalidated;
 there is no closed-loop task result, learned motor transfer evidence or Isaac video.
 The torch sampling generator was not explicitly seeded in this run, so bit-identical
 regeneration is not established. The saved tensor is reproducible input for decoding audits.
@@ -997,14 +1001,98 @@ frames cannot be presented as an unedited execution recording.
   ran in a headless container. Headless replay GIFs are tested.
 - Compute: an EIG step takes about 0.6 s to select and 0.5–2 s to update, on one CPU core.
 
+## Training-data contract and separate joint execution checkpoint
+
+The audit in `results/molmo_contract_audit/sources.json` checks immutable source hashes
+from `experiments/configs/molmo_contract_sources.json`. The apparent contract conflict is
+real: the official simulator wrapper and the original training-data interface differ.
+
+| Interface | Source-backed meaning | DREAM consequence |
+|---|---|---|
+| Cameras | Pinned checkpoint card allows `[exterior, exterior, wrist]`, including a duplicated exterior when only two cameras exist; two-camera input is also supported | Keep the permitted three-slot form. Raw uint8 RGB goes to the pinned processor, which performs its own resizing/cropping/normalization. No manual second normalization. |
+| Calibration | DREAM logs exterior/wrist intrinsics, extrinsics and frame time; these are not DROID camera calibration | Viewpoint/domain shift remains unvalidated; RGB-D depth and object ground truth are not policy inputs. |
+| Training state | Seven measured joint radians plus `1 - measured_width / hardware_max_width` | Panda proprioception plus measured aperture normalized to its own 80 mm maximum. |
+| Training action | Seven absolute joint-position radians plus normalized gripper closure; already unnormalized by `predict_action` | No delta integration or second unnormalization. Closure 0 opens; 1 closes. |
+| Gripper bounds | Original DROID hardware code clamps commands to [0,1], then requests width `max_width*(1-command)` | Preserve raw values; separately log physical saturation and map to Panda width. Negative values are outside physical closure bounds, not evidence of negative knuckle travel. |
+| Timing | Pinned DROID converter sets 15 Hz; checkpoint horizon is 15 | Nominal interval 1/15 s. Execute one safely retimed target per fresh inference; unused rows are not replayed instantly. |
+| Official simulation | Wrapper uses the Robotiq outer-knuckle qpos directly; pinned asset joint limits are 0–0.81 rad and runner uses 30 Hz | This is a different interface from the training dataset; do not equate knuckle radians with normalized closure. |
+| Embodiment | Original DROID uses a Panda with Robotiq; official simulation uses FR3 + Robotiq; DREAM uses Panda + Panda hand | Equal normalized aperture is a defensible actuator convention, not equivalent finger geometry or validated manipulation transfer. |
+
+Primary evidence: [original DROID hardware interface](https://github.com/droid-dataset/droid/blob/33ae6a67274f36d2e29525b86f23a56616ef43a7/droid/franka/robot.py),
+[pinned dataset converter](https://github.com/allenai/molmoact2/blob/6070080a20321b4f498ab30f28e1d09ac465edb7/experiments/lerobot/examples/port_datasets/port_droid.py),
+[pinned checkpoint card](https://huggingface.co/allenai/MolmoAct2-DROID/blob/d8c1abd8a27d8e859455bbe514df2bcc617db0fb/README.md),
+and [simulation state adapter](https://github.com/allenai/molmoact2/blob/6070080a20321b4f498ab30f28e1d09ac465edb7/sim_eval/inference/common.py).
+The earlier raw tensor and its failed gripper-range audit remain unchanged. Its initial
+0.26186 rad displacement is the difference between an absolute joint target and measured
+initial joint 7, not a velocity or relative action.
+
+`JointTargetController` is opt-in and separate from the default Cartesian controller.
+It uses rest-to-rest quintic joint interpolation, workspace checks from robot kinematics,
+measured joint position/speed/acceleration and TCP speed checks, reactive link-contact and
+gripper-effort caps, a watchdog and cancellation. No Cartesian fallback is available.
+The hand remains a rate-limited position servo with effort protection; this is not learned
+force control or collision-free path planning. Safety retiming substantially changes policy
+timing and may impair performance. No scene physics or task geometry changed.
+
+`results/joint_controller_confirmed` records the frozen local controller gates, source
+hashes, versions and full physical traces, based on `740775a` plus the recorded dirty source
+hashes. Two known synthetic targets (seeds 220/221, joint 7 ±0.03 rad) passed before replaying
+one genuine saved model target (seed 210). All three reached arm-target error below 0.01 rad
+without a protective stop or link collision. The genuine target required **1.22958 s**
+(**18.4437×** the nominal interval); maximum final joint error was **0.00162121 rad**, peak
+measured speed **0.380995 rad/s** and acceleration **0.907333 rad/s²**. Raw gripper prediction
+−0.005859375 was retained, with physical saturation to the fully open 0.08 m command recorded.
+This is saved-output replay, **not fresh model feedback, a grasp, task completion or transfer**.
+The earlier local run remains in `results/joint_controller_dev`.
+
+| Change | Rule 3 class | Evidence / limitation |
+|---|---|---|
+| Training state/action interpretation and physical closure saturation | General interface correction | Immutable dataset/hardware sources and raw-preserving boundary tests; different hand geometry still unverified |
+| Preserve completed servo commands through hold and the next trajectory | General algorithmic correction | Original failure retained in `results/joint_hold_failure_dev`: 6.8242 rad/s² spike immediately after hold. Feedback regression and independent development seed 224 pass with unchanged 4 rad/s² guard. Test policies are explicit stubs, not model-performance evidence. |
+| Conservative interpolation and force caps | Engineering safety policy, uncalibrated for learned manipulation | Local known-target/replay gates only; contact-rich manipulation remains unvalidated |
+| Explicit camera-context release in the feedback runner | General resource-lifecycle correction | Initial full run: 203 passed, 6 GLFW context-creation failures; XML preserved as `full_before_renderer_cleanup.xml`. Regression asserts both camera contexts close on the rendering thread. |
+| Require a real backend and a completed prediction before labeling fresh inference | General evidence-label correction | Local stubs now explicitly report false. The original failing stub trace is preserved with a label correction in its diagnosis. |
+
+Final validation: **209 tests passed in 213.159 s**; **187 fast tests passed in 48.328 s**.
+Ruff checks and formatting passed. XML and exact source hashes are preserved in
+`results/joint_controller_confirmed`; CPU tests do not load policy weights. The same prepared
+harness's classical condition also completed development seed 223 without a protective stop
+(`classical_smoke`); the learned condition has no real fresh-inference result yet.
+
+Reproduce without GPU or network:
+
+```powershell
+python experiments/validate_joint_controller.py --out results/<new-joint-validation>
+pytest tests/test_joint.py tests/test_molmo.py tests/test_molmo_feedback.py
+```
+
+**Prepared, not launched:** `molmo-closedloop` selects one `g2-standard-8` (one L4, 32 GiB
+RAM), `us-central1-c` with sequential capacity-only regional fallback, the pinned Ubuntu
+image and an auto-deleted 100 GB disk. Maximum runtime is 45 minutes including setup;
+expected setup/model load is roughly 7–15 minutes based on the previous pilot, followed by
+at most 120 seconds of learned execution and the classical comparison. Estimated total is
+**US$2.61**, comprising approximately $0.64 VM, $0.01 disk, $0.005 NAT gateway/IP,
+$1.35 NAT data reserve and $0.60 storage/egress/reserve; this is an estimate, not a billing cap.
+Request a separate **US$3 allowance for this one workload** before launch.
+`experiments/configs/molmo_closedloop.json` freezes development seed 223, policy seed 233,
+six fresh predictions, one bounded target each and an identical-scene classical comparison.
+Each real prediction saves input images/state, untouched output, saturation, timing and
+physical trace; task scoring occurs independently after execution. Target tracking is the
+first gate; task completion is report-only. Test stubs validate wiring only. The checkpoint
+is downloaded once into the VM cache and reused. No Qwen or Isaac workload runs alongside it.
+Guest expiration/self-deletion plus host-finally cleanup remove the VM/disk, scoped IAM,
+network/NAT and bucket after checksum-verified retrieval; cleanup absence must be verified.
+No new paid resources were created at this checkpoint.
+
 ## Next milestone: a validated learned-action path, then Isaac Sim recording
 
 Milestone 11 (discovery as a tool on the Panda) is implemented on a narrowed scene with the
 oracle tracker; see its audit. Milestone 10's first slice (camera pick-and-place) is done. The
 camera-discovery dependency remains open, with its failures preserved. The current research
-branch has obtained a real pretrained open-loop action chunk. The next dependency is
-validating gripper conventions, state mapping and control frequency before connecting a
-safety-checked joint adapter for closed-loop execution. Only then add an isolated Isaac Sim adapter and real recording; MuJoCo stays the
+branch has obtained a real pretrained open-loop action chunk, audited its training-data
+contract and physically replayed its first target with safety retiming. The next dependency
+is a separately approved fresh-inference feedback pilot, then useful manipulation before
+typed high-level delegation and an isolated Isaac Sim adapter/recording. MuJoCo stays the
 regression baseline. No Isaac Sim demonstration or continuous learned control is claimed.
 
 The separate camera-discovery follow-up still needs:

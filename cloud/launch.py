@@ -28,6 +28,7 @@ ZONES = ("us-central1-c", "us-central1-b", "us-central1-a")
 WORKLOAD_CONFIGS = {
     "qwen-pilot": CONFIG,
     "molmo-openloop": ROOT / "experiments/configs/cloud_molmo_openloop.json",
+    "molmo-closedloop": ROOT / "experiments/configs/cloud_molmo_closedloop.json",
 }
 
 
@@ -198,6 +199,46 @@ def check_pilot(out: Path, workload: str = "qwen-pilot") -> None:
     """A retrieved guest failure is not a pass. Keep preregistered task success report-only."""
     if (out / "EXIT_CODE").read_text().strip() != "0":
         raise RuntimeError("guest failed; inspect preserved outputs before another paid run")
+    if workload == "molmo-closedloop":
+        import numpy as np
+
+        path = out / "closedloop_summary.json"
+        if not path.is_file():
+            raise RuntimeError("closed-loop summary missing")
+        summary = json.loads(path.read_text())
+        tensors = sorted((out / "learned_joint").glob("raw_actions_*.npy"))
+        if (
+            summary.get("fresh_model_inference") is not True
+            or summary.get("at_least_one_verified_target") is not True
+            or not tensors
+        ):
+            raise RuntimeError("closed-loop execution gate failed")
+        for tensor in tensors:
+            a = np.load(tensor, allow_pickle=False)
+            if a.shape != (15, 8) or not np.isfinite(a).all():
+                raise RuntimeError("invalid raw closed-loop tensor")
+        trace_path = out / "learned_joint/physical_trace.npz"
+        episode_path = out / "learned_joint/episode.json"
+        if not trace_path.is_file() or not episode_path.is_file():
+            raise RuntimeError("closed-loop physical evidence missing")
+        trace = np.load(trace_path, allow_pickle=False)["trace"]
+        episode = json.loads(episode_path.read_text())
+        if (
+            trace.ndim != 2
+            or trace.shape[1] != 20
+            or len(trace) < 2
+            or not np.isfinite(trace).all()
+            or not np.all(np.diff(trace[:, 0]) > 0)
+            or episode.get("classical_fallback") is not False
+            or not any(
+                s.get("executed") is True
+                and s.get("target_reached") is True
+                and 0 <= s.get("tracking_error_rad", float("inf")) < 0.01
+                for s in episode.get("steps", [])
+            )
+        ):
+            raise RuntimeError("closed-loop physical execution gate failed")
+        return
     if workload == "molmo-openloop":
         path = out / "molmo/summary.json"
         if not path.is_file():

@@ -1,0 +1,16 @@
+{
+  "seed_role": "development pilot only; no held-out or transfer claim",
+  "seed": 223,
+  "inference_seed": 233,
+  "instruction": "Pick up the red object and put it in the tray.",
+  "goal_object": "red",
+  "max_inferences": 6,
+  "max_episode_wall_s": 120,
+  "rows_per_inference": 1,
+  "nominal_frequency_hz": 15,
+  "record_period_s": 0.002,
+  "conditions": ["classical", "learned_joint"],
+  "gates": {"real_finite_predictions": true, "at_least_one_verified_target": true, "no_teleportation": true},
+  "report_only": ["task_success", "safety_stops", "time_dilation", "gripper_saturation", "invalid_outputs"],
+  "note": "One real inference then one safely retimed absolute target then fresh sensing. Never replay an entire chunk instantly. Stop on cancellation, rejected target, tracking failure, watchdog or safety signal. No classical fallback in learned condition. Independent goal scoring never reaches the acting policy. Separate paid approval required."
+}

@@ -128,6 +128,35 @@ def test_guest_failure_or_missing_evidence_cannot_be_reported_as_a_pass(tmp_path
         cloud.check_pilot(tmp_path)
 
 
+def test_closedloop_workload_requires_raw_predictions_and_physical_trace(tmp_path):
+    cfg = json.loads(cloud.WORKLOAD_CONFIGS["molmo-closedloop"].read_text())
+    p = cloud.plan("example-project", cfg, "dream-qwen-test")
+    assert p["estimated_usd"] < 3 and p["workload"] == "molmo-closedloop"
+    (tmp_path / "EXIT_CODE").write_text("0\n")
+    summary = {"fresh_model_inference": True, "at_least_one_verified_target": True}
+    (tmp_path / "closedloop_summary.json").write_text(json.dumps(summary))
+    output = tmp_path / "learned_joint"
+    output.mkdir()
+    np.save(output / "raw_actions_000.npy", np.zeros((15, 8)))
+    with pytest.raises(RuntimeError, match="physical"):
+        cloud.check_pilot(tmp_path, "molmo-closedloop")
+    trace = np.zeros((2, 20))
+    trace[1, 0] = 0.002
+    np.savez_compressed(output / "physical_trace.npz", trace=trace)
+    (output / "episode.json").write_text(
+        json.dumps(
+            {
+                "classical_fallback": False,
+                "steps": [{"target_reached": True, "executed": True, "tracking_error_rad": 0.001}],
+            }
+        )
+    )
+    cloud.check_pilot(tmp_path, "molmo-closedloop")
+    np.save(output / "raw_actions_000.npy", np.full((15, 8), np.nan))
+    with pytest.raises(RuntimeError, match="tensor"):
+        cloud.check_pilot(tmp_path, "molmo-closedloop")
+
+
 def test_openloop_workload_is_explicit_and_never_accepts_a_task_summary(tmp_path):
     cfg = json.loads(cloud.WORKLOAD_CONFIGS["molmo-openloop"].read_text())
     p = cloud.plan("example-project", cfg, "dream-qwen-test")

@@ -54,7 +54,7 @@ python3 -m pip install uv==0.9.4
 uv venv --python 3.12.12 /work/venv
 source /work/venv/bin/activate
 LOCK=requirements.lock.txt
-[ "$WORKLOAD" = molmo-openloop ] && LOCK=molmo.requirements.lock.txt
+case "$WORKLOAD" in molmo-openloop|molmo-closedloop) LOCK=molmo.requirements.lock.txt ;; esac
 uv pip install --require-hashes -r "/work/DREAM/cloud/$LOCK"
 uv pip install --no-deps -e /work/DREAM
 uv pip freeze > /work/out/pip-freeze.txt
@@ -69,5 +69,8 @@ case "$WORKLOAD" in
   molmo-openloop)
     timeout --signal=TERM --kill-after=30s "${LEFT}s" \
       python experiments/cloud_molmo_openloop.py --out /work/out ;;
+  molmo-closedloop)
+    timeout --signal=TERM --kill-after=30s "${LEFT}s" \
+      python experiments/cloud_molmo_closedloop.py --out /work/out ;;
   *) echo "Unsupported workload: $WORKLOAD"; exit 2 ;;
 esac

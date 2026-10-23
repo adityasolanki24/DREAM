@@ -1,0 +1,198 @@
+{
+  "git_sha": "740775a6547e0478435b6a8caac0576c9c266f47",
+  "dirty": true,
+  "versions": {
+    "numpy": "2.5.4",
+    "mujoco": "3.16.0"
+  },
+  "source_sha256": {
+    "dream/robot/joint.py": "ce99be5f3b515e6482cfb2d7c5bbe1bb53706b71fd624fc75aee2632ae407541",
+    "dream/eval/joint.py": "cd88c6b7fb99c9e8fb56f615afebc932591541dfc39c7038aee82470922b131b",
+    "dream/runtime/molmo.py": "9d5712e81341dbd57260d7ac5497a72d2fd5f1e7d6f1add00f2ba1a1b42a89fd",
+    "experiments/validate_joint_controller.py": "8c9bbea82fda19a0f328531d764586d894f4481979c08f970292ff6d68b596bc",
+    "dream/sim/tabletop_env.py": "9a9f1d1f3121da72618e49a37d4280b929ae28cb3fa5ce5642606cdbeb9972f8",
+    "experiments/configs/joint_validation.json": "b1d45817ba8174b9089c5307f00dedc3e135473ebc6468b4e459392f72c317db"
+  },
+  "config": {
+    "seed_role": "local controller development; no new inference or held-out task claim",
+    "known_targets": [
+      {
+        "seed": 220,
+        "joint7_delta_rad": 0.03
+      },
+      {
+        "seed": 221,
+        "joint7_delta_rad": -0.03
+      }
+    ],
+    "recorded_prediction": {
+      "seed": 210,
+      "path": "results/molmo_cloud_openloop/raw/molmo/raw_actions.npy",
+      "rows_to_execute": 1
+    },
+    "nominal_frequency_hz": 15,
+    "gates": {
+      "known_targets_reached": true,
+      "recorded_first_target_reached": true,
+      "max_tracking_error_rad": 0.01,
+      "max_measured_speed_rad_s": 1.0,
+      "max_measured_accel_rad_s2": 4.0,
+      "protective_stops": 0
+    },
+    "interpretation": "Synthetic targets validate controller first; replay uses genuine saved model output with logged DROID physical closure saturation. Replay is not closed-loop model inference or task success."
+  },
+  "episodes": [
+    {
+      "seed": 220,
+      "target": [
+        -1.3946591888946129e-16,
+        -8.019350477777136e-16,
+        -1.3878865598468421e-16,
+        -1.5707900000000017,
+        7.299493060223974e-16,
+        1.570789999999997,
+        -0.7553
+      ],
+      "width_m": 0.07,
+      "controller": "absolute_joint_quintic",
+      "nominal_period_s": 0.06666666666666667,
+      "duration_s": 0.41617914502878195,
+      "time_dilation": 6.24268717543173,
+      "executed": true,
+      "target_reached": true,
+      "reason": "target reached",
+      "tracking_error_rad": 0.001768841465976223,
+      "sim_start": 0.5000000000000003,
+      "sim_end": 1.0200000000000007,
+      "actual_displacement_rad": [
+        -5.652400032351626e-07,
+        2.53124759498604e-08,
+        -7.271642453749189e-07,
+        -2.2268326294039298e-08,
+        -2.2498279841925064e-07,
+        -3.279452820414974e-08,
+        0.028231158534023804
+      ],
+      "protective_stop": false,
+      "stop_reason": "",
+      "peak_link_contact_N": 0.0,
+      "peak_finger_contact_N": 0.0,
+      "link_collision": false,
+      "peak_measured_speed_rad_s": 0.10509006588915351,
+      "peak_measured_accel_rad_s2": 0.640373625115695,
+      "limits": {
+        "command_speed_rad_s": 0.5,
+        "command_accel_rad_s2": 1.0,
+        "measured_speed_rad_s": 1.0,
+        "measured_accel_rad_s2": 4.0,
+        "link_contact_N": 5.0,
+        "gripper_speed_m_s": 0.05,
+        "gripper_effort_N": 30.0,
+        "watchdog_s": 5.0
+      }
+    },
+    {
+      "seed": 221,
+      "target": [
+        -1.3946591888946129e-16,
+        -8.019350477777136e-16,
+        -1.3878865598468421e-16,
+        -1.5707900000000017,
+        7.299493060223974e-16,
+        1.570789999999997,
+        -0.8153
+      ],
+      "width_m": 0.07,
+      "controller": "absolute_joint_quintic",
+      "nominal_period_s": 0.06666666666666667,
+      "duration_s": 0.41617914502878195,
+      "time_dilation": 6.24268717543173,
+      "executed": true,
+      "target_reached": true,
+      "reason": "target reached",
+      "tracking_error_rad": 0.0017688414670933295,
+      "sim_start": 0.5000000000000003,
+      "sim_end": 1.0200000000000007,
+      "actual_displacement_rad": [
+        5.647686019215472e-07,
+        -2.461056931076756e-08,
+        7.265579729088869e-07,
+        1.8612557051156386e-08,
+        2.259474479377682e-07,
+        2.5327967279054064e-08,
+        -0.028231158532906697
+      ],
+      "protective_stop": false,
+      "stop_reason": "",
+      "peak_link_contact_N": 0.0,
+      "peak_finger_contact_N": 0.0,
+      "link_collision": false,
+      "peak_measured_speed_rad_s": 0.10509006590506619,
+      "peak_measured_accel_rad_s2": 0.6403736251312763,
+      "limits": {
+        "command_speed_rad_s": 0.5,
+        "command_accel_rad_s2": 1.0,
+        "measured_speed_rad_s": 1.0,
+        "measured_accel_rad_s2": 4.0,
+        "link_contact_N": 5.0,
+        "gripper_speed_m_s": 0.05,
+        "gripper_effort_N": 30.0,
+        "watchdog_s": 5.0
+      }
+    },
+    {
+      "seed": 210,
+      "target": [
+        -0.0004482269287109375,
+        0.0198974609375,
+        -0.0010528564453125,
+        -1.5703125,
+        0.000568389892578125,
+        1.734375,
+        -0.5234375
+      ],
+      "width_m": 0.08,
+      "controller": "absolute_joint_quintic",
+      "nominal_period_s": 0.06666666666666667,
+      "duration_s": 1.229578728124671,
+      "time_dilation": 18.443680921870065,
+      "executed": true,
+      "target_reached": true,
+      "reason": "target reached",
+      "tracking_error_rad": 0.001621208477716407,
+      "sim_start": 0.5000000000000003,
+      "sim_end": 1.8400000000000014,
+      "actual_displacement_rad": [
+        -0.00044732550262987163,
+        0.019788593205832605,
+        -0.0010487783667131366,
+        0.0004733376778234266,
+        0.000564096438586738,
+        0.16257647003039621,
+        0.2602412915222836
+      ],
+      "protective_stop": false,
+      "stop_reason": "",
+      "peak_link_contact_N": 0.0,
+      "peak_finger_contact_N": 0.0,
+      "link_collision": false,
+      "peak_measured_speed_rad_s": 0.3809949055021122,
+      "peak_measured_accel_rad_s2": 0.9073328822232773,
+      "limits": {
+        "command_speed_rad_s": 0.5,
+        "command_accel_rad_s2": 1.0,
+        "measured_speed_rad_s": 1.0,
+        "measured_accel_rad_s2": 4.0,
+        "link_contact_N": 5.0,
+        "gripper_speed_m_s": 0.05,
+        "gripper_effort_N": 30.0,
+        "watchdog_s": 5.0
+      },
+      "gripper_saturated": true,
+      "raw_gripper_prediction": -0.005859375
+    }
+  ],
+  "gate_pass": true,
+  "fresh_model_inference": false,
+  "task_success_evaluated": false
+}

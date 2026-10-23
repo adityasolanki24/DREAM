@@ -91,6 +91,23 @@ def test_action_inspection_preserves_values_and_never_authorizes_execution():
         inspect_actions(np.zeros((1, 120)), limits)
 
 
+def test_droid_training_contract_uses_normalized_aperture_not_a_knuckle_angle():
+    from dream.runtime.molmo import decode_actions
+
+    actions = np.zeros((15, 8))
+    actions[:, 7] = np.linspace(-0.2, 1.2, 15)
+    raw = actions.copy()
+    decoded = decode_actions(actions, np.tile([-2.0, 2.0], (7, 1)))
+    assert np.array_equal(actions, raw)
+    assert decoded.width_m[0] == 0.08 and decoded.width_m[-1] == 0
+    assert np.allclose(decoded.width_m, 0.08 * (1 - np.clip(raw[:, 7], 0, 1)))
+    assert np.array_equal(decoded.saturated, (raw[:, 7] < 0) | (raw[:, 7] > 1))
+    assert np.array_equal(decoded.joint_rad, raw[:, :7])  # absolute targets, not deltas
+    actions[0, 0] = 3
+    with pytest.raises(ValueError, match="joint"):
+        decode_actions(actions, np.tile([-2.0, 2.0], (7, 1)))
+
+
 def test_changed_checkpoint_source_is_rejected_before_custom_python_import(tmp_path):
     import hashlib
 

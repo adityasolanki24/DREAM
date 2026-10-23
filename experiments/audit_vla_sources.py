@@ -29,10 +29,13 @@ def fetch(source: dict) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument(
+        "--config", type=Path, default=ROOT / "experiments/configs/vla_sources.json"
+    )
     args = parser.parse_args()
     if args.out.exists():
         raise ValueError("do not overwrite earlier audits")
-    sources = json.loads((ROOT / "experiments/configs/vla_sources.json").read_text())
+    sources = json.loads(args.config.read_text())
     with ThreadPoolExecutor(max_workers=6) as pool:
         records = list(pool.map(fetch, sources))
     result = {
