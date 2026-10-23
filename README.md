@@ -81,6 +81,11 @@ separately; Ruff and shell syntax checks passed. No clean full-suite rerun is cl
 that test-contract change. The exact patch, test XML and actual physical outcome are preserved
 in `results/cloud_pilot_validation`.
 
+After the failed cloud allocation, the fast suite passed **162 tests in 91 s**, with Ruff
+lint/format passing (`results/cloud_pilot_allocation_failure/fast.xml`). This validates the
+zone-selection and recovery changes on CPU; the full simulation suite was not rerun for
+these cloud-only changes. The Windows fast-suite duration still exceeds the 60 s target.
+
 | # | Milestone | Status | Evidence |
 |---|---|---|---|
 | 1 | MuJoCo mechanism scenes plus force-limited gantry probing | Implemented and tested | `tests/test_sim.py` |
@@ -99,7 +104,7 @@ in `results/cloud_pilot_validation`.
 | 11 | **Discovery invoked on demand by the runtime (unfamiliar compartment on the Panda)** | **In progress**: implemented and tested on the narrowed scene; held-out evaluation below; challenge variants open | `tests/test_compartment.py`, `results/compartment`, audit table |
 | 12 | Experience memory, failure-driven replanning, skill adaptation | Planned | n/a |
 | 12a | Vision-language planner (Qwen3-VL-4B-Instruct) choosing typed tools | Interface implemented and contract-tested with test doubles. **Model inference not run**; caller-bound success contract, atomic call rejection and cancellation checks | `tests/test_vlm.py`; hardware audit below |
-| 12a-cloud | Capped GPU inference and live-physics pilot | Locally tested harness prepared; **cloud launch awaits spending approval**. No GPU inference claim | `cloud/launch.py`, `experiments/cloud_qwen_pilot.py`, `tests/test_cloud.py` |
+| 12a-cloud | Capped GPU inference and live-physics pilot | Approved allocation attempted; zone `us-central1-a` lacked L4 capacity. No VM boot or inference; cleanup verified. Zone `c` proposal awaits approval | `results/cloud_pilot_allocation_failure`, `cloud/launch.py`, `tests/test_cloud.py` |
 | 12b | Learned motor policy (GR00T N1.7-LIBERO) | **Feasibility inspected; adapter not implemented**. Checkpoint/configs reachable; missing wrist camera, rotation/control mapping and CUDA inference hardware | Hardware and source-contract audit below |
 | 13 | Generalisation evaluation across goals, arrangements and task families | Planned | n/a |
 | 14 | Learned world/motor models, mobile or whole-body embodiments | Planned, conditional on evidence and compute | n/a |
@@ -696,7 +701,7 @@ any model's ability.**
 The CPU backend remains unvalidated with model weights. GR00T needs a CUDA inference host
 and a validated observation/action mapping before any DREAM execution.
 
-### Capped cloud pilot (prepared, not launched)
+### Capped cloud pilot (allocation failed before boot)
 
 The deployment follows NERVA's proven private-job lifecycle, inspected at local revision
 `0b4388a` (cloud scripts last changed at `6b05692`): committed archive, pinned GPU image,
@@ -710,7 +715,20 @@ Quota availability is not a promise of zonal capacity. The existing NERVA budget
 AUD$50; it is neither a spending cap nor authorization to spend on DREAM. Available credits
 and actual remaining budget were not established.
 
-The proposed first run is one `g2-standard-8` in `us-central1-a`: 1 L4 (24 GB VRAM), 32 GiB
+The approved attempt on 23 Oct 2026 ran the launcher at `cb97f07`, with a US$3 allowance
+and 45-minute VM cap in `us-central1-a`. Google rejected allocation with
+`ZONE_RESOURCE_POOL_EXHAUSTED_WITH_DETAILS`: no L4 capacity in that zone. The VM never booted;
+model inference, physical episodes and acceptance gates were **not run**. Google suggested
+`us-central1-c` and `us-central1-b`. No automatic retry was made. The saved attempt configuration,
+operation error and sanitized post-cleanup audit are in `results/cloud_pilot_allocation_failure`.
+The launcher removed its network and service account; its evidence-preserving policy retained
+the bucket. Inspection found only the code archive, which was then explicitly deleted with
+the bucket. The final audit found no DREAM VMs, disks, addresses, routers, networks, subnets,
+service accounts or buckets. Actual billing is not established; brief network/storage charges
+may apply, so zero cost is not claimed.
+
+The reviewable next proposal changes only the zone to `us-central1-c`, with the same
+`g2-standard-8`: 1 L4 (24 GB VRAM), 32 GiB
 host RAM, 100 GB auto-deleted boot disk, fixed image
 `common-cu129-ubuntu-2204-nvidia-580-v20261019`, at most 45 minutes including setup.
 The 8.88 GB checkpoint leaves space for image/context processing, but actual peak GPU memory
@@ -724,8 +742,13 @@ disk/NAT charges, a 20 GiB download estimate, and storage/egress reserve. The pu
 [G2 rate](https://cloud.google.com/products/compute/pricing/accelerator-optimized) used is
 US$0.853624312/hour; [NAT](https://cloud.google.com/nat/pricing) adds US$0.045/GiB plus
 gateway/IP time. This is an estimate, **not a hard dollar cap**; traffic, tax and FX can vary.
-No existing credit or alert is counted as permission. The requested initial allowance is
-US$3 for this single run, with no automatic retries or additional paid jobs.
+No existing credit or alert is counted as permission. The zone change requires renewed
+approval for one attempt under the same US$3 allowance and 45-minute cap; it has not been
+launched. The launcher permits the two reviewed zones, `a` and `c`, without automatic failover.
+Recovery validates the original manifest's zone even after the next configuration changes;
+regression tests cover both zones and recovery of the earlier attempt.
+This is an infrastructure correction, with no changes to physical algorithms, task scenes,
+model prompts or evaluation gates.
 
 The job first passes a real camera frame, structured scene, robot state and existing tool
 definitions to the pinned checkpoint (`ebb281ec70b05090aa6165b016eac8ec08e71b17`). Only a

@@ -1,0 +1,78 @@
+{
+  "code_git_sha": "cb97f07177010d7013c2f9274557f03d7f7ef434",
+  "recorded_utc": "2026-10-23T01:39:59.500393+00:00",
+  "authorization": {
+    "single_attempt": true,
+    "zone": "us-central1-a",
+    "allowance_usd": 3.0,
+    "max_minutes": 45
+  },
+  "requested_machine": "g2-standard-8",
+  "allocation_operation": {
+    "insert_time": "2026-10-22T18:36:35.989-07:00",
+    "end_time": "2026-10-22T18:36:40.755-07:00",
+    "status": "DONE",
+    "error_code": "ZONE_RESOURCE_POOL_EXHAUSTED_WITH_DETAILS",
+    "reason": "resource_availability",
+    "suggested_zones": [
+      "us-central1-c",
+      "us-central1-b"
+    ]
+  },
+  "vm_booted": false,
+  "model_inference": "not run",
+  "physical_episodes": "not run",
+  "acceptance_gates": {
+    "offline_valid_named_tool_call": "not evaluated",
+    "no_false_success_claims": "not evaluated"
+  },
+  "actual_billed_usd": null,
+  "cost_note": "Actual billing not established. Network and storage existed briefly; zero cost is not claimed.",
+  "cleanup_errors": [],
+  "cleanup_note": "Automatic cleanup preserved the bucket because no guest outputs could be retrieved. Inspected its sole object (code archive), then explicitly removed bucket and archive.",
+  "post_cleanup_audit": {
+    "billing_enabled": true,
+    "quotas": [
+      {
+        "limit": 200.0,
+        "metric": "CPUS",
+        "usage": 0.0
+      },
+      {
+        "limit": 8.0,
+        "metric": "NVIDIA_L4_GPUS",
+        "usage": 0.0
+      }
+    ],
+    "project_instance_count": 0,
+    "dream_instances": [],
+    "dream_inventory": {
+      "disks": [],
+      "addresses": [],
+      "routers": [],
+      "networks": []
+    },
+    "budget_alert": {
+      "status": "read",
+      "authorization": false,
+      "nerva": [
+        {
+          "specifiedAmount": {
+            "currencyCode": "AUD",
+            "units": "50"
+          }
+        }
+      ]
+    },
+    "remaining_credit_or_spending_allowance": "not established",
+    "buckets": [],
+    "accounts": [],
+    "subnets": []
+  },
+  "evidence_source": "cloud/launch.py run; Google Compute operations error; cloud/launch.py audit; separate bucket, service-account and subnet listings",
+  "next_attempt": {
+    "zone": "us-central1-c",
+    "approved": false,
+    "automatic_retry": false
+  }
+}

@@ -61,7 +61,7 @@ def plan(project: str, cfg: dict, name: str) -> dict:
         raise ValueError("supply a valid --project or DREAM_GCP_PROJECT")
     if not re.fullmatch(r"dream-qwen-[a-z0-9-]{1,35}", name):
         raise ValueError("run names must be DREAM-specific")
-    if cfg["machine"] != "g2-standard-8" or cfg["zone"] != "us-central1-a":
+    if cfg["machine"] != "g2-standard-8" or cfg["zone"] not in ("us-central1-a", "us-central1-c"):
         raise ValueError("this pilot is restricted to one reviewed L4 configuration")
     minutes = cfg["max_minutes"]
     if not isinstance(minutes, int) or isinstance(minutes, bool) or not 1 <= minutes <= 45:
@@ -394,7 +394,9 @@ def recover(manifest: Path, yes: bool) -> None:
     if not yes:
         raise ValueError("--yes is required to stop and clean up this DREAM run")
     p = json.loads(manifest.read_text())
-    expected = plan(p["project"], json.loads(CONFIG.read_text()), p["name"])
+    # A later pilot's zone must not redirect recovery of an earlier allocation attempt.
+    cfg = {**json.loads(CONFIG.read_text()), "zone": p["zone"]}
+    expected = plan(p["project"], cfg, p["name"])
     for field in ("zone", "region", "bucket", "network", "subnet", "router", "nat", "account"):
         if p[field] != expected[field]:
             raise ValueError(f"manifest resource mismatch: {field}")

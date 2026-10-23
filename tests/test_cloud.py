@@ -28,6 +28,35 @@ def test_pilot_is_private_isolated_and_deleted_even_if_the_job_hangs():
     assert not any("nerva" in arg for arg in command)
 
 
+@pytest.mark.parametrize("zone", ["us-central1-a", "us-central1-c"])
+def test_reviewed_regional_zones_keep_the_same_hardware_budget_and_deadline(zone):
+    cfg = json.loads(cloud.CONFIG.read_text())
+    cfg["zone"] = zone
+    p = cloud.plan("example-project", cfg, "dream-qwen-test")
+    assert p["zone"] == zone and p["region"] == "us-central1"
+    assert p["machine"] == "g2-standard-8" and p["max_minutes"] == 45
+    assert p["estimated_usd"] == _plan()["estimated_usd"]
+
+
+def test_recovery_keeps_the_manifest_zone_when_the_next_pilot_changes_zone(tmp_path, monkeypatch):
+    p = _plan()
+    p["zone"] = "us-central1-a"
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(json.dumps(p))
+    cfg = json.loads(cloud.CONFIG.read_text())
+    cfg["zone"] = "us-central1-c"
+    config = tmp_path / "config.json"
+    config.write_text(json.dumps(cfg))
+    monkeypatch.setattr(cloud, "CONFIG", config)
+    calls = []
+    monkeypatch.setattr(cloud, "gcloud", lambda *args: calls.append(args) or "")
+    monkeypatch.setattr(cloud, "fetch", lambda *args: None)
+    monkeypatch.setattr(cloud, "cleanup", lambda *args, **kwargs: [])
+    monkeypatch.setattr(cloud, "audit", lambda *args: {})
+    cloud.recover(manifest, True)
+    assert "--zone=us-central1-a" in calls[0]
+
+
 @pytest.mark.parametrize(
     "field,value",
     [
