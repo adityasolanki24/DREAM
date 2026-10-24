@@ -128,7 +128,8 @@ def test_warmup_failure_preserves_step_and_joint_diagnostics(
             self.completed = 0
             self.stopped = False
             self.art = SimpleNamespace(
-                dof_names=[f"joint_{i}" for i in range(23)]
+                dof_names=[f"joint_{i}" for i in range(23)],
+                get_world_pose=lambda: (np.array([0, 0, 0.7]), np.array([1, 0, 0, 0])),
             )
             self.limits = np.tile([-2.0, 2.0], (23, 1))
             self.actor = SimpleNamespace(
@@ -152,19 +153,23 @@ def test_warmup_failure_preserves_step_and_joint_diagnostics(
             }
 
     monkeypatch.setitem(
-        sys.modules, "isaacsim.core.api",
+        sys.modules,
+        "isaacsim.core.api",
         SimpleNamespace(World=FakeWorld),
     )
     monkeypatch.setitem(
-        sys.modules, "isaacsim.core.api.objects",
+        sys.modules,
+        "isaacsim.core.api.objects",
         SimpleNamespace(FixedCuboid=lambda **kwargs: None),
     )
     monkeypatch.setitem(
-        sys.modules, "isaacsim.storage.native",
+        sys.modules,
+        "isaacsim.storage.native",
         SimpleNamespace(get_assets_root_path=lambda: "/assets"),
     )
     monkeypatch.setitem(
-        sys.modules, "dream.sim.isaac_t1",
+        sys.modules,
+        "dream.sim.isaac_t1",
         SimpleNamespace(IsaacT1=FakeT1),
     )
 
@@ -177,9 +182,7 @@ def test_warmup_failure_preserves_step_and_joint_diagnostics(
     with pytest.raises(RuntimeError, match="test actuator failure"):
         runner.run_episode(tmp_path, cfg, "stand", tmp_path, [])
 
-    report = json.loads(
-        (tmp_path / "warmup_failure.json").read_text()
-    )
+    report = json.loads((tmp_path / "warmup_failure.json").read_text())
 
     assert report["failed_step"] == completed_before_failure
     assert report["completed_steps"] == completed_before_failure
@@ -189,6 +192,4 @@ def test_warmup_failure_preserves_step_and_joint_diagnostics(
     assert len(report["last_target_limit_excess_rad"]) == 23
     assert "proprioception" in report
     assert "diagnostic_error" not in report
-    assert len(
-        (tmp_path / "warmup.jsonl").read_text().splitlines()
-    ) == completed_before_failure
+    assert len((tmp_path / "warmup.jsonl").read_text().splitlines()) == completed_before_failure

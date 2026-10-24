@@ -114,6 +114,74 @@ def test_stand_diagnostic_is_shorter_and_rejects_saved_failure(tmp_path):
         cloud.check_pilot(tmp_path, "isaac-t1-stand")
 
 
+def test_stand_flags_and_camera_do_not_replace_policy_step_evidence(tmp_path):
+    """Synthetic fixture, deliberately missing warmup and actual actuator telemetry."""
+    folder = tmp_path / "stand"
+    folder.mkdir()
+    (tmp_path / "EXIT_CODE").write_text("0")
+    record = {
+        "physics_executed": True,
+        "real_actor_executed": True,
+        "navgpt_executed": False,
+        "gate_pass": True,
+        "rows": [{"time_s": t, "tilt_rad": 0} for t in (1.02, 1.04)],
+        "score_final_position_m": [0, 0, 0.7],
+        "score_target_m": [0, 0, 0.7],
+        "status": "waypoint reached",
+        "final_speed_m_s": 0.0,
+    }
+    (folder / "episode.json").write_text(json.dumps(record))
+    (folder / "sensor_calibration.json").write_text("{}")
+    np.savez_compressed(
+        folder / "sensor_0000.npz", rgb=np.zeros((400, 400, 3), np.uint8), depth=np.ones((400, 400))
+    )
+    with pytest.raises(RuntimeError, match="policy step evidence"):
+        cloud.check_pilot(tmp_path, "isaac-t1-stand")
+
+
+@pytest.mark.parametrize("corruption", [None, "nan_action", "missing_warmup", "bad_decimation"])
+def test_policy_evidence_validator_checks_complete_synthetic_contract(tmp_path, corruption):
+    """A complete synthetic contract is accepted; never evidence of simulated standing."""
+    keys = (
+        "joint_position_rad",
+        "joint_velocity_rad_s",
+        "post_joint_position_rad",
+        "post_joint_velocity_rad_s",
+        "joint_target_rad",
+        "raw_ppo_action",
+        "target_limit_excess_rad",
+    )
+    rows = []
+    for i in range(226):
+        rows.append(
+            {
+                **{key: [0.0] * 23 for key in keys},
+                "time_s": (i + 1) * 0.02,
+                "state_time_s": (i + 1) * 0.02,
+                "physics_step_count": (i + 1) * 4,
+                "tilt_rad": 0.0,
+                "stopped": False,
+                "state_finite": True,
+                "score_position_m": [0.0, 0.0, 0.7],
+                "orientation_wxyz": [1.0, 0.0, 0.0, 0.0],
+                "body_linear_velocity_m_s": [0.0] * 3,
+                "body_angular_velocity_rad_s": [0.0] * 3,
+            }
+        )
+    if corruption == "nan_action":
+        rows[60]["raw_ppo_action"][0] = float("nan")
+    if corruption == "bad_decimation":
+        rows[60]["physics_step_count"] += 1
+    warmup = rows[:49] if corruption == "missing_warmup" else rows[:50]
+    (tmp_path / "warmup.jsonl").write_text("\n".join(json.dumps(r) for r in warmup))
+    record = {"rows": rows[50:], "case": "stand", "warmup_steps": 50, "physics_steps": 904}
+    if corruption:
+        with pytest.raises(RuntimeError, match="policy step evidence"):
+            cloud.validate_policy_steps(tmp_path, record)
+    else:
+        cloud.validate_policy_steps(tmp_path, record)
+
+
 @pytest.mark.parametrize("zone", ["us-central1-a", "us-central1-b", "us-central1-c"])
 def test_reviewed_regional_zones_keep_the_same_hardware_budget_and_deadline(zone):
     cfg = json.loads(cloud.CONFIG.read_text())

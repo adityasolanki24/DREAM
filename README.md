@@ -63,11 +63,12 @@ unfamiliar physical behaviour.
 
 Every row marked "implemented and tested" has passing tests and/or saved results in `results/`.
 
-Latest local verification (24 Oct 2026): **241 full tests passed in 396.191 s**;
-**219 fast tests passed in 101.024 s**. Ruff lint/format, Python compilation,
-Bash syntax and `git diff --check` pass. Exact dirty-source hashes, original failed reports,
-API regressions and final XML are in `results/t1_validation_checkpoint`. These validate CPU
-contracts and the MuJoCo baseline, not Isaac walking. The fast suite still exceeds 60 s.
+Latest local verification (24 Oct 2026): **250 full tests passed in 407.963 s**;
+**228 fast tests passed in 88.783 s**. Ruff lint/format, Python compilation,
+Bash syntax and `git diff --check` pass. Exact source hashes, negative/passing regressions,
+source audit and final XML are in `results/t1_stand_followup_local`; previous validation
+remains in `results/t1_validation_checkpoint`. These are CPU contracts and MuJoCo regression
+evidence, not stable Isaac standing or walking. The fast suite still exceeds 60 seconds.
 
 Prior verification (23 Oct 2026, research branch based on `386a818`): **195 passed**
 in 226 s; fast suite **173 passed** in 44 s. Ruff lint/format and cloud Bash syntax passed.
@@ -1326,7 +1327,7 @@ The variable collision is corrected; the focused recording/camera/shutdown tests
 `mock_encoder_metadata.json` records the verified mock stream; the small test clip stays outside
 OneDrive in `LOCALAPPDATA/DREAM/artifacts/t1_encoder_mock_20261024`.
 
-**Prepared, not approved or launched:** `isaac-t1-stand` uses one L4 `g2-standard-8` in
+**Executed diagnostic at `cbcb1dd` (failed before its first policy step):** `isaac-t1-stand` used one L4 `g2-standard-8` in
 `us-central1-c` (capacity-only fallback to b/a), 32 GiB RAM and a 200 GB auto-deleted disk.
 The previously installed stack is pinned: Python 3.11.13, Isaac Sim 5.1.0.0, Torch 2.7/cu128,
 ONNX Runtime 1.23.2, NumPy 1.26.0, driver 580 image plus matching Vulkan libraries.
@@ -1337,7 +1338,7 @@ Interrupted retrieval preserves the bucket for `cloud/launch.py recover`; cleanu
 Installation is included in the deadline, not just simulated time.
 
 The saved-rate estimate is **US$3.42**: compute $0.3557, disk $0.0117, NAT gateway/IP $0.0027,
-50 GiB NAT reserve $2.25, and storage/egress/contingency $0.80. New approval requested: **US$3.50**.
+50 GiB NAT reserve $2.25, and storage/egress/contingency $0.80. **US$3.50 was approved for that attempt**.
 This is an estimate with enforced runtime, not a hard provider billing cap; no remaining credits
 are assumed. Previous allowances do not authorize this diagnostic. Plan without allocating:
 
@@ -1351,6 +1352,71 @@ python cloud/launch.py plan --project <project> --workload isaac-t1-stand
 | Use single-prim public limit API; match training head armature | General algorithmic correction | Pinned source and failing/passing regressions; physical effect unmeasured |
 | Camera after standing; longer stand observation; extra checkpoints | Diagnostic harness change | Local interfaces only; no task simplification |
 | Spectator recording and offline annotation | Measurement/engineering only | Mock encoding tested; Isaac capture pending |
+
+## Standing retry: preserved target rejection and stronger physical evidence
+
+The approved stand-only run reached every articulation checkpoint, loaded the real actor,
+and failed at `warmup_started`: `ValueError: locomotion policy target exceeds physical joint limits`.
+No policy-controlled step completed and no RGB-D image was captured. The exact outputs and
+zero-resource cleanup audit are in `results/t1_stand_target_failure`. Its original guest lifetime
+was 470 seconds; setup to application launch took about 177 seconds and application construction
+about 280 seconds. These are recorded durations, not billing measurements or a diagnosed shader stall.
+
+`python -m experiments.inspect_t1_stand <retrieved-out> --policy-dir <external-policy> --summary <new-json>`
+reproduces 2/4/3 target excursions from the saved stand/forward/turn preflight tensors and invokes
+the real actor again on explicitly ideal home-state inputs. Those are CPU contract checks, not
+reconstruction of the failed action or proof of stable standing.
+
+Commit `555efb8` preserves the PPO targets and records `target_limit_excess_rad`, matching the
+pinned Isaac Lab joint-position action convention: default offset plus 0.5 times raw action.
+Targets are not silently clipped; physical joint limits remain unchanged in PhysX. Realized
+joint-state validation and deterministic command/tilt guards remain. This is a **general
+algorithmic correction to action semantics**, with physical stability still unvalidated.
+Commit `5ed9928` already committed and pushed the detailed warmup failure diagnostics; this
+continuation found a clean tree, not unfinished warmup work.
+
+The follow-up corrects another general measurement/safety defect: `advance` formerly returned
+pre-step tilt after advancing four physics steps. A regression reproduces a newly tilted state
+being reported upright. Post-step tilt now trips the same 25-degree guard immediately and logs
+post-step orientation, velocities, joints and physics index. Independent pose scoring is persisted
+for warmup, navigation and settling in `robot_trajectory.jsonl`; score positions never enter
+PPO observations or navigation decisions. Articulation diagnostics also record drive modes,
+maximum effort/velocity and head/body armature. No scale, gains or joint travel changed.
+
+The host now requires 50 warmup actions, finite 23D action/target/state arrays, four physics
+steps per 0.02-second policy interval, minimum score height 0.45 m, tilt at most 25 degrees,
+and the longer standing interval. Existing position-error and settled-speed gates remain.
+A fabricated pass flag plus valid camera pixels is rejected without action/physics evidence.
+These checks establish evidence consistency, not cryptographic proof that an arbitrary log
+came from a simulator. Tests with doubles are explicitly labelled.
+
+A source audit confirms 81 observations: root-frame linear/angular velocity, projected unit
+gravity, SI velocity commands, named joint offsets/velocities and previous raw action. Training
+has no height scanner for this policy. Noise, pushes and base-mass randomization in training
+are not reproduced by this initial fixed deployment. Ground/contact material parity and actual
+motor stability remain open; they were not adjusted after the target rejection.
+
+**Setup-cost decision:** retain an ephemeral cold install for the next one-off diagnostic.
+`cloud/isaac.constraints.txt` pins the exact recovered Linux versions, and setup now records install
+start/end timestamps. This reduces resolver drift; it does not claim fewer downloads or faster
+startup. A prebuilt image/cache could save setup but would introduce retained storage cost and
+credential-sanitization work. No persistent image, disk or cache was created. Existing outputs
+sync every minute and on exit; the host verifies checksums before deleting the result bucket.
+
+**Next physical experiment, awaiting new approval:** one `isaac-t1-stand` attempt on L4
+`g2-standard-8` (32 GiB, 200 GB disk), `us-central1-c` with capacity-only b/a fallback,
+25-minute Google deletion deadline, pinned Python 3.11/Isaac 5.1/Torch 2.7/cu128 environment.
+Estimate **US$3.42**; request **US$3.50** including the previously itemized network/storage reserve.
+Runtime is enforced, but the estimate is not a hard provider billing cap. Only standing PPO
+physics and first RGB-D run; missing output, failure reports, falls, unsafe states or a failed
+settled-stop gate fail. Retrieve original stages/actions/frames/calibration/versions/telemetry,
+then remove scoped VM/disk/IAM/NAT/network/bucket; retain the bucket if retrieval fails and use
+manifest-scoped recovery. No new paid resources were launched in this local follow-up.
+
+The cloud job intentionally does **not** set `--record-video`. The spectator pipeline remains
+locally tested only. A later forward/turn/stop demonstration needs validated standing/walking,
+a separately approved recording workload with that flag and a frame-storage/upload estimate.
+There is still no real `dream_t1_demo.mp4`, and no NavGPT inference was added.
 
 ## Next milestone: ordinary humanoid walking before visual navigation
 

@@ -94,6 +94,19 @@ def last_stage(out: Path) -> str | None:
     return json.loads(path.read_text().splitlines()[-1])["stage"] if path.exists() else None
 
 
+def record_physical_step(body, row: dict, out: Path, phase: str) -> None:
+    """Independent score telemetry; this world pose is never passed to the controller."""
+    position, orientation = body.art.get_world_pose()
+    row.update(
+        score_position_m=np.asarray(position).tolist(),
+        score_orientation_wxyz=np.asarray(orientation).tolist(),
+        phase=phase,
+    )
+    with (out / "robot_trajectory.jsonl").open("a", encoding="utf-8") as log:
+        log.write(json.dumps(row, allow_nan=False) + "\n")
+        log.flush()
+
+
 def execute(folder: Path, cfg: dict, case: str, out: Path) -> dict:
     """Persist outcomes before Kit shutdown, which may terminate the Python process."""
     rows = []
@@ -215,6 +228,7 @@ def run_episode(folder: Path, cfg: dict, case: str, out: Path, rows: list) -> di
         for step in range(50):
             try:
                 row = body.advance(0, 0)
+                record_physical_step(body, row, out, "warmup")
                 warmup.append(row)
                 log.write(json.dumps(row) + "\n")
                 log.flush()
@@ -234,13 +248,10 @@ def run_episode(folder: Path, cfg: dict, case: str, out: Path, rows: list) -> di
                     report["joint_names"] = list(body.art.dof_names)
                     report["joint_limits_rad"] = body.limits.tolist()
                     report["proprioception"] = {
-                        key: np.asarray(value).tolist()
-                        for key, value in state.items()
+                        key: np.asarray(value).tolist() for key, value in state.items()
                     }
                     report["last_accepted_ppo_action"] = body.actor.last.tolist()
-                    report["last_target_limit_excess_rad"] = (
-                        body.actor.target_limit_excess.tolist()
-                    )
+                    report["last_target_limit_excess_rad"] = body.actor.target_limit_excess.tolist()
                 except Exception as diagnostic_error:
                     report["diagnostic_error"] = str(diagnostic_error)
                 try:
@@ -307,8 +318,8 @@ def run_episode(folder: Path, cfg: dict, case: str, out: Path, rows: list) -> di
             np.savez_compressed(out / f"sensor_{k:04}.npz", rgb=rgb, depth=depth)
         result = tracker.update(body.navigation_state(depth, captured_time))
         row = body.advance(result.forward_m_s, result.yaw_rad_s)
-        pos, _ = body.art.get_world_pose()
-        row.update(score_position_m=np.asarray(pos).tolist(), status=result.status)
+        row.update(status=result.status)
+        record_physical_step(body, row, out, case)
         rows.append(row)
         record(case)
         status = result.status
@@ -321,8 +332,8 @@ def run_episode(folder: Path, cfg: dict, case: str, out: Path, rows: list) -> di
         if body.sensors()["tilt"] > np.deg2rad(50):
             break
         row = body.advance(0, 0)
-        position, _ = body.art.get_world_pose()
-        row.update(score_position_m=np.asarray(position).tolist(), status="settling")
+        row.update(status="settling")
+        record_physical_step(body, row, out, "settling")
         rows.append(row)
         record("controlled stop")
     final, _ = body.art.get_world_pose()
@@ -349,7 +360,9 @@ def run_episode(folder: Path, cfg: dict, case: str, out: Path, rows: list) -> di
             and not body.stopped
             and error < cfg["gates"]["final_position_error_m"]
             and final_speed < 0.1  # conservative prototype settled-stop gate, fixed pre-run
-            and min(r["score_position_m"][2] for r in rows) >= 0.45
+            and len(warmup) == 50
+            and min(r["score_position_m"][2] for r in warmup + rows) >= 0.45
+            and max(r["tilt_rad"] for r in warmup + rows) <= np.deg2rad(25)
         ),
         "collision_count": None,
         "collision_note": "Contact scoring not implemented; flat ground only",

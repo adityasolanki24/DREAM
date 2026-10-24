@@ -20,16 +20,18 @@ if ! ldconfig -p | grep libGLX_nvidia > /dev/null; then
 fi
 vulkaninfo --summary > /work/out/vulkan.txt 2>&1
 grep -qi 'NVIDIA' /work/out/vulkan.txt
+date -u +'%Y-%m-%dT%H:%M:%SZ' > /work/out/install_started_utc.txt
 python3 -m pip install uv==0.9.4
 uv venv --python 3.11.13 /work/isaac-venv
 source /work/isaac-venv/bin/activate
-uv pip install 'torch==2.7.0' 'torchvision==0.22.0' 'torchaudio==2.7.0' \
+uv pip install --constraint /work/DREAM/cloud/isaac.constraints.txt 'torch==2.7.0' 'torchvision==0.22.0' 'torchaudio==2.7.0' \
   --index-url https://download.pytorch.org/whl/cu128
-uv pip install 'isaacsim[all,extscache]==5.1.0.0' --extra-index-url https://pypi.nvidia.com \
+uv pip install --constraint /work/DREAM/cloud/isaac.constraints.txt 'isaacsim[all,extscache]==5.1.0.0' --extra-index-url https://pypi.nvidia.com \
   'onnxruntime==1.23.2' 'numpy==1.26.0'
 uv pip install --no-deps -e /work/DREAM
 uv pip freeze > /work/out/pip-freeze.txt
 cd /work/DREAM
+date -u +'%Y-%m-%dT%H:%M:%SZ' > /work/out/install_finished_utc.txt
 python - <<'PY'
 import hashlib, json, pathlib, urllib.request
 cfg=json.loads(pathlib.Path('experiments/configs/t1_walk.json').read_text())

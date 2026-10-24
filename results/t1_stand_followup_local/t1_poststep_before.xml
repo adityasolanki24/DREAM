@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.321" timestamp="2026-10-24T12:04:09.981837+11:00" hostname="LAPTOP-H2LK8P6D"><testcase classname="tests.test_t1_adapter" name="test_physics_step_reports_and_stops_on_new_tilt" time="0.001"><failure message="assert (0.0 == 0.6)">monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001FA9820B950&gt;
+
+    def test_physics_step_reports_and_stops_on_new_tilt(monkeypatch):
+        """A fall during decimation must not be reported as the previous upright sample."""
+        body = object.__new__(IsaacT1)
+        world = SimpleNamespace(current_time_step_index=0)
+        world.step = lambda **kw: setattr(world, "current_time_step_index", world.current_time_step_index + 1)
+        body.world = world
+        body.art = SimpleNamespace(apply_action=lambda action: None)
+        body.actor = SimpleNamespace(
+            target=lambda *args: np.zeros(23), last=np.zeros(23), target_limit_excess=np.zeros(23)
+        )
+        body.command, body.odom = np.zeros(3), np.zeros(3)
+        body.time, body.stopped = 0.0, False
+        body.limits = np.tile([-2, 2], (23, 1))
+        def sensors():
+            return {"q": np.zeros(23), "dq": np.zeros(23), "linear": np.zeros(3),
+                    "gyro": np.zeros(3), "gravity": np.array([0, 0, -1]),
+                    "tilt": 0.6 if world.current_time_step_index else 0.0,
+                    "orientation_wxyz": np.array([1, 0, 0, 0])}
+        body.sensors = sensors
+        monkeypatch.setitem(sys.modules, "isaacsim.core.utils.types",
+                            SimpleNamespace(ArticulationAction=lambda **kw: kw))
+        row = body.advance(0, 0)
+&gt;       assert row["tilt_rad"] == 0.6 and row["stopped"]
+E       assert (0.0 == 0.6)
+
+tests\test_t1_adapter.py:37: AssertionError</failure></testcase></testsuite></testsuites>

@@ -15,7 +15,7 @@ import numpy as np
 
 
 class T1Policy:
-    """Map named proprioception to the exported PPO actor and bounded joint targets."""
+    """Map named proprioception to the exported PPO actor and audited joint targets."""
 
     def __init__(self, cfg: dict, policy, joint_names: list[str]) -> None:
         expected = cfg["joint_names"]
@@ -60,7 +60,7 @@ class T1Policy:
         return cls(json.loads((folder / "env_cfg.json").read_text()), predict, joint_names)
 
     def target(self, q, dq, linear_body, gyro_body, gravity_body, command, limits) -> np.ndarray:
-        """Proprioception only; reject unsafe actions rather than silently clipping them."""
+        """Proprioception only; preserve trained position targets and record limit excursions."""
         q, dq = np.asarray(q), np.asarray(dq)
         limits = np.asarray(limits)
         vectors = [np.asarray(v) for v in (linear_body, gyro_body, gravity_body, command)]

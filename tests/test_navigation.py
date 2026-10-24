@@ -141,8 +141,13 @@ def test_t1_out_of_limit_setpoints_are_recorded():
     q = np.zeros(23)
 
     target = actor.target(
-        q, q, [0, 0, 0], [0, 0, 0],
-        [0, 0, -1], [0, 0, 0], limits,
+        q,
+        q,
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, -1],
+        [0, 0, 0],
+        limits,
     )
     assert np.allclose(target, 1.0)
     assert np.allclose(actor.target_limit_excess, 0.9)
@@ -150,6 +155,11 @@ def test_t1_out_of_limit_setpoints_are_recorded():
     # Actual physical joint positions outside limits remain invalid.
     with pytest.raises(ValueError, match="proprioception"):
         actor.target(
-            np.full(23, 0.2), q, [0, 0, 0], [0, 0, 0],
-            [0, 0, -1], [0, 0, 0], limits,
+            np.full(23, 0.2),
+            q,
+            [0, 0, 0],
+            [0, 0, 0],
+            [0, 0, -1],
+            [0, 0, 0],
+            limits,
         )

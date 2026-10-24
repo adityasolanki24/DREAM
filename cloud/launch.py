@@ -231,6 +231,54 @@ def allocate(p: dict, sha: str, checksum: str, startup: Path, dest: Path) -> Non
             return
 
 
+def validate_policy_steps(folder: Path, record: dict) -> None:
+    """Check stored action/state/physics contracts independently of the guest's pass flag."""
+    import numpy as np
+
+    try:
+        warmup = [json.loads(line) for line in (folder / "warmup.jsonl").read_text().splitlines()]
+        rows = warmup + record["rows"]
+        if len(warmup) != 50 or record["warmup_steps"] != 50:
+            raise ValueError("50 completed standing policy steps required")
+        times = np.array([r["state_time_s"] for r in rows])
+        steps = np.array([r["physics_step_count"] for r in rows])
+        if (
+            not np.allclose(np.diff(times), 0.02, atol=1e-6)
+            or not np.all(np.diff(steps) == 4)
+            or steps[-1] != record["physics_steps"]
+        ):
+            raise ValueError("physics decimation/timestamps disagree")
+        if record["case"] == "stand" and record["rows"][-1]["time_s"] < 4.0:
+            raise ValueError("longer standing interval missing")
+        dimensions = {
+            "joint_position_rad": 23,
+            "joint_velocity_rad_s": 23,
+            "post_joint_position_rad": 23,
+            "post_joint_velocity_rad_s": 23,
+            "joint_target_rad": 23,
+            "raw_ppo_action": 23,
+            "target_limit_excess_rad": 23,
+            "score_position_m": 3,
+            "orientation_wxyz": 4,
+            "body_linear_velocity_m_s": 3,
+            "body_angular_velocity_rad_s": 3,
+        }
+        for row in rows:
+            for key, size in dimensions.items():
+                value = np.asarray(row[key])
+                if value.shape != (size,) or not np.isfinite(value).all():
+                    raise ValueError("invalid recorded sensor/action")
+            if (
+                row["stopped"]
+                or not row["state_finite"]
+                or row["score_position_m"][2] < 0.45
+                or not 0 <= row["tilt_rad"] <= math.radians(25)
+            ):
+                raise ValueError("standing stability failed")
+    except (KeyError, ValueError, OSError, TypeError) as error:
+        raise RuntimeError(f"physical policy step evidence failed: {error}") from error
+
+
 def check_pilot(out: Path, workload: str = "qwen-pilot") -> None:
     """A retrieved guest failure is not a pass. Keep preregistered task success report-only."""
     if (out / "EXIT_CODE").read_text().strip() != "0":
@@ -286,6 +334,7 @@ def check_pilot(out: Path, workload: str = "qwen-pilot") -> None:
                         or not np.any(np.isfinite(depth) & (depth > 0))
                     ):
                         raise RuntimeError("physical walking camera evidence invalid")
+            validate_policy_steps(out / case, record)
         return
     if workload == "molmo-closedloop":
         import numpy as np

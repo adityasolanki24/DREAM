@@ -130,6 +130,10 @@ class IsaacT1:
                         "kp": kp,
                         "kd": kd,
                         "limits_rad": self.limits.tolist(),
+                        "max_joint_velocity_rad_s": self.art.dof_properties["maxVelocity"].tolist(),
+                        "max_joint_effort_nm": self.art.dof_properties["maxEffort"].tolist(),
+                        "drive_mode": self.art.dof_properties["driveMode"].tolist(),
+                        "armature_kg_m2": [joint_armature(name) for name in names],
                         "asset_url": asset_url,
                     },
                     indent=2,
@@ -177,6 +181,7 @@ class IsaacT1:
             "linear": linear,
             "gyro": gyro,
             "gravity": rotation.T @ np.array([0, 0, -1]),
+            "orientation_wxyz": np.asarray(quat).copy(),
             "tilt": acos(float(np.clip(rotation[2, 2], -1, 1))),
         }
 
@@ -246,15 +251,29 @@ class IsaacT1:
             ]
         )
         self.time += 0.02
+        post = self.sensors()
+        if not all(np.isfinite(value).all() for value in post.values()):
+            self.stopped = True
+            raise RuntimeError("non-finite state after physics step")
+        if post["tilt"] > np.deg2rad(25):
+            self.stopped = True
         return {
             "time_s": self.time,
+            "state_time_s": self.time,
+            "physics_step_count": self.world.current_time_step_index,
             "proprioception_time_s": self.time - 0.02,
             "odom": self.odom.tolist(),
-            "tilt_rad": sensor["tilt"],
+            "tilt_rad": post["tilt"],
             "stopped": self.stopped,
             "command": self.command.tolist(),
             "joint_position_rad": sensor["q"].tolist(),
             "joint_velocity_rad_s": sensor["dq"].tolist(),
+            "post_joint_position_rad": post["q"].tolist(),
+            "post_joint_velocity_rad_s": post["dq"].tolist(),
+            "body_linear_velocity_m_s": post["linear"].tolist(),
+            "body_angular_velocity_rad_s": post["gyro"].tolist(),
+            "orientation_wxyz": post["orientation_wxyz"].tolist(),
+            "state_finite": True,
             "joint_target_rad": target.tolist(),
             "raw_ppo_action": self.actor.last.tolist(),
             "target_limit_excess_rad": self.actor.target_limit_excess.tolist(),

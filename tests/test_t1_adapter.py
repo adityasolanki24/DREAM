@@ -2,6 +2,7 @@
 
 import ast
 import inspect
+import sys
 import textwrap
 from types import SimpleNamespace
 
@@ -9,6 +10,45 @@ import numpy as np
 import pytest
 
 from dream.sim.isaac_t1 import IsaacT1
+
+
+def test_physics_step_reports_and_stops_on_new_tilt(monkeypatch):
+    """A fall during decimation must not be reported as the previous upright sample."""
+    body = object.__new__(IsaacT1)
+    world = SimpleNamespace(current_time_step_index=0)
+    world.step = lambda **kw: setattr(
+        world, "current_time_step_index", world.current_time_step_index + 1
+    )
+    body.world = world
+    body.art = SimpleNamespace(apply_action=lambda action: None)
+    body.actor = SimpleNamespace(
+        target=lambda *args: np.zeros(23), last=np.zeros(23), target_limit_excess=np.zeros(23)
+    )
+    body.command, body.odom = np.zeros(3), np.zeros(3)
+    body.time, body.stopped = 0.0, False
+    body.limits = np.tile([-2, 2], (23, 1))
+
+    def sensors():
+        return {
+            "q": np.zeros(23),
+            "dq": np.zeros(23),
+            "linear": np.zeros(3),
+            "gyro": np.zeros(3),
+            "gravity": np.array([0, 0, -1]),
+            "tilt": 0.6 if world.current_time_step_index else 0.0,
+            "orientation_wxyz": np.array([1, 0, 0, 0]),
+        }
+
+    body.sensors = sensors
+    monkeypatch.setitem(
+        sys.modules,
+        "isaacsim.core.utils.types",
+        SimpleNamespace(ArticulationAction=lambda **kw: kw),
+    )
+    row = body.advance(0, 0)
+    assert row["tilt_rad"] == 0.6 and row["stopped"]
+    assert row["physics_step_count"] == 4 and row["state_time_s"] == 0.02
+    assert row["proprioception_time_s"] == 0.0
 
 
 @pytest.mark.parametrize("lower,upper", [(-1.7, 2.2), (-0.3, 0.8)])

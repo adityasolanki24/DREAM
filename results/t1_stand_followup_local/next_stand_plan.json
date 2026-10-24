@@ -1,0 +1,53 @@
+{
+  "workload": "isaac-t1-stand",
+  "zone": "us-central1-c",
+  "region": "us-central1",
+  "machine": "g2-standard-8",
+  "disk_gb": 200,
+  "max_minutes": 25,
+  "image": "common-cu129-ubuntu-2204-nvidia-580-v20261019",
+  "estimated_usd": 3.42,
+  "cost_note": "estimate, not a billing hard cap; VM lifetime is enforced by Google",
+  "approval_status": "NOT APPROVED; previous US$3.50 attempt ended and does not authorize this proposal",
+  "requested_allowance_usd": 3.5,
+  "purpose": "Validate unchanged real PPO standing after target-semantics correction; collect post-step safety telemetry and first RGB-D",
+  "cases": [
+    "stand"
+  ],
+  "record_video": false,
+  "navgpt_inference": false,
+  "cost_breakdown_usd": {
+    "compute": 0.3557,
+    "disk": 0.0117,
+    "NAT_gateway_IP": 0.0027,
+    "NAT_50_GiB_reserve": 2.25,
+    "storage_egress_contingency": 0.8
+  },
+  "gates": [
+    "50 completed warmup actions",
+    "four .005 s PhysX steps per .02 s policy action",
+    "longer standing interval with finite states/actions, minimum height .45 m, maximum tilt 25 degrees",
+    "final speed below .1 m/s; original positional-error gate preserved",
+    "valid first RGB-D and persisted calibration",
+    "missing episode or any failure report is not success"
+  ],
+  "outputs": [
+    "preflight.json",
+    "articulation.json",
+    "stages.jsonl",
+    "warmup.jsonl",
+    "warmup_failure.json on error",
+    "failure.json on error",
+    "robot_trajectory.jsonl",
+    "episode.json if completed",
+    "sensor_*.npz",
+    "sensor_calibration.json",
+    "pip-freeze.txt",
+    "install start/end timestamps",
+    "GPU telemetry",
+    "checksum manifest",
+    "cleanup_errors.json",
+    "post_audit.json"
+  ],
+  "expiry_and_cleanup": "Google 25 minute DELETE; guest timeout with two minute retrieval reserve; host verifies stable checksums before bucket deletion; manifest-scoped recover preserves unretrieved data; remove VM/disk/scoped service-account/NAT/router/subnet/network/bucket. No retained cache."
+}
