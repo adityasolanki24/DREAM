@@ -1,0 +1,585 @@
+{
+  "scope": "Offline range diagnostics; no policy targets executed or clipped",
+  "decoded_representation": "absolute after upstream relative-action postprocessing",
+  "postprocessing_source": "https://github.com/NVIDIA/Isaac-GR00T/blob/944fe70c4fd54e3fcb80a7d7258a328f9c061176/gr00t/data/state_action/state_action_processor.py",
+  "shape_contract": {
+    "left_wrist_eef_9d": {
+      "shape": [
+        1,
+        40,
+        9
+      ],
+      "min": -0.023093251511454582,
+      "max": 0.9999960064888,
+      "dtype": "float32"
+    },
+    "right_wrist_eef_9d": {
+      "shape": [
+        1,
+        40,
+        9
+      ],
+      "min": -0.1695534735918045,
+      "max": 0.99888676404953,
+      "dtype": "float32"
+    },
+    "left_hand": {
+      "shape": [
+        1,
+        40,
+        7
+      ],
+      "min": -0.0205078125,
+      "max": 0.0054687499068677425,
+      "dtype": "float32"
+    },
+    "right_hand": {
+      "shape": [
+        1,
+        40,
+        7
+      ],
+      "min": -0.697265625,
+      "max": 1.470703125,
+      "dtype": "float32"
+    },
+    "left_arm": {
+      "shape": [
+        1,
+        40,
+        7
+      ],
+      "min": -0.1217028796672821,
+      "max": 0.04989119619131088,
+      "dtype": "float32"
+    },
+    "right_arm": {
+      "shape": [
+        1,
+        40,
+        7
+      ],
+      "min": -0.14299653470516205,
+      "max": 0.05736219137907028,
+      "dtype": "float32"
+    },
+    "waist": {
+      "shape": [
+        1,
+        40,
+        3
+      ],
+      "min": -0.07541779428720474,
+      "max": 0.015280552208423615,
+      "dtype": "float32"
+    },
+    "base_height_command": {
+      "shape": [
+        1,
+        40,
+        1
+      ],
+      "min": 0.7328711152076721,
+      "max": 0.7400000095367432,
+      "dtype": "float32"
+    },
+    "navigate_command": {
+      "shape": [
+        1,
+        40,
+        3
+      ],
+      "min": -0.007920158095657825,
+      "max": 0.011364426463842392,
+      "dtype": "float32"
+    }
+  },
+  "normalized_tensor": {
+    "shape": [
+      1,
+      40,
+      132
+    ],
+    "all_finite": true,
+    "min": -5.75,
+    "max": 5.25
+  },
+  "training_statistics_sha256": null,
+  "conditional_joint_diagnostics": {
+    "left_arm": {
+      "provisional_joint_names": [
+        "left_shoulder_pitch_joint",
+        "left_shoulder_roll_joint",
+        "left_shoulder_yaw_joint",
+        "left_elbow_joint",
+        "left_wrist_roll_joint",
+        "left_wrist_pitch_joint",
+        "left_wrist_yaw_joint"
+      ],
+      "mechanical_limits_rad": [
+        [
+          -3.0892,
+          2.6704
+        ],
+        [
+          -1.5882,
+          2.2515
+        ],
+        [
+          -2.618,
+          2.618
+        ],
+        [
+          -1.0472,
+          2.0944
+        ],
+        [
+          -1.97222,
+          1.97222
+        ],
+        [
+          -1.61443,
+          1.61443
+        ],
+        [
+          -1.61443,
+          1.61443
+        ]
+      ],
+      "samples_outside_mechanical_range": 0,
+      "steps_with_any_range_violation": 0,
+      "max_range_excess_rad": 0.0,
+      "first_target_delta_rad": [
+        -0.05002956464886665,
+        0.000846835202537477,
+        0.0007531507289968431,
+        -0.08954925090074539,
+        -0.04016251862049103,
+        -0.022231046110391617,
+        -0.01194777712225914
+      ],
+      "first_target_slew_time_lower_bound_s": 0.22387312725186348,
+      "per_step_slew_time_lower_bound_s": [
+        0.040952195413410664,
+        0.06482846103608608,
+        0.09244167013093829,
+        0.035629142075777054,
+        0.056237420067191124,
+        0.05599731579422951,
+        0.04042822401970625,
+        0.06812907755374908,
+        0.07484607864171267,
+        0.052481089951470494,
+        0.032651766669005156,
+        0.0977337034419179,
+        0.056455256417393684,
+        0.06468623876571655,
+        0.10244975565001369,
+        0.06992286536842585,
+        0.03312490487587638,
+        0.028440623136702925,
+        0.05210039205849171,
+        0.06652047857642174,
+        0.05290613044053316,
+        0.08210417116060853,
+        0.04710732493549585,
+        0.07019331562332809,
+        0.07596705108880997,
+        0.0508712325245142,
+        0.05150376819074154,
+        0.06006253883242607,
+        0.053715959656983614,
+        0.04431006498634815,
+        0.03927178680896759,
+        0.028233518823981285,
+        0.09315670235082507,
+        0.0757560576312244,
+        0.052096317522227764,
+        0.07123880204744637,
+        0.08798129041679204,
+        0.07473924313671887,
+        0.05903203971683979
+      ],
+      "hypothesis_only": "DREAM input slot order, signs and zero points equal training",
+      "actuation_permitted": false
+    },
+    "right_arm": {
+      "provisional_joint_names": [
+        "right_shoulder_pitch_joint",
+        "right_shoulder_roll_joint",
+        "right_shoulder_yaw_joint",
+        "right_elbow_joint",
+        "right_wrist_roll_joint",
+        "right_wrist_pitch_joint",
+        "right_wrist_yaw_joint"
+      ],
+      "mechanical_limits_rad": [
+        [
+          -3.0892,
+          2.6704
+        ],
+        [
+          -2.2515,
+          1.5882
+        ],
+        [
+          -2.618,
+          2.618
+        ],
+        [
+          -1.0472,
+          2.0944
+        ],
+        [
+          -1.97222,
+          1.97222
+        ],
+        [
+          -1.61443,
+          1.61443
+        ],
+        [
+          -1.61443,
+          1.61443
+        ]
+      ],
+      "samples_outside_mechanical_range": 0,
+      "steps_with_any_range_violation": 0,
+      "max_range_excess_rad": 0.0,
+      "first_target_delta_rad": [
+        -0.03198440000414848,
+        -0.013180729001760483,
+        -0.04017118364572525,
+        -0.06992768496274948,
+        0.057218652218580246,
+        -0.060636669397354126,
+        0.022379843518137932
+      ],
+      "first_target_slew_time_lower_bound_s": 0.1748192124068737,
+      "per_step_slew_time_lower_bound_s": [
+        0.02401561476290226,
+        0.1144021563231945,
+        0.0493675097823143,
+        0.02689039334654808,
+        0.05894269794225693,
+        0.04982065409421921,
+        0.06428527180105448,
+        0.05700986133888364,
+        0.09177808533422649,
+        0.10879697161726654,
+        0.03570234403014183,
+        0.13095210306346416,
+        0.11492191813886166,
+        0.07317805662751198,
+        0.05009234882891178,
+        0.053655728697776794,
+        0.036274814628995955,
+        0.07010873407125473,
+        0.03711753117386252,
+        0.09785624220967293,
+        0.036595380515791476,
+        0.04284226393792778,
+        0.06021398352459073,
+        0.07106671575456858,
+        0.05267318862024695,
+        0.058258381322957575,
+        0.05190998315811157,
+        0.04098763922229409,
+        0.05390773294493556,
+        0.0580887496471405,
+        0.07645778357982635,
+        0.09417042136192322,
+        0.08786497870460153,
+        0.0571284256875515,
+        0.04385704640299082,
+        0.04654747433960438,
+        0.09151010774075985,
+        0.09726658929139376,
+        0.037483805790543556
+      ],
+      "hypothesis_only": "DREAM input slot order, signs and zero points equal training",
+      "actuation_permitted": false
+    },
+    "left_hand": {
+      "provisional_joint_names": [
+        "left_hand_thumb_0_joint",
+        "left_hand_thumb_1_joint",
+        "left_hand_thumb_2_joint",
+        "left_hand_middle_0_joint",
+        "left_hand_middle_1_joint",
+        "left_hand_index_0_joint",
+        "left_hand_index_1_joint"
+      ],
+      "mechanical_limits_rad": [
+        [
+          -1.0472,
+          1.0472
+        ],
+        [
+          -0.724312,
+          1.0472
+        ],
+        [
+          0.0,
+          1.74533
+        ],
+        [
+          -1.5708,
+          0.0
+        ],
+        [
+          -1.74533,
+          0.0
+        ],
+        [
+          -1.5708,
+          0.0
+        ],
+        [
+          -1.74533,
+          0.0
+        ]
+      ],
+      "samples_outside_mechanical_range": 35,
+      "steps_with_any_range_violation": 29,
+      "max_range_excess_rad": 0.005859375,
+      "first_target_delta_rad": [
+        -0.01171875,
+        2.925473193427527e-20,
+        -0.07999999821186066,
+        0.07999999821186066,
+        0.07169921696186066,
+        0.07999999821186066,
+        0.08410156052559614
+      ],
+      "first_target_slew_time_lower_bound_s": 0.08410156052559614,
+      "per_step_slew_time_lower_bound_s": [
+        0.0029296875,
+        0.0029296875,
+        0.005859375,
+        0.005859375,
+        0.005859375,
+        0.0013671874767169356,
+        0.001953125,
+        0.005859375,
+        0.0030517578125,
+        0.01171875,
+        0.0029296875,
+        0.0029296875,
+        0.0029296875,
+        0.0029296875,
+        0.0087890625,
+        0.0027343749534338713,
+        0.005859375,
+        0.005859375,
+        0.005859375,
+        0.0029296875,
+        0.0029296875,
+        0.005859375,
+        0.0029296875,
+        0.0029296875,
+        0.0029296875,
+        0.005859375,
+        0.005859375,
+        0.005859375,
+        0.0029296875,
+        0.0029296875,
+        0.005859375,
+        0.005859375,
+        0.0029296875,
+        0.005859375,
+        0.0029296875,
+        0.005859375,
+        0.004101562430150807,
+        0.0029296875,
+        0.005859375
+      ],
+      "hypothesis_only": "DREAM input slot order, signs and zero points equal training",
+      "actuation_permitted": false
+    },
+    "right_hand": {
+      "provisional_joint_names": [
+        "right_hand_thumb_0_joint",
+        "right_hand_thumb_1_joint",
+        "right_hand_thumb_2_joint",
+        "right_hand_middle_0_joint",
+        "right_hand_middle_1_joint",
+        "right_hand_index_0_joint",
+        "right_hand_index_1_joint"
+      ],
+      "mechanical_limits_rad": [
+        [
+          -1.0472,
+          1.0472
+        ],
+        [
+          -1.0472,
+          0.724312
+        ],
+        [
+          -1.74533,
+          0.0
+        ],
+        [
+          0.0,
+          1.5708
+        ],
+        [
+          0.0,
+          1.74533
+        ],
+        [
+          0.0,
+          1.5708
+        ],
+        [
+          0.0,
+          1.74533
+        ]
+      ],
+      "samples_outside_mechanical_range": 51,
+      "steps_with_any_range_violation": 28,
+      "max_range_excess_rad": 0.9638671875,
+      "first_target_delta_rad": [
+        4.863206139996363e-20,
+        -7.004602262485691e-20,
+        0.07999999821186066,
+        -0.07999999821186066,
+        -0.08292968571186066,
+        -0.07999999821186066,
+        -0.07999999821186066
+      ],
+      "first_target_slew_time_lower_bound_s": 0.08292968571186066,
+      "per_step_slew_time_lower_bound_s": [
+        0.005859375,
+        0.005859375,
+        0.0029296875,
+        0.0029296875,
+        0.0029296875,
+        0.0029296875,
+        0.0009765625,
+        0.0087890625,
+        0.003173828125,
+        0.0068359375,
+        0.00390625,
+        0.0048828125,
+        0.0029296875,
+        0.0029296875,
+        0.00244140625,
+        0.00390625,
+        0.00341796875,
+        0.001953125,
+        0.001708984375,
+        0.0027343749534338713,
+        0.001220703125,
+        0.0029296875,
+        0.0048828125,
+        0.003173828125,
+        0.001220703125,
+        0.0029296875,
+        0.0013671874767169356,
+        0.0018310546875,
+        0.00146484375,
+        0.0013671874767169356,
+        0.002197265625,
+        0.001220703125,
+        0.0068359375,
+        0.0087890625,
+        0.0234375,
+        0.98876953125,
+        0.2255859375,
+        0.24609375,
+        0.005859375
+      ],
+      "hypothesis_only": "DREAM input slot order, signs and zero points equal training",
+      "actuation_permitted": false
+    },
+    "waist": {
+      "provisional_joint_names": [
+        "waist_yaw_joint",
+        "waist_roll_joint",
+        "waist_pitch_joint"
+      ],
+      "mechanical_limits_rad": [
+        [
+          -2.618,
+          2.618
+        ],
+        [
+          -0.52,
+          0.52
+        ],
+        [
+          -0.52,
+          0.52
+        ]
+      ],
+      "samples_outside_mechanical_range": 0,
+      "steps_with_any_range_violation": 0,
+      "max_range_excess_rad": 0.0,
+      "first_target_delta_rad": [
+        0.006827595178037882,
+        0.008853163570165634,
+        -0.07307804375886917
+      ],
+      "first_target_slew_time_lower_bound_s": 0.18269510939717293,
+      "per_step_slew_time_lower_bound_s": [
+        0.011834140168502927,
+        0.0054944236762821674,
+        0.002924688160419464,
+        0.0033811829052865505,
+        0.008452956099063158,
+        0.0058493949472904205,
+        0.013524731621146202,
+        0.010143548715859652,
+        0.005849376320838928,
+        0.005849376320838928,
+        0.0054944236762821674,
+        0.005849376320838928,
+        0.005917071830481291,
+        0.008774083107709885,
+        0.012256789486855268,
+        0.016060619382187724,
+        0.008452957263216376,
+        0.010143548715859652,
+        0.0045368866994977,
+        0.002958534751087427,
+        0.010143548715859652,
+        0.003803831059485674,
+        0.005917069502174854,
+        0.008774083107709885,
+        0.011698771268129349,
+        0.004226479213684797,
+        0.006762365810573101,
+        0.0033811829052865505,
+        0.0058493949472904205,
+        0.010143548715859652,
+        0.0033811829052865505,
+        0.0012679444625973701,
+        0.006339717656373978,
+        0.006481271702796221,
+        0.010143548715859652,
+        0.014623478055000305,
+        0.011834139004349709,
+        0.004536889027804136,
+        0.005071775522083044
+      ],
+      "hypothesis_only": "DREAM input slot order, signs and zero points equal training",
+      "actuation_permitted": false
+    }
+  },
+  "unsupported_streams": [
+    "base_height_command",
+    "navigate_command"
+  ],
+  "unverified": [
+    "Training joint names/order, signs, zero points and exact hand revision",
+    "Training wrist origin, reference frame and EEF/joint arbitration",
+    "Training ego camera calibration and external-to-ego observation adaptation",
+    "Training control frequency, history interval and chunk execution schedule",
+    "Fixed-pelvis behavior versus whole-body base/navigation commands"
+  ],
+  "input_camera": "external fixed, not ego; domain shift unresolved",
+  "actuation_permitted": false,
+  "physical_policy_transfer_established": false
+}

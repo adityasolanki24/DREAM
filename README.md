@@ -64,7 +64,14 @@ unfamiliar physical behaviour.
 
 Every row marked "implemented and tested" has passing tests and/or saved results in `results/`.
 
-Latest inference-loading checkpoint (25 Oct 2026): **304 full-suite tests passed in
+Latest action-contract audit (25 Oct 2026, based on `1110cd8` with recorded source hashes):
+**312 full-suite tests passed in 456.14 s**; **285 fast tests passed in 118.42 s**,
+with 27 slow tests excluded. The focused contract/isolation suite passed 30 tests.
+Ruff lint/format and diff checks pass. Evidence is in `results/groot_contract_audit`.
+The fast suite still exceeds the 60-second target. These are offline contracts and existing
+physics regressions; no new learned physical execution is claimed.
+
+Prior inference-loading checkpoint (25 Oct 2026): **304 full-suite tests passed in
 530.64 s** at `58cea15`; the final diagnostic extension passes **278 fast tests in
 87.72 s**. XML, the failing/passing dispatch regression and real CPU tokenizer preflight
 are saved in `results/groot_retry_validation`. The fast suite exceeds the 60-second target.
@@ -145,7 +152,7 @@ these cloud-only changes. The Windows fast-suite duration still exceeds the 60 s
 | 12d | Supported G1 with seven-joint Unitree hands | **Implemented and CPU development-tested:** 43 actuated hinges, both hands articulate; three scripted sphere lifts/holds/releases pass contact/state gates, one offset challenge fails correctly. Fixed pelvis, uncalibrated soft contacts; no autonomous grasping, walking or Isaac execution | `tests/test_g1.py`, `results/g1_dex3_checkpoint`, `results/g1_dex3_challenge` |
 | 12e | RGB-D guided supported G1 exploration | **Partial, physically executed:** sensor-derived reaching, tactile-gated lift probes, Bayesian updates and bounded recovery through the existing task runtime. One complete held-out transfer accepted out of four EIG trials; placement/contact failures remain. Deterministic baseline; genuine model-guided follow-up below | `tests/test_g1_exploration.py`, `results/g1_exploration_heldout_eig`, `results/g1_exploration_heldout_fixed_short` |
 | 12f | Genuine Qwen CUDA decisions in supported G1 exploration | **Executed, negative task result:** 34 real model outputs, probing and belief feedback through G1 physics. Qwen 0/4 versus deterministic 1/4 on matched development cases; no false success claims or successful recovery. Known invalid contact scene retained | `experiments/cloud_g1_qwen.py`, `results/g1_qwen_cuda_dev`, `tests/test_g1_cloud.py` |
-| 12g | REAL_G1 learned motor-policy inference contract | **Genuine CUDA open-loop inference:** nine finite decoded 40-step streams on L4, 1.91 s inference. Provisional input conventions and external camera; action mapping and physical policy transfer remain unverified. Two loading failures preserved | `experiments/groot_openloop.py`, `results/groot_cuda_openloop`, `results/groot_first_cuda_failure`, `results/groot_dispatch_failure` |
+| 12g | REAL_G1 learned motor-policy inference contract | **Genuine CUDA open-loop inference; physical mapping blocked:** all nine decoded streams reconstructed exactly offline. Hand slot identity/morphology, body references, camera, wrist frames, timing and command arbitration remain unresolved. No learned G1 actuation or integrated Qwen + GR00T episode. Original predictions and two loading failures preserved | `experiments/groot_contract.py`, `experiments/configs/groot_action_contract.json`, `results/groot_contract_audit`, `results/groot_cuda_openloop`, `results/groot_first_cuda_failure`, `results/groot_dispatch_failure` |
 | 13 | Generalisation evaluation across goals, arrangements and task families | Planned | n/a |
 | 14 | Learned world/motor models, mobile or whole-body embodiments | Planned, conditional on evidence and compute | n/a |
 
@@ -1909,6 +1916,67 @@ control frequency/chunk schedule, and fixed-pelvis treatment of base/navigation 
 The existing Qwen-to-classical-tools physical loop and all its failures are preserved;
 this inference result does not establish learned G1 physical exploration.
 
+**Follow-up action-contract audit (25 Oct 2026): stop before actuation.**
+`experiments/configs/groot_action_contract.json` freezes the actual checkpoint's REAL_G1
+modality, statistics, normalization options, upstream source hashes, unresolved physical
+contracts and decoder acceptance gate. `experiments.groot_contract` reproduces the pinned
+decoder offline using the untouched normalized tensor and last measured input state.
+`results/groot_contract_audit/final_replay` verifies all 17 manifest-covered original files and
+reconstructs **all nine decoded streams with zero maximum absolute error**. It enumerates
+all **86** conditional hand-limit violations by stream, timestep, slot, provisional joint,
+value, limit and original normalized prediction. This establishes decoder consistency,
+not a correct physical mapping or a successful robot action.
+
+The hand action q01/q99 bounds are particularly informative. Left slots 0–3 span
+[-1.5, 0], slot 4 spans [-0.5, 0.5], and slots 5–6 span [0, 0.7]. Right slots 0–3
+span [0, 1.5], slot 4 spans [-0.5, 0.5], and slots 5–6 span [-0.7, 0]. DREAM supplied
+thumb_0, thumb_1, thumb_2, middle_0, middle_1, index_0, index_1. The statistics are
+consistent with four finger-flexion slots followed by three thumb slots; they do not
+identify index versus middle, verify signs/zero points, or establish the training hand
+asset. **No permutation is authorized by these statistics.** A morphology mismatch has
+not been proved or reconciled; seven outputs alone cannot identify a seven-joint hand.
+
+The numerical action contract is verified: packed slices contain 53 active dimensions
+and 79 ignored padding dimensions. Absolute streams use action q01/q99 bounds;
+relative streams use relative-action min/max overrides. Upstream clips normalized
+predictions to [-1, 1] before denormalization (29 left-wrist, 63 left-hand and 106
+right-hand values in this saved call). This existing upstream operation is reproduced
+for diagnosis; no physical limit clipping is introduced. Arms add the final observed
+joint vector once to every predicted sample. Wrists compose `T_reference @ T_relative`,
+with ROT6D represented by the first two matrix rows. Decoded targets are already absolute.
+Absolute hand/waist/base/navigation streams receive no added reference.
+
+The pinned processor/statistics and inspected NVIDIA source do not establish named
+physical slots, training hand revision, joint units/signs/zero references, wrist link and
+parent frame, camera calibration, trained Hz or EEF/joint/base arbitration. Base height
+is one scalar and navigation is three; their physical axis/unit/reference contract remains
+unverified. DREAM's external camera, pelvis-relative wrist-yaw input and declared 20 Hz
+history remain provisional. The separate official whole-body example uses a finetuned
+`UNITREE_G1_SONIC` policy and an in-house gripper; its deployment contract cannot be
+borrowed for this `REAL_G1` checkpoint. Pinned primary-source URLs/hashes are in the contract
+and `results/groot_contract_audit/research_sources.json`.
+
+Regression tests preserve exact decoding, final-state relative references, absolute hand
+semantics, original metadata identities, upstream normalization clipping and refusal of
+actuation with unresolved mappings. `require_actuation_contract()` has no caller override;
+there is still no actuator adapter or runtime handoff. The missing evidence is a pinned
+REAL_G1 dataset/deployment contract naming joints and hand asset, units, frames, cameras,
+rates and arbitration. Correcting the input later requires fresh inference; permuting
+these old outputs cannot repair the model call's incorrectly ordered input state.
+No new inference, cloud allocation, physical policy episode or held-out comparison was run.
+Phases 2–4 remain gated, and neither requested physical milestone is achieved.
+
+Recording remains a requirement for the first authorized physical run: save actual control-run
+state snapshots and timestamped inference/tool/contact/safety/verification events, then render
+wide and hand-close views from those snapshots at 15–24 FPS and at least 720p into external
+storage. Preserve originals and source/model/config/seed manifests; create highlights only
+after independent success. This offline-only audit generated no physical episode or video;
+no recording implementation or full-loop demonstration is claimed.
+
+```powershell
+python -m experiments.groot_contract --run results/groot_cuda_openloop/raw/groot --out <new-audit-directory>
+```
+
 The user's local HF token now stays local. Before allocation, a local authenticated preflight
 verifies every required file at the pinned model/backbone revisions and stages metadata plus
 short-lived file-scoped CDN URLs in a private input bucket. URLs are excluded from result
@@ -1942,6 +2010,7 @@ URLs are absent from the preserved evidence; local private URL manifests were re
 | Scoped alert, source-only upload, expiry and evidence gates | Engineering/measurement | Actual run manifests, retrieved checksummed outputs and cleanup audits |
 | Local backbone identity retaining upstream name-based dispatch | General algorithmic correction to dependency resolution | Two original loading failures, failing/passing regressions, actual CPU tokenizer and genuine CUDA inference; unchanged model bytes |
 | Conditional decoded-target and training-state audit | Engineering/measurement | Actual policy tensors; incompatible provisional hand mapping preserved, no actuation |
+| Executable action representation contract and exact offline decoder reconstruction | Engineering/measurement | Original manifest and prediction bytes verified; all conditional hand violations retained; unresolved physical mapping refuses actuation, no scene/controller changes |
 
 Milestone 11 (discovery as a tool on the Panda) is implemented on a narrowed scene with the
 oracle tracker; see its audit. Milestone 10's first slice (camera pick-and-place) is done. The
