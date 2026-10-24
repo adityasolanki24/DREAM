@@ -71,8 +71,8 @@ stale grasp/placement state. These are general control/recovery corrections, wit
 original safety limits and difficult scenes retained. Local evidence and failing/passing
 regressions are in `results/g1_autonomy_dev`.
 The latest fast run passes **302 tests in 121.61 s** (27 slow tests excluded), above the
-60-second target. The preceding full run passes 323 tests; the expanded final full run
-is in progress. A new verified grasp also clears the previous placement/release flags,
+60-second target. The expanded full run passes **329 tests in 321.16 s** at the
+`a034cc7` checkpoint. A new verified grasp also clears the previous placement/release flags,
 so failed-placement recovery must carry the object to the target again.
 
 The new classical development regression is **1/2 placements**, with no false success
