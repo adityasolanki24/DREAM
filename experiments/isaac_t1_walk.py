@@ -212,14 +212,45 @@ def run_episode(folder: Path, cfg: dict, case: str, out: Path, rows: list) -> di
 
     warmup = []
     with (out / "warmup.jsonl").open("w", encoding="utf-8") as log:
-        for _ in range(50):
-            row = body.advance(0, 0)
-            warmup.append(row)
-            log.write(json.dumps(row) + "\n")
-            log.flush()
-            if body.stopped:
-                raise RuntimeError("tilt stop during standing warmup")
-            record("standing warmup")
+        for step in range(50):
+            try:
+                row = body.advance(0, 0)
+                warmup.append(row)
+                log.write(json.dumps(row) + "\n")
+                log.flush()
+                if body.stopped:
+                    raise RuntimeError("tilt stop during standing warmup")
+                record("standing warmup")
+            except BaseException as error:
+                report = {
+                    "failed_step": step,
+                    "completed_steps": len(warmup),
+                    "error_type": type(error).__name__,
+                    "message": str(error),
+                    "sim_time_s": body.time,
+                }
+                try:
+                    state = body.sensors()
+                    report["joint_names"] = list(body.art.dof_names)
+                    report["joint_limits_rad"] = body.limits.tolist()
+                    report["proprioception"] = {
+                        key: np.asarray(value).tolist()
+                        for key, value in state.items()
+                    }
+                    report["last_accepted_ppo_action"] = body.actor.last.tolist()
+                    report["last_target_limit_excess_rad"] = (
+                        body.actor.target_limit_excess.tolist()
+                    )
+                except Exception as diagnostic_error:
+                    report["diagnostic_error"] = str(diagnostic_error)
+                try:
+                    (out / "warmup_failure.json").write_text(
+                        json.dumps(report, indent=2) + "\n",
+                        encoding="utf-8",
+                    )
+                except Exception:
+                    traceback.print_exc()
+                raise
     mark_stage(out, "warmup_completed")
     body.initialize_camera()
     mark_stage(out, "camera_capture_started")

@@ -109,3 +109,86 @@ def test_persistent_stage_logging(tmp_path):
         "world_created",
     ]
     assert all(isinstance(r["timestamp"], float) for r in records)
+
+
+@pytest.mark.parametrize("completed_before_failure", [0, 3])
+def test_warmup_failure_preserves_step_and_joint_diagnostics(
+    tmp_path, monkeypatch, completed_before_failure
+):
+    class FakeWorld:
+        def __init__(self, **kwargs):
+            self.scene = SimpleNamespace(
+                add_default_ground_plane=lambda: None,
+                add=lambda obj: None,
+            )
+
+    class FakeT1:
+        def __init__(self, *args, **kwargs):
+            self.time = 0.0
+            self.completed = 0
+            self.stopped = False
+            self.art = SimpleNamespace(
+                dof_names=[f"joint_{i}" for i in range(23)]
+            )
+            self.limits = np.tile([-2.0, 2.0], (23, 1))
+            self.actor = SimpleNamespace(
+                last=np.zeros(23),
+                target_limit_excess=np.zeros(23),
+            )
+
+        def advance(self, forward, yaw):
+            if self.completed == completed_before_failure:
+                raise RuntimeError("test actuator failure")
+            self.completed += 1
+            self.time += 0.02
+            return {"time_s": self.time}
+
+        def sensors(self):
+            return {
+                "q": np.zeros(23),
+                "dq": np.zeros(23),
+                "tilt": 0.0,
+                "gravity": np.array([0.0, 0.0, -1.0]),
+            }
+
+    monkeypatch.setitem(
+        sys.modules, "isaacsim.core.api",
+        SimpleNamespace(World=FakeWorld),
+    )
+    monkeypatch.setitem(
+        sys.modules, "isaacsim.core.api.objects",
+        SimpleNamespace(FixedCuboid=lambda **kwargs: None),
+    )
+    monkeypatch.setitem(
+        sys.modules, "isaacsim.storage.native",
+        SimpleNamespace(get_assets_root_path=lambda: "/assets"),
+    )
+    monkeypatch.setitem(
+        sys.modules, "dream.sim.isaac_t1",
+        SimpleNamespace(IsaacT1=FakeT1),
+    )
+
+    cfg = {
+        "asset_relative_url": "/robot.usd",
+        "policy_hashes": {},
+        "record_video": False,
+    }
+
+    with pytest.raises(RuntimeError, match="test actuator failure"):
+        runner.run_episode(tmp_path, cfg, "stand", tmp_path, [])
+
+    report = json.loads(
+        (tmp_path / "warmup_failure.json").read_text()
+    )
+
+    assert report["failed_step"] == completed_before_failure
+    assert report["completed_steps"] == completed_before_failure
+    assert report["error_type"] == "RuntimeError"
+    assert len(report["joint_names"]) == 23
+    assert len(report["joint_limits_rad"]) == 23
+    assert len(report["last_target_limit_excess_rad"]) == 23
+    assert "proprioception" in report
+    assert "diagnostic_error" not in report
+    assert len(
+        (tmp_path / "warmup.jsonl").read_text().splitlines()
+    ) == completed_before_failure
