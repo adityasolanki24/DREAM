@@ -137,6 +137,7 @@ these cloud-only changes. The Windows fast-suite duration still exceeds the 60 s
 | 12c | Booster T1 locomotion / visual navigation research | **Four real PPO actions; standing gate failed:** 0.08 s / 16 physics substeps, then exact-range knee rejection. CPU actor 81→23 and waypoint contracts tested; standing, walking and NavGPT inference **not validated** | `results/t1_stand_state_failure`, `results/t1_stand_second_retry_local`, `tests/test_navigation.py` |
 | 12d | Supported G1 with seven-joint Unitree hands | **Implemented and CPU development-tested:** 43 actuated hinges, both hands articulate; three scripted sphere lifts/holds/releases pass contact/state gates, one offset challenge fails correctly. Fixed pelvis, uncalibrated soft contacts; no autonomous grasping, walking or Isaac execution | `tests/test_g1.py`, `results/g1_dex3_checkpoint`, `results/g1_dex3_challenge` |
 | 12e | RGB-D guided supported G1 exploration | **Partial, physically executed:** sensor-derived reaching, tactile-gated lift probes, Bayesian updates and bounded recovery through the existing task runtime. One complete held-out transfer accepted out of four EIG trials; placement/contact failures remain. Deterministic reasoning; no genuine G1 VLM inference | `tests/test_g1_exploration.py`, `results/g1_exploration_heldout_eig`, `results/g1_exploration_heldout_fixed_short` |
+| 12f | Genuine Qwen CUDA decisions in supported G1 exploration | **Prepared, GPU execution pending fresh approval:** explicit device selection, one cached model across paired episodes, complete inference recording and physical evidence gates. CPU contract tests are not GPU inference evidence | `experiments/cloud_g1_qwen.py`, `tests/test_g1_cloud.py`, `results/g1_cloud_preparation` |
 | 13 | Generalisation evaluation across goals, arrangements and task families | Planned | n/a |
 | 14 | Learned world/motor models, mobile or whole-body embodiments | Planned, conditional on evidence and compute | n/a |
 
@@ -1713,15 +1714,80 @@ has neither Torch nor Transformers, the inspected default cache has no Qwen chec
 no inference endpoint is configured. The availability audit is saved under validation.
 No paid workload, checkpoint download, walking or Isaac integration was started.
 
-## Next milestone: reliable release and physically valid shifted contact scenes
+## Next milestone: genuine Qwen decisions in G1 physical exploration
+
+The `g1-qwen` cloud workload uses the existing `VLMAgent`, `QwenTransformersBackend`,
+exploration tools and independent scoring. It pins Qwen3-VL-4B-Instruct at
+`ebb281ec70b05090aa6165b016eac8ec08e71b17` (Apache-2.0), using the previously executed
+Python 3.12.12 / Torch 2.8.0 / Transformers 4.57.1 Linux lock. CUDA is required without
+fallback. The runner preserves full model messages/images/outputs, UTC and simulation
+timestamps, RGB-D frames, belief updates, tools and physical trajectories. It loads once,
+then compares both planners on identical initial conditions for all four original cases.
+These are **development comparisons**; the original constrained overlap remains an invalid
+physical challenge. No controller, scene, safety threshold or scoring gate was relaxed.
+Physics advances during tools, and simulated time pauses during model latency: this is
+synchronous closed-loop simulation, not demonstrated real-time holding during inference.
+
+No G1 GPU inference or GR00T inference has run in this preparation. The read-only cloud audit
+found no instances or DREAM disks/addresses/routers/networks. The proposed single L4
+`g2-standard-8` has 24 GB VRAM and 32 GiB host memory; the smaller 16 GiB host is not the
+previously validated loading configuration. Use `us-central1-c`, capacity-only b/a fallback,
+100 GB auto-deleted disk and a 45-minute Google-enforced DELETE deadline. Budget estimate:
+compute $0.6402, disk $0.0105, NAT/IP $0.0048, 25 GiB NAT processing $1.125,
+storage/egress/pre-allocation reserve $0.80: **US$2.58 estimated, fresh US$3.00 approval
+requested for one attempt**. This is not a hard provider billing cap; taxes/FX are excluded.
+The fresh AUD5 project alert (50/90/100%, default billing recipients) is configured before
+allocation and removed after retrieval; alerts can be delayed and include other project
+spend. The existing AUD50 alert is preserved. No retained cache/image exists: reuse the
+checkpoint within this VM and destroy its cache with the disk. Artifacts sync each minute
+and on exit; verify checksums locally, then delete scoped VM/disk/IAM/NAT/network/bucket.
+Failed retrieval preserves the bucket for manifest-scoped recovery. An interrupted host can
+also leave the nonbillable budget alert; its resource name is saved in `budget_alert.json`.
+
+```powershell
+python cloud/launch.py plan --project <project> --workload g1-qwen
+# Only after explicit approval for this workload:
+python cloud/launch.py run --project <project> --workload g1-qwen --allowance-usd 3 --yes
+python cloud/launch.py recover --manifest results/cloud_runs/<run>/manifest.json --yes
+```
+
+GR00T's actual checkpoint processor/statistics were inspected at
+`2fc962b973bccdd5d8ce4f67cc63b264d6886495`, with source at
+`944fe70c4fd54e3fcb80a7d7258a328f9c061176`. `REAL_G1` requires ego RGB history [-20,0],
+two 9D wrist states, 7D arms/hands and a 3D waist. Its 40-step actions combine relative
+XYZ/ROT6D wrists and arms with absolute hands/waist/base height/navigation commands.
+Matching seven-dimensional hands does not verify names, signs, offsets, wrist frames,
+hand revision or control frequency. DREAM has an external camera and supported pelvis;
+no action mapping is authorized by this audit. Upstream requires a separate Python 3.12 /
+Torch 2.9 / Transformers 4.57.3 environment. Its checkpoint LICENSE limits use to research
+and evaluation despite the model card's commercial-use wording; no weights were vendored
+or downloaded. The exact schema, dimensions, source URLs and missing adaptations are in
+`results/g1_cloud_preparation/groot_contract.json`. Actual open-loop inference follows the
+Qwen physical run and requires a separate approved workload.
+
+Preparation validation: the complete suite passed **290 tests in 401 s** before the final
+CLI/evidence-gate corrections; the final checkpoint's fast suite passed **265 tests in
+84 s**, with Ruff lint/format and Bash syntax passing. This exceeds the 60 s fast-suite
+target. A separate real-physics wiring test passed with explicitly scripted test-double
+decisions; it records probing, a belief update and a later input, not genuine model inference.
+The final host gate also rejects reaching without belief feedback and a timed-out next
+inference. Original failing/passing regressions and validation metadata are retained in
+`results/g1_cloud_preparation`.
+
+| Change | Rule 3 class | Evidence / limit |
+|---|---|---|
+| Explicit CUDA configuration and archive-safe source revision | General algorithmic correction to experiment execution | Failing/passing CPU regressions; actual G1 CUDA inference pending |
+| Full inference recording, cached model reuse and paired cloud harness | Engineering/measurement | Existing runtime and motor tools; no claimed learned motor behavior |
+| Scoped alert, source-only upload, expiry and evidence gates | Engineering/measurement | CPU lifecycle contracts; fresh cloud execution pending |
 
 Milestone 11 (discovery as a tool on the Panda) is implemented on a narrowed scene with the
 oracle tracker; see its audit. Milestone 10's first slice (camera pick-and-place) is done. The
 camera-discovery dependency remains open, with its failures preserved. The current research
 branch has audited a real policy contract and physically reached six fresh targets, while
-preserving its failed manipulation task and testing recorded chunk replay. The next dependency
-is contact-valid scene initialization, reliable release and recovery on fresh shifted objects,
-without weakening safety or tuning to one sphere. Sensor-guided reaching is now implemented.
+preserving its failed manipulation task and testing recorded chunk replay. The current priority
+is genuine Qwen decisions within G1 physical exploration, followed by actual GR00T inference
+and embodiment compatibility. Contact-valid initialization, reliable release and recovery on
+fresh shifted objects remain open, without weakening safety or tuning to one sphere.
 Booster T1 remains a preserved experimental
 baseline; visual navigation still requires validated walking. Useful learned manipulation remains a separate open
 capability; its failed pilot is preserved and bounded chunk execution is locally tested. MuJoCo stays the

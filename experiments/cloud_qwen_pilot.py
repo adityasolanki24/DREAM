@@ -17,6 +17,7 @@ import os
 import platform
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -71,7 +72,12 @@ class RecordedBackend:
                 else:
                     parts.append(part)
             saved.append({**message, "content": parts})
-        record = {"sim_time_before": self.clock(), "messages": saved, "tools": tools}
+        record = {
+            "sim_time_before": self.clock(),
+            "messages": saved,
+            "tools": tools,
+            "utc": datetime.now(timezone.utc).isoformat(),
+        }
         write_json(self.directory / f"{index:03d}_input.json", record)
         start = time.perf_counter()
         try:
@@ -79,13 +85,19 @@ class RecordedBackend:
         except Exception as error:
             write_json(
                 self.directory / f"{index:03d}_output.json",
-                {"error": type(error).__name__, "latency_s": time.perf_counter() - start},
+                {
+                    "error": type(error).__name__,
+                    "detail": str(error),
+                    "utc": datetime.now(timezone.utc).isoformat(),
+                    "latency_s": time.perf_counter() - start,
+                },
             )
             raise
         write_json(
             self.directory / f"{index:03d}_output.json",
             {
                 "text": text,
+                "utc": datetime.now(timezone.utc).isoformat(),
                 "latency_s": time.perf_counter() - start,
                 "sim_time_after": self.clock(),
             },

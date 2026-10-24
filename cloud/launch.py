@@ -16,6 +16,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
 import uuid
@@ -23,9 +24,11 @@ from contextlib import contextmanager
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 CONFIG = ROOT / "experiments/configs/cloud_qwen_pilot.json"
 ZONES = ("us-central1-c", "us-central1-b", "us-central1-a")
 WORKLOAD_CONFIGS = {
+    "g1-qwen": ROOT / "experiments/configs/cloud_g1_qwen.json",
     "qwen-pilot": CONFIG,
     "molmo-openloop": ROOT / "experiments/configs/cloud_molmo_openloop.json",
     "molmo-closedloop": ROOT / "experiments/configs/cloud_molmo_closedloop.json",
@@ -297,6 +300,14 @@ def check_pilot(out: Path, workload: str = "qwen-pilot") -> None:
     """A retrieved guest failure is not a pass. Keep preregistered task success report-only."""
     if (out / "EXIT_CODE").read_text().strip() != "0":
         raise RuntimeError("guest failed; inspect preserved outputs before another paid run")
+    if workload == "g1-qwen":
+        from experiments.cloud_g1_qwen import validate_evidence
+
+        try:
+            validate_evidence(out / "g1")
+        except (OSError, KeyError, ValueError, TypeError) as error:
+            raise RuntimeError(f"G1 inference/physical evidence failed: {error}") from error
+        return
     if workload in ("isaac-t1-walk", "isaac-t1-stand"):
         import numpy as np
 
@@ -562,11 +573,39 @@ def launch(p: dict, allowance: float, yes: bool) -> None:
         raise ValueError(
             "approval required: --yes and --allowance-usd covering the printed estimate"
         )
-    if git("status", "--porcelain"):
+    if git("status", "--porcelain", "--untracked-files=no"):
         raise ValueError("commit first: only a clean committed snapshot can run")
     lock = Path(os.environ.get("LOCALAPPDATA", Path.home() / ".cache")) / "DREAM/cloud/active.lock"
     with single_run_lock(lock):
         _launch(p, allowance)
+
+
+def create_g1_budget_alert(p: dict) -> str:
+    """Create a project-scoped AUD alert before allocation; never a billing hard cap.
+
+    The existing billing account uses AUD. Five AUD is an alert threshold, not an
+    exchange-rate assertion about the separately approved USD workload allowance.
+    Failure to configure the requested alerts prevents allocation.
+    """
+    billing = json.loads(gcloud("billing", "projects", "describe", p["project"], "--format=json"))
+    account = billing["billingAccountName"].removeprefix("billingAccounts/")
+    project = json.loads(gcloud("projects", "describe", p["project"], "--format=json"))
+    result = json.loads(
+        gcloud(
+            "billing",
+            "budgets",
+            "create",
+            f"--billing-account={account}",
+            f"--display-name={p['name']}",
+            "--budget-amount=5AUD",
+            f"--filter-projects=projects/{project['projectNumber']}",
+            "--threshold-rule=percent=0.5",
+            "--threshold-rule=percent=0.9",
+            "--threshold-rule=percent=1.0",
+            "--format=json",
+        )
+    )
+    return result["name"]
 
 
 def wait_for_guest(p: dict) -> None:
@@ -616,7 +655,22 @@ def _launch(p: dict, allowance: float) -> None:
     project, region = f"--project={p['project']}", f"--region={p['region']}"
     account = f"{p['account']}@{p['project']}.iam.gserviceaccount.com"
     retrieved = False
+    alert = None
     try:
+        if p.get("workload") == "g1-qwen":
+            alert = create_g1_budget_alert(p)
+            (dest / "budget_alert.json").write_text(
+                json.dumps(
+                    {
+                        "name": alert,
+                        "amount": "5AUD",
+                        "thresholds": [0.5, 0.9, 1.0],
+                        "scope": "project spend; delayed notifications, not a cap",
+                    },
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
         gcloud(
             "storage",
             "buckets",
@@ -665,7 +719,20 @@ def _launch(p: dict, allowance: float) -> None:
         )
         with tempfile.TemporaryDirectory(prefix="dream-cloud-") as directory:
             archive = Path(directory) / "code.tar.gz"
-            git("archive", "--format=tar.gz", "-o", str(archive), "HEAD")
+            paths = (
+                [
+                    "dream",
+                    "experiments",
+                    "cloud",
+                    "third_party",
+                    "pyproject.toml",
+                    "README.md",
+                    "AGENTS.md",
+                ]
+                if p.get("workload") == "g1-qwen"
+                else []
+            )
+            git("archive", "--format=tar.gz", "-o", str(archive), "HEAD", *paths)
             checksum = hashlib.sha256(archive.read_bytes()).hexdigest()
             gcloud("storage", "cp", str(archive), f"gs://{p['bucket']}/code.tar.gz")
             startup = Path(directory) / "startup.sh"
@@ -689,6 +756,18 @@ def _launch(p: dict, allowance: float) -> None:
         retrieved = True
     finally:
         errors = cleanup(p, remove_results=retrieved)
+        if alert:
+            account, budget = alert.split("/budgets/")
+            try:
+                gcloud(
+                    "billing",
+                    "budgets",
+                    "delete",
+                    budget,
+                    f"--billing-account={account.removeprefix('billingAccounts/')}",
+                )
+            except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+                errors.append("delete budget alert " + alert)
         (dest / "cleanup_errors.json").write_text(json.dumps(errors, indent=2), encoding="utf-8")
         (dest / "post_audit.json").write_text(
             json.dumps(audit(p["project"]), indent=2), encoding="utf-8"

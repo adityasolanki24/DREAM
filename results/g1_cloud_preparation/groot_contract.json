@@ -1,0 +1,191 @@
+{
+  "source_revision": "944fe70c4fd54e3fcb80a7d7258a328f9c061176",
+  "model_revision": "2fc962b973bccdd5d8ce4f67cc63b264d6886495",
+  "sources": {
+    "policy": "https://raw.githubusercontent.com/NVIDIA/Isaac-GR00T/944fe70c4fd54e3fcb80a7d7258a328f9c061176/gr00t/policy/gr00t_policy.py",
+    "dependencies": "https://raw.githubusercontent.com/NVIDIA/Isaac-GR00T/944fe70c4fd54e3fcb80a7d7258a328f9c061176/pyproject.toml",
+    "license": "https://huggingface.co/nvidia/GR00T-N1.7-3B/resolve/2fc962b973bccdd5d8ce4f67cc63b264d6886495/LICENSE",
+    "processor": "https://huggingface.co/nvidia/GR00T-N1.7-3B/resolve/2fc962b973bccdd5d8ce4f67cc63b264d6886495/processor_config.json",
+    "statistics": "https://huggingface.co/nvidia/GR00T-N1.7-3B/resolve/2fc962b973bccdd5d8ce4f67cc63b264d6886495/statistics.json"
+  },
+  "actual_inference_executed": false,
+  "weights_downloaded": false,
+  "modality": {
+    "video": {
+      "delta_indices": [
+        -20,
+        0
+      ],
+      "modality_keys": [
+        "ego_view"
+      ]
+    },
+    "state": {
+      "delta_indices": [
+        0
+      ],
+      "modality_keys": [
+        "left_wrist_eef_9d",
+        "right_wrist_eef_9d",
+        "left_hand",
+        "right_hand",
+        "left_arm",
+        "right_arm",
+        "waist"
+      ]
+    },
+    "action": {
+      "delta_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39
+      ],
+      "modality_keys": [
+        "left_wrist_eef_9d",
+        "right_wrist_eef_9d",
+        "left_hand",
+        "right_hand",
+        "left_arm",
+        "right_arm",
+        "waist",
+        "base_height_command",
+        "navigate_command"
+      ],
+      "action_configs": [
+        {
+          "rep": "RELATIVE",
+          "type": "EEF",
+          "format": "XYZ_ROT6D",
+          "state_key": "left_wrist_eef_9d"
+        },
+        {
+          "rep": "RELATIVE",
+          "type": "EEF",
+          "format": "XYZ_ROT6D",
+          "state_key": "right_wrist_eef_9d"
+        },
+        {
+          "rep": "ABSOLUTE",
+          "type": "NON_EEF",
+          "format": "DEFAULT",
+          "state_key": "left_hand"
+        },
+        {
+          "rep": "ABSOLUTE",
+          "type": "NON_EEF",
+          "format": "DEFAULT",
+          "state_key": "right_hand"
+        },
+        {
+          "rep": "RELATIVE",
+          "type": "NON_EEF",
+          "format": "DEFAULT",
+          "state_key": "left_arm"
+        },
+        {
+          "rep": "RELATIVE",
+          "type": "NON_EEF",
+          "format": "DEFAULT",
+          "state_key": "right_arm"
+        },
+        {
+          "rep": "ABSOLUTE",
+          "type": "NON_EEF",
+          "format": "DEFAULT",
+          "state_key": "waist"
+        },
+        {
+          "rep": "ABSOLUTE",
+          "type": "NON_EEF",
+          "format": "DEFAULT",
+          "state_key": "base_height_command"
+        },
+        {
+          "rep": "ABSOLUTE",
+          "type": "NON_EEF",
+          "format": "DEFAULT",
+          "state_key": "navigate_command"
+        }
+      ]
+    },
+    "language": {
+      "delta_indices": [
+        0
+      ],
+      "modality_keys": [
+        "annotation.human.task_description"
+      ]
+    }
+  },
+  "dimensions": {
+    "state": {
+      "left_wrist_eef_9d": 9,
+      "right_wrist_eef_9d": 9,
+      "left_hand": 7,
+      "right_hand": 7,
+      "left_arm": 7,
+      "right_arm": 7,
+      "waist": 3
+    },
+    "action": {
+      "left_wrist_eef_9d": 9,
+      "right_wrist_eef_9d": 9,
+      "left_hand": 7,
+      "right_hand": 7,
+      "left_arm": 7,
+      "right_arm": 7,
+      "waist": 3,
+      "base_height_command": 1,
+      "navigate_command": 3
+    }
+  },
+  "software": "Isolated Python >=3.12,<3.13; upstream torch2.9.0, torchvision0.24.0, transformers4.57.3, numpy1.26.4, flash-attn2.8.3. Incompatible with proven Qwen environment; do not install into it.",
+  "license": "Source Apache-2.0. Checkpoint LICENSE limits use to non-commercial research/evaluation, despite model-card commercial-use prose; use restrictive actual LICENSE. No weights vendored.",
+  "mapping_status": "BLOCKED: matching 7D hand/arm lengths do not establish joint order, signs, offsets, wrist frames, hand morphology or action frequency. REAL_G1 base/navigation outputs have no authority in supported-base DREAM. Ego frame history [-20,0] differs from external fixed camera. Keep DREAM safety and supported pelvis. No action adapter or actuators called.",
+  "missing_adaptation": [
+    "Documented named arm/hand joint order, units and zero/sign conventions",
+    "Wrist XYZ_ROT6D reference frame and rotation convention",
+    "REAL_G1 hand revision vs DREAM 4010 wrist seven-hinge hand",
+    "Recorded sample rate and timing for history [-20,0] and 40-step horizon",
+    "Ego camera calibration / genuine two-frame input history",
+    "Decision about coupled EEF/joint predictions and independent deterministic safety"
+  ],
+  "next": "After Qwen physical run: separately cost/approve isolated actual REAL_G1 sample open-loop inference; preserve normalized and decoded tensors; do not generate placeholder observations from unknown semantics."
+}

@@ -11,6 +11,7 @@ import argparse
 import hashlib
 import importlib.util
 import json
+import os
 import platform
 import shutil
 import subprocess
@@ -34,7 +35,8 @@ from experiments.g1_dexterous import write_json
 def source_metadata(config: dict) -> dict:
     paths = [p for directory in ("dream", "experiments") for p in Path(directory).rglob("*.py")]
     return {
-        "base_git_sha": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+        "base_git_sha": os.environ.get("DREAM_CODE_SHA")
+        or subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
         "source_sha256": {
             str(p).replace("\\", "/"): hashlib.sha256(p.read_bytes()).hexdigest() for p in paths
         },
@@ -43,19 +45,43 @@ def source_metadata(config: dict) -> dict:
         "numpy": np.__version__,
         "config": config,
         "reasoning": config["backend"],
-        "new_paid_resources": False,
+        "execution_environment": "cloud" if os.environ.get("DREAM_CODE_SHA") else "local",
         "vlm_available": {
             k: importlib.util.find_spec(k) is not None for k in ("torch", "transformers")
         },
-        "vlm_note": "No local Qwen checkpoint found in inspected Hugging Face cache; "
-        "no configured inference endpoint. No download or paid inference.",
+        "vlm_note": "Inference evidence is recorded per episode; availability is not execution.",
+        "latency_contract": "Synchronous simulation: physics advances during tools only; "
+        "model latency is wall time, not simulated hold time. Not real-time validation.",
         "support": "fixed pelvis; original G1 hinges, effort/joint/slew limits retained",
         "contact_change": "5 ms critically damped solref, converged at 1/0.5 ms dt "
         "in separate numerical audit; not material calibration",
     }
 
 
-def run_case(case: dict, config: dict, folder: Path, model_path: Path | None = None) -> dict:
+def load_backend(config: dict, model_path: Path | None):
+    """Explicit device selection; CUDA requests never fall back to CPU."""
+    import torch
+
+    from dream.runtime.qwen import QwenTransformersBackend
+
+    device = config.get("device", "cpu")
+    if device not in ("cpu", "cuda:0"):
+        raise ValueError("device must be cpu or cuda:0")
+    if device == "cuda:0" and not torch.cuda.is_available():
+        raise RuntimeError("CUDA requested but unavailable; no fallback")
+    if model_path is None or not model_path.is_dir():
+        raise ValueError("genuine Qwen inference requires an existing local checkpoint path")
+    return QwenTransformersBackend(
+        str(model_path),
+        device=device,
+        timeout_s=config.get("timeout_s", 60),
+        max_new_tokens=config.get("max_new_tokens", 384),
+    )
+
+
+def run_case(
+    case: dict, config: dict, folder: Path, model_path: Path | None = None, backend=None
+) -> dict:
     from PIL import Image
 
     folder.mkdir()
@@ -160,16 +186,13 @@ def run_case(case: dict, config: dict, folder: Path, model_path: Path | None = N
                     goal
                 )
             elif config["backend"] == "qwen":
-                if model_path is None or not model_path.is_dir():
-                    raise ValueError(
-                        "genuine Qwen inference requires an existing local checkpoint path"
-                    )
-                from dream.runtime.qwen import QwenTransformersBackend
                 from dream.runtime.vlm import VLMAgent
+                from experiments.cloud_qwen_pilot import RecordedBackend
 
-                backend = QwenTransformersBackend(str(model_path), device="cpu")
+                selected = backend if backend is not None else load_backend(config, model_path)
+                recorded = RecordedBackend(selected, folder / "inference", lambda: env.data.time)
                 episode = VLMAgent(
-                    tools, backend, camera=lambda: capture().rgb, max_steps=config["max_steps"]
+                    tools, recorded, camera=lambda: capture().rgb, max_steps=config["max_steps"]
                 ).run(config["instruction"], expected_goal=goal)
             else:
                 raise ValueError("unknown reasoning backend")
@@ -286,8 +309,9 @@ def run(config_path: Path, out: Path, model_path: Path | None = None) -> dict:
         path.parent.mkdir(exist_ok=True, parents=True)
         shutil.copyfile(name, path)
     summaries = {}
+    backend = load_backend(config, model_path) if config["backend"] == "qwen" else None
     for case in config["cases"]:
-        summaries[case["name"]] = run_case(case, config, out / case["name"], model_path)
+        summaries[case["name"]] = run_case(case, config, out / case["name"], model_path, backend)
         write_json(out / "summary.json", summaries)
         print(case["name"], json.dumps(summaries[case["name"]]), flush=True)
     return summaries

@@ -513,7 +513,14 @@ Work on **one coherent vertical slice at a time**. The README names the current 
 3. A task runtime with structured tool calling.
 4. Several tasks in shared scenes without a script per task.
 
-**Current: supported G1 sensor-guided physical exploration on local CPU physics.** Preserve
+**Current: genuine foundation-model inference in supported G1 physical exploration.**
+Prioritise real Qwen CUDA decisions through the existing VLM runtime, rendered observations,
+exploration tools and independent scoring. Compare against the deterministic planner on
+identical scenes, preserving failures. Then establish genuine GR00T REAL_G1 open-loop
+inference in its isolated compatible environment; matching action dimensions alone never
+authorize actuator mapping. Each new paid workload requires a fresh itemised estimate and
+explicit dollar-cap approval. Synchronous inference does not establish real-time control.
+Preserve
 the Panda and T1 baselines. Use RGB-D estimates with uncertainty, bounded proprioceptive
 control, tactile/displacement evidence and independent contact/object scoring. Object scene
 parameters never enter decisions. Keep the fixed pelvis explicit. Prioritise physically

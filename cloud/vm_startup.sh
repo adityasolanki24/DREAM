@@ -69,6 +69,9 @@ UP=$(cut -d. -f1 /proc/uptime)
 LEFT=$(( CAP * 60 - 120 - UP ))
 [ "$LEFT" -gt 0 ] || exit 124
 case "$WORKLOAD" in
+  g1-qwen)
+    timeout --signal=TERM --kill-after=30s "${LEFT}s" \
+      python -m experiments.cloud_g1_qwen --out /work/out/g1 ;;
   qwen-pilot)
     timeout --signal=TERM --kill-after=30s "${LEFT}s" \
       python experiments/cloud_qwen_pilot.py --out /work/out/pilot ;;

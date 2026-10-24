@@ -1,0 +1,32 @@
+{
+  "name": "dream-qwen-g1-proposal",
+  "workload": "g1-qwen",
+  "project": "nerva-adityapersonal",
+  "zone": "us-central1-c",
+  "region": "us-central1",
+  "machine": "g2-standard-8",
+  "disk_gb": 100,
+  "max_minutes": 45,
+  "bucket": "dream-qwen-g1-proposal",
+  "network": "dream-qwen-g1-proposal",
+  "subnet": "dream-qwen-g1-proposal-subnet",
+  "router": "dream-qwen-g1-proposal-router",
+  "nat": "dream-qwen-g1-proposal-nat",
+  "account": "dream-21b1404a3782f814",
+  "image": "common-cu129-ubuntu-2204-nvidia-580-v20261019",
+  "estimated_usd": 2.58,
+  "cost_note": "estimate, not a billing hard cap; VM lifetime is enforced by Google",
+  "cost_breakdown_usd": {
+    "compute": 0.640218234,
+    "disk_100gb": 0.0105,
+    "nat_and_ip": 0.0048000000000000004,
+    "nat_processing_25gib": 1.125,
+    "storage_egress_preallocation_reserve": 0.8
+  },
+  "requested_allowance_usd": 3,
+  "software": "Python3.12.12/Torch2.8.0/Transformers4.57.1/MuJoCo3.16.0; existing hashed Linux lock; OSMesa; no Isaac dependency",
+  "approval": "APPROVED by user for proposed US$3 Qwen/G1 attempt",
+  "artifact_estimate": "Up to 1 GiB traces/RGB-D/model messages; no weights in artifacts; 25 GiB includes cold packages, weights and NAT return traffic",
+  "cache": "No retained GPU/cache infrastructure; reuse one downloaded checkpoint/model across all four Qwen episodes in the VM",
+  "alerts": "Create AUD5 project budget with 50/90/100% default billing-recipient notifications before allocation; delayed, not a cap. Existing AUD50 alert preserved."
+}
