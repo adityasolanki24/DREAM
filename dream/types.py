@@ -170,6 +170,30 @@ class Embodiment(Protocol):
     def set_compliance(self, mode: CompliantMode | None) -> None: ...  # None: stiff tracking
 
 
+@dataclass(frozen=True)
+class DexterousState:
+    """Named humanoid proprioception, SI units; root quaternion is wxyz in world frame."""
+
+    time: float
+    joint_names: tuple[str, ...]
+    joint_pos: np.ndarray
+    joint_vel: np.ndarray
+    root_position: np.ndarray
+    root_quaternion: np.ndarray
+    protective_stop: bool
+    stop_reason: str = ""
+
+
+class DexterousEmbodiment(Protocol):
+    """Multi-finger capability without pretending fingers are a parallel gripper."""
+
+    def state(self) -> DexterousState: ...
+    def palm_pose(self, side: str) -> tuple[np.ndarray, np.ndarray]: ...
+    def set_hand(self, side: str, closure: float) -> None: ...
+    def move_arm(self, side: str, positions: np.ndarray) -> None: ...
+    def hold(self) -> None: ...
+
+
 class Perception(Protocol):
     def observe_objects(self) -> list[ObjectObservation]: ...
     def fixtures(self) -> dict[str, tuple[np.ndarray, float]]: ...  # name -> (centre, half width)

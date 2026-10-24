@@ -88,7 +88,7 @@ class VLMBackend(Protocol):
     def generate(self, messages: list[dict], tools: list[dict]) -> str: ...
 
 
-def tool_schemas() -> list[dict]:
+def tool_schemas(specs: list[dict] | None = None) -> list[dict]:
     """Named physical tools (and ``finish``), using the toolbox's existing definitions."""
     kinds = {
         "string": {"type": "string"},
@@ -106,7 +106,7 @@ def tool_schemas() -> list[dict]:
         },
     }
     out = []
-    for spec in [*TOOL_SPECS, FINISH_SPEC]:
+    for spec in [*(TOOL_SPECS if specs is None else specs), FINISH_SPEC]:
         if spec["name"] in MODEL_EXCLUDED_TOOLS:
             continue
         props = {k: dict(kinds[p["type"]]) for k, p in spec["parameters"].items()}
@@ -220,7 +220,8 @@ class VLMAgent:
         self.camera = camera
         self.max_steps = max_steps
         self.max_invalid = max_invalid
-        self.schemas = tool_schemas()
+        self.schemas = tool_schemas(getattr(toolbox, "specs", None))
+        self.system_prompt = getattr(toolbox, "system_prompt", SYSTEM_PROMPT)
         set_cancel = getattr(backend, "set_cancel_event", None)
         if set_cancel is not None:
             set_cancel(toolbox.cancel)
@@ -243,7 +244,7 @@ class VLMAgent:
         scene = self.tools.call("observe_scene")
         robot = self.tools.call("get_robot_state")
         messages = [
-            {"role": "system", "content": [{"type": "text", "text": SYSTEM_PROMPT}]},
+            {"role": "system", "content": [{"type": "text", "text": self.system_prompt}]},
             self._user(
                 f"Instruction: {instruction}\n\nobserve_scene result:\n{_brief(scene)}"
                 f"\nget_robot_state result:\n{_brief(robot)}"

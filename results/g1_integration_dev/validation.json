@@ -1,0 +1,74 @@
+{
+  "base_git_sha": "6e9076ab28e11faf0c4f7d0b98a05ffd61bd0861",
+  "source_sha256": {
+    "dream/eval/g1.py": "1f5f0ab7352db54d969a90707f59d55e4e9bc5b44bd28bb97446b28176707fa2",
+    "dream/robot/g1.py": "6765934cf336707edb278698314f3569139aed566142062e119e19bac0641b22",
+    "dream/runtime/vlm.py": "18d1ff78f890d6ad32a873a0440b5174676ec58387cd7530278228f36d39592b",
+    "dream/sim/g1.py": "333f93ac24d1ed1cddd5f59cdd096cae91815dd298826b74aa440fe98acba6e0",
+    "dream/tools/dexterous.py": "ed06ff115f1ceb3a9973a6b309e8f664e5bfeded77320a61911338fb0e9ae1b0",
+    "dream/types.py": "e61e59c34a4e725c1a15bd3eaf9c5e3771df140780bf57d31ac293665a51736c",
+    "experiments/configs/g1_dex3_challenge.json": "53929023c89312353efaa14e5f2f2a637fc4867a816c34f585d558bdb5f88ecf",
+    "experiments/configs/g1_dex3_dev.json": "9a8f10a01f797bb0cf99346b52a7f69d78d2d5e035b2acc0152e877d23b5404f",
+    "experiments/g1_dexterous.py": "1e4d64c3b69279591fadffce65f845b683571b5573d067e263a19a0ff6ae10ac",
+    "experiments/inspect_t1_residuals.py": "ec39cd97e8ce49ca24a7e7cb29f1b92c0f967bb9ebd34e888c404c888753fd68",
+    "tests/test_g1.py": "6c0c6495a178c8832b45ed973541eedd80664aaf22b257c9b31a55dcee706036",
+    "tests/test_t1_residuals.py": "55852af76cee433c839442578198ae5428588df87d8dff728ab79e40ef550341"
+  },
+  "reports": {
+    "fast.xml": {
+      "tests": "250",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "119.574"
+    },
+    "full.xml": {
+      "tests": "273",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "479.949"
+    },
+    "focused.xml": {
+      "tests": "39",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "23.936"
+    },
+    "physics_safety_pass.xml": {
+      "tests": "9",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "6.517"
+    },
+    "safety_before.xml": {
+      "tests": "2",
+      "failures": "2",
+      "errors": "0",
+      "skipped": "0",
+      "time": "1.578"
+    },
+    "physics_safety_final.xml": {
+      "tests": "9",
+      "failures": "1",
+      "errors": "0",
+      "skipped": "0",
+      "time": "3.442"
+    }
+  },
+  "commands": [
+    "python -m pytest -m \"not slow\" --junitxml=results/g1_integration_dev/fast.xml",
+    "python -m pytest --junitxml=results/g1_integration_dev/full.xml",
+    "python -m ruff check .",
+    "python -m ruff format --check .",
+    "python -m compileall -q dream experiments",
+    "git diff --cached --check"
+  ],
+  "python": "3.13.14",
+  "paid_resources_created": false,
+  "new_model_inference_executed": false,
+  "core_physics": "real CPU MuJoCo",
+  "early_failures_preserved": true
+}

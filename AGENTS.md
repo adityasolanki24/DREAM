@@ -513,12 +513,13 @@ Work on **one coherent vertical slice at a time**. The README names the current 
 3. A task runtime with structured tool calling.
 4. Several tasks in shared scenes without a script per task.
 
-**Current: real learned-action policy compatibility and execution.** The multimodal tool
-runtime has development evidence, but classical skills still generate its motions. Select one
-maintained pretrained motor policy, verify cameras, state, units, frames, normalisation,
-action horizon and control frequency, then record real open-loop output tensors. Only after
-those checks connect a deterministic safety-checked adapter to real closed-loop simulation.
-Compare matching initial states against classical control. No silent classical fallback.
+**Current: supported G1 dexterous-hand commissioning on local CPU physics.** Preserve the
+Panda and T1 baselines. Use verified Unitree assets, real finger actuators, independent
+contact/object scoring and explicitly labelled base support. Establish calibrated contact
+and force behaviour before claiming physically realistic grasping or autonomous manipulation.
+No new T1 cloud run or paid infrastructure is authorized by this milestone. Pretrained motor
+reuse still requires verified cameras, state, units, frames, normalization, action horizon
+and control frequency, with no silent classical fallback.
 
 **Next, in order:**
 1. Preserve and diagnose learned Panda manipulation failures; test bounded chunk execution

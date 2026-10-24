@@ -64,7 +64,13 @@ unfamiliar physical behaviour.
 
 Every row marked "implemented and tested" has passing tests and/or saved results in `results/`.
 
-Latest local verification (24 Oct 2026): **241 fast tests passed in 99.129 s** after the
+Latest local verification (24 Oct 2026, G1 checkpoint): **250 fast tests passed in 120.09 s**;
+**273 full-suite tests passed in 479.97 s**. Ruff lint/format, Python compilation and staged
+diff checks pass. XML and source hashes are in `results/g1_integration_dev`. These include
+real local G1 and Panda physics, safety/isolation contracts and scripted model-interface tests;
+they do not establish learned G1 control or Isaac walking. The fast suite exceeds 60 seconds.
+
+Prior transport checkpoint: **241 fast tests passed in 99.129 s** after the
 upload-timeout correction (`results/t1_archive_upload_timeout`). The last full run was
 **261 tests passed in 451.919 s** at `ff19e5e`; simulator, policy and task code are unchanged
 by the transport-only correction. Ruff lint/format, Python compilation,
@@ -121,6 +127,7 @@ these cloud-only changes. The Windows fast-suite duration still exceeds the 60 s
 | 12a-cloud | Capped GPU inference and live-physics pilot | **Executed:** zone c rejected capacity, zone b booted; guest and pilot gates passed. Cleanup error investigated and absence verified | `results/cloud_pilot_allocation_failure`, `cloud/launch.py`, `tests/test_cloud.py` |
 | 12b | Learned motor policy (MolmoAct2-DROID first open-loop candidate; GR00T alternative) | **Partially working:** real checkpoint produced a finite 15×8 chunk on L4; raw gripper range failed (4/15). Source contract audited; six fresh predictions physically reached (6/6). Learned task failed, classical succeeded. No manipulation transfer established | `tests/test_molmo.py`, `results/molmo_observation_dev`, source/decision audit below |
 | 12c | Booster T1 locomotion / visual navigation research | **Four real PPO actions; standing gate failed:** 0.08 s / 16 physics substeps, then exact-range knee rejection. CPU actor 81→23 and waypoint contracts tested; standing, walking and NavGPT inference **not validated** | `results/t1_stand_state_failure`, `results/t1_stand_second_retry_local`, `tests/test_navigation.py` |
+| 12d | Supported G1 with seven-joint Unitree hands | **Implemented and CPU development-tested:** 43 actuated hinges, both hands articulate; three scripted sphere lifts/holds/releases pass contact/state gates, one offset challenge fails correctly. Fixed pelvis, uncalibrated soft contacts; no autonomous grasping, walking or Isaac execution | `tests/test_g1.py`, `results/g1_dex3_checkpoint`, `results/g1_dex3_challenge` |
 | 13 | Generalisation evaluation across goals, arrangements and task families | Planned | n/a |
 | 14 | Learned world/motor models, mobile or whole-body embodiments | Planned, conditional on evidence and compute | n/a |
 
@@ -1519,15 +1526,102 @@ preparation for the same approved single-GPU diagnostic, not a second physical a
 An added $0.01 pre-allocation contingency makes the estimate $3.43, within the approved
 $3.50; actual billing is unavailable. No physical retry is authorized if that diagnostic fails.
 
-## Next milestone: ordinary humanoid walking before visual navigation
+## Supported G1 hand commissioning on local CPU physics
+
+The G1 adapter uses Unitree's unmodified `g1_29dof_with_hand_rev_1_0.xml` and its referenced
+meshes, pinned to `unitree_ros` commit `15ebe53f4cd77e7d745ae83b9d7ff90e685e8998`,
+BSD-3-Clause. `third_party/unitree_g1/PROVENANCE.txt` records the variant (4010 wrists,
+29 body plus 14 hand hinges), checksum manifest and runtime changes. This is the seven-joint
+Unitree hand morphology, not an interchangeable Inspire or newer G1 asset. No dependency
+or policy weights were added. MuJoCo 3.16 executes locally on CPU; Isaac execution is untested.
+
+`G1Controller` exposes named joint position/velocity, palm and root poses, bounded arm
+setpoints and hand synergies. MjSpec fixes the pelvis and converts upstream torque motors
+to position PD with implicitly integrated damping; upstream inertias, geometry, mechanical
+ranges and effort caps remain. Deterministic reset is scene initialization only. Targets
+are rate-limited; nonfinite state, measured range violations and overspeed latch a stop.
+`DexterousToolbox` reuses DREAM's result/validation boundary and the existing VLM runtime
+can offer its hand tools and correct embodiment prompt. This dispatch was tested with a
+scripted backend, **not a new model inference run**. Tools do not certify grasps. Object
+perception, Cartesian reaching, autonomous grasp selection and placement remain unsupported.
+
+Frozen development gates and configurations are in `experiments/configs/g1_dex3_dev.json`
+and `g1_dex3_challenge.json`. Every trial runs seven simulated seconds through actuators,
+with 1 ms safety checks and 100 Hz joint/control/force/contact/object traces. A grasp gate
+requires at least 2 cm lift, at least two distinct finger chains and no pedestal contact
+for at least 90% of the final one-second hold. All cases are deterministic development
+experiments, **not held-out evidence or generalisation**.
+
+| Case | Minimum hold lift | Two-finger unsupported hold fraction | Grasp gate | Maximum hand mesh penetration |
+|---|---:|---:|---|---:|
+| Nominal 25 mm radius sphere | 99.54 mm | 1.0 | Pass | 8.51 mm |
+| Smaller 20 mm radius sphere | 102.50 mm | 1.0 | Pass | 5.80 mm |
+| Sphere shifted 10 mm | 99.58 mm | 1.0 | Pass | 8.58 mm |
+| Outside capture region | No lift | 0.0 | Fail, no hand contact | 0 |
+
+The three contacted spheres drop after release. There are no measured joint-range
+excursions in these runs. **The substantial soft-contact penetration limits physical
+credibility**: these are successful lifts under the upstream MuJoCo contact model, not
+calibrated hardware grasps. No object is attached, teleported or modified during execution.
+The fixed pelvis and prepositioned sphere/pedestal isolate the hand; no balance is claimed.
+
+Traces, explicit actuator/qpos/qvel mappings, versions and source hashes are in
+`results/g1_dex3_checkpoint`; the failed offset trial is in `results/g1_dex3_challenge`.
+Five original phase-end screenshots per development case have timestamps and checksums in
+each `frames.json`. Originals remain outside OneDrive; the selected unedited hold frame
+below is copied into results. No continuous video was produced. The interrupted dense
+recording and earlier development results remain in `results/g1_dex3_dev_v2` and
+`results/g1_dex3_dev_v3`; the initial path error and explicit-damping failure are preserved.
+
+![Actual MuJoCo G1 supported-base sphere hold](results/g1_dex3_checkpoint/hold.png)
+
+Reproduce without rendering (no GPU or network needed):
+
+```powershell
+python -m experiments.g1_dexterous --out results/g1_new
+python -m experiments.g1_dexterous --config experiments/configs/g1_dex3_challenge.json --out results/g1_new_challenge
+```
+
+Add `--media "$env:LOCALAPPDATA\DREAM\artifacts\g1_new"` for original stills; this uses the
+existing optional `demo` dependency. Output directories must be new so results cannot be overwritten.
+
+| Change | Rule 3 class | Evidence and limitation |
+|---|---|---|
+| Fixed pelvis, known sphere placement and pedestal | Environment simplification | Explicit support; offset challenge preserved; no locomotion claim |
+| Seven-joint closing synergy and elbow lift | Task-specific heuristic | Three local variations pass, outside capture region fails; no grasp planner |
+| Implicit actuator damping instead of external explicit velocity feedback | General algorithmic correction | Initial 5 ms overspeed failure and regression; both hands and independent sphere variants execute |
+| PD gains and speed caps | Unverified commissioning choices | Not hardware calibration; mesh contact penetration remains an open issue |
+| Servo-contract rejection and protective position hold | General algorithmic correction | Failing/passing regressions; preserved effort and mechanical limits |
+
+The official Isaac Lab reference is audited at `e30c25b1` in
+`results/g1_integration_dev/isaac_policy_contract_audit.json`. Its separate fixed-base Dex3
+USD path and implicit drives do not establish equivalence to this MJCF. Neither the T1
+81→23 policy nor MolmoAct2-DROID's Panda output is a compatible G1 motor contract. No
+GR00T checkpoint was downloaded or executed.
+
+The last T1 run, `dream-qwen-20261024-162320-e842d6`, was inspected locally after verifying
+its original manifest. `results/g1_t1_knee_audit` preserves byte-identical 200 Hz diagnostics
+and the saved zero-resource/no-cleanup-error audit. It contains 16 substeps and four knee
+range violations. The final residual is 0.000141824 rad and measured velocity points inward
+at 0.508568 rad/s, while the final position difference implies -0.027162 rad/s (outward).
+Thus inward solver velocity alone does not show recovery. Contact force and realized motor
+effort are absent, so causal attribution is unresolved. The previously audited training task
+does not have DREAM's exact-range termination. The strict guard is retained: no independent
+nonzero residual envelope is calibrated. `experiments/inspect_t1_residuals.py` and its logic
+test prevent the diagnostic from equating inward velocity with recovery. A proposed bounded
+residual/dwell/growth policy is recorded but **not enabled or physically validated**. No cloud
+resources were created and no fresh paid run is authorized.
+
+## Next milestone: calibrate G1 contact and force behaviour before broader manipulation
 
 Milestone 11 (discovery as a tool on the Panda) is implemented on a narrowed scene with the
 oracle tracker; see its audit. Milestone 10's first slice (camera pick-and-place) is done. The
 camera-discovery dependency remains open, with its failures preserved. The current research
 branch has audited a real policy contract and physically reached six fresh targets, while
 preserving its failed manipulation task and testing recorded chunk replay. The next dependency
-is ordinary Booster T1 walking validation in isolated Isaac Sim, followed by visual-navigation
-integration only when walking passes. Useful learned manipulation remains a separate open
+is reducing and independently validating G1 hand contact penetration without weakening safety
+or tuning to one sphere, then sensor-guided reaching. Booster T1 remains a preserved experimental
+baseline; visual navigation still requires validated walking. Useful learned manipulation remains a separate open
 capability; its failed pilot is preserved and bounded chunk execution is locally tested. MuJoCo stays the
 regression baseline. No Isaac Sim demonstration or continuous learned control is claimed.
 

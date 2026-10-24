@@ -1,0 +1,11 @@
+{
+  "experiment": "explicit external torque PD, before implicit actuator integration",
+  "source_base": "6e9076a",
+  "sim_dt_s": 0.001,
+  "termination": "joint overspeed",
+  "time_s": 0.005,
+  "root_cause": "external explicit velocity feedback destabilizes low-inertia finger joints",
+  "regression": "tests/test_g1.py::test_both_hands_move_within_ranges_and_upstream_effort_limits",
+  "correction": "same PD in affine actuator bias, implicitfast integrates damping; inertias and effort caps unchanged",
+  "scope": "commissioning development only"
+}
