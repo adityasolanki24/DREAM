@@ -54,8 +54,11 @@ def gcloud(*args: str) -> str:
     exe = shutil.which("gcloud.cmd") or shutil.which("gcloud")
     if not exe:
         raise RuntimeError("Google Cloud SDK is required")
+    # The 41 MiB source upload exceeded 120 s on the development uplink, before
+    # VM allocation. Allow a bounded ten-minute transfer; keep RPC limits short.
+    timeout = 600 if args[:2] == ("storage", "cp") else 120
     return subprocess.run(
-        [exe, *args, "--quiet"], text=True, capture_output=True, check=True, timeout=120
+        [exe, *args, "--quiet"], text=True, capture_output=True, check=True, timeout=timeout
     ).stdout.strip()
 
 

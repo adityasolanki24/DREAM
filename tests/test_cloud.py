@@ -18,6 +18,28 @@ def _plan():
     return cloud.plan("example-project", json.loads(cloud.CONFIG.read_text()), "dream-qwen-test")
 
 
+@pytest.mark.parametrize("transfer", [True, False])
+def test_pre_vm_archive_upload_has_a_bounded_transfer_deadline(monkeypatch, transfer):
+    """A slow upload must not inherit the short resource-control RPC deadline."""
+    monkeypatch.setattr(cloud.shutil, "which", lambda _: "gcloud-test")
+    deadlines = []
+
+    def run(command, **kwargs):
+        deadlines.append(kwargs["timeout"])
+        if transfer and kwargs["timeout"] < 180:
+            raise subprocess.TimeoutExpired(command, kwargs["timeout"])
+        return subprocess.CompletedProcess(command, 0, stdout="completed\n")
+
+    monkeypatch.setattr(cloud.subprocess, "run", run)
+    args = (
+        ("storage", "cp", "source.tar.gz", "gs://test/code.tar.gz")
+        if transfer
+        else ("compute", "instances", "list")
+    )
+    assert cloud.gcloud(*args) == "completed"
+    assert deadlines == [600 if transfer else 120]
+
+
 def test_new_service_account_propagation_retries_only_its_missing_identity(monkeypatch):
     account = "dream-test@example-project.iam.gserviceaccount.com"
     calls, sleeps = [], []

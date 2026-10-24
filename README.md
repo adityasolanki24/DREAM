@@ -64,8 +64,10 @@ unfamiliar physical behaviour.
 
 Every row marked "implemented and tested" has passing tests and/or saved results in `results/`.
 
-Latest local verification (24 Oct 2026): **261 full tests passed in 451.919 s**;
-**239 fast tests passed in 109.639 s**. Ruff lint/format, Python compilation,
+Latest local verification (24 Oct 2026): **241 fast tests passed in 99.129 s** after the
+upload-timeout correction (`results/t1_archive_upload_timeout`). The last full run was
+**261 tests passed in 451.919 s** at `ff19e5e`; simulator, policy and task code are unchanged
+by the transport-only correction. Ruff lint/format, Python compilation,
 Bash syntax and `git diff --check` pass. Exact source hashes, negative/passing regressions,
 source audit and final XML are in `results/t1_stand_second_retry_local`; previous validation
 remains in `results/t1_stand_followup_local` and `results/t1_validation_checkpoint`. These are CPU contracts and MuJoCo regression
@@ -1477,8 +1479,8 @@ independent of this telemetry fix.
 
 All original failure cases remain reproducible. Stable standing and usable RGB-D remain open.
 The initialization and telemetry corrections require physical revalidation, and the joint-range
-residual contract needs investigation before declaring a useful next paid run. No further
-paid attempt has been launched or authorized, and the previous allowance is not reused.
+residual contract remains unresolved. A subsequent US$3.50 approval covers the single stand
+diagnostic below; the earlier allowance is not reused.
 
 | Change | Rule 3 class | Evidence and limitation |
 |---|---|---|
@@ -1487,7 +1489,7 @@ paid attempt has been launched or authorized, and the previous allowance is not 
 | Preserve each physics substep and richer failure state | General algorithmic correction to measurement | Failing/passing diagnostic regressions; no changed dynamics or safety threshold |
 | Validate final measured joints independently | General algorithmic correction to scoring | Previously accepted lower/upper excursions and missing/malformed limits now rejected; exact range unchanged |
 
-**Proposed next experiment, not authorized:** one stand-only diagnostic on L4 `g2-standard-8`
+**Approved stand diagnostic, first launch failed before VM allocation:** one L4 `g2-standard-8`
 (8 vCPUs, 32 GiB, 200 GB auto-deleted disk), `us-central1-c` with b/a capacity-only fallback.
 Use the previously booted, pinned Python 3.11.13 / Isaac Sim 5.1 / Torch 2.7 cu128 /
 ONNX Runtime 1.23.2 environment and the initialization correction above. Keep the exact joint
@@ -1505,6 +1507,17 @@ or image is created. Sync artifacts during execution/on exit, verify their manif
 then delete scoped VM/disk/IAM/NAT/network/bucket. Failed retrieval preserves the bucket for
 manifest-scoped recovery. The offline plan is saved as
 `results/t1_stand_second_retry_local/next_stand_proposal.json`.
+
+Launch `dream-qwen-20261024-161406-11ebe6` at `ff19e5e` failed while uploading its
+43,016,701-byte source archive: the shared CLI helper's 120-second deadline expired before
+any VM allocation. Cleanup reported no errors; its audit confirms zero instances, CPU/L4
+usage and DREAM disks/addresses/routers/networks. Original manifest/audits and a failing
+transfer regression are retained in `results/t1_archive_upload_timeout`.
+The **general algorithmic correction** gives `storage cp` a bounded 600-second deadline;
+control-plane RPCs remain at 120 seconds. No controller or physics code changes. This is
+preparation for the same approved single-GPU diagnostic, not a second physical attempt.
+An added $0.01 pre-allocation contingency makes the estimate $3.43, within the approved
+$3.50; actual billing is unavailable. No physical retry is authorized if that diagnostic fails.
 
 ## Next milestone: ordinary humanoid walking before visual navigation
 
