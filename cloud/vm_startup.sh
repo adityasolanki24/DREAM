@@ -63,10 +63,9 @@ LOCK=requirements.lock.txt
 case "$WORKLOAD" in molmo-openloop|molmo-closedloop) LOCK=molmo.requirements.lock.txt ;; esac
 if [[ "$WORKLOAD" == groot-openloop ]]; then
   LOCK=groot.requirements.lock.txt
-  SECRET=$(meta instance/attributes/dream-hf-secret)
-  HF_TOKEN=$(gcloud secrets versions access latest --secret="$SECRET" --project="$PROJECT")
-  [ -n "$HF_TOKEN" ] || exit 2
-  export HF_TOKEN
+  unset HF_TOKEN HUGGING_FACE_HUB_TOKEN HF_TOKEN_PATH
+  mkdir -p /work/model-input
+  gsutil -q -m rsync -r "gs://$BUCKET/model-input" /work/model-input
 fi
 uv pip install --require-hashes -r "/work/DREAM/cloud/$LOCK"
 uv pip install --no-deps -e /work/DREAM

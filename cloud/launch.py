@@ -158,8 +158,6 @@ def create_command(p: dict, sha: str, archive_hash: str, startup: Path | None = 
         "dream-max-minutes": str(p["max_minutes"]),
         "dream-workload": p.get("workload", "qwen-pilot"),
     }
-    if p.get("workload") == "groot-openloop":
-        metadata["dream-hf-secret"] = p["name"]
     return [
         "compute",
         "instances",
@@ -712,6 +710,20 @@ def _launch(p: dict, allowance: float) -> None:
     dest = ROOT / "results/cloud_runs" / p["name"]
     dest.mkdir(parents=True, exist_ok=False)
     (dest / "manifest.json").write_text(json.dumps(p, indent=2), encoding="utf-8")
+    assets = None
+    if p.get("workload") == "groot-openloop":
+        from experiments.groot_assets import prepare_assets
+
+        assets = (
+            Path(os.environ.get("LOCALAPPDATA", Path.home() / ".cache"))
+            / "DREAM/staging"
+            / p["name"]
+        )
+        cfg = json.loads((ROOT / "experiments/configs/groot_openloop.json").read_text())
+        asset_evidence = prepare_assets(assets, cfg)
+        (dest / "model_assets.json").write_text(
+            json.dumps(asset_evidence, indent=2), encoding="utf-8"
+        )
     project, region = f"--project={p['project']}", f"--region={p['region']}"
     account = f"{p['account']}@{p['project']}.iam.gserviceaccount.com"
     retrieved = False
@@ -742,26 +754,11 @@ def _launch(p: dict, allowance: float) -> None:
             "--public-access-prevention",
         )
         gcloud("iam", "service-accounts", "create", p["account"], project)
-        if p.get("workload") == "groot-openloop":
-            credential = groot_access_preflight()
-            gcloud("services", "enable", "secretmanager.googleapis.com", project)
-            gcloud(
-                "secrets",
-                "create",
-                p["name"],
-                project,
-                "--replication-policy=automatic",
-                f"--data-file={credential}",
-            )
-            gcloud(
-                "secrets",
-                "add-iam-policy-binding",
-                p["name"],
-                project,
-                f"--member=serviceAccount:{account}",
-                "--role=roles/secretmanager.secretAccessor",
-            )
         grant_result_access(p["bucket"], account)
+        if assets is not None:
+            gcloud(
+                "storage", "rsync", "--recursive", str(assets), f"gs://{p['bucket']}/model-input"
+            )
         gcloud("compute", "networks", "create", p["network"], project, "--subnet-mode=custom")
         gcloud(
             "compute",
@@ -834,6 +831,8 @@ def _launch(p: dict, allowance: float) -> None:
         fetch(p, dest)
         retrieved = True
     finally:
+        if assets is not None:
+            (assets / "weights.private.json").unlink(missing_ok=True)
         errors = cleanup(p, remove_results=retrieved)
         if alert:
             account, budget = alert.split("/budgets/")

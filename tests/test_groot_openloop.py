@@ -54,7 +54,7 @@ def test_groot_cloud_is_separate_and_cleanup_removes_only_its_secret(monkeypatch
     plan = launch.plan("example-project", cfg, "dream-qwen-groot-test")
     assert plan["estimated_usd"] == 3.03 and plan["max_minutes"] == 45
     command = launch.create_command(plan, "a" * 40, "b" * 64)
-    assert any("dream-hf-secret=dream-qwen-groot-test" in arg for arg in command)
+    assert not any("dream-hf-secret" in arg for arg in command)
     calls = []
     monkeypatch.setattr(launch, "gcloud", lambda *args: calls.append(args) or "")
     assert launch.cleanup(plan, remove_results=False) == []
@@ -62,24 +62,12 @@ def test_groot_cloud_is_separate_and_cleanup_removes_only_its_secret(monkeypatch
     assert not any(args[0] == "storage" for args in calls)
 
 
-def test_secret_fetch_failure_cannot_be_masked_by_shell_export():
-    import subprocess
+def test_cloud_job_has_no_local_token_transfer_or_secret_fetch():
     from pathlib import Path
 
     startup = Path("cloud/vm_startup.sh").read_text()
-    lines = [
-        line
-        for line in startup.splitlines()
-        if "HF_TOKEN=" in line or line.strip() == "export HF_TOKEN"
-    ]
-    script = "set -e\ngcloud() { return 1; }\n" + "\n".join(lines) + "\necho continued\n"
-    bash = Path("C:/Program Files/Git/bin/bash.exe")
-    if not bash.exists():
-        import shutil
-
-        found = shutil.which("bash")
-        if found is None:
-            pytest.skip("Bash unavailable")
-        bash = Path(found)
-    result = subprocess.run([str(bash), "-c", script], text=True, capture_output=True, timeout=10)
-    assert result.returncode != 0 and "continued" not in result.stdout
+    assert "secrets versions access" not in startup
+    assert "unset HF_TOKEN HUGGING_FACE_HUB_TOKEN HF_TOKEN_PATH" in startup
+    source = Path("cloud/launch.py").read_text()
+    assert '"--data-file={credential}"' not in source
+    assert "/model-input" in startup and "weights.private.json" in source

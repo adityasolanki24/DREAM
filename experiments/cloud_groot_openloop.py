@@ -25,13 +25,16 @@ CONFIG = ROOT / "experiments/configs/groot_openloop.json"
 
 def offline_environment(source: Path, cache: Path) -> dict:
     """Make the named backbone load resolve the exact explicit snapshot-download cache."""
-    return {
+    result = {
         **os.environ,
         "PYTHONPATH": str(source) + os.pathsep + str(ROOT),
         "HF_HUB_CACHE": str(cache),
         "HF_HUB_OFFLINE": "1",
         "TRANSFORMERS_OFFLINE": "1",
     }
+    for key in ("HF_TOKEN", "HUGGING_FACE_HUB_TOKEN", "HF_TOKEN_PATH"):
+        result.pop(key, None)
+    return result
 
 
 def main() -> None:
@@ -50,30 +53,32 @@ def main() -> None:
         },
     )
     try:
-        from huggingface_hub import snapshot_download
+        from experiments.groot_assets import digest, download_weights, localize_checkpoint
 
-        cache = Path(os.environ["HF_HOME"]).resolve()
+        cache = Path("/work/model-input").resolve()
         if ROOT in cache.parents or cache == ROOT or args.out.resolve() in (cache, *cache.parents):
             raise ValueError("cache must be outside source/results")
-        # Fetch main, verify the exact pinned revision, then prohibit subsequent networking
-        # in the inference subprocess. Upstream internally requests the backbone by name.
-        backbone = Path(
-            snapshot_download(
-                cfg["backbone"],
-                revision="main",
-                cache_dir=cache,
-                allow_patterns=["*.json", "*.safetensors", "*.txt", "*.model"],
-            )
-        )
-        if backbone.name != cfg["backbone_revision"]:
-            raise ValueError(
-                "backbone main changed since preflight; preserve failure, do not adapt"
-            )
-        checkpoint = snapshot_download(
-            cfg["checkpoint"],
-            revision=cfg["revision"],
-            cache_dir=cache,
-            allow_patterns=["*.json", "*.safetensors", "*.txt", "*.model", "LICENSE"],
+        private = cache / "weights.private.json"
+        dependencies = json.loads((cache / "asset-report.json").read_text())
+        for item in dependencies["metadata"]:
+            if digest(cache / item["group"] / item["file"]) != item["sha256"]:
+                raise ValueError("model dependency metadata checksum mismatch")
+        weights = download_weights(json.loads(private.read_text()), cache)
+        private.unlink()
+        backbone = cache / "backbone"
+        checkpoint = localize_checkpoint(cache / "checkpoint", backbone, cache / "localized")
+        write_json(
+            args.out / "assets.json",
+            {
+                "weights": weights,
+                "metadata": dependencies["metadata"],
+                "local_hf_token_uploaded": False,
+                "configuration_override": "Only model_name -> local backbone (model and processor)",
+                "derived_config_sha256": {
+                    name: digest(checkpoint / name)
+                    for name in ("config.json", "processor_config.json")
+                },
+            },
         )
         upstream = Path("/work/upstream")
         upstream.mkdir(exist_ok=False)
@@ -91,7 +96,7 @@ def main() -> None:
                 "source_revision": cfg["source_revision"],
                 "archive_sha256": hashlib.sha256(archive.read_bytes()).hexdigest(),
                 "checkpoint_revision": cfg["revision"],
-                "backbone_revision": backbone.name,
+                "backbone_revision": cfg["backbone_revision"],
                 "license": "Source Apache-2.0; checkpoint NVIDIA research/evaluation only",
             },
         )

@@ -4,7 +4,7 @@
   "max_minutes": 45,
   "image": "common-cu129-ubuntu-2204-nvidia-580-v20261019",
   "cost": {
-    "checked_date": "2026-10-24",
+    "checked_date": "2026-10-25",
     "vm_usd_per_hour": 0.853624312,
     "disk_usd_per_hour": 0.014,
     "nat_gateway_and_ip_usd_per_hour": 0.0064,
@@ -16,7 +16,7 @@
       "https://cloud.google.com/nat/pricing",
       "https://cloud.google.com/compute/disks-image-pricing"
     ],
-    "note": "One inference-only REAL_G1 probe. Separate Python3.12/Torch2.9/TF4.57.3 lock, upstream SDPA fallback; unverified GPU loading until executed. 35 GiB total NAT covers checkpoint, gated Cosmos backbone, libraries and results. 45-minute L4 VM deletion; one scoped secret deleted on cleanup. No model action execution."
+    "note": "One inference-only REAL_G1 retry. Same reviewed L4 pricing and isolated Torch2.9/TF4.57.3 lock; source uses SDPA. Local HF token never transferred: only metadata and short-lived file-scoped CDN capabilities in private input bucket. 35 GiB total NAT, 45-minute VM DELETE, no policy actuation. Original offline-loader failure preserved."
   },
   "workload": "groot-openloop"
 }

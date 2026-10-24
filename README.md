@@ -138,7 +138,7 @@ these cloud-only changes. The Windows fast-suite duration still exceeds the 60 s
 | 12d | Supported G1 with seven-joint Unitree hands | **Implemented and CPU development-tested:** 43 actuated hinges, both hands articulate; three scripted sphere lifts/holds/releases pass contact/state gates, one offset challenge fails correctly. Fixed pelvis, uncalibrated soft contacts; no autonomous grasping, walking or Isaac execution | `tests/test_g1.py`, `results/g1_dex3_checkpoint`, `results/g1_dex3_challenge` |
 | 12e | RGB-D guided supported G1 exploration | **Partial, physically executed:** sensor-derived reaching, tactile-gated lift probes, Bayesian updates and bounded recovery through the existing task runtime. One complete held-out transfer accepted out of four EIG trials; placement/contact failures remain. Deterministic reasoning; no genuine G1 VLM inference | `tests/test_g1_exploration.py`, `results/g1_exploration_heldout_eig`, `results/g1_exploration_heldout_fixed_short` |
 | 12f | Genuine Qwen CUDA decisions in supported G1 exploration | **Executed, negative task result:** 34 real model outputs, probing and belief feedback through G1 physics. Qwen 0/4 versus deterministic 1/4 on matched development cases; no false success claims or successful recovery. Known invalid contact scene retained | `experiments/cloud_g1_qwen.py`, `results/g1_qwen_cuda_dev`, `tests/test_g1_cloud.py` |
-| 12g | REAL_G1 learned motor-policy inference contract | **Prepared; genuine inference pending:** pinned upstream source/checkpoint/backbone, isolated dependency lock, measured input capture and inference-only tensor recorder. Input conventions and camera domain shift are unverified; no actuator mapping | `experiments/groot_openloop.py`, `experiments/cloud_groot_openloop.py`, `tests/test_groot_openloop.py`, `results/groot_openloop_preparation` |
+| 12g | REAL_G1 learned motor-policy inference contract | **First GPU loading attempt failed before inference:** tokenizer metadata lookup violated offline mode after both dependencies downloaded. Local-path correction passes real CPU tokenizer preflight; CUDA retry pending. Input conventions/camera domain shift remain unverified; no actuator mapping | `experiments/groot_openloop.py`, `results/groot_first_cuda_failure`, `results/groot_retry_validation` |
 | 13 | Generalisation evaluation across goals, arrangements and task families | Planned | n/a |
 | 14 | Learned world/motor models, mobile or whole-body embodiments | Planned, conditional on evidence and compute | n/a |
 
@@ -1771,7 +1771,8 @@ physical challenge. No controller, scene, safety threshold or scoring gate was r
 Physics advances during tools, and simulated time pauses during model latency: this is
 synchronous closed-loop simulation, not demonstrated real-time holding during inference.
 
-The Qwen workload executed at `4170011` on one L4; GR00T inference is still pending.
+The Qwen workload executed at `4170011` on one L4; GR00T inference is still pending after
+the preserved first loading failure described below.
 The initial read-only cloud audit found no instances or DREAM disks/addresses/routers/networks.
 The single L4
 `g2-standard-8` has 24 GB VRAM and 32 GiB host memory; the smaller 16 GiB host is not the
@@ -1816,7 +1817,8 @@ workload is estimated at **US$3.03**, with a self-imposed **US$3.50** ceiling fo
 $0.6402 compute, $0.0105 disk, $0.0048 NAT/IP, $1.575 for 35 GiB NAT processing and
 $0.80 storage/egress reserve. Same L4/32 GiB/100 GB/45-minute lifecycle, separate pinned
 Torch 2.9 environment. A scoped temporary Secret Manager secret conveys the authorized
-login; credentials never enter Git, source archives, command argument values or artifacts.
+login in the original attempt; credentials never entered Git, source archives, command
+argument values or artifacts. **That token-transfer path has now been removed.**
 The enabled Secret Manager API is project configuration; the secret itself is deleted by
 scoped cleanup. Access preflight failure prevents cloud mutations. GPU loading is unvalidated
 until this workload actually executes. Neither runtime nor spending alerts are a billing cap.
@@ -1841,6 +1843,38 @@ decisions; it records probing, a belief update and a later input, not genuine mo
 The final host gate also rejects reaching without belief feedback and a timed-out next
 inference. Original failing/passing regressions and validation metadata are retained in
 `results/g1_cloud_preparation`.
+
+The first motor-policy cloud attempt at `2a8c35b` downloaded both pinned dependencies and
+captured actual G1 sensor input, but produced **no model action tensor**. Transformers
+4.57.3's tokenizer attempted a `model_info` call for the remote Cosmos identity despite
+offline mode. The complete retrieved guest output verifies and is preserved in
+`results/groot_first_cuda_failure`; guest exit code 1 and empty cleanup errors are retained.
+The earlier complete local suite passed 299 tests (`full_checkpoint.xml`); this is CPU
+regression evidence, not learned-policy execution.
+
+The retry changes loading configuration only: both model and processor `model_name` values
+point to the same checksum-verified local backbone. Original checkpoint metadata and weights
+are untouched; derived metadata hashes are recorded. A real CPU tokenizer preflight in the
+exact Transformers 4.57.3 environment reproduces the original offline failure and loads the
+local identity successfully. This is a **general algorithmic correction to dependency
+resolution**, without changes to observations, model weights, safety or motor behavior.
+
+The user's local HF token now stays local. Before allocation, a local authenticated preflight
+verifies every required file at the pinned model/backbone revisions and stages metadata plus
+short-lived file-scoped CDN URLs in a private input bucket. URLs are excluded from result
+logs/artifacts; the VM downloads weights without the local token and verifies exact sizes and
+SHA-256 hashes. Metadata hashes also verify before loading. No HF secret is created or read
+on the retry. URL staging files and the scoped input bucket are cleaned up with the workload.
+Inference runs offline without token environment variables. One L4 `g2-standard-8`,
+`us-central1-c` (capacity-only b/a fallback), 32 GiB host RAM, 100 GB disposable disk and
+45-minute enforced deletion remain. Estimate **US$3.03**, self-imposed ceiling **US$3.50**:
+compute $0.6402, disk $0.0105, NAT/IP $0.0048, 35 GiB network processing $1.575 and
+storage/egress contingency $0.80. The user authorized continuing cloud jobs; no further
+approval is inferred from old per-run allowances. Actual billing is unavailable. Sync output
+every minute/on exit, verify its manifest, then remove scoped VM/disk/NAT/network/IAM/bucket
+and alert. Failed retrieval preserves the bucket for manifest-scoped recovery. All predictions
+remain disconnected from actuators until names, signs, frames, timing and hand morphology
+are verified; matching tensor dimensions are insufficient.
 
 | Change | Rule 3 class | Evidence / limit |
 |---|---|---|
