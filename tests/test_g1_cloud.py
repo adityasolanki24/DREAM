@@ -142,3 +142,25 @@ def test_g1_budget_alert_is_project_scoped_and_requires_billing_visibility(monke
     assert "--filter-projects=projects/123" in calls[-1]
     assert "--budget-amount=5AUD" in calls[-1]
     assert "--threshold-rule=percent=0.5" in calls[-1]
+
+
+def test_groot_access_preflight_never_echoes_token_or_contacts_cloud_without_access(
+    tmp_path, monkeypatch
+):
+    from cloud import launch
+
+    token = tmp_path / "token"
+    token.write_text("test-token-never-log")
+    monkeypatch.setattr(launch, "hf_token_path", lambda: token)
+    monkeypatch.setattr(
+        launch, "gcloud", lambda *a: pytest.fail("access preflight allocated resources")
+    )
+
+    def denied(request, **kwargs):
+        assert request.get_header("Authorization") == "Bearer test-token-never-log"
+        raise OSError("denied")
+
+    monkeypatch.setattr(launch.urllib.request, "urlopen", denied)
+    with pytest.raises(RuntimeError, match="authorized") as error:
+        launch.groot_access_preflight()
+    assert "test-token-never-log" not in str(error.value)

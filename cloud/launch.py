@@ -19,6 +19,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.request
 import uuid
 from contextlib import contextmanager
 from pathlib import Path
@@ -28,6 +29,7 @@ sys.path.insert(0, str(ROOT))
 CONFIG = ROOT / "experiments/configs/cloud_qwen_pilot.json"
 ZONES = ("us-central1-c", "us-central1-b", "us-central1-a")
 WORKLOAD_CONFIGS = {
+    "groot-openloop": ROOT / "experiments/configs/cloud_groot_openloop.json",
     "g1-qwen": ROOT / "experiments/configs/cloud_g1_qwen.json",
     "qwen-pilot": CONFIG,
     "molmo-openloop": ROOT / "experiments/configs/cloud_molmo_openloop.json",
@@ -156,6 +158,8 @@ def create_command(p: dict, sha: str, archive_hash: str, startup: Path | None = 
         "dream-max-minutes": str(p["max_minutes"]),
         "dream-workload": p.get("workload", "qwen-pilot"),
     }
+    if p.get("workload") == "groot-openloop":
+        metadata["dream-hf-secret"] = p["name"]
     return [
         "compute",
         "instances",
@@ -307,6 +311,29 @@ def check_pilot(out: Path, workload: str = "qwen-pilot") -> None:
             validate_evidence(out / "g1")
         except (OSError, KeyError, ValueError, TypeError) as error:
             raise RuntimeError(f"G1 inference/physical evidence failed: {error}") from error
+        return
+    if workload == "groot-openloop":
+        import numpy as np
+
+        from experiments.groot_openloop import validate_actions
+
+        try:
+            folder = out / "groot/inference"
+            summary = json.loads((folder / "summary.json").read_text())
+            raw = np.load(folder / "normalized_actions.npy", allow_pickle=False)
+            with np.load(folder / "decoded_actions.npz", allow_pickle=False) as actions:
+                validate_actions(dict(actions))
+            if (
+                summary.get("genuine_inference") is not True
+                or summary.get("device") != "cuda:0"
+                or summary.get("physical_execution") is not False
+                or summary.get("actuator_mapping") is not False
+                or raw.shape != (1, 40, 132)
+                or not np.isfinite(raw).all()
+            ):
+                raise ValueError("inference contract failed")
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            raise RuntimeError(f"GR00T inference evidence failed: {error}") from error
         return
     if workload in ("isaac-t1-walk", "isaac-t1-stand"):
         import numpy as np
@@ -543,6 +570,8 @@ def cleanup(p: dict, *, remove_results: bool) -> list[str]:
             project,
         ],
     ]
+    if p.get("workload") == "groot-openloop":
+        commands.insert(1, ["secrets", "delete", p["name"], project])
     if remove_results:
         commands += [["storage", "rm", "--recursive", f"gs://{p['bucket']}"]]
     for command in commands:
@@ -575,9 +604,40 @@ def launch(p: dict, allowance: float, yes: bool) -> None:
         )
     if git("status", "--porcelain", "--untracked-files=no"):
         raise ValueError("commit first: only a clean committed snapshot can run")
+    if p.get("workload") == "groot-openloop":
+        groot_access_preflight()
     lock = Path(os.environ.get("LOCALAPPDATA", Path.home() / ".cache")) / "DREAM/cloud/active.lock"
     with single_run_lock(lock):
         _launch(p, allowance)
+
+
+def hf_token_path() -> Path:
+    """Return only the login-file path, never its contents or a shell argument token."""
+    return Path(
+        os.environ.get(
+            "HF_TOKEN_PATH",
+            Path(os.environ.get("HF_HOME", Path.home() / ".cache/huggingface")) / "token",
+        )
+    )
+
+
+def groot_access_preflight() -> Path:
+    """Check gated access before cloud mutations; do not log the credential or HTTP body."""
+    path = hf_token_path()
+    if not path.is_file():
+        raise RuntimeError("authorized Hugging Face login required before GR00T allocation")
+    token = path.read_text().strip()
+    try:
+        request = urllib.request.Request(
+            "https://huggingface.co/nvidia/Cosmos-Reason2-2B/resolve/"
+            "9ce19a195e423419c349abfc86fd07178b230561/config.json",
+            headers={"Authorization": "Bearer " + token},
+        )
+        with urllib.request.urlopen(request, timeout=30) as response:
+            json.load(response)
+    except Exception:
+        raise RuntimeError("authorized Cosmos backbone access not established") from None
+    return path
 
 
 def create_g1_budget_alert(p: dict) -> str:
@@ -657,7 +717,7 @@ def _launch(p: dict, allowance: float) -> None:
     retrieved = False
     alert = None
     try:
-        if p.get("workload") == "g1-qwen":
+        if p.get("workload") in ("g1-qwen", "groot-openloop"):
             alert = create_g1_budget_alert(p)
             (dest / "budget_alert.json").write_text(
                 json.dumps(
@@ -682,6 +742,25 @@ def _launch(p: dict, allowance: float) -> None:
             "--public-access-prevention",
         )
         gcloud("iam", "service-accounts", "create", p["account"], project)
+        if p.get("workload") == "groot-openloop":
+            credential = groot_access_preflight()
+            gcloud("services", "enable", "secretmanager.googleapis.com", project)
+            gcloud(
+                "secrets",
+                "create",
+                p["name"],
+                project,
+                "--replication-policy=automatic",
+                f"--data-file={credential}",
+            )
+            gcloud(
+                "secrets",
+                "add-iam-policy-binding",
+                p["name"],
+                project,
+                f"--member=serviceAccount:{account}",
+                "--role=roles/secretmanager.secretAccessor",
+            )
         grant_result_access(p["bucket"], account)
         gcloud("compute", "networks", "create", p["network"], project, "--subnet-mode=custom")
         gcloud(
@@ -729,7 +808,7 @@ def _launch(p: dict, allowance: float) -> None:
                     "README.md",
                     "AGENTS.md",
                 ]
-                if p.get("workload") == "g1-qwen"
+                if p.get("workload") in ("g1-qwen", "groot-openloop")
                 else []
             )
             git("archive", "--format=tar.gz", "-o", str(archive), "HEAD", *paths)

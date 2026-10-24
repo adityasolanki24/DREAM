@@ -137,7 +137,8 @@ these cloud-only changes. The Windows fast-suite duration still exceeds the 60 s
 | 12c | Booster T1 locomotion / visual navigation research | **Four real PPO actions; standing gate failed:** 0.08 s / 16 physics substeps, then exact-range knee rejection. CPU actor 81→23 and waypoint contracts tested; standing, walking and NavGPT inference **not validated** | `results/t1_stand_state_failure`, `results/t1_stand_second_retry_local`, `tests/test_navigation.py` |
 | 12d | Supported G1 with seven-joint Unitree hands | **Implemented and CPU development-tested:** 43 actuated hinges, both hands articulate; three scripted sphere lifts/holds/releases pass contact/state gates, one offset challenge fails correctly. Fixed pelvis, uncalibrated soft contacts; no autonomous grasping, walking or Isaac execution | `tests/test_g1.py`, `results/g1_dex3_checkpoint`, `results/g1_dex3_challenge` |
 | 12e | RGB-D guided supported G1 exploration | **Partial, physically executed:** sensor-derived reaching, tactile-gated lift probes, Bayesian updates and bounded recovery through the existing task runtime. One complete held-out transfer accepted out of four EIG trials; placement/contact failures remain. Deterministic reasoning; no genuine G1 VLM inference | `tests/test_g1_exploration.py`, `results/g1_exploration_heldout_eig`, `results/g1_exploration_heldout_fixed_short` |
-| 12f | Genuine Qwen CUDA decisions in supported G1 exploration | **Prepared, GPU execution pending fresh approval:** explicit device selection, one cached model across paired episodes, complete inference recording and physical evidence gates. CPU contract tests are not GPU inference evidence | `experiments/cloud_g1_qwen.py`, `tests/test_g1_cloud.py`, `results/g1_cloud_preparation` |
+| 12f | Genuine Qwen CUDA decisions in supported G1 exploration | **Executed, negative task result:** 34 real model outputs, probing and belief feedback through G1 physics. Qwen 0/4 versus deterministic 1/4 on matched development cases; no false success claims or successful recovery. Known invalid contact scene retained | `experiments/cloud_g1_qwen.py`, `results/g1_qwen_cuda_dev`, `tests/test_g1_cloud.py` |
+| 12g | REAL_G1 learned motor-policy inference contract | **Prepared; genuine inference pending:** pinned upstream source/checkpoint/backbone, isolated dependency lock, measured input capture and inference-only tensor recorder. Input conventions and camera domain shift are unverified; no actuator mapping | `experiments/groot_openloop.py`, `experiments/cloud_groot_openloop.py`, `tests/test_groot_openloop.py`, `results/groot_openloop_preparation` |
 | 13 | Generalisation evaluation across goals, arrangements and task families | Planned | n/a |
 | 14 | Learned world/motor models, mobile or whole-body embodiments | Planned, conditional on evidence and compute | n/a |
 
@@ -1714,7 +1715,49 @@ has neither Torch nor Transformers, the inspected default cache has no Qwen chec
 no inference endpoint is configured. The availability audit is saved under validation.
 No paid workload, checkpoint download, walking or Isaac integration was started.
 
-## Next milestone: genuine Qwen decisions in G1 physical exploration
+## Qwen CUDA integration and motor-policy compatibility
+
+Real CUDA inference and the physical feedback loop executed: natural-language instruction,
+rendered RGB plus RGB-D-derived geometry, Qwen's named-tool selection, bounded G1 action,
+new observation, belief update and another genuine inference. There were **34 model outputs**
+across four Qwen episodes, paired with four fresh deterministic episodes on the same original
+scenes, seeds, tool/controller settings and scoring gates. On `free_heavier`, a probe updated
+P(movable) from 0.5 to about 0.9984, followed by model-selected grasp and transfer. This is
+session Bayesian adaptation, not persistent learning or a learned motor policy.
+
+| Metric | Qwen | Deterministic |
+|---|---:|---:|
+| Independently accepted placements | **0/4** | **1/4** |
+| Accepted false-success claims | 0 | 0 |
+| Episodes exceeding 1 mm object contact penetration | 3 | 2 |
+| Protective stops | 0 | 0 |
+| Episodes with failed physical actions | 3 | 2 |
+| Recovery to the goal after an action failure | 0 | 0 |
+
+All four scenarios were previously observed, and `fixed_shift` retains its invalid 2.733 mm
+initial overlap. Neither these small development counts nor architectural compatibility
+demonstrate generalisation. Qwen proposed grasp/transfer after evidence against movability
+in the constrained case; typed preconditions rejected them. The free/heavier transfer lost
+localization; inspection was rejected while held, and release also required localization.
+Its subsequent re-observation/release/reach attempts failed. These are observed failure
+categories and a recovery-contract limitation, not a causal diagnosis of the initial slip.
+The local grasp tool report is not an independently accepted episode grasp: the whole-episode
+contact gate fails for the Qwen heavier-object run.
+No parameter or scene was changed to improve this run. The deterministic heavier-object
+episode passed with peak object penetration 0.768 mm; Qwen's corresponding episode reached
+5.406 mm. The original hardware/simulation limitations remain.
+
+Guest execution was 12 minutes 40 seconds on L4, Python 3.12.12, Torch 2.8.0+cu128 and
+Transformers 4.57.1. Peak allocated/reserved GPU memory was 15,338,848,256 / 22,429,040,640
+bytes. Task success is report-only; the integration gate requires actual inference, physical
+probing, accepted sensor evidence and a later model output after belief feedback. It passed.
+`results/g1_qwen_cuda_dev/original_out.tar.gz` byte-preserves the guest output; all 358
+manifest-covered files verify, including complete messages/outputs, RGB-D arrays, calibration,
+100 Hz trajectories, 1 kHz peak contact scoring, beliefs and failures. The readable analysis,
+checkpoint-file hashes, freeze metadata and cost/cleanup records are alongside it. Extract
+the archive and reproduce analysis with `python -m experiments.summarize_g1_qwen <out>/g1
+--out <new-analysis.json>`. The fresh budget alert was removed; cleanup returned no errors,
+and the post-audit shows zero instances, CPU/L4 use and DREAM disks/addresses/routers/networks.
 
 The `g1-qwen` cloud workload uses the existing `VLMAgent`, `QwenTransformersBackend`,
 exploration tools and independent scoring. It pins Qwen3-VL-4B-Instruct at
@@ -1728,14 +1771,15 @@ physical challenge. No controller, scene, safety threshold or scoring gate was r
 Physics advances during tools, and simulated time pauses during model latency: this is
 synchronous closed-loop simulation, not demonstrated real-time holding during inference.
 
-No G1 GPU inference or GR00T inference has run in this preparation. The read-only cloud audit
-found no instances or DREAM disks/addresses/routers/networks. The proposed single L4
+The Qwen workload executed at `4170011` on one L4; GR00T inference is still pending.
+The initial read-only cloud audit found no instances or DREAM disks/addresses/routers/networks.
+The single L4
 `g2-standard-8` has 24 GB VRAM and 32 GiB host memory; the smaller 16 GiB host is not the
 previously validated loading configuration. Use `us-central1-c`, capacity-only b/a fallback,
 100 GB auto-deleted disk and a 45-minute Google-enforced DELETE deadline. Budget estimate:
 compute $0.6402, disk $0.0105, NAT/IP $0.0048, 25 GiB NAT processing $1.125,
-storage/egress/pre-allocation reserve $0.80: **US$2.58 estimated, fresh US$3.00 approval
-requested for one attempt**. This is not a hard provider billing cap; taxes/FX are excluded.
+storage/egress/pre-allocation reserve $0.80: **US$2.58 estimated, US$3.00 approved
+for this attempt**. This is not a hard provider billing cap; taxes/FX are excluded.
 The fresh AUD5 project alert (50/90/100%, default billing recipients) is configured before
 allocation and removed after retrieval; alerts can be delayed and include other project
 spend. The existing AUD50 alert is preserved. No retained cache/image exists: reuse the
@@ -1764,6 +1808,30 @@ and evaluation despite the model card's commercial-use wording; no weights were 
 or downloaded. The exact schema, dimensions, source URLs and missing adaptations are in
 `results/g1_cloud_preparation/groot_contract.json`. Actual open-loop inference follows the
 Qwen physical run and requires a separate approved workload.
+
+The user subsequently authorized ongoing cloud jobs. The paired Qwen workload at `4170011`
+completed under its US$3 allowance; actual billed cost is unavailable. Authorized access to the separately gated
+Cosmos-Reason2-2B backbone now passes a local preflight. The follow-on `groot-openloop`
+workload is estimated at **US$3.03**, with a self-imposed **US$3.50** ceiling for one attempt:
+$0.6402 compute, $0.0105 disk, $0.0048 NAT/IP, $1.575 for 35 GiB NAT processing and
+$0.80 storage/egress reserve. Same L4/32 GiB/100 GB/45-minute lifecycle, separate pinned
+Torch 2.9 environment. A scoped temporary Secret Manager secret conveys the authorized
+login; credentials never enter Git, source archives, command argument values or artifacts.
+The enabled Secret Manager API is project configuration; the secret itself is deleted by
+scoped cleanup. Access preflight failure prevents cloud mutations. GPU loading is unvalidated
+until this workload actually executes. Neither runtime nor spending alerts are a billing cap.
+
+`capture_groot_input` records real frames and named proprioception; its 20 Hz history
+interpretation, pelvis-relative wrist-yaw frames and DREAM joint ordering remain explicitly
+provisional. `groot_openloop` records the real normalized model tensor and decoded streams
+before validation. No predicted action connects to actuators. The direct runner requires
+an external pinned upstream checkout on PYTHONPATH and its isolated dependencies:
+
+```powershell
+python -m experiments.capture_groot_input --out <external-new-sensor-directory>
+python -m experiments.groot_openloop --input <sensor-directory>/observation.npz --model-path <checkpoint> --out <new-output>
+python cloud/launch.py plan --project <project> --workload groot-openloop
+```
 
 Preparation validation: the complete suite passed **290 tests in 401 s** before the final
 CLI/evidence-gate corrections; the final checkpoint's fast suite passed **265 tests in

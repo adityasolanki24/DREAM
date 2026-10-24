@@ -61,6 +61,13 @@ uv venv --python 3.12.12 /work/venv
 source /work/venv/bin/activate
 LOCK=requirements.lock.txt
 case "$WORKLOAD" in molmo-openloop|molmo-closedloop) LOCK=molmo.requirements.lock.txt ;; esac
+if [[ "$WORKLOAD" == groot-openloop ]]; then
+  LOCK=groot.requirements.lock.txt
+  SECRET=$(meta instance/attributes/dream-hf-secret)
+  HF_TOKEN=$(gcloud secrets versions access latest --secret="$SECRET" --project="$PROJECT")
+  [ -n "$HF_TOKEN" ] || exit 2
+  export HF_TOKEN
+fi
 uv pip install --require-hashes -r "/work/DREAM/cloud/$LOCK"
 uv pip install --no-deps -e /work/DREAM
 uv pip freeze > /work/out/pip-freeze.txt
@@ -69,6 +76,9 @@ UP=$(cut -d. -f1 /proc/uptime)
 LEFT=$(( CAP * 60 - 120 - UP ))
 [ "$LEFT" -gt 0 ] || exit 124
 case "$WORKLOAD" in
+  groot-openloop)
+    timeout --signal=TERM --kill-after=30s "${LEFT}s" \
+      python -m experiments.cloud_groot_openloop --out /work/out/groot ;;
   g1-qwen)
     timeout --signal=TERM --kill-after=30s "${LEFT}s" \
       python -m experiments.cloud_g1_qwen --out /work/out/g1 ;;

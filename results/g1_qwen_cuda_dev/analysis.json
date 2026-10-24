@@ -1,0 +1,620 @@
+{
+  "scope": "Paired development comparison on all four previously observed cases, including fixed_shift initial-overlap invalid challenge. Not held-out, open-world or generalisation evidence.",
+  "groups": {
+    "qwen": {
+      "n": 4,
+      "independent_goal_successes": 0,
+      "accepted_false_claims": 0,
+      "rejected_success_attempts": 0,
+      "penetration_failures": 3,
+      "safety_stops": 0,
+      "episodes_with_action_failures": 3,
+      "recovered_to_goal_after_failure": 0
+    },
+    "deterministic": {
+      "n": 4,
+      "independent_goal_successes": 1,
+      "accepted_false_claims": 0,
+      "rejected_success_attempts": 0,
+      "penetration_failures": 2,
+      "safety_stops": 0,
+      "episodes_with_action_failures": 2,
+      "recovered_to_goal_after_failure": 0
+    }
+  },
+  "episodes": [
+    {
+      "physics_executed": true,
+      "physics_steps": 10220,
+      "simulated_s": 10.219999999999775,
+      "backend": "qwen",
+      "instruction": "Investigate the unfamiliar red object, determine whether it can be moved, and if possible move it to the blue target.",
+      "classification": "uncertain",
+      "classification_correct": false,
+      "p_movable": 0.5,
+      "probes": 1,
+      "grasp_independently_verified": false,
+      "maximum_sustained_lift_contact_s": 0.0,
+      "goal_geometric": false,
+      "goal_success": false,
+      "success_claimed": false,
+      "false_success_claim": false,
+      "maximum_contact_penetration_m": 0.005307556160258339,
+      "penetration_gate_passed": false,
+      "safety_stop": false,
+      "reason": "model declined: The red object could not be localized or manipulated successfully after multiple attempts. The robot was unable to grasp or move the object to the blue target due to uncertainty in its position and lack of successful probe or reach attempts.",
+      "detection_frames": 7,
+      "total_frames": 14,
+      "maximum_localization_error_m": 0.001592920894554964,
+      "localization_gate_passed": true,
+      "final_object_position_m": [
+        0.036799386622588644,
+        0.18763004340787937,
+        0.021420295373543768
+      ],
+      "failed_actions": 4,
+      "scope": "fixed pelvis, red sphere/blue platform, classical perception and control; no VLM inference unless backend=qwen",
+      "case": "free_shift",
+      "seed": 4001,
+      "raw_finish_success_attempts": 0,
+      "rejected_success_attempts": 0,
+      "inference_outputs": 7,
+      "inference_errors": [],
+      "total_inference_wall_s": 35.36837033499995,
+      "model_tool_order": [
+        "inspect_object",
+        "reach_object",
+        "probe_object",
+        "inspect_object",
+        "reach_object",
+        "inspect_object",
+        "finish"
+      ],
+      "failure_followups": [
+        {
+          "failed_step": 2,
+          "next_call": {
+            "name": "inspect_object",
+            "arguments": {
+              "object": "red"
+            }
+          },
+          "next_tool": null
+        },
+        {
+          "failed_step": 3,
+          "next_call": {
+            "name": "reach_object",
+            "arguments": {
+              "object": "red"
+            }
+          },
+          "next_tool": null
+        },
+        {
+          "failed_step": 4,
+          "next_call": {
+            "name": "inspect_object",
+            "arguments": {
+              "object": "red"
+            }
+          },
+          "next_tool": null
+        },
+        {
+          "failed_step": 5,
+          "next_call": {
+            "name": "finish",
+            "arguments": {
+              "success": false,
+              "reason": "The red object could not be localized or manipulated successfully after multiple attempts. The robot was unable to grasp or move the object to the blue target due to uncertainty in its position and lack of successful probe or reach attempts.",
+              "goal": {
+                "type": "in",
+                "object": "red",
+                "target": "blue target"
+              }
+            }
+          },
+          "next_tool": null
+        }
+      ],
+      "accepted_belief_updates": 0,
+      "tool_failures": [
+        {
+          "tool": "probe_object",
+          "status": "failed",
+          "message": "red sphere not localized; inspect before another attempt"
+        },
+        {
+          "tool": "inspect_object",
+          "status": "failed",
+          "message": "red sphere not localized; inspect before another attempt"
+        },
+        {
+          "tool": "reach_object",
+          "status": "failed",
+          "message": "red sphere not localized; inspect before another attempt"
+        },
+        {
+          "tool": "inspect_object",
+          "status": "failed",
+          "message": "red sphere not localized; inspect before another attempt"
+        }
+      ],
+      "recovered_to_goal_after_failure": false
+    },
+    {
+      "physics_executed": true,
+      "physics_steps": 15940,
+      "simulated_s": 15.939999999996605,
+      "backend": "deterministic",
+      "instruction": "Investigate the unfamiliar red object, determine whether it can be moved, and if possible move it to the blue target.",
+      "classification": "movable",
+      "classification_correct": true,
+      "p_movable": 0.9948620878125153,
+      "probes": 1,
+      "grasp_independently_verified": false,
+      "maximum_sustained_lift_contact_s": 3.64,
+      "goal_geometric": false,
+      "goal_success": false,
+      "success_claimed": false,
+      "false_success_claim": false,
+      "maximum_contact_penetration_m": 0.005133240892522213,
+      "penetration_gate_passed": false,
+      "safety_stop": false,
+      "reason": "bounded recovery budget exhausted",
+      "detection_frames": 6,
+      "total_frames": 9,
+      "maximum_localization_error_m": 0.0016775416935773146,
+      "localization_gate_passed": true,
+      "final_object_position_m": [
+        0.6062071788281432,
+        -0.7173669190598454,
+        0.021420295373543775
+      ],
+      "failed_actions": 2,
+      "scope": "fixed pelvis, red sphere/blue platform, classical perception and control; no VLM inference unless backend=qwen",
+      "case": "free_shift",
+      "seed": 4001,
+      "raw_finish_success_attempts": 0,
+      "rejected_success_attempts": 0,
+      "inference_outputs": 0,
+      "inference_errors": [],
+      "total_inference_wall_s": 0,
+      "model_tool_order": [],
+      "failure_followups": [
+        {
+          "failed_step": 5,
+          "next_call": null,
+          "next_tool": "inspect_object"
+        }
+      ],
+      "accepted_belief_updates": 1,
+      "tool_failures": [
+        {
+          "tool": "inspect_object",
+          "status": "failed",
+          "message": "red sphere not localized; inspect before another attempt"
+        },
+        {
+          "tool": "inspect_object",
+          "status": "failed",
+          "message": "red sphere not localized; inspect before another attempt"
+        }
+      ],
+      "recovered_to_goal_after_failure": false
+    },
+    {
+      "physics_executed": true,
+      "physics_steps": 9310,
+      "simulated_s": 9.31000000000028,
+      "backend": "qwen",
+      "instruction": "Investigate the unfamiliar red object, determine whether it can be moved, and if possible move it to the blue target.",
+      "classification": "constrained_under_probe",
+      "classification_correct": true,
+      "p_movable": 1.828149900495247e-06,
+      "probes": 1,
+      "grasp_independently_verified": false,
+      "maximum_sustained_lift_contact_s": 0.0,
+      "goal_geometric": false,
+      "goal_success": false,
+      "success_claimed": false,
+      "false_success_claim": false,
+      "maximum_contact_penetration_m": 0.0027326829910011077,
+      "penetration_gate_passed": false,
+      "safety_stop": false,
+      "reason": "model declined: The red object was not successfully moved to the blue target. Verification showed it is not in the target region.",
+      "detection_frames": 14,
+      "total_frames": 14,
+      "maximum_localization_error_m": 0.0013710930340205807,
+      "localization_gate_passed": true,
+      "final_object_position_m": [
+        0.37635043910700233,
+        0.1188835533119616,
+        0.9092352484223026
+      ],
+      "failed_actions": 0,
+      "scope": "fixed pelvis, red sphere/blue platform, classical perception and control; no VLM inference unless backend=qwen",
+      "case": "fixed_shift",
+      "seed": 4002,
+      "raw_finish_success_attempts": 0,
+      "rejected_success_attempts": 0,
+      "inference_outputs": 8,
+      "inference_errors": [],
+      "total_inference_wall_s": 48.97674337099994,
+      "model_tool_order": [
+        "inspect_object",
+        "reach_object",
+        "probe_object",
+        "grasp_object",
+        "move_object",
+        "release_object",
+        "verify_goal",
+        "finish"
+      ],
+      "failure_followups": [],
+      "accepted_belief_updates": 1,
+      "tool_failures": [],
+      "recovered_to_goal_after_failure": false
+    },
+    {
+      "physics_executed": true,
+      "physics_steps": 6410,
+      "simulated_s": 6.410000000000475,
+      "backend": "deterministic",
+      "instruction": "Investigate the unfamiliar red object, determine whether it can be moved, and if possible move it to the blue target.",
+      "classification": "constrained_under_probe",
+      "classification_correct": true,
+      "p_movable": 2.130949200198814e-06,
+      "probes": 1,
+      "grasp_independently_verified": false,
+      "maximum_sustained_lift_contact_s": 0.0,
+      "goal_geometric": false,
+      "goal_success": false,
+      "success_claimed": false,
+      "false_success_claim": false,
+      "maximum_contact_penetration_m": 0.0027326829910011077,
+      "penetration_gate_passed": false,
+      "safety_stop": false,
+      "reason": "no resolved movement under bounded probes; decline transfer",
+      "detection_frames": 5,
+      "total_frames": 5,
+      "maximum_localization_error_m": 0.0012751681810375536,
+      "localization_gate_passed": true,
+      "final_object_position_m": [
+        0.37635043910700233,
+        0.1188835533119616,
+        0.9092352484223026
+      ],
+      "failed_actions": 0,
+      "scope": "fixed pelvis, red sphere/blue platform, classical perception and control; no VLM inference unless backend=qwen",
+      "case": "fixed_shift",
+      "seed": 4002,
+      "raw_finish_success_attempts": 0,
+      "rejected_success_attempts": 0,
+      "inference_outputs": 0,
+      "inference_errors": [],
+      "total_inference_wall_s": 0,
+      "model_tool_order": [],
+      "failure_followups": [],
+      "accepted_belief_updates": 1,
+      "tool_failures": [],
+      "recovered_to_goal_after_failure": false
+    },
+    {
+      "physics_executed": true,
+      "physics_steps": 10310,
+      "simulated_s": 10.309999999999725,
+      "backend": "qwen",
+      "instruction": "Investigate the unfamiliar red object, determine whether it can be moved, and if possible move it to the blue target.",
+      "classification": "movable",
+      "classification_correct": true,
+      "p_movable": 0.9984290171143352,
+      "probes": 1,
+      "grasp_independently_verified": false,
+      "maximum_sustained_lift_contact_s": 1.09,
+      "goal_geometric": false,
+      "goal_success": false,
+      "success_claimed": false,
+      "false_success_claim": false,
+      "maximum_contact_penetration_m": 0.005405918971270067,
+      "penetration_gate_passed": false,
+      "safety_stop": false,
+      "reason": "model declined: The red sphere could not be moved to the blue target due to localization failure and inability to release or re-engage with the object.",
+      "detection_frames": 11,
+      "total_frames": 16,
+      "maximum_localization_error_m": 0.0016050827179700901,
+      "localization_gate_passed": true,
+      "final_object_position_m": [
+        -0.37903999055856596,
+        0.40965906899730553,
+        0.02522631399277985
+      ],
+      "failed_actions": 3,
+      "scope": "fixed pelvis, red sphere/blue platform, classical perception and control; no VLM inference unless backend=qwen",
+      "case": "free_heavier",
+      "seed": 4003,
+      "raw_finish_success_attempts": 0,
+      "rejected_success_attempts": 0,
+      "inference_outputs": 9,
+      "inference_errors": [],
+      "total_inference_wall_s": 59.66405276799969,
+      "model_tool_order": [
+        "inspect_object",
+        "reach_object",
+        "probe_object",
+        "grasp_object",
+        "move_object",
+        "inspect_object",
+        "release_object",
+        "reach_object",
+        "finish"
+      ],
+      "failure_followups": [
+        {
+          "failed_step": 4,
+          "next_call": {
+            "name": "inspect_object",
+            "arguments": {
+              "object": "red"
+            }
+          },
+          "next_tool": null
+        },
+        {
+          "failed_step": 6,
+          "next_call": {
+            "name": "reach_object",
+            "arguments": {
+              "object": "red"
+            }
+          },
+          "next_tool": null
+        },
+        {
+          "failed_step": 7,
+          "next_call": {
+            "name": "finish",
+            "arguments": {
+              "success": false,
+              "reason": "The red sphere could not be moved to the blue target due to localization failure and inability to release or re-engage with the object.",
+              "goal": {
+                "type": "in",
+                "object": "red",
+                "target": "target"
+              }
+            }
+          },
+          "next_tool": null
+        }
+      ],
+      "accepted_belief_updates": 1,
+      "tool_failures": [
+        {
+          "tool": "move_object",
+          "status": "failed",
+          "message": "red sphere not localized; inspect before another attempt"
+        },
+        {
+          "tool": "release_object",
+          "status": "failed",
+          "message": "red sphere not localized; inspect before another attempt"
+        },
+        {
+          "tool": "reach_object",
+          "status": "failed",
+          "message": "red sphere not localized; inspect before another attempt"
+        }
+      ],
+      "recovered_to_goal_after_failure": false
+    },
+    {
+      "physics_executed": true,
+      "physics_steps": 12100,
+      "simulated_s": 12.099999999998733,
+      "backend": "deterministic",
+      "instruction": "Investigate the unfamiliar red object, determine whether it can be moved, and if possible move it to the blue target.",
+      "classification": "movable",
+      "classification_correct": true,
+      "p_movable": 0.9965153360306888,
+      "probes": 1,
+      "grasp_independently_verified": true,
+      "maximum_sustained_lift_contact_s": 4.45,
+      "goal_geometric": true,
+      "goal_success": true,
+      "success_claimed": true,
+      "false_success_claim": false,
+      "maximum_contact_penetration_m": 0.0007680303585618047,
+      "penetration_gate_passed": true,
+      "safety_stop": false,
+      "reason": "released object verified in target by RGB-D",
+      "detection_frames": 7,
+      "total_frames": 7,
+      "maximum_localization_error_m": 0.0015299131730040338,
+      "localization_gate_passed": true,
+      "final_object_position_m": [
+        0.4006427187557481,
+        0.2537684837536236,
+        0.9202263139927799
+      ],
+      "failed_actions": 0,
+      "scope": "fixed pelvis, red sphere/blue platform, classical perception and control; no VLM inference unless backend=qwen",
+      "case": "free_heavier",
+      "seed": 4003,
+      "raw_finish_success_attempts": 0,
+      "rejected_success_attempts": 0,
+      "inference_outputs": 0,
+      "inference_errors": [],
+      "total_inference_wall_s": 0,
+      "model_tool_order": [],
+      "failure_followups": [],
+      "accepted_belief_updates": 1,
+      "tool_failures": [],
+      "recovered_to_goal_after_failure": false
+    },
+    {
+      "physics_executed": true,
+      "physics_steps": 4670,
+      "simulated_s": 4.669999999999894,
+      "backend": "qwen",
+      "instruction": "Investigate the unfamiliar red object, determine whether it can be moved, and if possible move it to the blue target.",
+      "classification": "uncertain",
+      "classification_correct": false,
+      "p_movable": 0.5,
+      "probes": 0,
+      "grasp_independently_verified": false,
+      "maximum_sustained_lift_contact_s": 0.0,
+      "goal_geometric": false,
+      "goal_success": false,
+      "success_claimed": false,
+      "false_success_claim": false,
+      "maximum_contact_penetration_m": 2.9028267466292557e-05,
+      "penetration_gate_passed": true,
+      "safety_stop": false,
+      "reason": "model declined: The red object cannot be grasped or moved due to insufficient bounded-movability evidence and repeated failures to reach or probe it. The task is not achievable with current capabilities.",
+      "detection_frames": 13,
+      "total_frames": 13,
+      "maximum_localization_error_m": 0.0007901154400093127,
+      "localization_gate_passed": true,
+      "final_object_position_m": [
+        0.61,
+        0.105,
+        0.9349726991945184
+      ],
+      "failed_actions": 3,
+      "scope": "fixed pelvis, red sphere/blue platform, classical perception and control; no VLM inference unless backend=qwen",
+      "case": "unreachable_challenge",
+      "seed": 4004,
+      "raw_finish_success_attempts": 0,
+      "rejected_success_attempts": 0,
+      "inference_outputs": 10,
+      "inference_errors": [],
+      "total_inference_wall_s": 70.10392741500004,
+      "model_tool_order": [
+        "inspect_object",
+        "reach_object",
+        "probe_object",
+        "reach_object",
+        "grasp_object",
+        "inspect_object",
+        "reach_object",
+        "probe_object",
+        "grasp_object",
+        "finish"
+      ],
+      "failure_followups": [
+        {
+          "failed_step": 1,
+          "next_call": {
+            "name": "probe_object",
+            "arguments": {
+              "object": "red"
+            }
+          },
+          "next_tool": null
+        },
+        {
+          "failed_step": 3,
+          "next_call": {
+            "name": "grasp_object",
+            "arguments": {
+              "object": "red"
+            }
+          },
+          "next_tool": null
+        },
+        {
+          "failed_step": 6,
+          "next_call": {
+            "name": "probe_object",
+            "arguments": {
+              "object": "red"
+            }
+          },
+          "next_tool": null
+        }
+      ],
+      "accepted_belief_updates": 0,
+      "tool_failures": [
+        {
+          "tool": "reach_object",
+          "status": "failed",
+          "message": "invalid or out-of-workspace Cartesian target"
+        },
+        {
+          "tool": "reach_object",
+          "status": "failed",
+          "message": "invalid or out-of-workspace Cartesian target"
+        },
+        {
+          "tool": "reach_object",
+          "status": "failed",
+          "message": "invalid or out-of-workspace Cartesian target"
+        }
+      ],
+      "recovered_to_goal_after_failure": false
+    },
+    {
+      "physics_executed": true,
+      "physics_steps": 2380,
+      "simulated_s": 2.379999999999849,
+      "backend": "deterministic",
+      "instruction": "Investigate the unfamiliar red object, determine whether it can be moved, and if possible move it to the blue target.",
+      "classification": "uncertain",
+      "classification_correct": false,
+      "p_movable": 0.5,
+      "probes": 0,
+      "grasp_independently_verified": false,
+      "maximum_sustained_lift_contact_s": 0.0,
+      "goal_geometric": false,
+      "goal_success": false,
+      "success_claimed": false,
+      "false_success_claim": false,
+      "maximum_contact_penetration_m": 2.9028267466292557e-05,
+      "penetration_gate_passed": true,
+      "safety_stop": false,
+      "reason": "bounded recovery budget exhausted",
+      "detection_frames": 2,
+      "total_frames": 2,
+      "maximum_localization_error_m": 0.0005081943001057204,
+      "localization_gate_passed": true,
+      "final_object_position_m": [
+        0.61,
+        0.105,
+        0.9349726991945269
+      ],
+      "failed_actions": 2,
+      "scope": "fixed pelvis, red sphere/blue platform, classical perception and control; no VLM inference unless backend=qwen",
+      "case": "unreachable_challenge",
+      "seed": 4004,
+      "raw_finish_success_attempts": 0,
+      "rejected_success_attempts": 0,
+      "inference_outputs": 0,
+      "inference_errors": [],
+      "total_inference_wall_s": 0,
+      "model_tool_order": [],
+      "failure_followups": [
+        {
+          "failed_step": 0,
+          "next_call": null,
+          "next_tool": "inspect_object"
+        }
+      ],
+      "accepted_belief_updates": 0,
+      "tool_failures": [
+        {
+          "tool": "reach_object",
+          "status": "failed",
+          "message": "invalid or out-of-workspace Cartesian target"
+        },
+        {
+          "tool": "reach_object",
+          "status": "failed",
+          "message": "invalid or out-of-workspace Cartesian target"
+        }
+      ],
+      "recovered_to_goal_after_failure": false
+    }
+  ],
+  "limitations": "All cases previously observed; constrained case initially overlaps. Synchronous physics during tools only. Recovery-to-goal is measured after failed actions, not inferred from generated prose. No generalisation inference."
+}
