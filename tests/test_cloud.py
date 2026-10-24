@@ -139,7 +139,19 @@ def test_stand_flags_and_camera_do_not_replace_policy_step_evidence(tmp_path):
         cloud.check_pilot(tmp_path, "isaac-t1-stand")
 
 
-@pytest.mark.parametrize("corruption", [None, "nan_action", "missing_warmup", "bad_decimation"])
+@pytest.mark.parametrize(
+    "corruption",
+    [
+        None,
+        "nan_action",
+        "missing_warmup",
+        "bad_decimation",
+        "final_lower",
+        "final_upper",
+        "bad_limits",
+        "missing_limits",
+    ],
+)
 def test_policy_evidence_validator_checks_complete_synthetic_contract(tmp_path, corruption):
     """A complete synthetic contract is accepted; never evidence of simulated standing."""
     keys = (
@@ -172,6 +184,13 @@ def test_policy_evidence_validator_checks_complete_synthetic_contract(tmp_path, 
         rows[60]["raw_ppo_action"][0] = float("nan")
     if corruption == "bad_decimation":
         rows[60]["physics_step_count"] += 1
+    if corruption == "final_lower":
+        rows[-1]["post_joint_position_rad"][14] = -1.000001
+    if corruption == "final_upper":
+        rows[-1]["post_joint_position_rad"][8] = 1.1
+    if corruption != "missing_limits":
+        limits = [[-1.0, 1.0]] * (22 if corruption == "bad_limits" else 23)
+        (tmp_path / "articulation.json").write_text(json.dumps({"limits_rad": limits}))
     warmup = rows[:49] if corruption == "missing_warmup" else rows[:50]
     (tmp_path / "warmup.jsonl").write_text("\n".join(json.dumps(r) for r in warmup))
     record = {"rows": rows[50:], "case": "stand", "warmup_steps": 50, "physics_steps": 904}

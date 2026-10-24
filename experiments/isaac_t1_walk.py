@@ -195,6 +195,13 @@ def run_episode(folder: Path, cfg: dict, case: str, out: Path, rows: list) -> di
         diagnostic_dir=out,
     )
     mark_stage(out, "t1_initialized")
+    (out / "initial_proprioception.json").write_text(
+        json.dumps(
+            {key: np.asarray(value).tolist() for key, value in body.sensors().items()}, indent=2
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     # Stand initialization under the actor, never direct state writes after initialization.
     mark_stage(out, "warmup_started")
     recorder = camera = None
@@ -242,11 +249,22 @@ def run_episode(folder: Path, cfg: dict, case: str, out: Path, rows: list) -> di
                     "error_type": type(error).__name__,
                     "message": str(error),
                     "sim_time_s": body.time,
+                    "traceback": traceback.format_exc(),
                 }
                 try:
                     state = body.sensors()
                     report["joint_names"] = list(body.art.dof_names)
                     report["joint_limits_rad"] = body.limits.tolist()
+                    report["state_limit_excess_rad"] = np.maximum(
+                        np.maximum(body.limits[:, 0] - state["q"], state["q"] - body.limits[:, 1]),
+                        0,
+                    ).tolist()
+                    position, orientation = body.art.get_world_pose()
+                    report["score_root_position_m"] = np.asarray(position).tolist()
+                    report["score_root_orientation_wxyz"] = np.asarray(orientation).tolist()
+                    report["last_joint_target_rad"] = (
+                        warmup[-1].get("joint_target_rad") if warmup else None
+                    )
                     report["proprioception"] = {
                         key: np.asarray(value).tolist() for key, value in state.items()
                     }
@@ -363,6 +381,7 @@ def run_episode(folder: Path, cfg: dict, case: str, out: Path, rows: list) -> di
             and len(warmup) == 50
             and min(r["score_position_m"][2] for r in warmup + rows) >= 0.45
             and max(r["tilt_rad"] for r in warmup + rows) <= np.deg2rad(25)
+            and all(not any(r["post_state_limit_excess_rad"]) for r in warmup + rows)
         ),
         "collision_count": None,
         "collision_note": "Contact scoring not implemented; flat ground only",

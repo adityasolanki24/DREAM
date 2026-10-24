@@ -163,3 +163,25 @@ def test_t1_out_of_limit_setpoints_are_recorded():
             [0, 0, 0],
             limits,
         )
+
+
+@pytest.mark.parametrize("residual", [-0.000062669729, 0.000062669729, -0.05, 0.05])
+def test_uncalibrated_realized_joint_excursions_never_reach_actor(residual):
+    """Keep both the captured residual and independent large excursions fail-closed."""
+    cfg = {
+        "joint_names": [str(i) for i in range(23)],
+        "default_joint_pos": [0.0] * 23,
+        "sim_dt": 0.005,
+        "decimation": 4,
+        "action_scale": 0.5,
+    }
+    actor = T1Policy(
+        cfg, lambda _: pytest.fail("invalid physical state reached actor"), cfg["joint_names"]
+    )
+    limits = np.tile([-1.0, 1.0], (23, 1))
+    q = np.zeros(23)
+    q[7] = np.sign(residual) + residual
+    original = q.copy()
+    with pytest.raises(ValueError, match="proprioception"):
+        actor.target(q, np.zeros(23), [0, 0, 0], [0, 0, 0], [0, 0, -1], [0, 0, 0], limits)
+    np.testing.assert_array_equal(q, original)

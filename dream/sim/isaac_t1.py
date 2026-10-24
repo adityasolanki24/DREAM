@@ -59,6 +59,7 @@ class IsaacT1:
         from pxr import PhysxSchema, UsdPhysics
 
         self.checkpoint = checkpoint
+        self.diagnostic_dir = diagnostic_dir
         self.world = world
         self.cfg = json.loads((policy_dir / "env_cfg.json").read_text())
         add_reference_to_stage(asset_url, "/World/T1")
@@ -147,6 +148,9 @@ class IsaacT1:
         self.art.set_joint_positions(initial)
         self.art.set_joint_velocities(np.zeros(23))
         self.art.set_world_pose(position=np.array([0, 0, 0.70]), orientation=np.array([1, 0, 0, 0]))
+        # world.reset() can advance the stock pose before this initialization.
+        # The pinned training reset samples all six root velocities as zero.
+        self.art.set_world_velocity(np.zeros(6))
         self.odom = np.zeros(3)
         self.time = 0.0
         self.command = np.zeros(3)
@@ -237,8 +241,30 @@ class IsaacT1:
         )
         self.art.apply_action(ArticulationAction(joint_positions=target))
         before = self.world.current_time_step_index
-        for _ in range(4):
+        for substep in range(4):
             self.world.step(render=False)
+            if self.diagnostic_dir is not None:
+                measured = self.sensors()
+                # Preserve each solver result, including residuals; never clip observations.
+                sample = {
+                    "time_s": self.time + (substep + 1) * 0.005,
+                    "physics_step_count": self.world.current_time_step_index,
+                    "proprioception": {
+                        key: np.asarray(value).tolist() for key, value in measured.items()
+                    },
+                    "state_limit_excess_rad": np.maximum(
+                        np.maximum(
+                            self.limits[:, 0] - measured["q"], measured["q"] - self.limits[:, 1]
+                        ),
+                        0,
+                    ).tolist(),
+                    "joint_target_rad": target.tolist(),
+                    "raw_ppo_action": self.actor.last.tolist(),
+                }
+                with (self.diagnostic_dir / "physics_substeps.jsonl").open(
+                    "a", encoding="utf-8"
+                ) as log:
+                    log.write(json.dumps(sample) + "\n")
         if self.world.current_time_step_index - before != 4:
             raise RuntimeError("physics did not advance four steps")
         yaw = self.odom[2]
@@ -270,6 +296,9 @@ class IsaacT1:
             "joint_velocity_rad_s": sensor["dq"].tolist(),
             "post_joint_position_rad": post["q"].tolist(),
             "post_joint_velocity_rad_s": post["dq"].tolist(),
+            "post_state_limit_excess_rad": np.maximum(
+                np.maximum(self.limits[:, 0] - post["q"], post["q"] - self.limits[:, 1]), 0
+            ).tolist(),
             "body_linear_velocity_m_s": post["linear"].tolist(),
             "body_angular_velocity_rad_s": post["gyro"].tolist(),
             "orientation_wxyz": post["orientation_wxyz"].tolist(),

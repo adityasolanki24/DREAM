@@ -192,4 +192,8 @@ def test_warmup_failure_preserves_step_and_joint_diagnostics(
     assert len(report["last_target_limit_excess_rad"]) == 23
     assert "proprioception" in report
     assert "diagnostic_error" not in report
+    assert report["score_root_position_m"] == [0, 0, 0.7]
+    assert report["score_root_orientation_wxyz"] == [1, 0, 0, 0]
+    assert report["state_limit_excess_rad"] == [0.0] * 23
+    assert "traceback" in report and "test actuator failure" in report["traceback"]
     assert len((tmp_path / "warmup.jsonl").read_text().splitlines()) == completed_before_failure

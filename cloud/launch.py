@@ -236,6 +236,13 @@ def validate_policy_steps(folder: Path, record: dict) -> None:
     import numpy as np
 
     try:
+        limits = np.asarray(json.loads((folder / "articulation.json").read_text())["limits_rad"])
+        if (
+            limits.shape != (23, 2)
+            or not np.isfinite(limits).all()
+            or np.any(limits[:, 0] >= limits[:, 1])
+        ):
+            raise ValueError("invalid mechanical joint limits")
         warmup = [json.loads(line) for line in (folder / "warmup.jsonl").read_text().splitlines()]
         rows = warmup + record["rows"]
         if len(warmup) != 50 or record["warmup_steps"] != 50:
@@ -268,6 +275,10 @@ def validate_policy_steps(folder: Path, record: dict) -> None:
                 value = np.asarray(row[key])
                 if value.shape != (size,) or not np.isfinite(value).all():
                     raise ValueError("invalid recorded sensor/action")
+            for key in ("joint_position_rad", "post_joint_position_rad"):
+                q = np.asarray(row[key])
+                if np.any(q < limits[:, 0]) or np.any(q > limits[:, 1]):
+                    raise ValueError("measured joint outside mechanical limits")
             if (
                 row["stopped"]
                 or not row["state_finite"]

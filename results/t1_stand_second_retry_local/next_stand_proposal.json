@@ -1,0 +1,60 @@
+{
+  "name": "dream-qwen-proposed-stand-diagnostic",
+  "workload": "isaac-t1-stand",
+  "project": "nerva-adityapersonal",
+  "zone": "us-central1-c",
+  "region": "us-central1",
+  "machine": "g2-standard-8",
+  "disk_gb": 200,
+  "max_minutes": 25,
+  "bucket": "dream-qwen-proposed-stand-diagnostic",
+  "network": "dream-qwen-proposed-stand-diagnostic",
+  "subnet": "dream-qwen-proposed-stand-diagnostic-subnet",
+  "router": "dream-qwen-proposed-stand-diagnostic-router",
+  "nat": "dream-qwen-proposed-stand-diagnostic-nat",
+  "account": "dream-df8c0a829ca019c4",
+  "image": "common-cu129-ubuntu-2204-nvidia-580-v20261019",
+  "estimated_usd": 3.42,
+  "cost_note": "estimate, not a billing hard cap; VM lifetime is enforced by Google",
+  "approval_status": "NOT AUTHORIZED; proposal only",
+  "itemized_usd": {
+    "compute": 0.3556767966666667,
+    "disk": 0.011666666666666667,
+    "gateway_ip": 0.0026666666666666666,
+    "network_50gib_reserve": 2.25,
+    "storage_egress_reserve": 0.8
+  },
+  "requested_allowance_usd": 3.5,
+  "execution_gate": "No exact-range guard relaxation; diagnose first excursion or complete existing 50-step warmup plus longer stand and RGB-D gates.",
+  "pricing_rechecked_date": "2026-10-24",
+  "pricing_sources": [
+    "https://cloud.google.com/products/compute/pricing/accelerator-optimized",
+    "https://cloud.google.com/nat/pricing",
+    "https://cloud.google.com/compute/disks-image-pricing"
+  ],
+  "software": {
+    "python": "3.11.13",
+    "isaacsim": "5.1.0.0",
+    "torch": "2.7.0+cu128",
+    "onnxruntime": "1.23.2",
+    "constraints": "cloud/isaac.constraints.txt",
+    "status": "Booted in prior physical run; initialization correction not yet physically revalidated"
+  },
+  "safety_and_evidence": {
+    "warmup_actions": 50,
+    "physics_substeps_per_action": 4,
+    "minimum_total_stand_s": 4.0,
+    "maximum_tilt_deg": 25,
+    "minimum_root_height_m": 0.45,
+    "final_speed_below_m_s": 0.1,
+    "final_position_error_below_m": 0.15,
+    "rgbd_required": true,
+    "exact_joint_range_guard_retained": true,
+    "substep_proprioception_recorded": true,
+    "contact_scoring_available": false
+  },
+  "automatic_expiry": "Google max-run-duration25m with termination-actionDELETE; guest deadline reserves120s for sync; boot disk auto-deleted",
+  "artifact_recovery": "Periodic and exit sync; verify MANIFEST.sha256 before bucket removal; preserve bucket on interrupted retrieval, recover only scoped manifest resources",
+  "cleanup": "Remove scoped VM/disk, service account, NAT/router/network and result bucket after verified retrieval; retain cleanup report and post-audit",
+  "new_billable_resources_created": false
+}

@@ -2,6 +2,7 @@
 
 import ast
 import inspect
+import json
 import sys
 import textwrap
 from types import SimpleNamespace
@@ -12,7 +13,40 @@ import pytest
 from dream.sim.isaac_t1 import IsaacT1
 
 
-def test_physics_step_reports_and_stops_on_new_tilt(monkeypatch):
+@pytest.mark.parametrize("residual", [[0.1, -0.2, 0, 0.3, 0, -0.1], [-0.4, 0.1, 0.2, 0, -0.2, 0.5]])
+def test_initialization_clears_root_velocity_from_reset(residual):
+    """Execute the real initialization block on an articulation carrying reset motion."""
+    art = SimpleNamespace(velocity=np.array(residual))
+    art.set_joint_positions = lambda q: setattr(art, "q", q)
+    art.set_joint_velocities = lambda dq: setattr(art, "dq", dq)
+    art.set_world_pose = lambda **kw: setattr(art, "pose", kw)
+    art.set_world_velocity = lambda velocity: setattr(art, "velocity", velocity)
+    body = SimpleNamespace(
+        art=art, actor=SimpleNamespace(indices=np.arange(22, -1, -1), default=np.arange(23) * 0.01)
+    )
+    statements = ast.parse(textwrap.dedent(inspect.getsource(IsaacT1.__init__))).body[0].body
+    begin = next(
+        i
+        for i, node in enumerate(statements)
+        if isinstance(node, ast.Assign)
+        and any(isinstance(t, ast.Name) and t.id == "initial" for t in node.targets)
+    )
+    end = next(
+        i
+        for i, node in enumerate(statements)
+        if isinstance(node, ast.Assign)
+        and any(isinstance(t, ast.Attribute) and t.attr == "odom" for t in node.targets)
+    )
+    exec(
+        compile(ast.Module(body=statements[begin:end], type_ignores=[]), "init_state", "exec"),
+        {"self": body, "np": np},
+    )
+    np.testing.assert_equal(art.velocity, np.zeros(6))
+    np.testing.assert_equal(art.q, body.actor.default[::-1])
+    np.testing.assert_equal(art.dq, np.zeros(23))
+
+
+def test_physics_step_reports_and_stops_on_new_tilt(monkeypatch, tmp_path):
     """A fall during decimation must not be reported as the previous upright sample."""
     body = object.__new__(IsaacT1)
     world = SimpleNamespace(current_time_step_index=0)
@@ -20,6 +54,7 @@ def test_physics_step_reports_and_stops_on_new_tilt(monkeypatch):
         world, "current_time_step_index", world.current_time_step_index + 1
     )
     body.world = world
+    body.diagnostic_dir = tmp_path
     body.art = SimpleNamespace(apply_action=lambda action: None)
     body.actor = SimpleNamespace(
         target=lambda *args: np.zeros(23), last=np.zeros(23), target_limit_excess=np.zeros(23)
@@ -29,8 +64,11 @@ def test_physics_step_reports_and_stops_on_new_tilt(monkeypatch):
     body.limits = np.tile([-2, 2], (23, 1))
 
     def sensors():
+        q = np.zeros(23)
+        if world.current_time_step_index:
+            q[0] = -2 - 0.0001 * world.current_time_step_index
         return {
-            "q": np.zeros(23),
+            "q": q,
             "dq": np.zeros(23),
             "linear": np.zeros(3),
             "gyro": np.zeros(3),
@@ -49,6 +87,17 @@ def test_physics_step_reports_and_stops_on_new_tilt(monkeypatch):
     assert row["tilt_rad"] == 0.6 and row["stopped"]
     assert row["physics_step_count"] == 4 and row["state_time_s"] == 0.02
     assert row["proprioception_time_s"] == 0.0
+    samples = [
+        json.loads(line) for line in (tmp_path / "physics_substeps.jsonl").read_text().splitlines()
+    ]
+    assert [r["physics_step_count"] for r in samples] == [1, 2, 3, 4]
+    np.testing.assert_allclose([r["time_s"] for r in samples], [0.005, 0.010, 0.015, 0.020])
+    assert all(len(r["proprioception"]["q"]) == 23 for r in samples)
+    np.testing.assert_allclose(
+        [r["state_limit_excess_rad"][0] for r in samples], np.arange(1, 5) * 0.0001
+    )
+    assert all(r["proprioception"]["q"][0] < -2 for r in samples)
+    assert row["post_state_limit_excess_rad"][0] == pytest.approx(0.0004)
 
 
 @pytest.mark.parametrize("lower,upper", [(-1.7, 2.2), (-0.3, 0.8)])

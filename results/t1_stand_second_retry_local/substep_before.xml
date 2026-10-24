@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="7" time="1.501" timestamp="2026-10-24T15:51:14.793962+11:00" hostname="LAPTOP-H2LK8P6D"><testcase classname="tests.test_t1_adapter" name="test_initialization_clears_root_velocity_from_reset[residual0]" time="0.029" /><testcase classname="tests.test_t1_adapter" name="test_initialization_clears_root_velocity_from_reset[residual1]" time="0.004" /><testcase classname="tests.test_t1_adapter" name="test_physics_step_reports_and_stops_on_new_tilt" time="0.011"><failure message="FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\24adi\\AppData\\Local\\Temp\\pytest-of-24adi\\pytest-384\\test_physics_step_reports_and_0\\physics_substeps.jsonl'">monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001365904C770&gt;
+tmp_path = WindowsPath('C:/Users/24adi/AppData/Local/Temp/pytest-of-24adi/pytest-384/test_physics_step_reports_and_0')
+
+    def test_physics_step_reports_and_stops_on_new_tilt(monkeypatch, tmp_path):
+        """A fall during decimation must not be reported as the previous upright sample."""
+        body = object.__new__(IsaacT1)
+        world = SimpleNamespace(current_time_step_index=0)
+        world.step = lambda **kw: setattr(
+            world, "current_time_step_index", world.current_time_step_index + 1
+        )
+        body.world = world
+        body.diagnostic_dir = tmp_path
+        body.art = SimpleNamespace(apply_action=lambda action: None)
+        body.actor = SimpleNamespace(
+            target=lambda *args: np.zeros(23), last=np.zeros(23), target_limit_excess=np.zeros(23)
+        )
+        body.command, body.odom = np.zeros(3), np.zeros(3)
+        body.time, body.stopped = 0.0, False
+        body.limits = np.tile([-2, 2], (23, 1))
+    
+        def sensors():
+            return {
+                "q": np.zeros(23),
+                "dq": np.zeros(23),
+                "linear": np.zeros(3),
+                "gyro": np.zeros(3),
+                "gravity": np.array([0, 0, -1]),
+                "tilt": 0.6 if world.current_time_step_index else 0.0,
+                "orientation_wxyz": np.array([1, 0, 0, 0]),
+            }
+    
+        body.sensors = sensors
+        monkeypatch.setitem(
+            sys.modules,
+            "isaacsim.core.utils.types",
+            SimpleNamespace(ArticulationAction=lambda **kw: kw),
+        )
+        row = body.advance(0, 0)
+        assert row["tilt_rad"] == 0.6 and row["stopped"]
+        assert row["physics_step_count"] == 4 and row["state_time_s"] == 0.02
+        assert row["proprioception_time_s"] == 0.0
+        import json
+    
+&gt;       samples = [json.loads(line) for line in (tmp_path / "physics_substeps.jsonl").read_text().splitlines()]
+                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_t1_adapter.py:88: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\miniconda3\Lib\pathlib\_local.py:546: in read_text
+    return PathBase.read_text(self, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\miniconda3\Lib\pathlib\_abc.py:632: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/24adi/AppData/Local/Temp/pytest-of-24adi/pytest-384/test_physics_step_reports_and_0/physics_substeps.jsonl')
+mode = 'r', buffering = -1, encoding = 'locale', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+&gt;       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\24adi\\AppData\\Local\\Temp\\pytest-of-24adi\\pytest-384\\test_physics_step_reports_and_0\\physics_substeps.jsonl'
+
+..\..\miniconda3\Lib\pathlib\_local.py:537: FileNotFoundError</failure></testcase><testcase classname="tests.test_t1_adapter" name="test_single_articulation_limit_query_uses_its_public_api[-1.7-2.2]" time="0.004" /><testcase classname="tests.test_t1_adapter" name="test_single_articulation_limit_query_uses_its_public_api[-0.3-0.8]" time="0.004" /><testcase classname="tests.test_t1_adapter" name="test_joint_armature_matches_pinned_training_head_exception" time="0.001" /><testcase classname="tests.test_t1_adapter" name="test_rgbd_requires_aligned_nonempty_arrays_and_depth_returns" time="0.004" /></testsuite></testsuites>

@@ -44,7 +44,8 @@ rules, architecture and engineering standards are in [`AGENTS.md`](AGENTS.md).
    or broad generalisation. Raw requests, outputs, RGB-D calibration, timing and GPU telemetry
    are in `results/qwen_cloud_pilot_dev`. A learned-action model has since executed six fresh
    predicted joint targets with measured tracking, but failed its manipulation task (below).
-   Useful learned manipulation, humanoid walking and Isaac Sim execution remain unvalidated.
+   Useful learned manipulation and humanoid standing/walking remain unvalidated. The latest
+   Isaac run completed four PPO actions before a measured-state guard rejected a knee excursion.
 
 ![Panda: red cube into the tray, then blue stacked on green](results/demo/panda_session/replay.gif)
 
@@ -63,11 +64,11 @@ unfamiliar physical behaviour.
 
 Every row marked "implemented and tested" has passing tests and/or saved results in `results/`.
 
-Latest local verification (24 Oct 2026): **250 full tests passed in 407.963 s**;
-**228 fast tests passed in 88.783 s**. Ruff lint/format, Python compilation,
+Latest local verification (24 Oct 2026): **261 full tests passed in 451.919 s**;
+**239 fast tests passed in 109.639 s**. Ruff lint/format, Python compilation,
 Bash syntax and `git diff --check` pass. Exact source hashes, negative/passing regressions,
-source audit and final XML are in `results/t1_stand_followup_local`; previous validation
-remains in `results/t1_validation_checkpoint`. These are CPU contracts and MuJoCo regression
+source audit and final XML are in `results/t1_stand_second_retry_local`; previous validation
+remains in `results/t1_stand_followup_local` and `results/t1_validation_checkpoint`. These are CPU contracts and MuJoCo regression
 evidence, not stable Isaac standing or walking. The fast suite still exceeds 60 seconds.
 
 Prior verification (23 Oct 2026, research branch based on `386a818`): **195 passed**
@@ -117,7 +118,7 @@ these cloud-only changes. The Windows fast-suite duration still exceeds the 60 s
 | 12a | Vision-language planner (Qwen3-VL-4B-Instruct) choosing typed tools | **Implemented and development-evaluated:** real checkpoint, 2/2 tray tasks; no held-out language benchmark. Caller-bound success, cancellation and rejection contracts | `results/qwen_cloud_pilot_dev`, `tests/test_vlm.py` |
 | 12a-cloud | Capped GPU inference and live-physics pilot | **Executed:** zone c rejected capacity, zone b booted; guest and pilot gates passed. Cleanup error investigated and absence verified | `results/cloud_pilot_allocation_failure`, `cloud/launch.py`, `tests/test_cloud.py` |
 | 12b | Learned motor policy (MolmoAct2-DROID first open-loop candidate; GR00T alternative) | **Partially working:** real checkpoint produced a finite 15×8 chunk on L4; raw gripper range failed (4/15). Source contract audited; six fresh predictions physically reached (6/6). Learned task failed, classical succeeded. No manipulation transfer established | `tests/test_molmo.py`, `results/molmo_observation_dev`, source/decision audit below |
-| 12c | Booster T1 locomotion / visual navigation research | **CPU contract tested; Isaac initialization attempt failed:** genuine PPO actor 81→23 inference and waypoint guards. No recorded walking steps; NavGPT inference **not validated** | `results/t1_actor_preflight_dev`, `results/t1_isaac_initialization_failure`, `tests/test_navigation.py` |
+| 12c | Booster T1 locomotion / visual navigation research | **Four real PPO actions; standing gate failed:** 0.08 s / 16 physics substeps, then exact-range knee rejection. CPU actor 81→23 and waypoint contracts tested; standing, walking and NavGPT inference **not validated** | `results/t1_stand_state_failure`, `results/t1_stand_second_retry_local`, `tests/test_navigation.py` |
 | 13 | Generalisation evaluation across goals, arrangements and task families | Planned | n/a |
 | 14 | Learned world/motor models, mobile or whole-body embodiments | Planned, conditional on evidence and compute | n/a |
 
@@ -1198,7 +1199,8 @@ APM repository/weight licence was found; this uses the owner's requested researc
 not a claim of a redistribution licence.
 
 `dream/sim/isaac_t1.py` and `experiments/isaac_t1_walk.py` provide an isolated
-Isaac Sim 5.1 adapter with **failed initialization evidence, no walking validation**: stock T1 locomotion USD, training-matched gains, 200 Hz physics/50 Hz
+Isaac Sim 5.1 adapter with **four real PPO actions and a failed standing gate, no walking validation**:
+stock T1 locomotion USD, training-matched gains, 200 Hz physics/50 Hz
 actor, RGB-D calibration, ideal own-robot velocity/IMU measurements integrated into odometry,
 bounded commands and tilt stop. True world translation is used only for independent scoring.
 Ideal proprioception is not validated VIO. Self-collision is disabled to match PPO training;
@@ -1403,10 +1405,10 @@ startup. A prebuilt image/cache could save setup but would introduce retained st
 credential-sanitization work. No persistent image, disk or cache was created. Existing outputs
 sync every minute and on exit; the host verifies checksums before deleting the result bucket.
 
-**Next physical experiment, awaiting new approval:** one `isaac-t1-stand` attempt on L4
+**Subsequently approved and executed at `5a4d217` (failed):** one `isaac-t1-stand` attempt on L4
 `g2-standard-8` (32 GiB, 200 GB disk), `us-central1-c` with capacity-only b/a fallback,
 25-minute Google deletion deadline, pinned Python 3.11/Isaac 5.1/Torch 2.7/cu128 environment.
-Estimate **US$3.42**; request **US$3.50** including the previously itemized network/storage reserve.
+Estimate **US$3.42**; **US$3.50 was approved for that attempt**, including the itemized network/storage reserve.
 Runtime is enforced, but the estimate is not a hard provider billing cap. Only standing PPO
 physics and first RGB-D run; missing output, failure reports, falls, unsafe states or a failed
 settled-stop gate fail. Retrieve original stages/actions/frames/calibration/versions/telemetry,
@@ -1417,6 +1419,92 @@ The cloud job intentionally does **not** set `--record-video`. The spectator pip
 locally tested only. A later forward/turn/stop demonstration needs validated standing/walking,
 a separately approved recording workload with that flag and a frame-storage/upload estimate.
 There is still no real `dream_t1_demo.mp4`, and no NavGPT inference was added.
+
+## Second stand diagnostic: four real actions, then exact-range rejection
+
+The `5a4d217` retry booted in `us-central1-c`, installed the constrained environment and
+completed four genuine PPO actions (16 physics substeps, 0.08 seconds). It then failed on
+warmup step index 4 with `invalid T1 proprioception/command`. No standing gate passed,
+RGB-D capture was not reached, and no real video was recorded. Original byte-preserved
+artifacts, failure diagnostics and zero-resource audit are in `results/t1_stand_state_failure`.
+Cleanup returned no errors: zero instances, CPU/L4 use and DREAM disks/networks/routers.
+Actual billing is unavailable; the allowance/estimate is not a measured charge.
+
+Offline replay of the saved sensor input reproduces the rejection. Every captured state value
+is finite, the command is zero, and the single violated range is `Left_Knee_Pitch`:
+-0.000062669729 rad against a zero lower limit. Maximum observed tilt over the four steps
+was 2.2554 degrees, minimum root height 0.690647 m and maximum joint speed 15.0801 rad/s.
+These describe a short transient, not validated stability or a claim that joint-limit excursions
+are safe. `experiments/inspect_t1_stand.py` produces the saved analysis. The exact-range
+input guard is unchanged; no tolerance was tuned from this failure. How to handle finite
+constraint residuals while preserving a defensible joint-safety contract remains open.
+
+The pinned task enables timeout and Trunk-contact terminations, with no exact joint-range
+termination. Its optional soft-limit helper is not enabled. [PhysX's articulation stability
+documentation](https://nvidia-omniverse.github.io/PhysX/physx/5.6.1/docs/Articulations.html#articulation-drive-stability)
+explains how drives, contacts and joint limits can compete in its iterative solver; it does not
+give a universally safe residual tolerance. The captured knee velocity points inward, but that
+alone cannot establish harmless roundoff or future recovery. The source review and full
+control-contract comparison are in `results/t1_stand_second_retry_local/joint_limit_contract_audit.json`.
+No safe nonzero tolerance has been calibrated; **the knee rejection is not fixed**.
+New diagnostics save every 5 ms solver sample, unmodified joint values, residuals, raw action
+and target in `physics_substeps.jsonl`. Warmup failures also save root score pose, residuals,
+last target and traceback. Score poses never enter the policy. Contacts are still unmeasured.
+The guest and independent host gates now also reject out-of-range final measured joints;
+previously the last action could finish before another policy-input check inspected its result.
+The host reads mechanical limits from the articulation evidence and checks both pre/post states,
+including the final sample. Separate lower/upper excursions and missing/malformed limits fail
+regression tests that previously accepted them. PPO setpoints remain allowed outside travel;
+the measured joint check is separate.
+
+A separate initialization defect is now corrected locally: `world.reset()` advances the stock
+articulation, and setting its pose/joints did not clear root velocity. The first odometry update
+implies initial body vx/vy of 0.106902/0.110728 m/s and yaw rate 0.034777 rad/s, although the
+pinned training reset specifies zero for all six root velocities. The adapter now sets the
+root velocity to zero **only during scene initialization**, alongside its existing pose and joint
+initialization. This is a **general algorithmic correction to reset parity**, not a measured
+cure for the knee excursion. Two independent residual-velocity regression cases fail before
+and pass after the change. No trained action, gain, armature, mechanical joint limit, tilt
+threshold or execution-time state is modified. `initial_proprioception.json` will record the
+next run's actual starting measurements before any policy action.
+
+The GPU utilization log has a known gap: a management-library lookup failure during driver
+replacement terminated the `set -e` sampler. That does not establish that rendering failed:
+Vulkan passed and the saved physics/action data records execution. The loop now logs transient
+errors separately and continues sampling. A Bash test executes the real loop with a first-call
+failure followed by recovery, with failing/passing XML retained. Physical-result evidence is
+independent of this telemetry fix.
+
+All original failure cases remain reproducible. Stable standing and usable RGB-D remain open.
+The initialization and telemetry corrections require physical revalidation, and the joint-range
+residual contract needs investigation before declaring a useful next paid run. No further
+paid attempt has been launched or authorized, and the previous allowance is not reused.
+
+| Change | Rule 3 class | Evidence and limitation |
+|---|---|---|
+| Clear root velocity during initialization | General algorithmic correction to reset parity | Two independent failing/passing regression cases; standing effect unvalidated |
+| Recover GPU telemetry after a transient management error | General algorithmic correction | Actual Bash loop tested through failure/recovery; no claim about physical control |
+| Preserve each physics substep and richer failure state | General algorithmic correction to measurement | Failing/passing diagnostic regressions; no changed dynamics or safety threshold |
+| Validate final measured joints independently | General algorithmic correction to scoring | Previously accepted lower/upper excursions and missing/malformed limits now rejected; exact range unchanged |
+
+**Proposed next experiment, not authorized:** one stand-only diagnostic on L4 `g2-standard-8`
+(8 vCPUs, 32 GiB, 200 GB auto-deleted disk), `us-central1-c` with b/a capacity-only fallback.
+Use the previously booted, pinned Python 3.11.13 / Isaac Sim 5.1 / Torch 2.7 cu128 /
+ONNX Runtime 1.23.2 environment and the initialization correction above. Keep the exact joint
+guard; a repeated excursion fails and supplies 200 Hz evidence. Otherwise require all 50 warmup
+actions, at least the existing four-second total stand interval, height/tilt/settled-speed gates
+and valid RGB-D. This is a diagnostic opportunity to pass standing, not a claim that the blocker
+has been resolved. No walking, NavGPT or spectator recording is included.
+
+The 25-minute Google deletion deadline bounds VM lifetime. Estimate **US$3.42**:
+compute $0.356, disk $0.012, NAT/IP $0.003, 50 GiB network-processing reserve $2.25,
+storage/egress contingency $0.80. Requested fresh allowance: **US$3.50 for one attempt**;
+this is not a hard provider billing cap. CPU-only local hardware cannot validate Isaac RTX
+physics/rendering. Keep the constrained cold install for this one-off test; no retained cache
+or image is created. Sync artifacts during execution/on exit, verify their manifest locally,
+then delete scoped VM/disk/IAM/NAT/network/bucket. Failed retrieval preserves the bucket for
+manifest-scoped recovery. The offline plan is saved as
+`results/t1_stand_second_retry_local/next_stand_proposal.json`.
 
 ## Next milestone: ordinary humanoid walking before visual navigation
 

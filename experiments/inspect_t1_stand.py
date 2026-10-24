@@ -60,6 +60,64 @@ def inspect(out: Path, policy_dir: Path) -> dict:
             }
         )
     stages = [json.loads(s) for s in (out / "stand/stages.jsonl").read_text().splitlines()]
+    warmup_report = None
+    if (out / "stand/warmup_failure.json").exists():
+        report = json.loads((out / "stand/warmup_failure.json").read_text())
+        state = report["proprioception"]
+        q = np.asarray(state["q"])
+        excess = np.maximum(np.maximum(limits[:, 0] - q, q - limits[:, 1]), 0)
+        rows = [json.loads(s) for s in (out / "stand/warmup.jsonl").read_text().splitlines()]
+        command = rows[-1]["command"] if rows else [0, 0, 0]
+        actor.last = np.asarray(report["last_accepted_ppo_action"], np.float32)
+        try:
+            actor.target(
+                q, state["dq"], state["linear"], state["gyro"], state["gravity"], command, limits
+            )
+        except ValueError as error:
+            rejection = str(error)
+        else:
+            rejection = None
+        warmup_report = {
+            "completed_steps": len(rows),
+            "failed_step": report["failed_step"],
+            "simulated_s": report["sim_time_s"],
+            "completed_physics_substeps": len(rows) * 4,
+            "captured_state_finite": all(np.isfinite(v).all() for v in state.values()),
+            "command": command,
+            "offline_rejection": rejection,
+            "state_limit_excursions": [
+                {
+                    "joint": name,
+                    "q_rad": float(q[i]),
+                    "limits_rad": limits[i].tolist(),
+                    "excess_rad": float(excess[i]),
+                }
+                for i, name in enumerate(names)
+                if excess[i] > 0
+            ],
+            "max_observed_tilt_deg": float(np.rad2deg(max(r["tilt_rad"] for r in rows)))
+            if rows
+            else None,
+            "minimum_observed_height_m": min(r["score_position_m"][2] for r in rows)
+            if rows
+            else None,
+            "max_observed_joint_speed_rad_s": max(
+                float(np.max(np.abs(r["post_joint_velocity_rad_s"]))) for r in rows
+            )
+            if rows
+            else None,
+            "initial_horizontal_body_velocity_from_odometry_m_s": (
+                np.asarray(rows[0]["odom"])[:2] / 0.02
+            ).tolist()
+            if rows
+            else None,
+            "initial_yaw_rate_from_odometry_rad_s": rows[0]["odom"][2] / 0.02 if rows else None,
+            "note": (
+                "Initial velocities reconstructed from the adapter's first pre-step odometry "
+                "integration. Root reset correction matches training; effect on subsequent "
+                "limit excursions is unknown. No tolerance changed."
+            ),
+        }
     return {
         "analysis_code_sha": subprocess.check_output(
             ["git", "rev-parse", "HEAD"], text=True
@@ -71,6 +129,7 @@ def inspect(out: Path, policy_dir: Path) -> dict:
         "joint_order_matches_training": names == policy_cfg["joint_names"],
         "original_preflight_excursions": original,
         "real_cpu_actor_at_home": cpu,
+        "captured_warmup_analysis": warmup_report,
         "physics_executed_by_analysis": False,
         "standing_validated": False,
         "note": (

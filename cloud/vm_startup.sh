@@ -33,7 +33,9 @@ date -u +'%Y-%m-%dT%H:%M:%SZ' > /work/out/started_utc.txt
 for i in $(seq 1 90); do nvidia-smi >/dev/null 2>&1 && break; sleep 10; done
 nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv > /work/out/gpu.txt
 ( while true; do
-    nvidia-smi --query-gpu=timestamp,utilization.gpu,memory.used,power.draw --format=csv,noheader >> /work/out/gpu.csv
+    nvidia-smi --query-gpu=timestamp,utilization.gpu,memory.used,power.draw --format=csv,noheader \
+      >> /work/out/gpu.csv 2>> /work/out/gpu_errors.log || \
+      date -u +'%Y-%m-%dT%H:%M:%SZ GPU sample unavailable' >> /work/out/gpu_errors.log
     sleep 15
   done ) &
 gsutil -q cp "gs://$BUCKET/code.tar.gz" /work/code.tar.gz
