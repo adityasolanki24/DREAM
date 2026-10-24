@@ -73,6 +73,15 @@ class G1Controller:
         self.stop_reason = ""
         self.root = model.body("pelvis").id
         self.palms = {s: model.body(f"{s}_wrist_yaw_link").id for s in ("left", "right")}
+        self.cartesian_target: tuple[str, np.ndarray, np.ndarray] | None = None
+        self.hand_bodies = {
+            side: {
+                model.body(i).id
+                for i in range(model.nbody)
+                if model.body(i).name.startswith(side + "_hand_")
+            }
+            for side in ("left", "right")
+        }
 
     def state(self) -> DexterousState:
         return DexterousState(
@@ -128,8 +137,89 @@ class G1Controller:
         if q.shape != (7,):
             raise ValueError("arm requires seven joint positions in radians")
         self.command_joints(dict(zip((f"{side}_{n}_joint" for n in ARM), q, strict=True)))
+        self.cartesian_target = None
+
+    def grasp_pose(self, side: str) -> tuple[np.ndarray, np.ndarray]:
+        """Centre of the supported finger synergy, from robot kinematics only.
+
+        This replaces the previous scene-side offset with an explicit robot tool frame.
+        It describes a supported grasp morphology, not an observed object location.
+        """
+        pos, quat = self.palm_pose(side)
+        offset = np.array([0.09, -0.045 if side == "left" else 0.045, 0.0])
+        rot = self.data.xmat[self.palms[side]].reshape(3, 3)
+        return pos + rot @ offset, quat
+
+    def finger_forces(self, side: str) -> dict[str, float]:
+        """Simulated tactile normal loads on own finger links, no contacted-object IDs.
+
+        As with Panda force sensing, contacts are the simulated sensor source. Object
+        identity, pose, mass and joint type are never queried or returned.
+        """
+        hand_names(side)
+        forces = {name: 0.0 for name in ("thumb", "index", "middle")}
+        for i, contact in enumerate(self.data.contact):
+            own = [
+                int(self.model.geom_bodyid[g])
+                for g in (contact.geom1, contact.geom2)
+                if self.model.geom_bodyid[g] in self.hand_bodies[side]
+            ]
+            if not own:
+                continue
+            wrench = np.zeros(6)
+            mujoco.mj_contactForce(self.model, self.data, i, wrench)
+            for body in own:
+                chain = self.model.body(body).name.split("_hand_")[1].split("_")[0]
+                forces[chain] += max(0, float(wrench[0]))
+        return forces
+
+    def reach(self, side: str, position: np.ndarray, quaternion: np.ndarray) -> None:
+        """World-frame SI target; DLS runs below tools, never accepts scene state."""
+        hand_names(side)
+        pos, quat = np.asarray(position, float), np.asarray(quaternion, float)
+        # Commissioning workspace around the supported torso, deliberately bounded.
+        if (
+            pos.shape != (3,)
+            or quat.shape != (4,)
+            or not np.isfinite(pos).all()
+            or not np.isfinite(quat).all()
+            or not np.isclose(np.linalg.norm(quat), 1)
+            or np.any(pos < [0.20, -0.35, 0.74])
+            or np.any(pos > [0.55, 0.35, 1.20])
+        ):
+            raise ValueError("invalid or out-of-workspace Cartesian target")
+        if self.stop_reason:
+            raise ValueError(self.stop_reason)
+        self.cartesian_target = side, pos.copy(), quat.copy()
+
+    def _reach_step(self) -> None:
+        side, goal, quat = self.cartesian_target
+        pos, _ = self.grasp_pose(side)
+        body = self.palms[side]
+        jp, jr = np.zeros((3, self.model.nv)), np.zeros((3, self.model.nv))
+        mujoco.mj_jac(self.model, self.data, jp, jr, pos, body)
+        ids = np.array([self.names.index(f"{side}_{n}_joint") for n in ARM])
+        desired = np.empty(9)
+        mujoco.mju_quat2Mat(desired, quat)
+        current = self.data.xmat[body].reshape(3, 3)
+        rotation_error = 0.5 * sum(
+            np.cross(current[:, i], desired.reshape(3, 3)[:, i]) for i in range(3)
+        )
+        # Scale rotational rows into metres (8 cm tool lever) before DLS, as in
+        # DREAM's existing differential IK; damping avoids singular inverses.
+        jac = np.vstack([jp[:, self.dadr[ids]], 0.08 * jr[:, self.dadr[ids]]])
+        velocity = 4 * np.concatenate([goal - pos, 0.08 * rotation_error])
+        linear_norm = np.linalg.norm(velocity[:3])
+        velocity[:3] *= min(1, 0.04 / max(linear_norm, 1e-12))  # m/s commissioning cap
+        dq = jac.T @ np.linalg.solve(jac @ jac.T + 1e-4 * np.eye(6), velocity)
+        dq *= min(1, 0.4 / max(np.max(np.abs(dq)), 1e-12))  # preserve arm slew cap
+        # 100 ms reference lead; existing rate/effort/range guards still apply.
+        self.target[ids] = np.clip(
+            self.data.qpos[self.qadr[ids]] + 0.1 * dq, self.limits[ids, 0], self.limits[ids, 1]
+        )
 
     def hold(self) -> None:
+        self.cartesian_target = None
         self.target = self.data.qpos[self.qadr].copy()
         self.reference = self.target.copy()
 
@@ -155,6 +245,8 @@ class G1Controller:
             )
             return
         dt = self.model.opt.timestep
+        if self.cartesian_target is not None:
+            self._reach_step()
         self.reference += np.clip(self.target - self.reference, -self.speed * dt, self.speed * dt)
         # Affine actuator bias integrates damping implicitly. Gravity compensation
         # is an equivalent reference offset; actuator AND joint effort clamps remain.

@@ -13,6 +13,7 @@ import mujoco
 import numpy as np
 
 from dream.robot.g1 import G1Controller
+from dream.sim.camera import ROBOT_GEOM_GROUP, CameraSpec, add_camera
 
 ASSET = (
     Path(__file__).resolve().parents[2] / "third_party/unitree_g1/g1_29dof_with_hand_rev_1_0.xml"
@@ -23,6 +24,11 @@ def build_g1(
     object_position: tuple[float, float, float] | None = None,
     radius: float = 0.025,
     mass: float = 0.05,
+    *,
+    constrained: bool = False,
+    camera: CameraSpec | None = None,
+    contact_timeconst: float | None = None,
+    target_position: tuple[float, float, float] | None = None,
 ) -> mujoco.MjModel:
     """Optional free sphere and pedestal are scene setup, never runtime state writes."""
     if radius <= 0 or mass <= 0 or not np.isfinite([radius, mass]).all():
@@ -42,6 +48,13 @@ def build_g1(
         actuator.forcelimited = True
         actuator.forcerange = spec.joint(actuator.name).actfrcrange
     spec.worldbody.add_light(pos=[1, -1, 3], dir=[-0.3, 0.2, -1])
+    if camera is not None:
+        # All robot geometry is used to render its own sensor self-filter. Group
+        # assignment changes rendering only; upstream collision geometry is retained.
+        for geom in spec.geoms:
+            if geom.name != "floor":
+                geom.group = ROBOT_GEOM_GROUP
+        add_camera(spec.worldbody, camera)
     if object_position is not None:
         pos = np.asarray(object_position, float)
         if pos.shape != (3,) or not np.isfinite(pos).all() or pos[2] <= radius:
@@ -56,7 +69,8 @@ def build_g1(
             rgba=[0.3, 0.3, 0.3, 1],
         )
         body = spec.worldbody.add_body(name="test_object", pos=pos)
-        body.add_freejoint(name="test_object_free")
+        if not constrained:
+            body.add_freejoint(name="test_object_free")
         body.add_geom(
             name="test_object_geom",
             type=mujoco.mjtGeom.mjGEOM_SPHERE,
@@ -64,6 +78,26 @@ def build_g1(
             mass=mass,
             rgba=[0.85, 0.15, 0.1, 1],
         )
+    if target_position is not None:
+        p = np.asarray(target_position, float)
+        if p.shape != (3,) or not np.isfinite(p).all():
+            raise ValueError("invalid target platform")
+        spec.worldbody.add_geom(
+            name="target_platform",
+            type=mujoco.mjtGeom.mjGEOM_BOX,
+            pos=p - [0, 0, 0.0125],
+            size=[0.065, 0.065, 0.0125],
+            rgba=[0.1, 0.2, 0.85, 1],
+        )
+    if contact_timeconst is not None:
+        # Numerical contact-resolution experiment, NOT hardware calibration. The
+        # documented positive-solref stability floor is 2 dt; use >=5 dt here.
+        # https://mujoco.readthedocs.io/en/stable/modeling.html#solver-parameters
+        if not np.isfinite(contact_timeconst) or contact_timeconst < 5 * spec.option.timestep:
+            raise ValueError("contact time constant must be at least five physics steps")
+        for geom in spec.geoms:
+            if geom.contype or geom.conaffinity:
+                geom.solref = [contact_timeconst, 1]
     return spec.compile()
 
 

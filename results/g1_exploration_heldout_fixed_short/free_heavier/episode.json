@@ -1,0 +1,59 @@
+{
+  "goal": "InRegion(object='red', region='target')",
+  "success_claimed": false,
+  "reason": "bounded recovery budget exhausted",
+  "tool_calls": 5,
+  "failed_actions": 3,
+  "steps": [
+    {
+      "tool": "reach_object",
+      "args": {
+        "object": "red"
+      },
+      "status": "succeeded",
+      "message": "",
+      "sim_time": 0.55,
+      "wall_time": 10.091
+    },
+    {
+      "tool": "probe_object",
+      "args": {
+        "object": "red"
+      },
+      "status": "succeeded",
+      "message": "bounded-lift response only",
+      "sim_time": 2.85,
+      "wall_time": 9.288
+    },
+    {
+      "tool": "probe_object",
+      "args": {
+        "object": "red"
+      },
+      "status": "rejected",
+      "message": "reach the observed object first",
+      "sim_time": 0.0,
+      "wall_time": 0.0
+    },
+    {
+      "tool": "inspect_object",
+      "args": {
+        "object": "red"
+      },
+      "status": "failed",
+      "message": "red sphere not localized; inspect before another attempt",
+      "sim_time": 2.3,
+      "wall_time": 8.902
+    },
+    {
+      "tool": "inspect_object",
+      "args": {
+        "object": "red"
+      },
+      "status": "failed",
+      "message": "red sphere not localized; inspect before another attempt",
+      "sim_time": 2.15,
+      "wall_time": 3.465
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "goal": "InRegion(object='red', region='target')",
+  "success_claimed": false,
+  "reason": "bounded recovery budget exhausted",
+  "tool_calls": 4,
+  "failed_actions": 3,
+  "steps": [
+    {
+      "tool": "reach_object",
+      "args": {
+        "object": "red"
+      },
+      "status": "succeeded",
+      "message": "",
+      "sim_time": 0.82,
+      "wall_time": 3.772
+    },
+    {
+      "tool": "probe_object",
+      "args": {
+        "object": "red"
+      },
+      "status": "failed",
+      "message": "bounded Cartesian reach timed out",
+      "sim_time": 7.35,
+      "wall_time": 7.57
+    },
+    {
+      "tool": "inspect_object",
+      "args": {
+        "object": "red"
+      },
+      "status": "failed",
+      "message": "red sphere not localized; inspect before another attempt",
+      "sim_time": 2.29,
+      "wall_time": 2.987
+    },
+    {
+      "tool": "inspect_object",
+      "args": {
+        "object": "red"
+      },
+      "status": "failed",
+      "message": "red sphere not localized; inspect before another attempt",
+      "sim_time": 2.39,
+      "wall_time": 2.718
+    }
+  ]
+}

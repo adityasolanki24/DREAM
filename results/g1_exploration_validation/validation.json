@@ -1,0 +1,48 @@
+{
+  "base_git_sha": "5ff5cd445deb92a73100809d30e5bea68cf91c75",
+  "reports": {
+    "focused.xml": {
+      "tests": "34",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "38.475"
+    },
+    "final_focused.xml": {
+      "tests": "22",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "1.654"
+    },
+    "fast.xml": {
+      "tests": "258",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "172.468"
+    },
+    "full.xml": {
+      "tests": "284",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "336.758"
+    }
+  },
+  "frozen_sources_match": true,
+  "rgbd_and_png_frames_verified": {
+    "eig": 23,
+    "fixed_short": 21
+  },
+  "no_heldout_tuning": true,
+  "comparison_script_sha256": "4222461b2d8b92c2f6326a8aee49caf08ae9178d31895d1c3bf3e20596e226a1",
+  "commands": [
+    "python -m pytest -m \"not slow\"",
+    "python -m pytest",
+    "python -m ruff check .",
+    "python -m ruff format --check .",
+    "python -m compileall -q dream experiments",
+    "git diff --cached --check"
+  ]
+}

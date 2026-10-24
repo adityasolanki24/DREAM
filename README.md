@@ -64,7 +64,15 @@ unfamiliar physical behaviour.
 
 Every row marked "implemented and tested" has passing tests and/or saved results in `results/`.
 
-Latest local verification (24 Oct 2026, G1 checkpoint): **250 fast tests passed in 120.09 s**;
+Latest local verification (24 Oct 2026, exploration checkpoint): **258 fast tests passed in
+172.65 s** and **284 full-suite tests passed in 336.86 s**. Focused physics/isolation tests
+passed 34/34; the final focused non-slow checks passed 22/22. Ruff lint/format, compilation
+and diff checks pass. XML, freeze hashes, inference availability and the complete paired
+comparison are in `results/g1_exploration_validation`. Fast timing includes concurrent
+evaluation physics and still exceeds the 60-second target. These tests include real RGB-D
+and G1/Panda physics plus labelled orchestration doubles; no new VLM checkpoint was executed.
+
+Prior G1 commissioning checkpoint: **250 fast tests passed in 120.09 s**;
 **273 full-suite tests passed in 479.97 s**. Ruff lint/format, Python compilation and staged
 diff checks pass. XML and source hashes are in `results/g1_integration_dev`. These include
 real local G1 and Panda physics, safety/isolation contracts and scripted model-interface tests;
@@ -128,6 +136,7 @@ these cloud-only changes. The Windows fast-suite duration still exceeds the 60 s
 | 12b | Learned motor policy (MolmoAct2-DROID first open-loop candidate; GR00T alternative) | **Partially working:** real checkpoint produced a finite 15×8 chunk on L4; raw gripper range failed (4/15). Source contract audited; six fresh predictions physically reached (6/6). Learned task failed, classical succeeded. No manipulation transfer established | `tests/test_molmo.py`, `results/molmo_observation_dev`, source/decision audit below |
 | 12c | Booster T1 locomotion / visual navigation research | **Four real PPO actions; standing gate failed:** 0.08 s / 16 physics substeps, then exact-range knee rejection. CPU actor 81→23 and waypoint contracts tested; standing, walking and NavGPT inference **not validated** | `results/t1_stand_state_failure`, `results/t1_stand_second_retry_local`, `tests/test_navigation.py` |
 | 12d | Supported G1 with seven-joint Unitree hands | **Implemented and CPU development-tested:** 43 actuated hinges, both hands articulate; three scripted sphere lifts/holds/releases pass contact/state gates, one offset challenge fails correctly. Fixed pelvis, uncalibrated soft contacts; no autonomous grasping, walking or Isaac execution | `tests/test_g1.py`, `results/g1_dex3_checkpoint`, `results/g1_dex3_challenge` |
+| 12e | RGB-D guided supported G1 exploration | **Partial, physically executed:** sensor-derived reaching, tactile-gated lift probes, Bayesian updates and bounded recovery through the existing task runtime. One complete held-out transfer accepted out of four EIG trials; placement/contact failures remain. Deterministic reasoning; no genuine G1 VLM inference | `tests/test_g1_exploration.py`, `results/g1_exploration_heldout_eig`, `results/g1_exploration_heldout_fixed_short` |
 | 13 | Generalisation evaluation across goals, arrangements and task families | Planned | n/a |
 | 14 | Learned world/motor models, mobile or whole-body embodiments | Planned, conditional on evidence and compute | n/a |
 
@@ -1542,8 +1551,9 @@ ranges and effort caps remain. Deterministic reset is scene initialization only.
 are rate-limited; nonfinite state, measured range violations and overspeed latch a stop.
 `DexterousToolbox` reuses DREAM's result/validation boundary and the existing VLM runtime
 can offer its hand tools and correct embodiment prompt. This dispatch was tested with a
-scripted backend, **not a new model inference run**. Tools do not certify grasps. Object
-perception, Cartesian reaching, autonomous grasp selection and placement remain unsupported.
+scripted backend, **not a new model inference run**. Those hand tools do not certify grasps.
+At that checkpoint, perception, Cartesian reaching and autonomous placement were unsupported;
+the sensor-driven continuation below adds a narrow first slice.
 
 Frozen development gates and configurations are in `experiments/configs/g1_dex3_dev.json`
 and `g1_dex3_challenge.json`. Every trial runs seven simulated seconds through actuators,
@@ -1612,15 +1622,107 @@ test prevent the diagnostic from equating inward velocity with recovery. A propo
 residual/dwell/growth policy is recorded but **not enabled or physically validated**. No cloud
 resources were created and no fresh paid run is authorized.
 
-## Next milestone: calibrate G1 contact and force behaviour before broader manipulation
+## Sensor-guided G1 exploration: one completed transfer, substantial failures retained
+
+`python -m experiments.g1_explore_unknown --out results/g1_exploration_new` runs the supported
+G1 with real RGB-D sensing and actuated physics. It uses the existing optional `demo` extra
+for PNG saving. No model or new dependency is downloaded. The baseline binds the stated
+instruction to `InRegion("red", "target")`; it does not interpret arbitrary language.
+
+Perception back-projects actual RGB/depth pixels, fits one separated red sphere and estimates
+a covariance, radius and fit residual. The blue target's top is also measured from RGB-D;
+a vertical workspace prior rejects the similarly blue floor. This supports opaque spheres
+of radius 1–6 cm and a blue horizontal platform, not unfamiliar appearance or shape classes.
+The 2 mm uncertainty floor and 4 mm contact-response spread are development assumptions,
+not calibrated probabilities. Sphere orientation, mass and attachment remain unobserved.
+
+Bounded damped-Jacobian control moves the supported hand toward the measured location.
+It uses only robot kinematics, preserves the previous slew/effort/joint guards, and adds
+a 12 N tactile-load budget within the exploration tools. Two finger chains must establish
+contact before displacement can update the belief. The robot chooses between 12/25 mm lift
+probes by expected entropy reduction minus effort, with a fixed-short baseline using the
+same actions, controller, budgets and scenes. This is a separate bounded-lift likelihood,
+not a transplanted gantry mechanism model. A negative result means no resolved movement
+under the available probe, not proof of universal immobility or a particular attachment.
+
+`ExplorationPlanner` implements the existing `TaskAgent` protocol. `ExplorationToolbox`
+reuses tool schemas/results, cancellation and the existing `VLMAgent` boundary. It offers
+observe/inspect/reach/probe/grasp/move/release/verify operations; generated coordinates and
+raw hand/joint commands are not exposed. Contact and vision establish the session's grasp
+offset; finger closure alone cannot certify a grasp. Failed actions trigger re-observation
+and bounded inspection/retry, never an unbounded repeated command. Successful recovery
+from a failed action has **not** been demonstrated. Physics pauses during camera/reasoning
+calls in this synchronous experiment; this is not a real-time performance claim.
+
+**Frozen comparison:** four paired cases with fresh seeds 4001–4004, shifted positions,
+sizes and masses, plus an unreachable challenge. Source hashes, complete source snapshots,
+configurations, raw RGB-D/calibration/masks, estimates, beliefs, tools, 100 Hz joint/contact
+traces and independent 1 kHz whole-object penetration peaks are saved. No controller or
+scoring changes followed the held-out outcomes. These are within-family parameter shifts,
+not open-world generalisation.
+
+| Case | EIG result | Fixed-short result | Physical evidence limit |
+|---|---|---|---|
+| `free_shift` | Movable after one probe; placement failed | Uncertain after one probe; failed | Peak object penetration 5.681/5.088 mm; both rejected |
+| `fixed_shift` | Declined after one probe | Declined after two probes | Starts with 2.733 mm finger/object overlap; not valid transfer evidence |
+| `free_heavier` | **Verified transfer after one probe** | Uncertain after one probe; failed | Peaks 0.913/7.625 mm; only EIG passes the 1 mm gate |
+| `unreachable_challenge` | Refused, no probe | Refused, no probe | Sensor target exceeds the bounded robot workspace |
+
+Totals are **1/4 accepted goals versus 0/4**, with **zero false success claims across eight
+episodes**. Invalid initial contact and all other failures remain in those totals. Four
+paired cases do not establish statistical superiority. Maximum localisation error on
+detected frames is 1.68 mm; missed detections remain recorded. The completed episode lasts
+12.10 simulated seconds, changes its movable belief from 0.5 to 0.9965, establishes sustained
+lift contact, carries the sphere and verifies release inside the observed target. Independent
+scoring agrees. Final half-second drift is 1.76 mm and residual speed is 3.52 mm/s; no
+long-term settling guarantee is claimed. Development nominal placement still fails.
+
+![Original RGB-D image after G1 transfer](results/g1_exploration_heldout_eig/free_heavier/frames/0006.png)
+
+The position trace is `results/g1_exploration_heldout_eig/free_heavier/object_trajectory.png`.
+`results/g1_exploration_validation/comparison.json` includes every trial and the independent
+initial-contact audit. `experiments/summarize_g1_exploration.py` reproduces that aggregation.
+Rerun the frozen methods into new directories with
+`--config experiments/configs/g1_explore_heldout_eig.json` or
+`--config experiments/configs/g1_explore_heldout_fixed_short.json`. These scenes have now
+been seen; fixes guided by them require fresh evaluation scenes.
+
+**Contact audit:** `python -m experiments.g1_contact_resolution --out results/g1_contact_new`
+compares 20/5 ms critically damped `solref`, two radii and 1/0.5 ms physics steps. The same
+commissioning closure/lift has 8.508→0.889 mm and 5.793→0.731 mm sampled hand penetration,
+with similar results at half timestep. The [documented solver time constant](https://mujoco.readthedocs.io/en/stable/modeling.html#solver-parameters)
+supports this numerical-resolution study; it is **not measured material calibration**.
+The exploration gate is stronger: it samples all object contacts every physics step,
+including support/floor impacts. It exposes failures that the commissioning measure does
+not cover. The upstream/default contact variant remains reproducible.
+
+| Change | Rule 3 class | Evidence and remaining limit |
+|---|---|---|
+| Reuse RGB-D geometry; reject floor; fit sphere with covariance | General algorithmic correction / scoped perception baseline | Real image regressions and frozen localisation errors; red sphere/blue target assumptions remain |
+| Damped Cartesian control and measured grasp-offset compensation | General algorithmic correction | Two independent sensor-derived reach tests; no raw coordinates from a model |
+| Bounded-lift likelihood, two candidates, tactile closing and release strategy | Task-specific heuristics | Measured posterior updates and one completed episode; missed/rolling releases remain |
+| 5 ms `solref` and commissioning thresholds | Unverified physical calibration choices | Numerical sensitivity measured; no material measurement or broad contact validity |
+| Fixed pelvis/pedestal and relocated development target | Environment simplification | Initial fixture overlap failure preserved; no balance claim |
+| Probe response recorded even when reach cannot converge | General algorithmic correction | Failing/passing regression; a constrained response is evidence, not discarded as a reach failure |
+
+Original failed stages and regression reports remain in `results/g1_exploration_dev1` through
+`dev6`; pre-freeze development recordings have hashes, and final frozen runs also include full
+source snapshots. No original result was overwritten. The VLM boundary was tested separately
+with a **scripted backend**. Genuine Qwen inference was not executed: the local environment
+has neither Torch nor Transformers, the inspected default cache has no Qwen checkpoint and
+no inference endpoint is configured. The availability audit is saved under validation.
+No paid workload, checkpoint download, walking or Isaac integration was started.
+
+## Next milestone: reliable release and physically valid shifted contact scenes
 
 Milestone 11 (discovery as a tool on the Panda) is implemented on a narrowed scene with the
 oracle tracker; see its audit. Milestone 10's first slice (camera pick-and-place) is done. The
 camera-discovery dependency remains open, with its failures preserved. The current research
 branch has audited a real policy contract and physically reached six fresh targets, while
 preserving its failed manipulation task and testing recorded chunk replay. The next dependency
-is reducing and independently validating G1 hand contact penetration without weakening safety
-or tuning to one sphere, then sensor-guided reaching. Booster T1 remains a preserved experimental
+is contact-valid scene initialization, reliable release and recovery on fresh shifted objects,
+without weakening safety or tuning to one sphere. Sensor-guided reaching is now implemented.
+Booster T1 remains a preserved experimental
 baseline; visual navigation still requires validated walking. Useful learned manipulation remains a separate open
 capability; its failed pilot is preserved and bounded chunk execution is locally tested. MuJoCo stays the
 regression baseline. No Isaac Sim demonstration or continuous learned control is claimed.

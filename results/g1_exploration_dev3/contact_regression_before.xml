@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.655" timestamp="2026-10-24T17:45:42.528231+11:00" hostname="LAPTOP-H2LK8P6D"><testcase classname="tests.test_g1_exploration" name="test_established_contact_does_not_chase_the_nominal_tool_frame" time="0.060"><failure message="AssertionError: assert 'reach_object' == 'grasp_object'&#10;  &#10;  - grasp_object&#10;  ? -  ^^&#10;  + reach_object&#10;  ?  + ^^">def test_established_contact_does_not_chase_the_nominal_tool_frame():
+        from dream.runtime.exploration import ExplorationPlanner
+        from dream.tools.goals import InRegion
+    
+        scene = {"objects":[{"name":"red"}],
+                 "belief":{"model_inadequate":False,"p_movable":.99,"probes":1},
+                 "holding":None,"reached":False,"hand_closed":True,"in_contact":True}
+        action = ExplorationPlanner().next_action(InRegion("red","target"),scene,{},[])
+&gt;       assert action.name == "grasp_object"
+E       AssertionError: assert 'reach_object' == 'grasp_object'
+E         
+E         - grasp_object
+E         ? -  ^^
+E         + reach_object
+E         ?  + ^^
+
+tests\test_g1_exploration.py:130: AssertionError</failure></testcase></testsuite></testsuites>

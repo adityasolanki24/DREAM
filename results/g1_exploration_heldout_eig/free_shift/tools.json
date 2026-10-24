@@ -1,0 +1,744 @@
+[
+  {
+    "tool": "observe_scene",
+    "arguments": "{}",
+    "status": "succeeded",
+    "message": "",
+    "data": {
+      "objects": [
+        {
+          "name": "red",
+          "time_s": 0.0,
+          "position_m": [
+            0.3487527786768531,
+            0.10754708063806682,
+            0.9163640713581649
+          ],
+          "covariance_m2": [
+            [
+              4.210398558424668e-06,
+              -1.222731143227017e-07,
+              9.24425630617211e-08
+            ],
+            [
+              -1.2227311432270183e-07,
+              4.2249176596808914e-06,
+              -9.871335381641919e-08
+            ],
+            [
+              9.244256306172107e-08,
+              -9.871335381641902e-08,
+              4.159836326359918e-06
+            ]
+          ],
+          "radius_m": 0.02089147171448443,
+          "fit_rms_m": 0.0016790010141856221,
+          "pixels": 124,
+          "source": "rendered RGB-D, red segmentation, sphere surface fit",
+          "orientation": "unobservable for sphere"
+        }
+      ],
+      "fixtures": {
+        "target": [
+          [
+            0.4011546151399675,
+            0.2580506503553212,
+            0.8961095855076391
+          ],
+          0.06462224013463214
+        ]
+      },
+      "holding": null,
+      "at_target": false,
+      "released": false,
+      "hand_closed": false,
+      "reached": false,
+      "in_contact": false,
+      "belief": {
+        "p_movable": 0.5,
+        "probes": 0,
+        "model_inadequate": false
+      },
+      "unobserved_properties": [
+        "mass",
+        "attachment_type"
+      ]
+    },
+    "time_s": 0.0
+  },
+  {
+    "tool": "verify_goal",
+    "arguments": "{'goal': InRegion(object='red', region='target')}",
+    "status": "succeeded",
+    "message": "RGB-D placement verification",
+    "data": {
+      "satisfied": false,
+      "margin_m": -0.11547410818352971,
+      "uncertain": false
+    },
+    "time_s": 0.0
+  },
+  {
+    "tool": "reach_object",
+    "arguments": "{'object': 'red'}",
+    "status": "succeeded",
+    "message": "",
+    "data": {
+      "sensor_target_m": [
+        0.3487527786768531,
+        0.10754708063806682,
+        0.9163640713581649
+      ],
+      "initial_error_m": 0.033143977830646064,
+      "final_command_tracking_error_m": 0.005243891223132592,
+      "after": {
+        "time_s": 0.5000000000000003,
+        "position_m": [
+          0.34943757762790967,
+          0.10712086839844955,
+          0.9168175981058467
+        ],
+        "covariance_m2": [
+          [
+            4.118968226704732e-06,
+            -6.729679953991015e-08,
+            4.9748552826575454e-08
+          ],
+          [
+            -6.729679953991009e-08,
+            4.152876096597175e-06,
+            -6.376631855877386e-08
+          ],
+          [
+            4.97485528265754e-08,
+            -6.376631855877389e-08,
+            4.106820167637904e-06
+          ]
+        ],
+        "radius_m": 0.02044203233777745,
+        "fit_rms_m": 0.0014600222609012924,
+        "pixels": 126,
+        "source": "rendered RGB-D, red segmentation, sphere surface fit",
+        "orientation": "unobservable for sphere"
+      }
+    },
+    "time_s": 0.5000000000000003
+  },
+  {
+    "tool": "observe_scene",
+    "arguments": "{}",
+    "status": "succeeded",
+    "message": "",
+    "data": {
+      "objects": [
+        {
+          "name": "red",
+          "time_s": 0.5000000000000003,
+          "position_m": [
+            0.34943757762790967,
+            0.10712086839844955,
+            0.9168175981058467
+          ],
+          "covariance_m2": [
+            [
+              4.118968226704732e-06,
+              -6.729679953991015e-08,
+              4.9748552826575454e-08
+            ],
+            [
+              -6.729679953991009e-08,
+              4.152876096597175e-06,
+              -6.376631855877386e-08
+            ],
+            [
+              4.97485528265754e-08,
+              -6.376631855877389e-08,
+              4.106820167637904e-06
+            ]
+          ],
+          "radius_m": 0.02044203233777745,
+          "fit_rms_m": 0.0014600222609012924,
+          "pixels": 126,
+          "source": "rendered RGB-D, red segmentation, sphere surface fit",
+          "orientation": "unobservable for sphere"
+        }
+      ],
+      "fixtures": {
+        "target": [
+          [
+            0.40217191605082386,
+            0.25862258494843254,
+            0.8960860332171696
+          ],
+          0.06379789337182235
+        ]
+      },
+      "holding": null,
+      "at_target": false,
+      "released": false,
+      "hand_closed": false,
+      "reached": true,
+      "in_contact": false,
+      "belief": {
+        "p_movable": 0.5,
+        "probes": 0,
+        "model_inadequate": false
+      },
+      "unobserved_properties": [
+        "mass",
+        "attachment_type"
+      ]
+    },
+    "time_s": 0.5000000000000003
+  },
+  {
+    "tool": "verify_goal",
+    "arguments": "{'goal': InRegion(object='red', region='target')}",
+    "status": "succeeded",
+    "message": "RGB-D placement verification",
+    "data": {
+      "satisfied": false,
+      "margin_m": -0.11676309824433401,
+      "uncertain": false
+    },
+    "time_s": 0.5000000000000003
+  },
+  {
+    "tool": "probe_object",
+    "arguments": "{'object': 'red'}",
+    "status": "succeeded",
+    "message": "bounded-lift response only",
+    "data": {
+      "selection": {
+        "distance_m": 0.025,
+        "eig_nats": 0.6765625568182037,
+        "utility": 0.6565625568182036,
+        "candidates": [
+          {
+            "distance_m": 0.012,
+            "eig_nats": 0.42518559851096144,
+            "utility": 0.41558559851096144
+          },
+          {
+            "distance_m": 0.025,
+            "eig_nats": 0.6765625568182037,
+            "utility": 0.6565625568182036
+          }
+        ],
+        "strategy": "eig",
+        "expected_displacement_m": {
+          "responsive": 0.025,
+          "unresolved": 0
+        },
+        "sigma_m": 0.004968068318743942
+      },
+      "evidence": {
+        "prior": 0.5,
+        "posterior": 0.99600767031927,
+        "measured_displacement_m": 0.017927203492864696,
+        "expected_responsive_displacement_m": 0.025,
+        "sigma_m": 0.004958072907799954,
+        "contact_valid": true,
+        "model_inadequate": false,
+        "update_accepted": true
+      },
+      "tracking_error_m": 0.001577947774068339,
+      "finger_forces_n": {
+        "thumb": 0.746419969730092,
+        "index": 0.0,
+        "middle": 0.6677398666730199
+      },
+      "measured_hand_displacement_m": 0.02343031438462806,
+      "before": {
+        "time_s": 1.9999999999998905,
+        "position_m": [
+          0.34875925997217216,
+          0.10924448043193988,
+          0.9163946632939042
+        ],
+        "covariance_m2": [
+          [
+            4.243836626155387e-06,
+            -1.7167618635455361e-07,
+            1.6131229267555905e-07
+          ],
+          [
+            -1.7167618635455393e-07,
+            4.3556614135248565e-06,
+            -1.0814361808683738e-07
+          ],
+          [
+            1.6131229267555894e-07,
+            -1.0814361808683702e-07,
+            4.340851409853629e-06
+          ]
+        ],
+        "radius_m": 0.020250981707177658,
+        "fit_rms_m": 0.0014780970894428419,
+        "pixels": 68,
+        "source": "rendered RGB-D, red segmentation, sphere surface fit",
+        "orientation": "unobservable for sphere"
+      },
+      "after": {
+        "time_s": 3.4999999999997256,
+        "position_m": [
+          0.33395514829724837,
+          0.11497488870608981,
+          0.9343218667867689
+        ],
+        "covariance_m2": [
+          [
+            4.262806384632113e-06,
+            -8.490363659949288e-08,
+            1.944215204608233e-07
+          ],
+          [
+            -8.49036365994934e-08,
+            4.212862999030159e-06,
+            -7.839483445997665e-08
+          ],
+          [
+            1.9442152046082343e-07,
+            -7.83948344599763e-08,
+            4.241635549206261e-06
+          ]
+        ],
+        "radius_m": 0.02101358011011692,
+        "fit_rms_m": 0.001166868068262062,
+        "pixels": 65,
+        "source": "rendered RGB-D, red segmentation, sphere surface fit",
+        "orientation": "unobservable for sphere"
+      }
+    },
+    "time_s": 3.4999999999997256
+  },
+  {
+    "tool": "observe_scene",
+    "arguments": "{}",
+    "status": "succeeded",
+    "message": "",
+    "data": {
+      "objects": [
+        {
+          "name": "red",
+          "time_s": 3.4999999999997256,
+          "position_m": [
+            0.33395514829724837,
+            0.11497488870608981,
+            0.9343218667867689
+          ],
+          "covariance_m2": [
+            [
+              4.262806384632113e-06,
+              -8.490363659949288e-08,
+              1.944215204608233e-07
+            ],
+            [
+              -8.49036365994934e-08,
+              4.212862999030159e-06,
+              -7.839483445997665e-08
+            ],
+            [
+              1.9442152046082343e-07,
+              -7.83948344599763e-08,
+              4.241635549206261e-06
+            ]
+          ],
+          "radius_m": 0.02101358011011692,
+          "fit_rms_m": 0.001166868068262062,
+          "pixels": 65,
+          "source": "rendered RGB-D, red segmentation, sphere surface fit",
+          "orientation": "unobservable for sphere"
+        }
+      ],
+      "fixtures": {
+        "target": [
+          [
+            0.40130479234823385,
+            0.25870598213858137,
+            0.8961095855076391
+          ],
+          0.06427377841247389
+        ]
+      },
+      "holding": null,
+      "at_target": false,
+      "released": false,
+      "hand_closed": true,
+      "reached": false,
+      "in_contact": true,
+      "belief": {
+        "p_movable": 0.99600767031927,
+        "probes": 1,
+        "model_inadequate": false
+      },
+      "unobserved_properties": [
+        "mass",
+        "attachment_type"
+      ]
+    },
+    "time_s": 3.4999999999997256
+  },
+  {
+    "tool": "verify_goal",
+    "arguments": "{'goal': InRegion(object='red', region='target')}",
+    "status": "succeeded",
+    "message": "RGB-D placement verification",
+    "data": {
+      "satisfied": false,
+      "margin_m": -0.10921442260664022,
+      "uncertain": false
+    },
+    "time_s": 3.4999999999997256
+  },
+  {
+    "tool": "grasp_object",
+    "arguments": "{'object': 'red'}",
+    "status": "succeeded",
+    "message": "vision lift and tactile evidence",
+    "data": {
+      "measured_lift_m": 0.03326145005577985,
+      "contact": true,
+      "tracks_hand": true
+    },
+    "time_s": 4.659999999999891
+  },
+  {
+    "tool": "observe_scene",
+    "arguments": "{}",
+    "status": "succeeded",
+    "message": "",
+    "data": {
+      "objects": [
+        {
+          "name": "red",
+          "time_s": 4.659999999999891,
+          "position_m": [
+            0.3346168160758445,
+            0.11584772305636316,
+            0.9675833168425487
+          ],
+          "covariance_m2": [
+            [
+              4.302970748600636e-06,
+              -1.6293766901307942e-07,
+              1.6925390806687812e-07
+            ],
+            [
+              -1.629376690130796e-07,
+              4.254466670234209e-06,
+              -6.420745101311586e-08
+            ],
+            [
+              1.6925390806687825e-07,
+              -6.420745101311589e-08,
+              4.209057924880432e-06
+            ]
+          ],
+          "radius_m": 0.021056229157592716,
+          "fit_rms_m": 0.001142060388034451,
+          "pixels": 64,
+          "source": "rendered RGB-D, red segmentation, sphere surface fit",
+          "orientation": "unobservable for sphere"
+        }
+      ],
+      "fixtures": {
+        "target": [
+          [
+            0.4011201706624077,
+            0.25775197805532635,
+            0.8961095855076391
+          ],
+          0.06476015606944804
+        ]
+      },
+      "holding": "red",
+      "at_target": false,
+      "released": false,
+      "hand_closed": true,
+      "reached": false,
+      "in_contact": true,
+      "belief": {
+        "p_movable": 0.99600767031927,
+        "probes": 1,
+        "model_inadequate": false
+      },
+      "unobserved_properties": [
+        "mass",
+        "attachment_type"
+      ]
+    },
+    "time_s": 4.659999999999891
+  },
+  {
+    "tool": "verify_goal",
+    "arguments": "{'goal': InRegion(object='red', region='target')}",
+    "status": "succeeded",
+    "message": "RGB-D placement verification",
+    "data": {
+      "satisfied": false,
+      "margin_m": -0.10696466006925985,
+      "uncertain": false
+    },
+    "time_s": 4.659999999999891
+  },
+  {
+    "tool": "move_object",
+    "arguments": "{'object': 'red', 'target': 'target'}",
+    "status": "succeeded",
+    "message": "",
+    "data": {
+      "target_from_rgbd_m": [
+        0.41577147083124055,
+        0.2517591001032613,
+        0.955421904498512
+      ],
+      "tracking_error_m": 0.005783507513275518
+    },
+    "time_s": 7.3000000000007725
+  },
+  {
+    "tool": "observe_scene",
+    "arguments": "{}",
+    "status": "succeeded",
+    "message": "",
+    "data": {
+      "objects": [
+        {
+          "name": "red",
+          "time_s": 7.3000000000007725,
+          "position_m": [
+            0.4034046809994464,
+            0.257901200385549,
+            0.9549910796387063
+          ],
+          "covariance_m2": [
+            [
+              4.313592843896849e-06,
+              -1.0728510248339053e-07,
+              2.1988863354379246e-07
+            ],
+            [
+              -1.072851024833911e-07,
+              4.368224160374419e-06,
+              -9.887244850529e-08
+            ],
+            [
+              2.1988863354379246e-07,
+              -9.887244850528943e-08,
+              4.2962770661117095e-06
+            ]
+          ],
+          "radius_m": 0.020304309942968595,
+          "fit_rms_m": 0.001507539066875375,
+          "pixels": 66,
+          "source": "rendered RGB-D, red segmentation, sphere surface fit",
+          "orientation": "unobservable for sphere"
+        }
+      ],
+      "fixtures": {
+        "target": [
+          [
+            0.4009467568951073,
+            0.25625532915850313,
+            0.8961090263714196
+          ],
+          0.06289417729044176
+        ]
+      },
+      "holding": "red",
+      "at_target": true,
+      "released": false,
+      "hand_closed": true,
+      "reached": false,
+      "in_contact": true,
+      "belief": {
+        "p_movable": 0.99600767031927,
+        "probes": 1,
+        "model_inadequate": false
+      },
+      "unobserved_properties": [
+        "mass",
+        "attachment_type"
+      ]
+    },
+    "time_s": 7.3000000000007725
+  },
+  {
+    "tool": "verify_goal",
+    "arguments": "{'goal': InRegion(object='red', region='target')}",
+    "status": "succeeded",
+    "message": "RGB-D placement verification",
+    "data": {
+      "satisfied": false,
+      "margin_m": -0.02657774332431807,
+      "uncertain": false
+    },
+    "time_s": 7.3000000000007725
+  },
+  {
+    "tool": "release_object",
+    "arguments": "{}",
+    "status": "succeeded",
+    "message": "release commanded; goal still needs vision verification",
+    "data": {},
+    "time_s": 11.479999999999077
+  },
+  {
+    "tool": "observe_scene",
+    "arguments": "{}",
+    "status": "succeeded",
+    "message": "",
+    "data": {
+      "objects": [],
+      "fixtures": {
+        "target": [
+          [
+            0.4013881185911684,
+            0.25765938392303617,
+            0.8962498543370172
+          ],
+          0.06415685941360735
+        ]
+      },
+      "holding": null,
+      "at_target": true,
+      "released": true,
+      "hand_closed": false,
+      "reached": false,
+      "in_contact": false,
+      "belief": {
+        "p_movable": 0.99600767031927,
+        "probes": 1,
+        "model_inadequate": false
+      },
+      "unobserved_properties": [
+        "mass",
+        "attachment_type"
+      ]
+    },
+    "time_s": 11.479999999999077
+  },
+  {
+    "tool": "verify_goal",
+    "arguments": "{'goal': InRegion(object='red', region='target')}",
+    "status": "succeeded",
+    "message": "RGB-D placement verification",
+    "data": {
+      "satisfied": false,
+      "margin_m": null,
+      "uncertain": true
+    },
+    "time_s": 11.479999999999077
+  },
+  {
+    "tool": "inspect_object",
+    "arguments": "{'object': 'red'}",
+    "status": "failed",
+    "message": "red sphere not localized; inspect before another attempt",
+    "data": {},
+    "time_s": 13.559999999997924
+  },
+  {
+    "tool": "observe_scene",
+    "arguments": "{}",
+    "status": "succeeded",
+    "message": "",
+    "data": {
+      "objects": [],
+      "fixtures": {
+        "target": [
+          [
+            0.40099706050592276,
+            0.25905490149677,
+            0.8962017699877544
+          ],
+          0.06419414972085455
+        ]
+      },
+      "holding": null,
+      "at_target": true,
+      "released": true,
+      "hand_closed": false,
+      "reached": false,
+      "in_contact": false,
+      "belief": {
+        "p_movable": 0.99600767031927,
+        "probes": 1,
+        "model_inadequate": false
+      },
+      "unobserved_properties": [
+        "mass",
+        "attachment_type"
+      ]
+    },
+    "time_s": 13.559999999997924
+  },
+  {
+    "tool": "verify_goal",
+    "arguments": "{'goal': InRegion(object='red', region='target')}",
+    "status": "succeeded",
+    "message": "RGB-D placement verification",
+    "data": {
+      "satisfied": false,
+      "margin_m": null,
+      "uncertain": true
+    },
+    "time_s": 13.559999999997924
+  },
+  {
+    "tool": "inspect_object",
+    "arguments": "{'object': 'red'}",
+    "status": "failed",
+    "message": "red sphere not localized; inspect before another attempt",
+    "data": {},
+    "time_s": 15.56999999999681
+  },
+  {
+    "tool": "observe_scene",
+    "arguments": "{}",
+    "status": "succeeded",
+    "message": "",
+    "data": {
+      "objects": [],
+      "fixtures": {
+        "target": [
+          [
+            0.4011619535944098,
+            0.25817198419159915,
+            0.8962784619560806
+          ],
+          0.06436657991621919
+        ]
+      },
+      "holding": null,
+      "at_target": true,
+      "released": true,
+      "hand_closed": false,
+      "reached": false,
+      "in_contact": false,
+      "belief": {
+        "p_movable": 0.99600767031927,
+        "probes": 1,
+        "model_inadequate": false
+      },
+      "unobserved_properties": [
+        "mass",
+        "attachment_type"
+      ]
+    },
+    "time_s": 15.56999999999681
+  },
+  {
+    "tool": "verify_goal",
+    "arguments": "{'goal': InRegion(object='red', region='target')}",
+    "status": "succeeded",
+    "message": "RGB-D placement verification",
+    "data": {
+      "satisfied": false,
+      "margin_m": null,
+      "uncertain": true
+    },
+    "time_s": 15.56999999999681
+  }
+]

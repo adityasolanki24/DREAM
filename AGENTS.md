@@ -513,10 +513,14 @@ Work on **one coherent vertical slice at a time**. The README names the current 
 3. A task runtime with structured tool calling.
 4. Several tasks in shared scenes without a script per task.
 
-**Current: supported G1 dexterous-hand commissioning on local CPU physics.** Preserve the
-Panda and T1 baselines. Use verified Unitree assets, real finger actuators, independent
-contact/object scoring and explicitly labelled base support. Establish calibrated contact
-and force behaviour before claiming physically realistic grasping or autonomous manipulation.
+**Current: supported G1 sensor-guided physical exploration on local CPU physics.** Preserve
+the Panda and T1 baselines. Use RGB-D estimates with uncertainty, bounded proprioceptive
+control, tactile/displacement evidence and independent contact/object scoring. Object scene
+parameters never enter decisions. Keep the fixed pelvis explicit. Prioritise physically
+valid initial scenes, contact-aware release and bounded recovery across parameter shifts;
+numerically converged solver settings are not measured material calibration. Require fresh
+evaluation after a held-out failure guides a correction. Do not expand to articulated
+mechanisms or free-base motion before this closed-loop slice has reliable evidence.
 No new T1 cloud run or paid infrastructure is authorized by this milestone. Pretrained motor
 reuse still requires verified cameras, state, units, frames, normalization, action horizon
 and control frequency, with no silent classical fallback.
