@@ -35,6 +35,7 @@ class T1Policy:
             raise ValueError("invalid default joint positions")
         self.policy = policy
         self.last = np.zeros(23, dtype=np.float32)
+        self.target_limit_excess = np.zeros(23, dtype=float)
 
     @classmethod
     def load(cls, folder: Path, hashes: dict, joint_names: list[str]):
@@ -89,7 +90,11 @@ class T1Policy:
             raise ValueError("invalid locomotion policy action")
         target = np.empty(23)
         target[self.indices] = self.default + 0.5 * action
-        if np.any(target < limits[:, 0]) or np.any(target > limits[:, 1]):
-            raise ValueError("locomotion policy target exceeds physical joint limits")
+        # A PPO joint-position setpoint may exceed the mechanical travel range.
+        # Preserve the trained action; PhysX enforces the physical joint limits.
+        # Record exceedances so they remain visible in simulation evidence.
+        self.target_limit_excess = np.maximum(
+            np.maximum(limits[:, 0] - target, target - limits[:, 1]), 0.0
+        )
         self.last = action.copy()
         return target

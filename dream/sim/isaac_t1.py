@@ -257,4 +257,5 @@ class IsaacT1:
             "joint_velocity_rad_s": sensor["dq"].tolist(),
             "joint_target_rad": target.tolist(),
             "raw_ppo_action": self.actor.last.tolist(),
+            "target_limit_excess_rad": self.actor.target_limit_excess.tolist(),
         }

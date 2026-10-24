@@ -122,3 +122,34 @@ def test_robot_rotation_is_scalar_first_and_preserves_forward_left_convention():
     assert np.allclose(r.T @ r, np.eye(3))
     with pytest.raises(ValueError, match="orientation"):
         rotation_wxyz([2, 0, 0, 0])
+
+
+def test_t1_out_of_limit_setpoints_are_recorded():
+    cfg = {
+        "joint_names": [str(i) for i in range(23)],
+        "default_joint_pos": [0.0] * 23,
+        "sim_dt": 0.005,
+        "decimation": 4,
+        "action_scale": 0.5,
+    }
+    actor = T1Policy(
+        cfg,
+        lambda _: np.full(23, 2.0, dtype=np.float32),
+        cfg["joint_names"],
+    )
+    limits = np.tile([-0.1, 0.1], (23, 1))
+    q = np.zeros(23)
+
+    target = actor.target(
+        q, q, [0, 0, 0], [0, 0, 0],
+        [0, 0, -1], [0, 0, 0], limits,
+    )
+    assert np.allclose(target, 1.0)
+    assert np.allclose(actor.target_limit_excess, 0.9)
+
+    # Actual physical joint positions outside limits remain invalid.
+    with pytest.raises(ValueError, match="proprioception"):
+        actor.target(
+            np.full(23, 0.2), q, [0, 0, 0], [0, 0, 0],
+            [0, 0, -1], [0, 0, 0], limits,
+        )
