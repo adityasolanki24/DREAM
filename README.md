@@ -64,7 +64,46 @@ unfamiliar physical behaviour.
 
 Every row marked "implemented and tested" has passing tests and/or saved results in `results/`.
 
-Latest adaptation/recording checkpoint (25 Oct 2026, based on `97398ed` with recorded source
+Current autonomy continuation (25 Oct 2026, based on `b9e25d4`): reasoning pauses now
+retain finger references while stopping arm motion, and inspection preserves an existing
+grip and avoids moving an already visible object. Observed hand/object separation clears
+stale grasp/placement state. These are general control/recovery corrections, with the
+original safety limits and difficult scenes retained. Local evidence and failing/passing
+regressions are in `results/g1_autonomy_dev`.
+The latest fast run passes **302 tests in 121.61 s** (27 slow tests excluded), above the
+60-second target. The preceding full run passes 323 tests; the expanded final full run
+is in progress. A new verified grasp also clears the previous placement/release flags,
+so failed-placement recovery must carry the object to the target again.
+
+The new classical development regression is **1/2 placements**, with no false success
+claims: `free_heavier` succeeds in 12.26 s with 4.48 s sustained lifted contact and
+0.649 mm peak penetration; `free_shift` fails recovery and the unchanged penetration
+gate (6.21 mm). Replaying the original saved Qwen decisions now gets through probe,
+grasp, carry and release, but the fixed old sequence subsequently reaches again and
+fails placement. That diagnostic makes **zero fresh model calls** and is not closed-loop
+reasoning evidence. All three actual episodes have 720p wide/hand MP4s, states and logs
+outside Git; the successful classical episode also has full-sequence highlight clips.
+Interrupted rendering can resume from saved states without executing physics again:
+`python -m experiments.g1_recording --render-saved <external-recording>`.
+
+The pinned, unmodified NVIDIA NEW_EMBODIMENT episode loader now loads the original
+242-row export, including synchronized 720p video, language, state/action groups and
+normalization statistics. State/action arrays match Parquet exactly at 20 Hz. Validation
+uses an isolated CPU environment (Torch 2.9.0, TorchCodec 0.8.1, pandas 2.3.3, PyArrow
+22.0.0 and external FFmpeg 7.1.1 shared libraries); the system FFmpeg 9 incompatibility
+and original failed gates remain recorded. This validates episode loading, **not** the
+training sampler, model processor or an adapted motor policy.
+
+`experiments.g1_skill_collection` exports normal evaluation recordings with timed tool
+intervals and conservative independent contact/placement labels. Failed episodes remain
+diagnostics, and held-out scenes cannot become imitation candidates. The local collection
+contains one successful candidate and two failures, still only one successful scene/seed;
+it is explicitly **not training-ready**. No fine-tuning or learned actuation has occurred.
+The REAL_G1 contract restriction remains in force. The fresh paired CUDA evaluation has
+an explicit US$5 allowance, a frozen development/held-out config and automatic cleanup;
+results will be reported separately from these local diagnostics.
+
+Prior adaptation/recording checkpoint (25 Oct 2026, based on `97398ed` with recorded source
 hashes): **318 full-suite tests passed in 309.39 s**; **291 fast tests passed in 62.67 s**,
 with 27 slow tests excluded. Ruff lint/format, shell syntax and diff checks pass. Evidence is
 in `results/g1_contract_resolution`; the fast suite still exceeds the 60-second target.
@@ -161,6 +200,7 @@ these cloud-only changes. The Windows fast-suite duration still exceeds the 60 s
 | 12f | Genuine Qwen CUDA decisions in supported G1 exploration | **Executed, negative task result:** 34 real model outputs, probing and belief feedback through G1 physics. Qwen 0/4 versus deterministic 1/4 on matched development cases; no false success claims or successful recovery. Known invalid contact scene retained | `experiments/cloud_g1_qwen.py`, `results/g1_qwen_cuda_dev`, `tests/test_g1_cloud.py` |
 | 12g | REAL_G1 learned motor-policy inference contract | **Genuine CUDA open-loop inference; physical mapping blocked:** all nine decoded streams reconstructed exactly offline. Hand slot identity/morphology, body references, camera, wrist frames, timing and command arbitration remain unresolved. No learned G1 actuation or integrated Qwen + GR00T episode. Original predictions and two loading failures preserved | `experiments/groot_contract.py`, `experiments/configs/groot_action_contract.json`, `results/groot_contract_audit`, `results/groot_cuda_openloop`, `results/groot_first_cuda_failure`, `results/groot_dispatch_failure` |
 | 12h | Named G1 adaptation data and automatic evaluation recording | **Local preparation and recorded classical baseline:** public NVIDIA dataset establishes its own named 43D joint order and 20 Hz sampling; exact N1.7 contract remains unverified. Selected official NEW_EMBODIMENT fine-tuning route, explicit 31D joint-reference configuration, real LeRobot export, automatic wide/hand MP4s from evaluation snapshots. One repeated development manipulation succeeds through classical tools; no adapted policy trained or executed | `experiments/g1_modality.py`, `experiments/g1_dataset.py`, `experiments/g1_recording.py`, `results/g1_contract_resolution`, `results/g1_adaptation_dev` |
+| 12i | Integrated G1 autonomy continuation | **Local corrections tested; fresh paired evaluation pending:** grip-preserving reasoning pauses, non-destructive inspection and observed-slip invalidation; classical regression 1/2, saved-output replay fails honestly. Actual upstream episode loader passes including video. One successful training scene remains insufficient; no fine-tuning or learned action | `tests/test_g1_autonomy.py`, `experiments/g1_skill_collection.py`, `experiments/g1_validate_loader.py`, `results/g1_autonomy_dev` |
 | 13 | Generalisation evaluation across goals, arrangements and task families | Planned | n/a |
 | 14 | Learned world/motor models, mobile or whole-body embodiments | Planned, conditional on evidence and compute | n/a |
 
@@ -1729,6 +1769,8 @@ not cover. The upstream/default contact variant remains reproducible.
 | 5 ms `solref` and commissioning thresholds | Unverified physical calibration choices | Numerical sensitivity measured; no material measurement or broad contact validity |
 | Fixed pelvis/pedestal and relocated development target | Environment simplification | Initial fixture overlap failure preserved; no balance claim |
 | Probe response recorded even when reach cannot converge | General algorithmic correction | Failing/passing regression; a constrained response is evidence, not discarded as a reach failure |
+| Preserve finger references during reasoning; inspect without gratuitous release; clear observed lost grasps | General algorithmic correction | Regression-first tests, preserved-decision replay and matched classical development cases; placement still fails in the smaller-sphere challenge |
+| Spectator shadows/reflections disabled and interrupted footage rendered from saved states | Visual-only resource correction | Same saved geometry/integration states, 720p/20 FPS; control, sensor rendering and physics unchanged |
 
 Original failed stages and regression reports remain in `results/g1_exploration_dev1` through
 `dev6`; pre-freeze development recordings have hashes, and final frozen runs also include full
@@ -2050,8 +2092,10 @@ and video hashes; `results/g1_adaptation_dev` retains the episode, source snapsh
 controller's slew-limited absolute reference at t+50 ms. Joint names, units, alignment,
 video identity and provenance are explicit; no guessed permutations or offsets occur.
 The dataset is outside Git at `C:/Users/24adi/work/dream-g1-adaptation-dataset`.
-Its Parquet values and MP4 frame count verify against the original snapshots; the isolated
-upstream training loader has **not** been executed. One successful episode is not a
+Its Parquet values and MP4 frame count verify against the original snapshots; the pinned
+upstream episode loader has subsequently passed full video/state/action/language loading
+in `results/g1_autonomy_dev/loader_verified.json`. Training sampling/processing remains
+unvalidated. One successful scene/seed is not a
 diverse training corpus, and `training_ready` is explicitly false. PyArrow 22.0.0
 (Apache-2.0) is an optional CPU export dependency, not part of model inference.
 

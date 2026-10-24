@@ -31,12 +31,26 @@ ZONES = ("us-central1-c", "us-central1-b", "us-central1-a")
 WORKLOAD_CONFIGS = {
     "groot-openloop": ROOT / "experiments/configs/cloud_groot_openloop.json",
     "g1-qwen": ROOT / "experiments/configs/cloud_g1_qwen.json",
+    "g1-autonomy": ROOT / "experiments/configs/cloud_g1_autonomy.json",
     "qwen-pilot": CONFIG,
     "molmo-openloop": ROOT / "experiments/configs/cloud_molmo_openloop.json",
     "molmo-closedloop": ROOT / "experiments/configs/cloud_molmo_closedloop.json",
     "isaac-t1-walk": ROOT / "experiments/configs/cloud_isaac_t1_walk.json",
     "isaac-t1-stand": ROOT / "experiments/configs/cloud_isaac_t1_stand.json",
 }
+
+
+def run_destination(workload: str, name: str) -> Path:
+    """Retrieve recorded jobs outside Git/OneDrive; retain old recovery locations."""
+    if workload in ("g1-autonomy", "g1-qwen"):
+        root = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "DREAM/cloud_runs"
+        destination = (root / name).resolve()
+        if destination.is_relative_to(ROOT.resolve()) or any(
+            part.lower().startswith("onedrive") for part in destination.parts
+        ):
+            raise ValueError("recorded cloud results must stay outside Git and OneDrive")
+        return destination
+    return ROOT / "results/cloud_runs" / name
 
 
 @contextmanager
@@ -302,11 +316,14 @@ def check_pilot(out: Path, workload: str = "qwen-pilot") -> None:
     """A retrieved guest failure is not a pass. Keep preregistered task success report-only."""
     if (out / "EXIT_CODE").read_text().strip() != "0":
         raise RuntimeError("guest failed; inspect preserved outputs before another paid run")
-    if workload == "g1-qwen":
+    if workload in ("g1-qwen", "g1-autonomy"):
         from experiments.cloud_g1_qwen import validate_evidence
 
         try:
-            validate_evidence(out / "g1")
+            if workload == "g1-autonomy":
+                validate_evidence(out / "g1", ROOT / "experiments/configs/g1_autonomy_frozen.json")
+            else:
+                validate_evidence(out / "g1")
         except (OSError, KeyError, ValueError, TypeError) as error:
             raise RuntimeError(f"G1 inference/physical evidence failed: {error}") from error
         return
@@ -707,7 +724,7 @@ def _launch(p: dict, allowance: float) -> None:
     if quota.get("NVIDIA_L4_GPUS", 0) < 1 or quota.get("CPUS", 0) < 8:
         raise ValueError("insufficient regional CPU/L4 quota")
     p = {**p, "git_sha": git("rev-parse", "HEAD"), "allowance_usd": allowance}
-    dest = ROOT / "results/cloud_runs" / p["name"]
+    dest = run_destination(p["workload"], p["name"])
     dest.mkdir(parents=True, exist_ok=False)
     (dest / "manifest.json").write_text(json.dumps(p, indent=2), encoding="utf-8")
     assets = None
@@ -729,7 +746,7 @@ def _launch(p: dict, allowance: float) -> None:
     retrieved = False
     alert = None
     try:
-        if p.get("workload") in ("g1-qwen", "groot-openloop"):
+        if p.get("workload") in ("g1-qwen", "g1-autonomy", "groot-openloop"):
             alert = create_g1_budget_alert(p)
             (dest / "budget_alert.json").write_text(
                 json.dumps(
@@ -805,7 +822,7 @@ def _launch(p: dict, allowance: float) -> None:
                     "README.md",
                     "AGENTS.md",
                 ]
-                if p.get("workload") in ("g1-qwen", "groot-openloop")
+                if p.get("workload") in ("g1-qwen", "g1-autonomy", "groot-openloop")
                 else []
             )
             git("archive", "--format=tar.gz", "-o", str(archive), "HEAD", *paths)

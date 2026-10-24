@@ -1,0 +1,78 @@
+{
+  "scope": "Development regression on preserved cases only; genuine classical controller, no model inference.",
+  "instruction": "Investigate the red object. If movable, place it on the blue platform; otherwise stop safely.",
+  "strategy": "eig",
+  "max_steps": 16,
+  "contact_timeconst_s": 0.005,
+  "target_position_m": [
+    0.4,
+    0.26,
+    0.895
+  ],
+  "camera": {
+    "position": [
+      0.85,
+      -0.45,
+      1.35
+    ],
+    "target": [
+      0.36,
+      0.1,
+      0.91
+    ],
+    "width": 320,
+    "height": 240
+  },
+  "gates": {
+    "penetration_m": 0.001,
+    "localization_m": 0.006,
+    "rest_height_m": 0.008,
+    "max_episode_s": 90
+  },
+  "cases": [
+    {
+      "name": "free_shift",
+      "position_m": [
+        0.3485216779077176,
+        0.10801217365327913,
+        0.9157582302506206
+      ],
+      "radius_m": 0.02144759617920581,
+      "mass_kg": 0.03516573986354642,
+      "constrained": false,
+      "seed": 4001,
+      "split": "development"
+    },
+    {
+      "name": "free_heavier",
+      "position_m": [
+        0.3504367642840115,
+        0.0900823157582991,
+        0.9102841149013741
+      ],
+      "radius_m": 0.025253614798441897,
+      "mass_kg": 0.07659921190114022,
+      "constrained": false,
+      "seed": 4003,
+      "split": "development"
+    }
+  ],
+  "gate_rationale": "1 mm penetration is 4% of nominal radius and the numerical sensitivity gate, not hardware compliance. 6 mm localization is 3x the covariance floor. Goal scoring independently requires the released sphere on the platform, within its edges, and no safety/penetration violation.",
+  "model": {
+    "checkpoint": "Qwen/Qwen3-VL-4B-Instruct",
+    "revision": "ebb281ec70b05090aa6165b016eac8ec08e71b17",
+    "timeout_s": 60,
+    "device": "cuda:0",
+    "max_new_tokens": 384
+  },
+  "comparison": "Only reasoning backend differs. Same scenarios, camera seeds, tools, controller, EIG, gates and budgets; fresh simulation per condition. No classical fallback. Invalid initial overlap retained and reported separately.",
+  "acceptance": {
+    "genuine_calls": true,
+    "independent_placement_and_safety": true,
+    "conditional_refusal_scored_separately": true,
+    "report_all_failures": true,
+    "record_all_attempts": true,
+    "claims_of_generality": false
+  },
+  "backend": "deterministic"
+}

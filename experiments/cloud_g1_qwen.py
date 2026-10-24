@@ -26,9 +26,9 @@ def file_hash(path: Path) -> str:
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
-def validate_evidence(out: Path) -> None:
+def validate_evidence(out: Path, config_path: Path | None = None) -> None:
     """Require real inference/physics records; task and safety failures stay reportable."""
-    cfg = json.loads(CONFIG.read_text())
+    cfg = json.loads((config_path or CONFIG).read_text())
     summary = json.loads((out / "comparison.json").read_text())
     expected = {(c["name"], b) for c in cfg["cases"] for b in ("qwen", "deterministic")}
     rows = summary.get("episodes", [])
@@ -40,6 +40,10 @@ def validate_evidence(out: Path) -> None:
         raise ValueError("G1 checkpoint revision differs")
     decisions = 0
     for row in rows:
+        if cfg.get("acceptance", {}).get("record_all_attempts") and (
+            row.get("recording", {}).get("status") != "complete"
+        ):
+            raise ValueError("complete two-view recording required for every attempt")
         folder = out / row["backend"] / row["case"]
         if not (folder / "summary.json").is_file() or not (folder / "physics.jsonl").is_file():
             raise ValueError("G1 physical record missing")
@@ -91,19 +95,20 @@ def validate_evidence(out: Path) -> None:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--out", type=Path, required=True)
+    ap.add_argument("--config", type=Path, default=CONFIG)
     args = ap.parse_args()
     import torch
     import transformers
     from huggingface_hub import snapshot_download
 
     args.out.mkdir(parents=True, exist_ok=False)
-    cfg = json.loads(CONFIG.read_text())
+    cfg = json.loads(args.config.read_text())
     metadata = source_metadata({**cfg, "backend": "paired"})
     write_json(
         args.out / "freeze.json",
         {
             **metadata,
-            "config_sha256": hashlib.sha256(CONFIG.read_bytes()).hexdigest(),
+            "config_sha256": hashlib.sha256(args.config.read_bytes()).hexdigest(),
             "acceptance": "all paired records; CUDA model; actual outputs, physical probe, "
             "accepted tactile/displacement belief update and feedback in a later model input. "
             "Success, false claims, safety and recovery "
@@ -155,7 +160,14 @@ def main() -> None:
                 args.out / condition / case["name"],
                 backend=backend,
             )
-            episodes.append({**record, "case": case["name"], "seed": case["seed"]})
+            episodes.append(
+                {
+                    **record,
+                    "case": case["name"],
+                    "seed": case["seed"],
+                    "split": case.get("split", "development"),
+                }
+            )
             write_json(
                 args.out / "comparison.json",
                 {
@@ -175,7 +187,7 @@ def main() -> None:
             "peak_reserved_bytes": torch.cuda.max_memory_reserved(),
         },
     )
-    validate_evidence(args.out)
+    validate_evidence(args.out, args.config)
 
 
 if __name__ == "__main__":

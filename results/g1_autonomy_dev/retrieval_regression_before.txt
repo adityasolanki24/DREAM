@@ -1,0 +1,22 @@
+FFF                                                                      [100%]
+================================== FAILURES ===================================
+________________ test_recorded_cloud_job_uses_external_storage ________________
+tests\test_g1_recording_destination.py:12: in test_recorded_cloud_job_uses_external_storage
+    result = launch.run_destination("g1-autonomy", "example-run")
+             ^^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: module 'cloud.launch' has no attribute 'run_destination'
+__________ test_external_cloud_destination_rejects_onedrive_override __________
+tests\test_g1_recording_destination.py:20: in test_external_cloud_destination_rejects_onedrive_override
+    launch.run_destination("g1-autonomy", "example-run")
+    ^^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: module 'cloud.launch' has no attribute 'run_destination'
+____________ test_old_nonrecording_recovery_location_is_preserved _____________
+tests\test_g1_recording_destination.py:25: in test_old_nonrecording_recovery_location_is_preserved
+    launch.run_destination("qwen-pilot", "old-run")
+    ^^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: module 'cloud.launch' has no attribute 'run_destination'
+=========================== short test summary info ===========================
+FAILED tests/test_g1_recording_destination.py::test_recorded_cloud_job_uses_external_storage
+FAILED tests/test_g1_recording_destination.py::test_external_cloud_destination_rejects_onedrive_override
+FAILED tests/test_g1_recording_destination.py::test_old_nonrecording_recovery_location_is_preserved
+3 failed in 17.89s

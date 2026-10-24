@@ -7,6 +7,7 @@ motion edits, interpolated frames or speed changes are used to create footage.
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import os
@@ -14,6 +15,7 @@ import shutil
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
+from types import SimpleNamespace
 
 import mujoco
 import numpy as np
@@ -199,6 +201,10 @@ class EpisodeRecorder:
         write_json(self.root / "cameras.json", specifications)
         frame_manifest = []
         with mujoco.Renderer(model, height=720, width=1280) as renderer:
+            # Spectator graphics only. No change to sensor rendering or physics;
+            # mesh shadows/reflections dominate CPU render time on local hardware.
+            renderer.scene.flags[mujoco.mjtRndFlag.mjRND_SHADOW] = False
+            renderer.scene.flags[mujoco.mjtRndFlag.mjRND_REFLECTION] = False
             for i, state in enumerate(self.states):
                 mujoco.mj_setState(model, data, state, STATE)
                 mujoco.mj_forward(model, data)
@@ -258,4 +264,46 @@ class EpisodeRecorder:
             "highlight_created": success,
             "physics_reexecuted": False,
             "speed_factor": 1.0,
+            "spectator_graphics": "shadows and reflections disabled; original geometry/states",
         }
+
+
+def render_saved(root: Path) -> dict:
+    """Recover footage from retained states, preserving any earlier incomplete render.
+
+    No environment/controller is constructed and mj_step is never called. The saved
+    binary model and integration states are the sole source of motion.
+    """
+    root = external_recording_root(root)
+    previous = root / ("partial_render_" + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S"))
+    for name in ("wide", "hands"):
+        path = root / name
+        if path.exists():
+            destination = previous / name
+            if not path.resolve().is_relative_to(root) or not destination.resolve().is_relative_to(
+                root
+            ):
+                raise ValueError("render recovery paths escaped recording root")
+            previous.mkdir(exist_ok=True)
+            path.rename(destination)
+    recorder = EpisodeRecorder.__new__(EpisodeRecorder)
+    recorder.root = root
+    with np.load(root / "snapshots.npz", allow_pickle=False) as arrays:
+        recorder.states = list(arrays["integration_state"])
+    recorder.rows = [
+        json.loads(line) for line in (root / "timeline.jsonl").read_text().splitlines()
+    ]
+    if len(recorder.rows) != len(recorder.states):
+        raise ValueError("snapshot/timeline length mismatch")
+    recorder.env = SimpleNamespace()  # render() deliberately needs no live simulation
+    success = json.loads((root / "summary.json").read_text())["goal_success"]
+    result = {**recorder.render(success), "path": str(root), "recovered_from_saved_states": True}
+    write_json(root / "recording.json", result)
+    return result
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--render-saved", type=Path, required=True)
+    args = parser.parse_args()
+    print(json.dumps(render_saved(args.render_saved), indent=2))

@@ -223,6 +223,21 @@ class G1Controller:
         self.target = self.data.qpos[self.qadr].copy()
         self.reference = self.target.copy()
 
+    def hold_for_reasoning(self) -> None:
+        """Stop body motion while retaining existing finger references under load.
+
+        Resetting a compressed finger's reference to its measured joint angle removes
+        its contact effort. Safety faults still use hold(), and all effort/slew/range
+        checks remain active. This method never increases the existing grip command.
+        """
+        if self.stop_reason:
+            self.hold()
+            return
+        self.cartesian_target = None
+        body = np.array(["_hand_" not in name for name in self.names])
+        self.target[body] = self.data.qpos[self.qadr[body]]
+        self.reference[body] = self.target[body]
+
     def check_safety(self) -> None:
         """Latch a fault on current measurements, including the final physics step."""
         if self.stop_reason:

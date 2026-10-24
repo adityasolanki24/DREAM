@@ -21,6 +21,25 @@ from experiments.g1_dexterous import write_json
 from experiments.g1_recording import FPS, digest, external_recording_root
 
 
+def normalization_statistics(values: np.ndarray) -> dict:
+    """Unclipped per-coordinate statistics; caller supplies training episodes only.
+
+    Zero spread is preserved for constant supported joints. The upstream processor,
+    rather than an invented physical range, handles its normalization denominator.
+    """
+    values = np.asarray(values, dtype=np.float64)
+    if values.ndim != 2 or len(values) == 0 or not np.isfinite(values).all():
+        raise ValueError("finite nonempty rows required for normalization")
+    return {
+        "mean": values.mean(axis=0).tolist(),
+        "std": values.std(axis=0).tolist(),
+        "min": values.min(axis=0).tolist(),
+        "max": values.max(axis=0).tolist(),
+        "q01": np.quantile(values, 0.01, axis=0).tolist(),
+        "q99": np.quantile(values, 0.99, axis=0).tolist(),
+    }
+
+
 def aligned_samples(recording: Path) -> tuple[np.ndarray, np.ndarray, list[str], np.ndarray]:
     """Use named upper-body hinges only; validate chronology, dimensions and ranges."""
     metadata = json.loads((recording / "metadata.json").read_text())
@@ -187,6 +206,13 @@ def export(recording: Path, out: Path) -> dict:
             "annotation": {"human.task_description": {"original_key": "task_index"}},
         },
     )
+    write_json(
+        out / "meta/stats.json",
+        {
+            "observation.state": normalization_statistics(state),
+            "action": normalization_statistics(action),
+        },
+    )
     for filename, value in (
         ("tasks", {"task_index": 0, "task": metadata["config"]["instruction"]}),
         (
@@ -207,6 +233,7 @@ def export(recording: Path, out: Path) -> dict:
         "goal_success": summary["goal_success"],
         "diagnostic_only": not summary["goal_success"],
         "training_ready": False,
+        "normalization_scope": "this episode only; no held-out samples; not training approval",
         "readiness_reason": "One evaluation is not a diverse successful demonstration corpus.",
         "backend": summary["backend"],
         "motor_policy": "classical demonstration data; no VLA calls",

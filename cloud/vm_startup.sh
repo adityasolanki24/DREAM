@@ -56,6 +56,11 @@ if [[ "$WORKLOAD" == isaac-t1-* ]]; then
 fi
 apt-get update -q
 apt-get install -y -q libosmesa6 python3-pip ffmpeg
+if [[ "$WORKLOAD" == g1-autonomy ]]; then
+  apt-get install -y -q libegl1
+  export MUJOCO_GL=egl
+  export PYOPENGL_PLATFORM=egl
+fi
 export DREAM_RECORDINGS_ROOT=/work/out/recordings
 python3 -m pip install uv==0.9.4
 uv venv --python 3.12.12 /work/venv
@@ -82,6 +87,9 @@ case "$WORKLOAD" in
   g1-qwen)
     timeout --signal=TERM --kill-after=30s "${LEFT}s" \
       python -m experiments.cloud_g1_qwen --out /work/out/g1 ;;
+  g1-autonomy)
+    timeout --signal=TERM --kill-after=30s "${LEFT}s" \
+      python -m experiments.cloud_g1_qwen --config experiments/configs/g1_autonomy_frozen.json --out /work/out/g1 ;;
   qwen-pilot)
     timeout --signal=TERM --kill-after=30s "${LEFT}s" \
       python experiments/cloud_qwen_pilot.py --out /work/out/pilot ;;

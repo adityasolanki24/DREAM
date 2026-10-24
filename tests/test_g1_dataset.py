@@ -7,8 +7,21 @@ import numpy as np
 import pytest
 
 from dream.sim.g1 import G1Env
-from experiments.g1_dataset import aligned_samples
+from experiments.g1_dataset import aligned_samples, normalization_statistics
 from experiments.g1_recording import EpisodeRecorder
+
+
+def test_normalization_uses_all_supplied_training_rows_without_clipping():
+    values = np.array([[0, 2], [2, 2], [10, 2]], dtype=np.float32)
+    stats = normalization_statistics(values)
+    assert set(stats) == {"mean", "std", "min", "max", "q01", "q99"}
+    np.testing.assert_allclose(stats["mean"], [4, 2])
+    np.testing.assert_allclose(stats["std"], values.std(axis=0))
+    np.testing.assert_array_equal(stats["max"], [10, 2])
+    assert stats["std"][1] == 0  # constant joints remain explicit, never invented spread
+    np.testing.assert_allclose(stats["q01"], np.quantile(values, 0.01, axis=0))
+    with pytest.raises(ValueError, match="finite"):
+        normalization_statistics(np.array([[np.nan, 0]]))
 
 
 def test_public_dataset_has_named_hand_order_not_driver_motor_order():

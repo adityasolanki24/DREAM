@@ -260,7 +260,8 @@ class VLMAgent:
                     ep, False, "robot in protective stop (operator reset needed)", emit
                 )
             t0 = time.perf_counter()
-            self.tools.robot.hold()  # inference latency must not continue an old motion target
+            # Keep a loaded grip when the embodiment supports it; stop stale arm motion.
+            getattr(self.tools, "hold_for_reasoning", self.tools.robot.hold)()
             try:
                 output = self.backend.generate(_bounded_images(messages), self.schemas)
             except (TimeoutError, OSError, ValueError, RuntimeError) as e:

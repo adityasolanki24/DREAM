@@ -28,7 +28,7 @@ EXPLORATION_SPECS = [
             ("observe_scene", "Fresh RGB-D sphere/target estimates and current belief.", {}),
             (
                 "inspect_object",
-                "Open and retract to re-observe after uncertainty or a failed action.",
+                "Re-observe uncertainty; preserve an existing grip during reacquisition.",
                 OBJECT,
             ),
             ("reach_object", "Reach the sphere measured by RGB-D; no coordinate argument.", OBJECT),
@@ -99,6 +99,9 @@ class ExplorationToolbox(DexterousToolbox):
     def held_object(self) -> str | None:
         return self.holding
 
+    def hold_for_reasoning(self) -> None:
+        self.robot.hold_for_reasoning()
+
     def call(self, name: str, args: dict | None = None) -> ToolResult:
         args = dict(args or {})
         own = {s["name"]: s for s in self.specs if s not in DEXTEROUS_SPECS}
@@ -120,6 +123,7 @@ class ExplorationToolbox(DexterousToolbox):
             return ToolResult(name, "stopped", "cancelled or protective stop")
         self.action = name
         start = self.robot.state().time
+        holding_before = self.holding
         try:
             result = getattr(self, "_" + name)(**args)
         except (ValueError, ActionStopped) as error:
@@ -136,6 +140,9 @@ class ExplorationToolbox(DexterousToolbox):
                 "message": result.message,
                 "data": result.data,
                 "time_s": self.robot.state().time,
+                "start_time_s": start,
+                "holding_before": holding_before,
+                "holding_after": self.holding,
             }
         )
         return result
@@ -193,6 +200,15 @@ class ExplorationToolbox(DexterousToolbox):
     def _observe_scene(self) -> ToolResult:
         obj = self.perception.observe()
         target = self.perception.target
+        grasp_observation = "unobserved" if obj is None else "no verified grasp"
+        if self.holding is not None and obj is not None:
+            tracks = (
+                np.linalg.norm(obj.position - self.robot.grasp_pose("left")[0] - self.grasp_offset)
+                < 0.018
+            )  # same measured tracking gate as grasp/move verification
+            grasp_observation = "tracks hand" if tracks else "object no longer tracks hand"
+            if not tracks:
+                self.holding, self.at_target = None, False
         reachable = (
             obj is not None
             and np.linalg.norm(obj.position - self.robot.grasp_pose("left")[0]) < 0.008
@@ -204,6 +220,7 @@ class ExplorationToolbox(DexterousToolbox):
                 "objects": [] if obj is None else [{"name": "red", **obj.to_dict()}],
                 "fixtures": {} if target is None else {"target": (target[0].tolist(), target[1])},
                 "holding": self.holding,
+                "grasp_observation": grasp_observation,
                 "at_target": self.at_target,
                 "released": self.released,
                 "hand_closed": self.closure > 0.01,
@@ -219,13 +236,17 @@ class ExplorationToolbox(DexterousToolbox):
         )
 
     def _inspect_object(self, object: str) -> ToolResult:
-        if self.holding is not None:
+        observed = self.perception.observe()
+        if observed is not None:
             return ToolResult(
-                "inspect_object", "rejected", "cannot release a held object to inspect"
+                "inspect_object", "succeeded", "visible without moving", observed.to_dict()
             )
-        self._open()
-        point = self.robot.grasp_pose("left")[0] + [-0.015, 0, 0.035]
-        self._move(point)
+        contact = sum(f > 0.1 for f in self.robot.finger_forces("left").values()) >= 2
+        if self.holding is None and not contact:
+            self._open()
+        # When contact/holding persists, move the existing grasp together, never
+        # open a potentially held object just because the camera lost sight of it.
+        self._move(self.robot.grasp_pose("left")[0] + [0, 0, 0.035])
         obj = self._object()
         return ToolResult("inspect_object", "succeeded", data=obj.to_dict())
 
@@ -312,6 +333,7 @@ class ExplorationToolbox(DexterousToolbox):
         ok = contact and lift > 0.02 and matches
         self.holding = "red" if ok else None
         if ok:
+            self.at_target, self.released = False, False
             self.grasp_offset = after.position - self.robot.grasp_pose("left")[0]
         return ToolResult(
             "grasp_object",

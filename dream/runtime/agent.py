@@ -257,6 +257,9 @@ class TaskAgent:
         steps: list[Step] = []
         emit("goal", {"goal": repr(goal)})
         for _ in range(self.max_steps):
+            hold = getattr(self.tools, "hold_for_reasoning", None)
+            if hold is not None:
+                hold()  # Same deterministic pause contract as the VLM on this embodiment.
             if self.tools.cancel.is_set():
                 return self._finish(goal, False, "cancelled by user", steps, emit)
             observed = [
