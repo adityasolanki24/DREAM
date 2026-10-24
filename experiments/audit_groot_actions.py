@@ -9,13 +9,14 @@ convention. Mechanical compatibility cannot establish semantic compatibility.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
 import numpy as np
 
 from experiments.g1_dexterous import write_json
-from experiments.groot_openloop import validate_actions
+from experiments.groot_openloop import TAG, validate_actions
 
 
 def joint_diagnostics(
@@ -51,7 +52,21 @@ def joint_diagnostics(
     }
 
 
-def audit(run: Path) -> dict:
+def reference_distribution(reference: np.ndarray, statistics: dict) -> dict:
+    """Flag measured state slots outside the checkpoint's empirical training ranges."""
+    values = {key: np.asarray(statistics[key], float) for key in ("min", "max", "q01", "q99")}
+    if any(v.shape != reference.shape or not np.isfinite(v).all() for v in values.values()):
+        raise ValueError("training statistics differ from the measured slot contract")
+    outside = (reference < values["min"]) | (reference > values["max"])
+    return {
+        "measured_reference": reference.tolist(),
+        "training_statistics": {k: v.tolist() for k, v in values.items()},
+        "reference_slots_outside_training_min_max": np.flatnonzero(outside).tolist(),
+        "scope": "Statistical comparison under provisional slot order; not a verified mapping",
+    }
+
+
+def audit(run: Path, statistics_path: Path | None = None) -> dict:
     """Read saved model outputs and robot geometry only, without executing predictions."""
     from dream.sim.g1 import G1Env, build_g1
 
@@ -66,11 +81,13 @@ def audit(run: Path) -> dict:
     env = G1Env(build_g1())
     robot = env.robot
     streams = {}
+    statistics = json.loads(statistics_path.read_text())[TAG] if statistics_path else None
     with np.load(sensor / "observation.npz", allow_pickle=False) as observation:
         for stream, names in contract["joint_orders"].items():
             indices = [robot.names.index(name) for name in names]
             streams[stream] = {
                 "provisional_joint_names": names,
+                "mechanical_limits_rad": robot.limits[indices].tolist(),
                 **joint_diagnostics(
                     actions[stream][0],
                     observation[stream][0, 0],
@@ -78,6 +95,10 @@ def audit(run: Path) -> dict:
                     robot.speed[indices],
                 ),
             }
+            if statistics:
+                streams[stream]["input_distribution"] = reference_distribution(
+                    observation[stream][0, 0], statistics["state"][stream]
+                )
     return {
         "scope": "Offline range diagnostics; no policy targets executed or clipped",
         "decoded_representation": "absolute after upstream relative-action postprocessing",
@@ -93,6 +114,9 @@ def audit(run: Path) -> dict:
             "min": float(normalized.min()),
             "max": float(normalized.max()),
         },
+        "training_statistics_sha256": (
+            hashlib.sha256(statistics_path.read_bytes()).hexdigest() if statistics_path else None
+        ),
         "conditional_joint_diagnostics": streams,
         "unsupported_streams": ["base_height_command", "navigate_command"],
         "unverified": [
@@ -112,5 +136,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--statistics", type=Path)
     args = parser.parse_args()
-    write_json(args.out, audit(args.run))
+    write_json(args.out, audit(args.run, args.statistics))

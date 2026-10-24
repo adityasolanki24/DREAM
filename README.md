@@ -64,14 +64,14 @@ unfamiliar physical behaviour.
 
 Every row marked "implemented and tested" has passing tests and/or saved results in `results/`.
 
-Latest inference-loading checkpoint (25 Oct 2026): **302 full-suite tests passed in
-373.14 s** at `2ff8ff9`. The subsequent loader-path dispatch regression and CPU tokenizer
-preflight are saved in `results/groot_retry_validation`. These are local contract and
-physics checks, not evidence of learned motor-policy execution.
-The corrected dispatch checkpoint passes **277 fast tests in 90.41 s**; this still
-exceeds the 60-second target. Ruff lint and format checks pass.
+Latest inference-loading checkpoint (25 Oct 2026): **304 full-suite tests passed in
+530.64 s** at `58cea15`; the final diagnostic extension passes **278 fast tests in
+87.72 s**. XML, the failing/passing dispatch regression and real CPU tokenizer preflight
+are saved in `results/groot_retry_validation`. The fast suite exceeds the 60-second target.
+Ruff lint and format checks pass. These local checks cover contracts and physics;
+genuine motor-policy GPU evidence is recorded separately below.
 
-Latest local verification (24 Oct 2026, exploration checkpoint): **258 fast tests passed in
+Prior local verification (24 Oct 2026, exploration checkpoint): **258 fast tests passed in
 172.65 s** and **284 full-suite tests passed in 336.86 s**. Focused physics/isolation tests
 passed 34/34; the final focused non-slow checks passed 22/22. Ruff lint/format, compilation
 and diff checks pass. XML, freeze hashes, inference availability and the complete paired
@@ -143,9 +143,9 @@ these cloud-only changes. The Windows fast-suite duration still exceeds the 60 s
 | 12b | Learned motor policy (MolmoAct2-DROID first open-loop candidate; GR00T alternative) | **Partially working:** real checkpoint produced a finite 15×8 chunk on L4; raw gripper range failed (4/15). Source contract audited; six fresh predictions physically reached (6/6). Learned task failed, classical succeeded. No manipulation transfer established | `tests/test_molmo.py`, `results/molmo_observation_dev`, source/decision audit below |
 | 12c | Booster T1 locomotion / visual navigation research | **Four real PPO actions; standing gate failed:** 0.08 s / 16 physics substeps, then exact-range knee rejection. CPU actor 81→23 and waypoint contracts tested; standing, walking and NavGPT inference **not validated** | `results/t1_stand_state_failure`, `results/t1_stand_second_retry_local`, `tests/test_navigation.py` |
 | 12d | Supported G1 with seven-joint Unitree hands | **Implemented and CPU development-tested:** 43 actuated hinges, both hands articulate; three scripted sphere lifts/holds/releases pass contact/state gates, one offset challenge fails correctly. Fixed pelvis, uncalibrated soft contacts; no autonomous grasping, walking or Isaac execution | `tests/test_g1.py`, `results/g1_dex3_checkpoint`, `results/g1_dex3_challenge` |
-| 12e | RGB-D guided supported G1 exploration | **Partial, physically executed:** sensor-derived reaching, tactile-gated lift probes, Bayesian updates and bounded recovery through the existing task runtime. One complete held-out transfer accepted out of four EIG trials; placement/contact failures remain. Deterministic reasoning; no genuine G1 VLM inference | `tests/test_g1_exploration.py`, `results/g1_exploration_heldout_eig`, `results/g1_exploration_heldout_fixed_short` |
+| 12e | RGB-D guided supported G1 exploration | **Partial, physically executed:** sensor-derived reaching, tactile-gated lift probes, Bayesian updates and bounded recovery through the existing task runtime. One complete held-out transfer accepted out of four EIG trials; placement/contact failures remain. Deterministic baseline; genuine model-guided follow-up below | `tests/test_g1_exploration.py`, `results/g1_exploration_heldout_eig`, `results/g1_exploration_heldout_fixed_short` |
 | 12f | Genuine Qwen CUDA decisions in supported G1 exploration | **Executed, negative task result:** 34 real model outputs, probing and belief feedback through G1 physics. Qwen 0/4 versus deterministic 1/4 on matched development cases; no false success claims or successful recovery. Known invalid contact scene retained | `experiments/cloud_g1_qwen.py`, `results/g1_qwen_cuda_dev`, `tests/test_g1_cloud.py` |
-| 12g | REAL_G1 learned motor-policy inference contract | **First GPU loading attempt failed before inference:** tokenizer metadata lookup violated offline mode after both dependencies downloaded. Local-path correction passes real CPU tokenizer preflight; CUDA retry pending. Input conventions/camera domain shift remain unverified; no actuator mapping | `experiments/groot_openloop.py`, `results/groot_first_cuda_failure`, `results/groot_retry_validation` |
+| 12g | REAL_G1 learned motor-policy inference contract | **Genuine CUDA open-loop inference:** nine finite decoded 40-step streams on L4, 1.91 s inference. Provisional input conventions and external camera; action mapping and physical policy transfer remain unverified. Two loading failures preserved | `experiments/groot_openloop.py`, `results/groot_cuda_openloop`, `results/groot_first_cuda_failure`, `results/groot_dispatch_failure` |
 | 13 | Generalisation evaluation across goals, arrangements and task families | Planned | n/a |
 | 14 | Learned world/motor models, mobile or whole-body embodiments | Planned, conditional on evidence and compute | n/a |
 
@@ -1615,8 +1615,9 @@ existing optional `demo` dependency. Output directories must be new so results c
 The official Isaac Lab reference is audited at `e30c25b1` in
 `results/g1_integration_dev/isaac_policy_contract_audit.json`. Its separate fixed-base Dex3
 USD path and implicit drives do not establish equivalence to this MJCF. Neither the T1
-81→23 policy nor MolmoAct2-DROID's Panda output is a compatible G1 motor contract. No
-GR00T checkpoint was downloaded or executed.
+81→23 policy nor MolmoAct2-DROID's Panda output is a compatible G1 motor contract. At this
+commissioning checkpoint no GR00T checkpoint had executed; the later genuine open-loop
+result is recorded below.
 
 The last T1 run, `dream-qwen-20261024-162320-e842d6`, was inspected locally after verifying
 its original manifest. `results/g1_t1_knee_audit` preserves byte-identical 200 Hz diagnostics
@@ -1778,8 +1779,8 @@ physical challenge. No controller, scene, safety threshold or scoring gate was r
 Physics advances during tools, and simulated time pauses during model latency: this is
 synchronous closed-loop simulation, not demonstrated real-time holding during inference.
 
-The Qwen workload executed at `4170011` on one L4; GR00T inference is still pending after
-the preserved first loading failure described below.
+The Qwen workload executed at `4170011` on one L4. GR00T subsequently produced genuine
+open-loop CUDA predictions at `58cea15`, after the preserved loading failures below.
 The initial read-only cloud audit found no instances or DREAM disks/addresses/routers/networks.
 The single L4
 `g2-standard-8` has 24 GB VRAM and 32 GiB host memory; the smaller 16 GiB host is not the
@@ -1806,16 +1807,17 @@ python cloud/launch.py recover --manifest results/cloud_runs/<run>/manifest.json
 GR00T's actual checkpoint processor/statistics were inspected at
 `2fc962b973bccdd5d8ce4f67cc63b264d6886495`, with source at
 `944fe70c4fd54e3fcb80a7d7258a328f9c061176`. `REAL_G1` requires ego RGB history [-20,0],
-two 9D wrist states, 7D arms/hands and a 3D waist. Its 40-step actions combine relative
-XYZ/ROT6D wrists and arms with absolute hands/waist/base height/navigation commands.
+two 9D wrist states, 7D arms/hands and a 3D waist. Its 40-step representations combine
+relative XYZ/ROT6D wrists and arms with absolute hands/waist/base height/navigation commands.
+The upstream processor converts relative predictions into **absolute decoded targets**
+using the last measured state; do not add the reference pose/joints a second time.
 Matching seven-dimensional hands does not verify names, signs, offsets, wrist frames,
 hand revision or control frequency. DREAM has an external camera and supported pelvis;
 no action mapping is authorized by this audit. Upstream requires a separate Python 3.12 /
 Torch 2.9 / Transformers 4.57.3 environment. Its checkpoint LICENSE limits use to research
-and evaluation despite the model card's commercial-use wording; no weights were vendored
-or downloaded. The exact schema, dimensions, source URLs and missing adaptations are in
-`results/g1_cloud_preparation/groot_contract.json`. Actual open-loop inference follows the
-Qwen physical run and requires a separate approved workload.
+and evaluation despite the model card's commercial-use wording. No weights were vendored.
+The earlier source-only schema audit is in `results/g1_cloud_preparation/groot_contract.json`;
+actual downloaded-dependency hashes and inference outputs are in `results/groot_cuda_openloop`.
 
 The user subsequently authorized ongoing cloud jobs. The paired Qwen workload at `4170011`
 completed under its US$3 allowance; actual billed cost is unavailable. Authorized access to the separately gated
@@ -1827,8 +1829,8 @@ Torch 2.9 environment. A scoped temporary Secret Manager secret conveys the auth
 login in the original attempt; credentials never entered Git, source archives, command
 argument values or artifacts. **That token-transfer path has now been removed.**
 The enabled Secret Manager API is project configuration; the secret itself is deleted by
-scoped cleanup. Access preflight failure prevents cloud mutations. GPU loading is unvalidated
-until this workload actually executes. Neither runtime nor spending alerts are a billing cap.
+scoped cleanup. Access preflight failure prevents cloud mutations. Neither runtime nor
+spending alerts are a billing cap.
 
 `capture_groot_input` records real frames and named proprioception; its 20 Hz history
 interpretation, pelvis-relative wrist-yaw frames and DREAM joint ordering remain explicitly
@@ -1839,6 +1841,7 @@ an external pinned upstream checkout on PYTHONPATH and its isolated dependencies
 ```powershell
 python -m experiments.capture_groot_input --out <external-new-sensor-directory>
 python -m experiments.groot_openloop --input <sensor-directory>/observation.npz --model-path <checkpoint> --out <new-output>
+python -m experiments.audit_groot_actions --run results/groot_cuda_openloop/raw/groot --out <new-audit.json>
 python cloud/launch.py plan --project <project> --workload groot-openloop
 ```
 
@@ -1870,6 +1873,41 @@ The actual upstream `get_backbone_cls` also selects its implementation by a lite
 regression exposes the generic-path defect; the corrected derived directory hard-links
 the same backbone bytes under that name, and passes the actual pinned source condition
 plus real offline tokenizer loading. No upstream source or model weights are modified.
+The generic-path CUDA attempt at `2ff8ff9` failed at this exact dispatch check after
+verifying all three weight files and 15 metadata files. All 18 guest files, the actual
+sensor input, 443-second guest lifetime and successful cleanup audit are preserved in
+`results/groot_dispatch_failure`. No action tensor was produced in either loading failure.
+
+**Genuine motor-policy inference now executed:** the corrected run at `58cea15` loaded
+GR00T-N1.7-3B revision `2fc962b973bccdd5d8ce4f67cc63b264d6886495` with Cosmos-Reason2-2B
+revision `9ce19a195e423419c349abfc86fd07178b230561`, using the pinned upstream source above.
+One L4 executed one actual inference on captured DREAM RGB history and proprioception:
+the normalized tensor is finite `(1,40,132)` and all nine decoded float32 streams satisfy
+their frozen 40-step dimensions. The call took **1.914 s**, with **6,410,335,232 bytes** peak
+allocated GPU memory. Torch **2.9.0+cu128**, Transformers **4.57.3**, Python **3.12.12** and
+MuJoCo **3.16.0** are recorded. Upstream's SDPA fallback was used without changing weights
+or source. This is a single open-loop contract probe on provisional input, not a task
+success rate, generalisation result or real-time control benchmark.
+
+All 20 guest files verify against their original manifest in `results/groot_cuda_openloop/raw`.
+The actual normalized and decoded tensors, input arrays/calibration, model/source hashes,
+timestamps, freeze, package versions, memory and GPU telemetry remain intact. Running
+`experiments.audit_groot_actions` on these real outputs finds **35 left-hand and 51
+right-hand target values outside DREAM's mechanical limits**, with **0.964 rad** maximum
+excess, **conditional on the provisional input slot order**. Arm and waist range checks
+pass; that does not verify their names, signs, frames or timing. Four measured hand-state
+slots also fall outside the corresponding checkpoint training ranges under this ordering.
+These are evidence of incompatibility in the provisional interface, not a performance
+score for a correctly adapted policy. No clipping, permutation or physical policy action
+was used to make these checks pass.
+
+The physical VLM-to-VLA handoff remains unverified. Required adaptation includes the
+training joint order/signs/zero points and hand revision, ego camera calibration/view,
+wrist origin/reference frames, EEF-versus-joint command arbitration, trained sampling and
+control frequency/chunk schedule, and fixed-pelvis treatment of base/navigation commands.
+`action_audit.json` records the exact conditional comparison and missing contracts.
+The existing Qwen-to-classical-tools physical loop and all its failures are preserved;
+this inference result does not establish learned G1 physical exploration.
 
 The user's local HF token now stays local. Before allocation, a local authenticated preflight
 verifies every required file at the pinned model/backbone revisions and stages metadata plus
@@ -1887,20 +1925,33 @@ every minute/on exit, verify its manifest, then remove scoped VM/disk/NAT/networ
 and alert. Failed retrieval preserves the bucket for manifest-scoped recovery. All predictions
 remain disconnected from actuators until names, signs, frames, timing and hand morphology
 are verified; matching tensor dimensions are insufficient.
+The two new attempts in this continuation have separate US$3.03 estimates (US$6.06
+combined estimates, not a bill), and 443/447 seconds of guest execution respectively.
+The earlier recovered attempt remains a separate historical workload. Both new cleanups
+completed without errors. The final independent inventory contains **zero VMs, disks,
+reserved addresses, routers or Secret Manager secrets**; only the default VPC remains.
+The temporary run bucket and AUD5 alert are absent; the existing NERVA alert is preserved.
+`cost_and_cleanup.json`, `final_inventory.json`, `lifecycle_checks.json` and the credential
+scan are saved in `results/groot_cuda_openloop`. The local HF token and signed download
+URLs are absent from the preserved evidence; local private URL manifests were removed.
 
 | Change | Rule 3 class | Evidence / limit |
 |---|---|---|
-| Explicit CUDA configuration and archive-safe source revision | General algorithmic correction to experiment execution | Failing/passing CPU regressions; actual G1 CUDA inference pending |
+| Explicit CUDA configuration and archive-safe source revision | General algorithmic correction to experiment execution | Failing/passing CPU regressions; actual paired Qwen G1 run preserved |
 | Full inference recording, cached model reuse and paired cloud harness | Engineering/measurement | Existing runtime and motor tools; no claimed learned motor behavior |
-| Scoped alert, source-only upload, expiry and evidence gates | Engineering/measurement | CPU lifecycle contracts; fresh cloud execution pending |
+| Scoped alert, source-only upload, expiry and evidence gates | Engineering/measurement | Actual run manifests, retrieved checksummed outputs and cleanup audits |
+| Local backbone identity retaining upstream name-based dispatch | General algorithmic correction to dependency resolution | Two original loading failures, failing/passing regressions, actual CPU tokenizer and genuine CUDA inference; unchanged model bytes |
+| Conditional decoded-target and training-state audit | Engineering/measurement | Actual policy tensors; incompatible provisional hand mapping preserved, no actuation |
 
 Milestone 11 (discovery as a tool on the Panda) is implemented on a narrowed scene with the
 oracle tracker; see its audit. Milestone 10's first slice (camera pick-and-place) is done. The
 camera-discovery dependency remains open, with its failures preserved. The current research
 branch has audited a real policy contract and physically reached six fresh targets, while
 preserving its failed manipulation task and testing recorded chunk replay. The current priority
-is genuine Qwen decisions within G1 physical exploration, followed by actual GR00T inference
-and embodiment compatibility. Contact-valid initialization, reliable release and recovery on
+is verified G1 observation/action adaptation before learned-policy execution, alongside
+reliable recovery beyond the negative Qwen development baseline. Genuine Qwen physical
+decisions and GR00T open-loop inference are now recorded; their physical composition remains
+unverified. Contact-valid initialization, reliable release and recovery on
 fresh shifted objects remain open, without weakening safety or tuning to one sphere.
 Booster T1 remains a preserved experimental
 baseline; visual navigation still requires validated walking. Useful learned manipulation remains a separate open

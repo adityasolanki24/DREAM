@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from experiments.audit_groot_actions import joint_diagnostics
+from experiments.audit_groot_actions import joint_diagnostics, reference_distribution
 
 
 def test_decoded_absolute_targets_are_not_offset_twice_and_violations_are_preserved():
@@ -23,3 +23,12 @@ def test_decoded_absolute_targets_are_not_offset_twice_and_violations_are_preser
 def test_diagnostic_rejects_nonfinite_or_unknown_speed():
     with pytest.raises(ValueError, match="contract"):
         joint_diagnostics(np.zeros((40, 1)), np.zeros(1), np.array([[-1, 1]]), np.zeros(1))
+
+
+def test_training_distribution_flags_sign_mismatch_without_permuting_input():
+    report = reference_distribution(
+        np.array([0.1, -0.1]),
+        {"min": [-1, 0], "max": [0, 1], "q01": [-0.9, 0], "q99": [0, 0.9]},
+    )
+    assert report["measured_reference"] == [0.1, -0.1]
+    assert report["reference_slots_outside_training_min_max"] == [0, 1]
