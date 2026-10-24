@@ -26,7 +26,7 @@ def test_g1_runner_records_observation_action_belief_and_next_decision(tmp_path)
     cfg = json.loads(Path("experiments/configs/g1_explore_dev.json").read_text())
     cfg.update(backend="qwen", max_steps=3)
     folder = tmp_path / "test_double"
-    result = run_case(cfg["cases"][0], cfg, folder, backend=Scripted())
+    result = run_case(cfg["cases"][0], cfg, folder, backend=Scripted(), recording=False)
     assert result["physics_executed"]
     assert not result["success_claimed"]
     assert len(json.loads((folder / "belief.json").read_text())) == 1

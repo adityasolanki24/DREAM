@@ -31,7 +31,7 @@ def test_runner_accepts_default_relative_config(tmp_path):
 
     cfg = Path("experiments/configs/g1_dex3_dev.json")
     # Run the real unrendered pipeline, retaining every development case.
-    results = run(cfg, tmp_path / "run")
+    results = run(cfg, tmp_path / "run", recording=False)
     assert set(results) == {"nominal", "smaller", "shifted"}
     assert all(r["physics_executed"] for r in results.values())
     assert json.loads((tmp_path / "run/metadata.json").read_text())["source_sha256"]

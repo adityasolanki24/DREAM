@@ -64,7 +64,14 @@ unfamiliar physical behaviour.
 
 Every row marked "implemented and tested" has passing tests and/or saved results in `results/`.
 
-Latest action-contract audit (25 Oct 2026, based on `1110cd8` with recorded source hashes):
+Latest adaptation/recording checkpoint (25 Oct 2026, based on `97398ed` with recorded source
+hashes): **318 full-suite tests passed in 309.39 s**; **291 fast tests passed in 62.67 s**,
+with 27 slow tests excluded. Ruff lint/format, shell syntax and diff checks pass. Evidence is
+in `results/g1_contract_resolution`; the fast suite still exceeds the 60-second target.
+The actual recorded manipulation uses classical control. No adapted motor policy or new
+foundation-model inference is claimed.
+
+Prior action-contract audit (25 Oct 2026, based on `1110cd8` with recorded source hashes):
 **312 full-suite tests passed in 456.14 s**; **285 fast tests passed in 118.42 s**,
 with 27 slow tests excluded. The focused contract/isolation suite passed 30 tests.
 Ruff lint/format and diff checks pass. Evidence is in `results/groot_contract_audit`.
@@ -153,6 +160,7 @@ these cloud-only changes. The Windows fast-suite duration still exceeds the 60 s
 | 12e | RGB-D guided supported G1 exploration | **Partial, physically executed:** sensor-derived reaching, tactile-gated lift probes, Bayesian updates and bounded recovery through the existing task runtime. One complete held-out transfer accepted out of four EIG trials; placement/contact failures remain. Deterministic baseline; genuine model-guided follow-up below | `tests/test_g1_exploration.py`, `results/g1_exploration_heldout_eig`, `results/g1_exploration_heldout_fixed_short` |
 | 12f | Genuine Qwen CUDA decisions in supported G1 exploration | **Executed, negative task result:** 34 real model outputs, probing and belief feedback through G1 physics. Qwen 0/4 versus deterministic 1/4 on matched development cases; no false success claims or successful recovery. Known invalid contact scene retained | `experiments/cloud_g1_qwen.py`, `results/g1_qwen_cuda_dev`, `tests/test_g1_cloud.py` |
 | 12g | REAL_G1 learned motor-policy inference contract | **Genuine CUDA open-loop inference; physical mapping blocked:** all nine decoded streams reconstructed exactly offline. Hand slot identity/morphology, body references, camera, wrist frames, timing and command arbitration remain unresolved. No learned G1 actuation or integrated Qwen + GR00T episode. Original predictions and two loading failures preserved | `experiments/groot_contract.py`, `experiments/configs/groot_action_contract.json`, `results/groot_contract_audit`, `results/groot_cuda_openloop`, `results/groot_first_cuda_failure`, `results/groot_dispatch_failure` |
+| 12h | Named G1 adaptation data and automatic evaluation recording | **Local preparation and recorded classical baseline:** public NVIDIA dataset establishes its own named 43D joint order and 20 Hz sampling; exact N1.7 contract remains unverified. Selected official NEW_EMBODIMENT fine-tuning route, explicit 31D joint-reference configuration, real LeRobot export, automatic wide/hand MP4s from evaluation snapshots. One repeated development manipulation succeeds through classical tools; no adapted policy trained or executed | `experiments/g1_modality.py`, `experiments/g1_dataset.py`, `experiments/g1_recording.py`, `results/g1_contract_resolution`, `results/g1_adaptation_dev` |
 | 13 | Generalisation evaluation across goals, arrangements and task families | Planned | n/a |
 | 14 | Learned world/motor models, mobile or whole-body embodiments | Planned, conditional on evidence and compute | n/a |
 
@@ -1977,6 +1985,98 @@ no recording implementation or full-loop demonstration is claimed.
 python -m experiments.groot_contract --run results/groot_cuda_openloop/raw/groot --out <new-audit-directory>
 ```
 
+**Physical-contract resolution and selected alternative (25 Oct 2026).** Further upstream
+research found [NVIDIA's published G1 teleoperation dataset](https://huggingface.co/datasets/nvidia/PhysicalAI-Robotics-GR00T-Teleop-G1/tree/0d7bdd06e67f3ca0868892d0ec8f03bcd3e49e40).
+Its actual `meta/info.json` names all 43 joints; `meta/modality.json` splits each hand as
+index_0, index_1, middle_0, middle_1, thumb_0, thumb_1, thumb_2. It records 20 Hz,
+640×480 ego RGB and a G1 with tri-finger hands. These are verified properties of that
+published dataset, whose card describes N1.5 fine-tuning; they do **not** establish that
+N1.7 REAL_G1 uses the same asset, wrist EEF transform, camera calibration or execution
+schedule. Unitree's actual Dex3 driver uses thumb-first arrays and different index/middle
+motor ordering between hands. Names must drive conversion; motor-slot identity is unsafe.
+
+`results/g1_contract_resolution/resolution_final.json` records the pinned sources,
+DREAM's hinge axes/ranges and the comparison. A real public 111-frame trajectory has
+no action or measured-state range violations under its named mapping to DREAM, and all
+frames yield finite wrist forward kinematics. This is an offline kinematic diagnostic,
+not dynamic replay. Applying that dataset's hand order hypothetically to the untouched
+N1.7 predictions yields **zero conditional hand-limit violations**, resolving the earlier
+86 as an ordering issue under this hypothesis. It does not authorize actuation: the
+original inference used differently ordered state input, and neither the checkpoint-to-data
+link nor exact training robot/camera/wrist contract is established. No original predictions
+were permuted in place, clipped to physical limits or executed. All earlier evidence remains.
+
+The chosen practical route is the [pinned official NEW_EMBODIMENT recipe](https://github.com/NVIDIA/Isaac-GR00T/blob/944fe70c4fd54e3fcb80a7d7258a328f9c061176/getting_started/finetune_new_embodiment.md),
+using DREAM's existing robot and controller rather than borrowing undocumented REAL_G1
+semantics. `experiments/g1_modality.py` defines current external RGB, measured named
+31D upper-body joint state, and absolute joint-reference actions: radians, no extra
+reference offsets, 20 Hz data and an initial 16-step horizon following the official example.
+The state/action names come from the actual recording, including the right-hand order.
+EEF, navigation, base-height and locomotion commands are excluded from this new contract.
+This configuration requires a **fine-tuned checkpoint**; changing tags on the base model
+does not create a compatible policy. SONIC requires a different whole-body motion-token
+controller and gripper/deployment path. SmolVLA's official recipe also needs custom
+demonstrations and fine-tuning, while adding another model runtime. Neither is a verified
+drop-in replacement for this supported G1 slice. The comparison and remaining gates are
+in the resolution report.
+
+**Actual recorded development evaluation:** the unchanged `free_heavier`, seed 4003,
+completed 12,100 physics steps (12.1 s): reach, one physical probe, accepted Bayesian
+update, grasp, transfer, release and fresh verification. Belief became 0.99647 movable;
+independent scoring confirms placement and 4.43 s sustained lifted multi-finger contact.
+Peak object contact penetration was 0.913 mm (unchanged 1 mm gate), maximum localization
+error 1.45 mm, with no safety stop or false success claim. This is **one repeated
+development case using deterministic reasoning and classical motor control**, not learned
+manipulation, a new success rate, transfer, or a Qwen + GR00T episode. The older Linux
+baseline also succeeded; Windows trajectories/contact values differ, retained in
+`recording_physics_parity.json`. No controller, scene, limit or scoring threshold changed.
+
+Recording is now automatic by default in both G1 exploration and commissioning runners;
+the Qwen evaluation uses the same exploration entry point. CPU regression tests explicitly
+disable media encoding. During control the recorder only copies 20 Hz integration states
+and named references. After scoring it renders two fixed views from those states in a
+separate MuJoCo buffer, without stepping physics again. Both verified MP4s contain
+243 original 1280×720 frames at 20 FPS, with unedited PNGs, snapshots, the binary scene,
+sensor observations, UTC/simulation timestamps and tool/belief/safety/outcome logs retained
+outside Git and OneDrive. Complete-sequence success clips come from these same frames;
+failed evaluations retain full footage and receive no success clip. No second demonstration
+episode was run for media. Video follows simulation time; inference wall latency remains
+in logs, so this does not demonstrate real-time holding during model calls.
+`results/g1_contract_resolution/recordings.json` contains verified absolute local paths
+and video hashes; `results/g1_adaptation_dev` retains the episode, source snapshot and scores.
+
+`experiments.g1_dataset` exported that same episode as GR00T-flavored LeRobot v2:
+242 float32 rows and 242 matching video frames. State at t is paired with the actual
+controller's slew-limited absolute reference at t+50 ms. Joint names, units, alignment,
+video identity and provenance are explicit; no guessed permutations or offsets occur.
+The dataset is outside Git at `C:/Users/24adi/work/dream-g1-adaptation-dataset`.
+Its Parquet values and MP4 frame count verify against the original snapshots; the isolated
+upstream training loader has **not** been executed. One successful episode is not a
+diverse training corpus, and `training_ready` is explicitly false. PyArrow 22.0.0
+(Apache-2.0) is an optional CPU export dependency, not part of model inference.
+
+```powershell
+# Normal evaluation automatically records actual episodes; use a fresh output/name.
+$env:DREAM_RECORDINGS_ROOT = 'C:/Users/24adi/work/DREAM-recordings'
+python -m experiments.g1_explore_unknown --config experiments/configs/g1_adaptation_dev.json --out <new-evaluation-directory>
+python -m experiments.g1_dataset --recording <recorded-episode-path> --out <external-new-dataset>
+# In the separately pinned upstream environment, after a sufficient dataset and paid-run approval:
+python gr00t/experiment/launch_finetune.py --base-model-path <existing-checkpoint> --dataset-path <training-only-dataset> --embodiment-tag NEW_EMBODIMENT --modality-config-path <DREAM>/experiments/g1_modality.py --output-dir <external-checkpoints> --num-gpus 1
+```
+
+Next gates: validate the actual upstream data loader; segment and label recorded tool
+intervals for bounded motor skills; collect varied independently successful demonstrations
+while preserving failures; freeze development/held-out
+splits and safety gates; cost and approve a separate fine-tuning workload; then test fresh
+predictions offline before the first bounded recorded physical action. Only a physically
+validated motor skill may enter the existing Qwen typed-tool interface. TaskAgent,
+Bayesian discovery, independent verification and the safety controller are retained.
+No new inference, weights, paid infrastructure or fine-tuning was run in this continuation.
+Neither learned physical milestone is claimed. The cloud bootstrap now places recordings
+under the retrieved `/work/out` tree and installs FFmpeg, but its expanded rendering time,
+storage and egress have not been costed or executed; historical workload allowances do not
+authorize that future run.
+
 The user's local HF token now stays local. Before allocation, a local authenticated preflight
 verifies every required file at the pinned model/backbone revisions and stages metadata plus
 short-lived file-scoped CDN URLs in a private input bucket. URLs are excluded from result
@@ -2011,6 +2111,7 @@ URLs are absent from the preserved evidence; local private URL manifests were re
 | Local backbone identity retaining upstream name-based dispatch | General algorithmic correction to dependency resolution | Two original loading failures, failing/passing regressions, actual CPU tokenizer and genuine CUDA inference; unchanged model bytes |
 | Conditional decoded-target and training-state audit | Engineering/measurement | Actual policy tensors; incompatible provisional hand mapping preserved, no actuation |
 | Executable action representation contract and exact offline decoder reconstruction | Engineering/measurement | Original manifest and prediction bytes verified; all conditional hand violations retained; unresolved physical mapping refuses actuation, no scene/controller changes |
+| Named custom-embodiment data preparation and automatic evaluation recording | Engineering/measurement | Public named dataset + 111-frame FK comparison, unchanged classical development task recorded once, aligned real Parquet/video export; no learned execution or changed physics/safety |
 
 Milestone 11 (discovery as a tool on the Panda) is implemented on a narrowed scene with the
 oracle tracker; see its audit. Milestone 10's first slice (camera pick-and-place) is done. The

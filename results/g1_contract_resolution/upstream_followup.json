@@ -1,0 +1,55 @@
+{
+  "trajectory": {
+    "url": "https://huggingface.co/datasets/nvidia/PhysicalAI-Robotics-GR00T-Teleop-G1/resolve/0d7bdd06e67f3ca0868892d0ec8f03bcd3e49e40/g1-pick-apple/data/chunk-000/episode_000000.parquet",
+    "sha256": "a0d5b462c5d27a7378b4bef68cbd6fdfcd85c5c033f5e9bd2abca47fe67fa22d",
+    "license": "CC-BY-4.0; NVIDIA GEAR",
+    "stored_outside_git": true
+  },
+  "issues": [
+    {
+      "url": "https://api.github.com/repos/NVIDIA/Isaac-GR00T/issues/406/comments",
+      "sha256": "93fd4aa161583b833db0637cf0b6309eef9c647a676a64f1819defcc574dfd62",
+      "comments": 1,
+      "author_associations": [
+        "COLLABORATOR"
+      ],
+      "note": "Community replies are leads, not proof of checkpoint semantics."
+    },
+    {
+      "url": "https://api.github.com/repos/NVIDIA/Isaac-GR00T/issues/650/comments",
+      "sha256": "fffa99000926f32e584f94fb862da13fa75402d3f7b8161f11fb35d7e07bf99f",
+      "comments": 10,
+      "author_associations": [
+        "NONE"
+      ],
+      "note": "Community replies are leads, not proof of checkpoint semantics."
+    },
+    {
+      "url": "https://api.github.com/repos/NVIDIA/Isaac-GR00T/issues/760/comments",
+      "sha256": "7c04787669e4b009e5ad231a686fb3f75c462bc08a95eb34e5b7037c538ba08e",
+      "comments": 4,
+      "author_associations": [
+        "NONE"
+      ],
+      "note": "Community replies are leads, not proof of checkpoint semantics."
+    }
+  ],
+  "choice": "Use the pinned official NEW_EMBODIMENT recipe with DREAM-owned named joint references; no raw REAL_G1 actuation.",
+  "smolvla": {
+    "source": "https://github.com/huggingface/lerobot/blob/main/docs/source/smolvla.mdx",
+    "finding": "Its official recipe also requires demonstration data and fine-tuning; no switch undertaken."
+  },
+  "new_dependency": {
+    "package": "pyarrow",
+    "version": "22.0.0",
+    "license": "Apache-2.0",
+    "purpose": "optional CPU-only LeRobot v2 Parquet export; no new model runtime",
+    "release_source": "https://pypi.org/project/pyarrow/22.0.0/"
+  },
+  "video_encoder": {
+    "program": "FFmpeg",
+    "local_version": "9.0.2-full_build",
+    "license": "external GPL build; no binary vendored",
+    "cloud": "distribution FFmpeg package; future paid run estimate must include recording storage/egress and encoder runtime"
+  }
+}

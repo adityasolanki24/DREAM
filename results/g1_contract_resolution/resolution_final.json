@@ -1,0 +1,726 @@
+{
+  "git_sha": "97398ed582010e38c4273ddd44157b2934601dcb",
+  "script_sha256": "b0914054ed740ab0fc19f8d0eda38b17192d4c52c5fde4de3b2b548bcfc9ba37",
+  "sources": {
+    "dataset_info": {
+      "url": "https://huggingface.co/datasets/nvidia/PhysicalAI-Robotics-GR00T-Teleop-G1/resolve/0d7bdd06e67f3ca0868892d0ec8f03bcd3e49e40/g1-pick-apple/meta/info.json",
+      "sha256": "c1d7dcbfe9a88fab2d9a845fb48a31fae5cfb1ea04c1eb65fe5b3e9871eb0ccd"
+    },
+    "dataset_modality": {
+      "url": "https://huggingface.co/datasets/nvidia/PhysicalAI-Robotics-GR00T-Teleop-G1/resolve/0d7bdd06e67f3ca0868892d0ec8f03bcd3e49e40/g1-pick-apple/meta/modality.json",
+      "sha256": "005bfe0b851e8d811b2a6fa4aa025d53116d28cadc8671b2f1c6a9fafb88e752"
+    },
+    "unitree_hand_driver": {
+      "url": "https://raw.githubusercontent.com/unitreerobotics/xr_teleoperate/817fb00c63cde15e5f24a0f8fa08e1e33ed89d3b/teleop/robot_control/robot_hand_unitree.py",
+      "sha256": "4ee8bd44e9512fb29f20113728e1cf3eebd077652b8540e62f8fd11943cfc034"
+    },
+    "getting_started/finetune_new_embodiment.md": {
+      "url": "https://raw.githubusercontent.com/NVIDIA/Isaac-GR00T/944fe70c4fd54e3fcb80a7d7258a328f9c061176/getting_started/finetune_new_embodiment.md",
+      "sha256": "0866df58044a77b4581590c44f05bad3fb3e8947a1e6cd16e1b62e4030f97c26"
+    },
+    "getting_started/data_preparation.md": {
+      "url": "https://raw.githubusercontent.com/NVIDIA/Isaac-GR00T/944fe70c4fd54e3fcb80a7d7258a328f9c061176/getting_started/data_preparation.md",
+      "sha256": "6771ae919f841898371822b9d2cd4ffeea5c6c9c6f84c1b2d6725acc661b8f9d"
+    },
+    "examples/SO100/so100_config.py": {
+      "url": "https://raw.githubusercontent.com/NVIDIA/Isaac-GR00T/944fe70c4fd54e3fcb80a7d7258a328f9c061176/examples/SO100/so100_config.py",
+      "sha256": "5257ac7980856565ea9d822e99c1ec7d5e57b34763b3b86658ff9f831237effb"
+    }
+  },
+  "dataset_license": "CC-BY-4.0, NVIDIA GEAR; numerical metadata only in Git",
+  "dataset_verified": {
+    "joint_names": [
+      "left_hip_pitch_joint",
+      "left_hip_roll_joint",
+      "left_hip_yaw_joint",
+      "left_knee_joint",
+      "left_ankle_pitch_joint",
+      "left_ankle_roll_joint",
+      "right_hip_pitch_joint",
+      "right_hip_roll_joint",
+      "right_hip_yaw_joint",
+      "right_knee_joint",
+      "right_ankle_pitch_joint",
+      "right_ankle_roll_joint",
+      "waist_yaw_joint",
+      "waist_roll_joint",
+      "waist_pitch_joint",
+      "left_shoulder_pitch_joint",
+      "left_shoulder_roll_joint",
+      "left_shoulder_yaw_joint",
+      "left_elbow_joint",
+      "left_wrist_roll_joint",
+      "left_wrist_pitch_joint",
+      "left_wrist_yaw_joint",
+      "left_hand_index_0_joint",
+      "left_hand_index_1_joint",
+      "left_hand_middle_0_joint",
+      "left_hand_middle_1_joint",
+      "left_hand_thumb_0_joint",
+      "left_hand_thumb_1_joint",
+      "left_hand_thumb_2_joint",
+      "right_shoulder_pitch_joint",
+      "right_shoulder_roll_joint",
+      "right_shoulder_yaw_joint",
+      "right_elbow_joint",
+      "right_wrist_roll_joint",
+      "right_wrist_pitch_joint",
+      "right_wrist_yaw_joint",
+      "right_hand_index_0_joint",
+      "right_hand_index_1_joint",
+      "right_hand_middle_0_joint",
+      "right_hand_middle_1_joint",
+      "right_hand_thumb_0_joint",
+      "right_hand_thumb_1_joint",
+      "right_hand_thumb_2_joint"
+    ],
+    "sampling_hz": 20,
+    "camera": "ego RealSense RGB 640x480 at 20 FPS per dataset card/info",
+    "morphology": "Unitree G1 tri-finger, 29 body + 14 hand coordinates",
+    "missing": [
+      "exact robot/hand asset revision",
+      "camera intrinsics/extrinsics",
+      "wrist EEF origin/frame",
+      "proof this is the N1.7 REAL_G1 contract"
+    ]
+  },
+  "dream_asset": {
+    "commit": "15ebe53f4cd77e7d745ae83b9d7ff90e685e8998",
+    "file": "g1_29dof_with_hand_rev_1_0.xml",
+    "wrist": "4010, rev_1_0",
+    "all_dataset_names_present": true,
+    "exact_training_asset_match_verified": false,
+    "support": "fixed pelvis; no locomotion or whole-body base command adapter",
+    "joints": [
+      {
+        "name": "left_hip_pitch_joint",
+        "axis": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "limits_rad": [
+          -2.5307,
+          2.8798
+        ],
+        "body": "left_hip_pitch_link"
+      },
+      {
+        "name": "left_hip_roll_joint",
+        "axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "limits_rad": [
+          -0.5236,
+          2.9671
+        ],
+        "body": "left_hip_roll_link"
+      },
+      {
+        "name": "left_hip_yaw_joint",
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "limits_rad": [
+          -2.7576,
+          2.7576
+        ],
+        "body": "left_hip_yaw_link"
+      },
+      {
+        "name": "left_knee_joint",
+        "axis": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "limits_rad": [
+          -0.087267,
+          2.8798
+        ],
+        "body": "left_knee_link"
+      },
+      {
+        "name": "left_ankle_pitch_joint",
+        "axis": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "limits_rad": [
+          -0.87267,
+          0.5236
+        ],
+        "body": "left_ankle_pitch_link"
+      },
+      {
+        "name": "left_ankle_roll_joint",
+        "axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "limits_rad": [
+          -0.2618,
+          0.2618
+        ],
+        "body": "left_ankle_roll_link"
+      },
+      {
+        "name": "right_hip_pitch_joint",
+        "axis": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "limits_rad": [
+          -2.5307,
+          2.8798
+        ],
+        "body": "right_hip_pitch_link"
+      },
+      {
+        "name": "right_hip_roll_joint",
+        "axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "limits_rad": [
+          -2.9671,
+          0.5236
+        ],
+        "body": "right_hip_roll_link"
+      },
+      {
+        "name": "right_hip_yaw_joint",
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "limits_rad": [
+          -2.7576,
+          2.7576
+        ],
+        "body": "right_hip_yaw_link"
+      },
+      {
+        "name": "right_knee_joint",
+        "axis": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "limits_rad": [
+          -0.087267,
+          2.8798
+        ],
+        "body": "right_knee_link"
+      },
+      {
+        "name": "right_ankle_pitch_joint",
+        "axis": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "limits_rad": [
+          -0.87267,
+          0.5236
+        ],
+        "body": "right_ankle_pitch_link"
+      },
+      {
+        "name": "right_ankle_roll_joint",
+        "axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "limits_rad": [
+          -0.2618,
+          0.2618
+        ],
+        "body": "right_ankle_roll_link"
+      },
+      {
+        "name": "waist_yaw_joint",
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "limits_rad": [
+          -2.618,
+          2.618
+        ],
+        "body": "waist_yaw_link"
+      },
+      {
+        "name": "waist_roll_joint",
+        "axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "limits_rad": [
+          -0.52,
+          0.52
+        ],
+        "body": "waist_roll_link"
+      },
+      {
+        "name": "waist_pitch_joint",
+        "axis": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "limits_rad": [
+          -0.52,
+          0.52
+        ],
+        "body": "torso_link"
+      },
+      {
+        "name": "left_shoulder_pitch_joint",
+        "axis": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "limits_rad": [
+          -3.0892,
+          2.6704
+        ],
+        "body": "left_shoulder_pitch_link"
+      },
+      {
+        "name": "left_shoulder_roll_joint",
+        "axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "limits_rad": [
+          -1.5882,
+          2.2515
+        ],
+        "body": "left_shoulder_roll_link"
+      },
+      {
+        "name": "left_shoulder_yaw_joint",
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "limits_rad": [
+          -2.618,
+          2.618
+        ],
+        "body": "left_shoulder_yaw_link"
+      },
+      {
+        "name": "left_elbow_joint",
+        "axis": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "limits_rad": [
+          -1.0472,
+          2.0944
+        ],
+        "body": "left_elbow_link"
+      },
+      {
+        "name": "left_wrist_roll_joint",
+        "axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "limits_rad": [
+          -1.97222,
+          1.97222
+        ],
+        "body": "left_wrist_roll_link"
+      },
+      {
+        "name": "left_wrist_pitch_joint",
+        "axis": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "limits_rad": [
+          -1.61443,
+          1.61443
+        ],
+        "body": "left_wrist_pitch_link"
+      },
+      {
+        "name": "left_wrist_yaw_joint",
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "limits_rad": [
+          -1.61443,
+          1.61443
+        ],
+        "body": "left_wrist_yaw_link"
+      },
+      {
+        "name": "left_hand_thumb_0_joint",
+        "axis": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "limits_rad": [
+          -1.0472,
+          1.0472
+        ],
+        "body": "left_hand_thumb_0_link"
+      },
+      {
+        "name": "left_hand_thumb_1_joint",
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "limits_rad": [
+          -0.724312,
+          1.0472
+        ],
+        "body": "left_hand_thumb_1_link"
+      },
+      {
+        "name": "left_hand_thumb_2_joint",
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "limits_rad": [
+          0.0,
+          1.74533
+        ],
+        "body": "left_hand_thumb_2_link"
+      },
+      {
+        "name": "left_hand_middle_0_joint",
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "limits_rad": [
+          -1.5708,
+          0.0
+        ],
+        "body": "left_hand_middle_0_link"
+      },
+      {
+        "name": "left_hand_middle_1_joint",
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "limits_rad": [
+          -1.74533,
+          0.0
+        ],
+        "body": "left_hand_middle_1_link"
+      },
+      {
+        "name": "left_hand_index_0_joint",
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "limits_rad": [
+          -1.5708,
+          0.0
+        ],
+        "body": "left_hand_index_0_link"
+      },
+      {
+        "name": "left_hand_index_1_joint",
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "limits_rad": [
+          -1.74533,
+          0.0
+        ],
+        "body": "left_hand_index_1_link"
+      },
+      {
+        "name": "right_shoulder_pitch_joint",
+        "axis": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "limits_rad": [
+          -3.0892,
+          2.6704
+        ],
+        "body": "right_shoulder_pitch_link"
+      },
+      {
+        "name": "right_shoulder_roll_joint",
+        "axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "limits_rad": [
+          -2.2515,
+          1.5882
+        ],
+        "body": "right_shoulder_roll_link"
+      },
+      {
+        "name": "right_shoulder_yaw_joint",
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "limits_rad": [
+          -2.618,
+          2.618
+        ],
+        "body": "right_shoulder_yaw_link"
+      },
+      {
+        "name": "right_elbow_joint",
+        "axis": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "limits_rad": [
+          -1.0472,
+          2.0944
+        ],
+        "body": "right_elbow_link"
+      },
+      {
+        "name": "right_wrist_roll_joint",
+        "axis": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "limits_rad": [
+          -1.97222,
+          1.97222
+        ],
+        "body": "right_wrist_roll_link"
+      },
+      {
+        "name": "right_wrist_pitch_joint",
+        "axis": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "limits_rad": [
+          -1.61443,
+          1.61443
+        ],
+        "body": "right_wrist_pitch_link"
+      },
+      {
+        "name": "right_wrist_yaw_joint",
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "limits_rad": [
+          -1.61443,
+          1.61443
+        ],
+        "body": "right_wrist_yaw_link"
+      },
+      {
+        "name": "right_hand_thumb_0_joint",
+        "axis": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "limits_rad": [
+          -1.0472,
+          1.0472
+        ],
+        "body": "right_hand_thumb_0_link"
+      },
+      {
+        "name": "right_hand_thumb_1_joint",
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "limits_rad": [
+          -1.0472,
+          0.724312
+        ],
+        "body": "right_hand_thumb_1_link"
+      },
+      {
+        "name": "right_hand_thumb_2_joint",
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "limits_rad": [
+          -1.74533,
+          0.0
+        ],
+        "body": "right_hand_thumb_2_link"
+      },
+      {
+        "name": "right_hand_index_0_joint",
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "limits_rad": [
+          0.0,
+          1.5708
+        ],
+        "body": "right_hand_index_0_link"
+      },
+      {
+        "name": "right_hand_index_1_joint",
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "limits_rad": [
+          0.0,
+          1.74533
+        ],
+        "body": "right_hand_index_1_link"
+      },
+      {
+        "name": "right_hand_middle_0_joint",
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "limits_rad": [
+          0.0,
+          1.5708
+        ],
+        "body": "right_hand_middle_0_link"
+      },
+      {
+        "name": "right_hand_middle_1_joint",
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "limits_rad": [
+          0.0,
+          1.74533
+        ],
+        "body": "right_hand_middle_1_link"
+      }
+    ]
+  },
+  "public_trajectory_diagnostic": {
+    "path": "C:\\Users\\24adi\\work\\dream-contract-resolution\\nvidia_episode_000000.parquet",
+    "sha256": "a0d5b462c5d27a7378b4bef68cbd6fdfcd85c5c033f5e9bd2abca47fe67fa22d",
+    "rows": 111,
+    "action_values_outside_dream_ranges": 0,
+    "measured_values_outside_dream_ranges": 0,
+    "range_valid_action_frames_with_finite_fk": 111,
+    "finite_wrist_positions": true,
+    "physics_actions_executed": 0,
+    "note": "Ranges and finite FK cannot verify real training frames, dynamics or cameras."
+  },
+  "original_predictions_under_dataset_order": {
+    "left_hand": {
+      "public_dataset_names": [
+        "left_hand_index_0_joint",
+        "left_hand_index_1_joint",
+        "left_hand_middle_0_joint",
+        "left_hand_middle_1_joint",
+        "left_hand_thumb_0_joint",
+        "left_hand_thumb_1_joint",
+        "left_hand_thumb_2_joint"
+      ],
+      "out_of_range_values": 0,
+      "scope": "Hypothesis that N1.7 uses this older dataset's slots; unverified",
+      "actuation_permitted": false
+    },
+    "right_hand": {
+      "public_dataset_names": [
+        "right_hand_index_0_joint",
+        "right_hand_index_1_joint",
+        "right_hand_middle_0_joint",
+        "right_hand_middle_1_joint",
+        "right_hand_thumb_0_joint",
+        "right_hand_thumb_1_joint",
+        "right_hand_thumb_2_joint"
+      ],
+      "out_of_range_values": 0,
+      "scope": "Hypothesis that N1.7 uses this older dataset's slots; unverified",
+      "actuation_permitted": false
+    }
+  },
+  "original_predictions_sha256": "418c43ae98ac3dc2354f8bc763fd478cbbc96137eca725d4318926da5d9c8d10",
+  "real_g1_actuation_permitted": false,
+  "alternatives": [
+    {
+      "path": "GR00T NEW_EMBODIMENT on DREAM's supported G1",
+      "chosen": true,
+      "reason": "Official custom-embodiment recipe, existing model runtime/weights, current robot/safety and typed tools retained. Own named 31D absolute joint references, external camera and 20 Hz recordings remove unknown EEF/hand/base contracts. Requires diverse successful demos and fine-tuning."
+    },
+    {
+      "path": "UNITREE_G1_SONIC",
+      "chosen": false,
+      "reason": "Different 64D motion-token/WBC deployment, separate gripper and finetuned policy. Replaces fixed-pelvis control and needs locomotion validation; much larger integration than the supported manipulation slice."
+    },
+    {
+      "path": "SmolVLA",
+      "chosen": false,
+      "reason": "Official docs require custom data/fine-tuning; no verified drop-in G1 Dex3 checkpoint identified. New runtime and weights add effort without resolving the need for a named physical dataset."
+    }
+  ],
+  "next_gates": [
+    "Validate exported LeRobot schema and action/state/video alignment on real episodes",
+    "Collect varied independently successful motor-skill demonstrations, retain failures",
+    "Freeze split/gates; obtain a fresh itemised GPU estimate and explicit cost approval",
+    "Fine-tune existing checkpoint in isolated pinned environment, no silent fallback",
+    "Fresh held-out offline action checks, then bounded safety-limited recorded execution",
+    "Only then expose the validated bounded motor skill to existing Qwen tool interface"
+  ],
+  "model_calls": 0,
+  "learned_physical_milestone_achieved": false
+}

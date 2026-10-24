@@ -27,7 +27,7 @@ def write_json(path: Path, value: object) -> None:
     path.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n", encoding="utf-8")
 
 
-def run(config: Path, out: Path, media: Path | None = None) -> dict:
+def run(config: Path, out: Path, media: Path | None = None, *, recording: bool = True) -> dict:
     cfg = json.loads(config.read_text())
     if cfg["sim_dt_s"] != 0.001 or cfg["sample_hz"] != 100:
         raise ValueError("unsupported sampling contract")
@@ -76,6 +76,23 @@ def run(config: Path, out: Path, media: Path | None = None) -> dict:
         position = palm + np.array(case["offset_from_palm_m"])
         env = G1Env(build_g1(tuple(position), case["radius_m"], case["mass_kg"]))
         robot = env.robot
+        recorder = None
+        if recording:
+            from experiments.g1_recording import EpisodeRecorder, external_recording_root
+
+            recorder = EpisodeRecorder(
+                env,
+                external_recording_root(media) / out.name / case["name"],
+                {
+                    "config": cfg,
+                    "case": case,
+                    "seed": None,
+                    "base_git_sha": subprocess.check_output(
+                        ["git", "rev-parse", "HEAD"], text=True
+                    ).strip(),
+                    "scope": "classical commissioning; no learned motor calls",
+                },
+            )
         write_json(
             folder / "joint_mapping.json",
             [
@@ -123,6 +140,8 @@ def run(config: Path, out: Path, media: Path | None = None) -> dict:
                     phase_steps = round(seconds / cfg["sim_dt_s"])
                     for phase_step in range(phase_steps):
                         env.step()
+                        if recorder is not None:
+                            recorder.sample(phase)
                         step += 1
                         if step % 10 == 0 or robot.stop_reason:
                             state = robot.state()
@@ -170,11 +189,18 @@ def run(config: Path, out: Path, media: Path | None = None) -> dict:
         finally:
             if renderer is not None:
                 renderer.close()
+            if recorder is not None:
+                recorder.save()
         summary = score_episode(rows, cfg["gates"])
         summary["wall_s"] = time.perf_counter() - wall_start
         summary["frame_count"] = len(frames)
         write_json(folder / "frames.json", frames)
         write_json(folder / "summary.json", summary)
+        if recorder is not None:
+            summary["recording"] = recorder.finish(
+                folder, summary["grasp_success"] and summary["release_drop_observed"]
+            )
+            write_json(folder / "summary.json", summary)
         summaries[case["name"]] = summary
     write_json(out / "summary.json", summaries)
     return summaries

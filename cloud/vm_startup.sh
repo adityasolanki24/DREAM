@@ -55,7 +55,8 @@ if [[ "$WORKLOAD" == isaac-t1-* ]]; then
   exit 0
 fi
 apt-get update -q
-apt-get install -y -q libosmesa6 python3-pip
+apt-get install -y -q libosmesa6 python3-pip ffmpeg
+export DREAM_RECORDINGS_ROOT=/work/out/recordings
 python3 -m pip install uv==0.9.4
 uv venv --python 3.12.12 /work/venv
 source /work/venv/bin/activate

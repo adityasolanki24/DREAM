@@ -80,7 +80,14 @@ def load_backend(config: dict, model_path: Path | None):
 
 
 def run_case(
-    case: dict, config: dict, folder: Path, model_path: Path | None = None, backend=None
+    case: dict,
+    config: dict,
+    folder: Path,
+    model_path: Path | None = None,
+    backend=None,
+    *,
+    recording: bool = True,
+    media_root: Path | None = None,
 ) -> dict:
     from PIL import Image
 
@@ -97,6 +104,16 @@ def run_case(
         target_position=tuple(config["target_position_m"]),
     )
     env = G1Env(model)
+    recorder = None
+    if recording:
+        from experiments.g1_recording import EpisodeRecorder, external_recording_root
+
+        root = external_recording_root(media_root)
+        recorder = EpisodeRecorder(
+            env,
+            root / folder.parent.name / config["backend"] / folder.name,
+            {"case": case, "config": config, **source_metadata(config)},
+        )
     camera = RGBDCamera(model, camera_spec, np.random.default_rng(case["seed"]))
     write_json(
         folder / "robot_contract.json",
@@ -125,6 +142,8 @@ def run_case(
             if env.data.time >= config["gates"]["max_episode_s"]:
                 raise ValueError("episode simulation budget exhausted")
             env.step()
+            if recorder is not None:
+                recorder.sample(tools.action if tools is not None else "initialization")
             physics_step += 1
             for contact in env.data.contact:
                 if object_geom in (contact.geom1, contact.geom2):
@@ -203,6 +222,8 @@ def run_case(
             write_json(folder / "failure.json", episode_data)
         finally:
             camera.close()
+            if recorder is not None:
+                recorder.save()
 
     write_json(folder / "episode.json", episode_data)
     write_json(folder / "tools.json", tools.events)
@@ -296,6 +317,9 @@ def run_case(
         "no VLM inference unless backend=qwen",
     }
     write_json(folder / "summary.json", summary)
+    if recorder is not None:
+        summary["recording"] = recorder.finish(folder, success)
+        write_json(folder / "summary.json", summary)
     return summary
 
 
