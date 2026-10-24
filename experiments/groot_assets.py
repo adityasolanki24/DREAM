@@ -50,6 +50,14 @@ def digest(path: Path) -> str:
 def localize_checkpoint(checkpoint: Path, backbone: Path, destination: Path) -> Path:
     """Derive loader configuration only; leave upstream files and all weights unchanged."""
     destination.mkdir(exist_ok=False)
+    # get_backbone_cls dispatches on this literal name even for local directories.
+    # Hard links retain the pinned bytes without duplicating multi-GB weights.
+    local_backbone = destination / "nvidia" / "Cosmos-Reason2-2B"
+    local_backbone.mkdir(parents=True)
+    for path in backbone.iterdir():
+        if path.is_file():
+            os.link(path, local_backbone / path.name)
+    identity = local_backbone.resolve().as_posix()
     for path in checkpoint.iterdir():
         if path.is_file():
             os.link(path, destination / path.name)
@@ -57,9 +65,9 @@ def localize_checkpoint(checkpoint: Path, backbone: Path, destination: Path) -> 
         target = destination / name
         original = json.loads(target.read_text())
         if name == "config.json":
-            original["model_name"] = str(backbone.resolve())
+            original["model_name"] = identity
         else:
-            original.setdefault("processor_kwargs", {})["model_name"] = str(backbone.resolve())
+            original.setdefault("processor_kwargs", {})["model_name"] = identity
         target.unlink()  # Break the metadata hard link before writing a derived configuration.
         target.write_text(json.dumps(original, indent=2) + "\n", encoding="utf-8")
     return destination

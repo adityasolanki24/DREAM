@@ -64,6 +64,13 @@ unfamiliar physical behaviour.
 
 Every row marked "implemented and tested" has passing tests and/or saved results in `results/`.
 
+Latest inference-loading checkpoint (25 Oct 2026): **302 full-suite tests passed in
+373.14 s** at `2ff8ff9`. The subsequent loader-path dispatch regression and CPU tokenizer
+preflight are saved in `results/groot_retry_validation`. These are local contract and
+physics checks, not evidence of learned motor-policy execution.
+The corrected dispatch checkpoint passes **277 fast tests in 90.41 s**; this still
+exceeds the 60-second target. Ruff lint and format checks pass.
+
 Latest local verification (24 Oct 2026, exploration checkpoint): **258 fast tests passed in
 172.65 s** and **284 full-suite tests passed in 336.86 s**. Focused physics/isolation tests
 passed 34/34; the final focused non-slow checks passed 22/22. Ruff lint/format, compilation
@@ -1858,6 +1865,11 @@ are untouched; derived metadata hashes are recorded. A real CPU tokenizer prefli
 exact Transformers 4.57.3 environment reproduces the original offline failure and loads the
 local identity successfully. This is a **general algorithmic correction to dependency
 resolution**, without changes to observations, model weights, safety or motor behavior.
+The actual upstream `get_backbone_cls` also selects its implementation by a literal
+`nvidia/Cosmos-Reason2` substring. The local directory must retain that name. A failing
+regression exposes the generic-path defect; the corrected derived directory hard-links
+the same backbone bytes under that name, and passes the actual pinned source condition
+plus real offline tokenizer loading. No upstream source or model weights are modified.
 
 The user's local HF token now stays local. Before allocation, a local authenticated preflight
 verifies every required file at the pinned model/backbone revisions and stages metadata plus

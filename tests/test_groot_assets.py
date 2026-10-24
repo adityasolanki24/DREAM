@@ -1,6 +1,7 @@
 """Offline loading and credential-free artifact staging contracts; no model inference."""
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -17,12 +18,14 @@ def test_both_model_and_processor_use_local_backbone_without_touching_original(t
     (checkpoint / "config.json").write_text(json.dumps(original))
     (checkpoint / "processor_config.json").write_text(json.dumps(processor))
     (checkpoint / "model.safetensors").write_bytes(b"untouched-weights")
+    (backbone / "config.json").write_text('{"model_type":"qwen3_vl"}')
     result = localize_checkpoint(checkpoint, backbone, tmp_path / "localized")
-    assert json.loads((result / "config.json").read_text())["model_name"] == str(backbone.resolve())
+    identity = json.loads((result / "config.json").read_text())["model_name"]
+    # Exact upstream get_backbone_cls dispatch, before importing any CUDA modules.
+    assert "nvidia/Cosmos-Reason2" in identity or "Qwen/Qwen3-VL" in identity
+    assert json.loads((Path(identity) / "config.json").read_text()) == {"model_type": "qwen3_vl"}
     patched = json.loads((result / "processor_config.json").read_text())["processor_kwargs"]
-    assert patched["model_name"] == str(backbone.resolve()) and patched["modality_configs"] == {
-        "keep": True
-    }
+    assert patched["model_name"] == identity and patched["modality_configs"] == {"keep": True}
     assert json.loads((checkpoint / "config.json").read_text()) == original
     assert (result / "model.safetensors").read_bytes() == b"untouched-weights"
 
