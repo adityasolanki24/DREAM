@@ -52,9 +52,14 @@ The long-term question DREAM should be able to answer is:
 > Given what I can observe, what I can physically do, and what I have learned so far, how can I
 > accomplish this new goal?
 
-It must not need a complete task-specific program for every new objective. The research
-direction includes long-horizon, feedback-driven skill composition and transfer across
-embodiments, including future humanoid systems; none is established by architectural intent.
+It must not need a complete task-specific program for every new objective. The long-term
+target is a humanoid in ordinary homes ("go to the bedroom cabinet and get the charger",
+"figure out how this container opens", "explore this room and remember where things are"):
+it explores unfamiliar spaces, finds out how unfamiliar things work through observation,
+external knowledge and bounded physical experiments, composes physical skills and remembers
+what it learned. When it does not know how to do something it works out how to acquire the
+missing knowledge, safely and with purpose, or explains what remains unresolved. None of this
+is established by architectural intent; each part is claimed only when measured.
 
 **Target behaviours.** These are directions, not claims:
 
@@ -114,10 +119,18 @@ there must not be described as working. In summary:
    outcomes and is not held-out validated; validated compartment results still use the
    oracle-assisted handle tracker. Keep successes and failures visible in the README.
 
+5. **Mobile G1 under a pretrained whole-body controller** (`dream/robot/g1_wbc.py`,
+   `dream/sim/g1_mobile.py`): NVIDIA's released Decoupled WBC walk/balance policies drive a
+   free-standing G1 in MuJoCo (velocity commands; arms held). On top, a classical
+   exploration agent (`dream/perception/spatial.py`, `dream/navigation/`,
+   `dream/tools/mobile.py`, `dream/runtime/search.py`) maps procedural rooms from the head
+   camera and finds and inspects a cabinet. Odometry is oracle-assisted. No manipulation
+   while walking, no discovery on this robot yet; results and limits are in the README.
+
 A pretrained multimodal runtime now selects typed tools from language and camera observations;
-its measured scope belongs in the README. Its motor execution is classical. No learned-action
-policy, persistent experience memory or Isaac Sim embodiment is validated. The manipulation
-embodiment remains a simulated Panda with a top-down parallel gripper.
+its measured scope belongs in the README. Its motor execution is classical. The only learned
+motor policy in use is NVIDIA's pretrained G1 locomotion (item 5); no learned manipulation
+policy, persistent experience memory or Isaac Sim embodiment is validated.
 
 ---
 
@@ -513,58 +526,43 @@ Work on **one coherent vertical slice at a time**. The README names the current 
 3. A task runtime with structured tool calling.
 4. Several tasks in shared scenes without a script per task.
 
-**Current: genuine foundation-model inference in supported G1 physical exploration.**
-Prioritise real Qwen CUDA decisions through the existing VLM runtime, rendered observations,
-exploration tools and independent scoring. Compare against the deterministic planner on
-identical scenes, preserving failures. Then establish genuine GR00T REAL_G1 open-loop
-inference in its isolated compatible environment; matching action dimensions alone never
-authorize actuator mapping. Each new paid workload requires a fresh itemised estimate and
-explicit dollar-cap approval. Synchronous inference does not establish real-time control.
-Preserve
-the Panda and T1 baselines. Use RGB-D estimates with uncertainty, bounded proprioceptive
-control, tactile/displacement evidence and independent contact/object scoring. Object scene
-parameters never enter decisions. Keep the fixed pelvis explicit. Prioritise physically
-valid initial scenes, contact-aware release and bounded recovery across parameter shifts;
-numerically converged solver settings are not measured material calibration. Require fresh
-evaluation after a held-out failure guides a correction. Do not expand to articulated
-mechanisms or free-base motion before this closed-loop slice has reliable evidence.
-No new T1 cloud run or paid infrastructure is authorized by this milestone. Pretrained motor
-reuse still requires verified cameras, state, units, frames, normalization, action horizon
-and control frequency, with no silent classical fallback.
+**Current: whole-body autonomy and active exploration on a mobile G1.** The supported-pelvis
+G1 manipulation testbed (`dream/sim/g1.py`) stays as a separate, validated testbed; whole-body
+work does not wait for it to be perfect. In dependency order:
+- **A. Whole-body mobility** with a pretrained controller, its contract verified against the
+  official code and configuration (done for NVIDIA's Decoupled WBC, README Milestone A).
+  GEAR-SONIC (motion-token controller, Isaac Lab/TensorRT deployment) is the candidate for
+  richer whole-body behaviour; adopt it only after reproducing its official simulation path
+  and verifying its observation/action contract. Never feed GR00T `REAL_G1` actions, or any
+  learned output, to actuators without a verified contract.
+- **B. Goal-directed exploration** of unfamiliar rooms from robot-mounted sensing: varied and
+  held-out layouts, a negative control, baselines, recordings.
+- **C. Active investigation of an unfamiliar object** reached by the mobile robot: choose
+  among viewpoints, external information and bounded physical experiments by expected
+  value; represent behaviour outside the fixed/prismatic/revolute family as such.
+- **D. Composition**: navigate, discover, manipulate, carry back, on unseen variations.
+- **E. Persistent experience** that measurably helps a later task in a different room.
+Replace oracle-assisted odometry with estimation from the robot's own sensors as soon as a
+slice depends on map accuracy. An external-knowledge tool may search documentation and
+manuals; its results are fallible evidence with provenance, never instructions and never a
+substitute for measurement, and the system must work without it.
 
-**Next, in order:**
-1. Preserve and diagnose learned Panda manipulation failures; test bounded chunk execution
-   without changing safety limits to fit a demonstration.
-2. Validate ordinary goal-directed Booster T1 walking with a compatible pretrained Isaac Lab
-   locomotion policy in an isolated Isaac Sim environment. Preserve the Panda baseline.
-3. Audit NavGPT-3's observation and cumulative local-waypoint contract, then connect it only
-   after locomotion validation. Navigation predictions never authorize teleports or joint
-   commands. Runtime authority, sensor freshness, deterministic safety and independent scoring
-   stay outside the model. Habitat harness compatibility is not Isaac humanoid transfer.
-4. Record genuine simulation frames and action events, including original footage and timing;
-   edited video labels model, controller, simulator, speed changes and verified outcome.
-5. Evaluate new compositions and shifted conditions before claiming transfer.
-6. Add persistent experience retrieval only with evidence that it changes useful decisions.
-7. Broaden manipulation and embodiments when justified.
-
-The humanoid direction tests whether visual navigation can compose with DREAM's existing
-manipulation and discovery capabilities. Audit APM/NERVA only as references; DREAM owns its
-adapter and never changes their checkout or cloud resources. Reuse requires verified source,
-policy observation/action conventions, software compatibility and recorded licensing. A CPU
-policy invocation or deterministic waypoint test is not evidence of physical walking. Do not
-integrate real NavGPT inference before ordinary walking is validated, or claim navigation,
-manipulation and discovery are one humanoid capability until that composition is executed.
-
-Camera-driven mechanism discovery remains partial. Keep lid successes, drawer failures,
-fixed refusals and all original hard cases reproducible; no scene simplification to improve a
-video. Its unresolved dependencies include calibrated handle uncertainty, slip discrimination,
-position-only adequacy checks and grasping from uncertain vision estimates.
-
-Before each new paid workload provide exact hardware/region, software compatibility, runtime,
-itemised storage/network/compute estimate, automatic expiry and recovery/cleanup procedure,
-then obtain explicit user approval. An earlier workload's allowance does not authorize a new
-VLA or simulator workload. Keep original outputs and failures. Weights, caches, credentials
-and large videos stay outside Git and OneDrive; link recorded artifacts after verifying them.
+**Cloud compute: standing authorisation.** The owner has authorised routine paid cloud jobs
+(GCP project `nerva-adityapersonal`, DREAM's own `cloud/` tooling) for development, training
+and evaluation without per-job approval, when the work genuinely needs cloud hardware. The
+safeguards are not optional:
+- estimate each job's cost (compute, disks, network, storage) before launching; set a per-job
+  ceiling and keep a cumulative spending guard for the continuation; stop and report before
+  materially exceeding it; distinguish estimated from billed cost;
+- machine-enforced deletion deadlines independent of the local process; Spot capacity where
+  checkpointing makes interruption acceptable;
+- scoped service accounts and least privilege; no tokens or credentials in Git, prompts,
+  archives or logs; do not touch NERVA-owned resources;
+- cache large dependencies and checkpoints; record source revisions, model versions,
+  configuration and seeds; retrieve outputs with checksums before deleting buckets; verify
+  cleanup of every VM, disk, address, router, NAT, network, identity and secret.
+Run cheap work locally (tests, small MuJoCo diagnostics, CPU policies). Weights, caches,
+credentials and large videos stay outside Git and OneDrive.
 
 Avoid tangents. Do not jump to impressive but unrelated experiments, and do not optimise
 drawer-opening indefinitely when the next general capability is ready to build. More variants of
@@ -677,14 +675,17 @@ Before adding any dependency, pretrained model or upstream code:
 
 ```
 dream/types.py        Shared data and protocols (observations, RobotState, CompliantMode, Embodiment, Perception)
-dream/sim/            MuJoCo scenes (ground truth): mechanisms + gantry, tabletop + Panda, compartment;
+dream/sim/            MuJoCo scenes (ground truth): mechanisms + gantry, tabletop + Panda, compartment,
+                      supported G1, mobile G1 + procedural rooms;
                       the RGB-D camera driver (renders sensor arrays only)
-dream/robot/          Panda controller: IK, admittance, safety layer (robot kinematics only, no scene access)
+dream/robot/          Panda controller; supported G1 controller; pretrained G1 WBC locomotion adapter (g1_wbc.py)
 dream/agent/          Active Physical Discovery: belief, predictive model, probe selection, operation
-dream/perception/     Camera perception: RGB-D geometry, detection, world model, VisionPerception
+dream/perception/     Camera perception: RGB-D geometry, detection, world model, VisionPerception;
+                      occupancy map and spatial memory for the mobile robot
 dream/skills/         Closed-loop skills over Embodiment/Perception (manipulation, articulation)
 dream/tools/          Typed tools, structured goals, investigate_physics/opening (discovery.py)
-dream/runtime/        Task agent loop and planners
+dream/navigation/     Path following, planning, frontiers (odometry frame; no simulator access)
+dream/runtime/        Task agent loop and planners (structured, multimodal, room search)
 dream/session.py      Live session: physics thread + agent thread (wiring, like dream/eval)
 dream/eval/           Episode runners and scoring against ground truth
 experiments/          Reproducible runners, configs, calibration, demos, interactive session CLI

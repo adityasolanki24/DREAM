@@ -44,8 +44,16 @@ rules, architecture and engineering standards are in [`AGENTS.md`](AGENTS.md).
    or broad generalisation. Raw requests, outputs, RGB-D calibration, timing and GPU telemetry
    are in `results/qwen_cloud_pilot_dev`. A learned-action model has since executed six fresh
    predicted joint targets with measured tracking, but failed its manipulation task (below).
-   Useful learned manipulation and humanoid standing/walking remain unvalidated. The latest
-   Isaac run completed four PPO actions before a measured-state guard rejected a knee excursion.
+   Useful learned manipulation remains unvalidated. The Booster T1 Isaac route stopped after
+   four PPO actions (a measured-state guard rejected a knee excursion); humanoid walking is now
+   validated by a different route (item 6).
+6. **A walking G1 that explores rooms (Milestones A and B).** NVIDIA's released Decoupled WBC
+   walk/balance policies, run with their verified contract, walk a free-standing Unitree G1
+   in MuJoCo: no falls across all pre-registered locomotion tests, 30/30 go-to goals, pushes
+   up to 120 N recovered. On top, a classical agent maps unfamiliar procedural rooms from the
+   robot's head camera, finds the cabinet (a box with a handle) among distractors and stands
+   where it can examine it; how the cabinet opens is reported as unknown. Odometry is
+   oracle-assisted. See [Mobile G1](#mobile-g1-pretrained-whole-body-locomotion-and-room-exploration).
 
 ![Panda: red cube into the tray, then blue stacked on green](results/demo/panda_session/replay.gif)
 
@@ -307,7 +315,9 @@ these cloud-only changes. The Windows fast-suite duration still exceeds the 60 s
 | 12h | Named G1 adaptation data and automatic evaluation recording | **Local preparation and recorded classical baseline:** public NVIDIA dataset establishes its own named 43D joint order and 20 Hz sampling; exact N1.7 contract remains unverified. Selected official NEW_EMBODIMENT fine-tuning route, explicit 31D joint-reference configuration, real LeRobot export, automatic wide/hand MP4s from evaluation snapshots. One repeated development manipulation succeeds through classical tools; no adapted policy trained or executed | `experiments/g1_modality.py`, `experiments/g1_dataset.py`, `experiments/g1_recording.py`, `results/g1_contract_resolution`, `results/g1_adaptation_dev` |
 | 12i | Integrated G1 autonomy continuation | **Recovered evaluation incomplete (7/8 finalized):** Qwen 1/4 physical placements plus one safe refusal, zero agent-verified successful completions; baseline 0/3 finalized placements and one incomplete slot. All artifacts verify; original results unchanged. Shared release/recovery development continues; no fine-tuning or learned action | `results/g1_autonomy_recovery`, `tests/test_g1_autonomy.py`, `tests/test_g1_goal_contract.py` |
 | 13 | Generalisation evaluation across goals, arrangements and task families | Planned | n/a |
-| 14 | Learned world/motor models, mobile or whole-body embodiments | Planned, conditional on evidence and compute | n/a |
+| 12j | Mobile G1 walking under NVIDIA's pretrained Decoupled WBC (Milestone A) | **Implemented and tested; every pre-registered gate passed** on 10 unseen seeds: 0 falls, tracking 0.86 (forward) / 0.98 (yaw), 30/30 go-to goals, pushes to 120 N. Velocity-commanded locomotion only; arms held | `tests/test_g1_wbc.py`, `results/g1_locomotion` |
+| 12k | Room exploration: find and inspect an unfamiliar cabinet from the head camera (Milestone B) | See the Mobile G1 section for held-out results. Classical exploration; oracle-assisted odometry; no physical discovery on this robot yet | `tests/test_mobile_exploration.py`, `results/g1_explore_room`, `results/g1_explore_room_dev` |
+| 14 | Learned world/motor models, whole-body manipulation, GEAR-SONIC | Planned. Pretrained locomotion in use (12j); SONIC needs a GPU with TensorRT and Hugging Face access | n/a |
 
 ## Install
 
@@ -351,6 +361,11 @@ python experiments/replay.py results/sessions/<time> --width 320       # session
 python experiments/calibrate_handle_measurement.py                     # camera handle-measurement calibration
 python experiments/audit_foundation_models.py --name foundation_model_audit_local  # new output directory
 python experiments/run_vlm.py experiments/configs/vlm.json --model-path <dir>  # needs the checkpoint
+# Mobile G1: NVIDIA's pretrained WBC locomotion (pip install -e ".[locomotion]")
+python experiments/fetch_wbc_policy.py                         # hash-pinned weights -> ~/.cache/dream
+python experiments/g1_locomotion.py experiments/configs/g1_locomotion.json [--record]  # Milestone A, ~2 min
+python experiments/g1_explore_room.py experiments/configs/g1_explore_room.json --workers 4  # Milestone B, ~1 h
+python experiments/mobile_recording.py --render <recording dir>  # MP4 from saved states (no re-simulation)
 # Read-only cloud preparation (no resources created):
 python cloud/launch.py plan --project <project-id>
 python cloud/launch.py audit --project <project-id>
