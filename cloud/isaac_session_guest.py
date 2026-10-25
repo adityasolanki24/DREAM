@@ -13,13 +13,16 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tarfile
 import time
 from pathlib import Path
 
-BUCKET, CAP_MIN, PYTHON = sys.argv[1], int(sys.argv[2]), sys.argv[3]
+BUCKET, CAP_MIN = sys.argv[1], int(sys.argv[2])
+# "isaac": Isaac Sim 6.2 environment; "dream": DREAM's pinned MuJoCo 3.16 environment.
+PYTHONS = {"isaac": sys.argv[3], "dream": sys.argv[4] if len(sys.argv) > 4 else sys.argv[3]}
 OUT, WORK = Path("/work/out/jobs"), Path("/work/jobs")
 MARGIN_S = 180  # final sync and self-deletion before Google's deadline
 SUBS = {"{robot_dir}": "/work/g1_usd", "{policy_cache}": "/work/cache"}
@@ -76,15 +79,31 @@ def run(job: str) -> None:
         timeout = min(float(spec.get("timeout_s", left)), left)
         if timeout <= 60:
             raise TimeoutError("not enough VM lifetime left for this job")
-        env = {**os.environ, "DREAM_CODE_SHA": spec["git_sha"], "DREAM_CACHE": "/work/cache"}
+        kind = spec.get("env", "isaac")
+        if kind not in PYTHONS:
+            raise ValueError(f"unknown job environment {kind!r}")
+        env = {**os.environ, "DREAM_CODE_SHA": spec["git_sha"], "DREAM_CACHE": "/work/cache",
+               "DREAM_RECORDINGS_ROOT": str(out / "recordings")}  # fmt: skip
+        env.pop("MUJOCO_GL", None)
+        env.pop("PYOPENGL_PLATFORM", None)
+        if kind == "dream":  # headless MuJoCo rendering on the NVIDIA GPU
+            env.update(MUJOCO_GL="egl", PYOPENGL_PLATFORM="egl")
         (out / "started_utc.txt").write_text(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
         proc = subprocess.run(
-            [PYTHON, *args], cwd=folder / "DREAM", env=env, stdout=log, stderr=subprocess.STDOUT,
+            [PYTHONS[kind], *args],
+            cwd=folder / "DREAM",
+            env=env,
+            stdout=log,
+            stderr=subprocess.STDOUT,
             timeout=timeout,
-        )  # fmt: skip
+        )
         code = proc.returncode
     except subprocess.TimeoutExpired:
         code = 124
+    finally:
+        produced = folder / "DREAM" / "results"  # archives exclude results/: all of it is new
+        if produced.is_dir():
+            shutil.copytree(produced, out / "results", dirs_exist_ok=True)
     except Exception as error:  # recorded, never hidden
         log.write(f"\nJOB SETUP ERROR: {error!r}\n")
     finally:

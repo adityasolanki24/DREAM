@@ -42,10 +42,17 @@ uv venv --python 3.12 /work/conv-venv
 uv pip install --python /work/conv-venv --prerelease=allow 'mujoco-usd-converter==0.8.0' \
   'mujoco==3.16.0'
 uv pip freeze --python /work/conv-venv > /work/out/converter-freeze.txt
+# DREAM's own pinned environment for CPU MuJoCo jobs on the same VM (EGL rendering).
+uv venv --python 3.12 /work/dream-venv
+uv pip install --python /work/dream-venv 'mujoco==3.16.0' 'onnxruntime==1.23.2' numpy \
+  'matplotlib>=3.8' 'pillow==13.0.0' 'spark-dsg==1.1.3'
+uv pip install --python /work/dream-venv --no-deps -e /work/DREAM
+uv pip freeze --python /work/dream-venv > /work/out/dream-freeze.txt
 cd /work/DREAM
 /work/conv-venv/bin/python experiments/prepare_g1_usd.py --out /work/g1_usd > /work/out/prepare_g1_usd.log 2>&1
 cp /work/g1_usd/receipt.json /work/out/g1_usd_receipt.json
 DREAM_CACHE=/work/cache /work/isaac-venv/bin/python experiments/fetch_wbc_policy.py
 date -u +'%Y-%m-%dT%H:%M:%SZ' > /work/out/install_finished_utc.txt
 gsutil -q -m rsync -r /work/out "gs://$BUCKET/out" || true
-python3 /work/DREAM/cloud/isaac_session_guest.py "$BUCKET" "$CAP" /work/isaac-venv/bin/python
+python3 /work/DREAM/cloud/isaac_session_guest.py "$BUCKET" "$CAP" /work/isaac-venv/bin/python \
+  /work/dream-venv/bin/python

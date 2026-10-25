@@ -201,7 +201,9 @@ def remote_exists(url: str) -> bool:
         return False
 
 
-def submit(manifest: Path, module: str, args: list[str], timeout_s: int) -> Path:
+def submit(
+    manifest: Path, module: str, args: list[str], timeout_s: int, env: str = "isaac"
+) -> Path:
     p = json.loads(manifest.read_text())
     if not re.fullmatch(r"experiments/[a-z0-9_]+\.py", module):
         raise ValueError("jobs are experiments/<name>.py")
@@ -211,7 +213,7 @@ def submit(manifest: Path, module: str, args: list[str], timeout_s: int) -> Path
     with tempfile.TemporaryDirectory(prefix="dream-isaac-job-") as directory:
         code, checksum, sha = archive(Path(directory))
         spec = {"id": job, "git_sha": sha, "archive_sha256": checksum, "module": module,
-                "args": args, "timeout_s": timeout_s,
+                "args": args, "timeout_s": timeout_s, "env": env,
                 "submitted_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}  # fmt: skip
         (jobs / job).mkdir()
         (jobs / job / "job.json").write_text(json.dumps(spec, indent=2))
@@ -279,6 +281,7 @@ def main() -> None:
     ap.add_argument("--manifest", type=Path)
     ap.add_argument("--allowance-usd", type=float, default=0.0)
     ap.add_argument("--timeout-s", type=int, default=1800)
+    ap.add_argument("--env", choices=["isaac", "dream"], default="isaac")
     ap.add_argument("--yes", action="store_true")
     ap.add_argument("job", nargs="*", help="after --: experiments/<name>.py and its arguments")
     args = ap.parse_args()
@@ -292,7 +295,7 @@ def main() -> None:
             start(p, args.allowance_usd, args.yes)
     elif args.command == "submit":
         module, *rest = [a for a in args.job if a != "--"]
-        submit(args.manifest, module, rest, args.timeout_s)
+        submit(args.manifest, module, rest, args.timeout_s, args.env)
     elif args.command == "stop":
         stop(args.manifest, args.yes)
     else:
