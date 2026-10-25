@@ -132,7 +132,6 @@ class IsaacG1Env:
         self_collisions: bool = True,
     ) -> None:
         from isaacsim.core.prims import SingleArticulation
-        from isaacsim.core.utils.stage import add_reference_to_stage
         from pxr import PhysxSchema, Sdf, Usd, UsdPhysics, UsdShade
 
         self.world, self.rng, self.noise, self.head = world, rng, noise, head_camera
@@ -141,7 +140,13 @@ class IsaacG1Env:
         self.stage = world.stage
         if Sdf.Layer.FindOrOpen(robot_usd) is None:  # Isaac mutes USD diagnostics by default
             raise ValueError(f"USD {Usd.GetVersion()} cannot open the robot layer {robot_usd}")
-        add_reference_to_stage(robot_usd, ROBOT_PREFIX)
+        # A plain USD reference on the simulation's own stage. Isaac 6.2's deprecated
+        # add_reference_to_stage left /World/G1 without the asset's prims (session 4, jobs
+        # 1, 2 and 8: binary and flattened text assets alike).
+        holder = self.stage.DefinePrim(ROBOT_PREFIX, "Xform")
+        holder.GetReferences().AddReference(robot_usd)
+        if not holder.GetChildren():
+            raise ValueError(f"robot reference did not compose on {self.stage.GetRootLayer()}")
         checkpoint("robot_referenced")
         names, self.force_limit = mjcf_actuators()
         material = UsdShade.Material.Define(self.stage, ROBOT_PREFIX + "/DreamContactMaterial")
