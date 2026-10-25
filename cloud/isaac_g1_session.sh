@@ -11,7 +11,7 @@ apt-get update -q
 apt-get install -y -q libglu1-mesa libxt6 libxrandr2 libxi6 libxinerama1 libxcursor1 \
   libsm6 libice6 libgl1 libegl1 libvulkan1 libglvnd0 vulkan-tools python3-pip
 # CUDA alone does not supply the RTX renderer's matching GL/Vulkan user-space libraries.
-DRIVER=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader | head -1)
+DRIVER=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader | sed -n 1p)
 if ! ldconfig -p | grep libGLX_nvidia > /dev/null; then
   curl -fLsS "https://us.download.nvidia.com/tesla/$DRIVER/NVIDIA-Linux-x86_64-$DRIVER.run" \
     -o /work/nvidia-userspace.run || \
@@ -22,7 +22,9 @@ if ! ldconfig -p | grep libGLX_nvidia > /dev/null; then
 fi
 vulkaninfo --summary > /work/out/vulkan.txt 2>&1
 grep -qi 'NVIDIA' /work/out/vulkan.txt
-ldd --version | head -1 > /work/out/glibc.txt
+# No pipe into head here: under pipefail, head closing early SIGPIPEs ldd (exit 141),
+# which ended the first session before installation.
+ldd --version > /work/out/glibc.txt 2>&1 || true
 date -u +'%Y-%m-%dT%H:%M:%SZ' > /work/out/install_started_utc.txt
 python3 -m pip install uv==0.9.4
 uv venv --python 3.12 /work/isaac-venv

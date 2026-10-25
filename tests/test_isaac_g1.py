@@ -183,3 +183,28 @@ def test_isaac_session_plan_is_capped_and_offline():
         plan("nerva-adityapersonal", {**cfg, "max_minutes": 600}, p["name"])
     with pytest.raises(ValueError):
         plan("nerva-adityapersonal", cfg, "nerva-something")
+
+
+def test_session_vm_status_retries_control_plane_timeouts(monkeypatch):
+    """Regression: one 120 s `instances list` timeout aborted `stop` before cleanup."""
+    import subprocess
+
+    import cloud.isaac_session as S
+
+    calls = []
+
+    def fake(*args):
+        calls.append(args)
+        if len(calls) == 1:
+            raise subprocess.TimeoutExpired("gcloud", 120)
+        return json.dumps([{"status": "TERMINATED"}])
+
+    monkeypatch.setattr(S, "gcloud", fake)
+    assert S.vm_status({"project": "p", "name": "n"}) == "TERMINATED"
+    assert len(calls) == 2
+
+
+def test_guest_session_script_has_no_early_closing_pipes():
+    """Regression: `ldd --version | head -1` under pipefail exited 141 before installation."""
+    text = (ROOT / "cloud/isaac_g1_session.sh").read_text()
+    assert "| head" not in text

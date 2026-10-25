@@ -176,10 +176,21 @@ def start(p: dict, allowance: float, yes: bool) -> Path:
     return dest / "manifest.json"
 
 
+def vm_status(p: dict) -> str | None:
+    """The VM's status, or None once it is gone. Control-plane timeouts are retried."""
+    for attempt in range(3):
+        try:
+            rows = json.loads(gcloud("compute", "instances", "list", f"--project={p['project']}",
+                                     f"--filter=name={p['name']}", "--format=json"))  # fmt: skip
+            return rows[0]["status"] if rows else None
+        except subprocess.TimeoutExpired:
+            if attempt == 2:
+                raise
+    return None
+
+
 def vm_present(p: dict) -> bool:
-    rows = json.loads(gcloud("compute", "instances", "list", f"--project={p['project']}",
-                             f"--filter=name={p['name']}", "--format=json"))  # fmt: skip
-    return bool(rows)
+    return vm_status(p) is not None
 
 
 def remote_exists(url: str) -> bool:
@@ -234,9 +245,9 @@ def stop(manifest: Path, yes: bool) -> None:
         except subprocess.CalledProcessError:
             pass  # bucket may already be gone after an interrupted earlier stop
     deadline = time.monotonic() + 600
-    while vm_present(p) and time.monotonic() < deadline:
+    while vm_status(p) not in (None, "TERMINATED") and time.monotonic() < deadline:
         time.sleep(20)  # the guest finishes its job, syncs and deletes itself
-    if vm_present(p):
+    if vm_present(p):  # still running past the wait, or stopped without self-deletion
         gcloud("compute", "instances", "delete", p["name"], f"--project={p['project']}",
                f"--zone={p['zone']}")  # fmt: skip
     retrieved = False
