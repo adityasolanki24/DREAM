@@ -11,6 +11,20 @@ from experiments.g1_dataset import aligned_samples, normalization_statistics
 from experiments.g1_recording import EpisodeRecorder
 
 
+def test_retrieved_video_resolves_locally_but_still_rejects_changed_bytes(tmp_path):
+    from experiments.g1_dataset import original_video
+    from experiments.g1_recording import digest
+
+    video = tmp_path / "wide/episode.mp4"
+    video.parent.mkdir()
+    video.write_bytes(b"video-file-contract-fixture")
+    record = {"videos": {"wide": {"file": "/work/not-local/episode.mp4", "sha256": digest(video)}}}
+    assert original_video(tmp_path, record) == video
+    video.write_bytes(b"replacement")
+    with pytest.raises(ValueError, match="checksum"):
+        original_video(tmp_path, record)
+
+
 def test_normalization_uses_all_supplied_training_rows_without_clipping():
     values = np.array([[0, 2], [2, 2], [10, 2]], dtype=np.float32)
     stats = normalization_statistics(values)

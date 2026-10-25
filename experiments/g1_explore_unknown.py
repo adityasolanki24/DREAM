@@ -88,6 +88,7 @@ def run_case(
     *,
     recording: bool = True,
     media_root: Path | None = None,
+    render_media: bool = True,
 ) -> dict:
     from PIL import Image
 
@@ -333,7 +334,7 @@ def run_case(
     }
     write_json(folder / "summary.json", summary)
     if recorder is not None:
-        summary["recording"] = recorder.finish(folder, success)
+        summary["recording"] = recorder.finish(folder, success, render_media=render_media)
         write_json(folder / "summary.json", summary)
     return summary
 
@@ -350,7 +351,14 @@ def run(config_path: Path, out: Path, model_path: Path | None = None) -> dict:
     summaries = {}
     backend = load_backend(config, model_path) if config["backend"] == "qwen" else None
     for case in config["cases"]:
-        summaries[case["name"]] = run_case(case, config, out / case["name"], model_path, backend)
+        summaries[case["name"]] = run_case(
+            case,
+            config,
+            out / case["name"],
+            model_path,
+            backend,
+            render_media=config.get("render_media", True),
+        )
         write_json(out / "summary.json", summaries)
         print(case["name"], json.dumps(summaries[case["name"]]), flush=True)
     return summaries

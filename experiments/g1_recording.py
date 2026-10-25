@@ -139,7 +139,7 @@ class EpisodeRecorder:
         mujoco.mj_forward(self.env.model, data)
         return data
 
-    def finish(self, episode_folder: Path, success: bool) -> dict:
+    def finish(self, episode_folder: Path, success: bool, *, render_media: bool = True) -> dict:
         self.save()
         for name in (
             "physics.jsonl",
@@ -159,7 +159,15 @@ class EpisodeRecorder:
             shutil.copytree(episode_folder / "inference", self.root / "inference")
         if (episode_folder / "frames").exists():
             shutil.copytree(episode_folder / "frames", self.root / "sensor_observations")
-        if len(self.rows) < 2:
+        if not render_media:
+            result = {
+                "status": "captured",
+                "frames": len(self.rows),
+                "fps": FPS,
+                "physics_reexecuted": False,
+                "rendering_deferred": True,
+            }
+        elif len(self.rows) < 2:
             result = {"status": "no_physics_segment", "frames": len(self.rows)}
         else:
             try:

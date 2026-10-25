@@ -21,6 +21,10 @@ def report(out: Path, config: Path) -> dict:
     cfg = read(config, {})
     frozen = read(out / "freeze.json", {})
     model = read(out / "model.json", {})
+    published = {
+        (r["backend"], r["case"]): r
+        for r in read(out / "comparison.json", {"episodes": []})["episodes"]
+    }
     expected_digest = hashlib.sha256(config.read_bytes()).hexdigest()
     if frozen and frozen["config_sha256"] != expected_digest:
         raise ValueError("evaluation configuration differs from its original freeze")
@@ -76,6 +80,10 @@ def report(out: Path, config: Path) -> dict:
                 "split": case.get("split", "development"),
                 "record_present": bool(summary),
                 **summary,
+                "official_outcome_available": bool(summary)
+                and (backend, case["name"]) in published,
+                "agent_verified_task_completion": bool(summary.get("goal_success"))
+                and bool(episode.get("success_claimed")),
                 "model_calls_attempted": len(outputs),
                 "model_outputs_completed": sum(bool(o.get("text")) for o in outputs),
                 "model_latency_s": sum(o.get("latency_s", 0) for o in outputs),
@@ -98,6 +106,17 @@ def report(out: Path, config: Path) -> dict:
                 ],
             }
             result["episodes"].append(row)
+    result["planned_attempts"] = len(result["episodes"])
+    result["finalized_attempts"] = sum(r["official_outcome_available"] for r in result["episodes"])
+    result["incomplete_attempts"] = result["planned_attempts"] - result["finalized_attempts"]
+    result["missing_physical_records"] = sum(not r["record_present"] for r in result["episodes"])
+    result["evaluation_complete"] = (
+        result["incomplete_attempts"] == 0 and result["evidence_gate_passed"]
+    )
+    result["partial_outcome_policy"] = (
+        "Terminal summaries from unpublished attempts remain diagnostics only. Offline video "
+        "recovery cannot finalize the original comparison or change its outcome denominator."
+    )
     for backend in ("qwen", "deterministic"):
         for split in sorted({c.get("split", "development") for c in cfg["cases"]}):
             rows = [
@@ -105,11 +124,14 @@ def report(out: Path, config: Path) -> dict:
             ]
             result["totals"][f"{backend}/{split}"] = {
                 "attempts": len(rows),
+                "record_present": sum(r["record_present"] for r in rows),
+                "completed_attempts": sum(r["official_outcome_available"] for r in rows),
+                "incomplete_attempts": sum(not r["official_outcome_available"] for r in rows),
                 **{
-                    key: sum(bool(r.get(key)) for r in rows)
+                    key: sum(bool(r.get(key)) and r["official_outcome_available"] for r in rows)
                     for key in (
-                        "record_present",
                         "goal_success",
+                        "agent_verified_task_completion",
                         "correct_safe_refusal",
                         "conditional_task_success",
                         "false_success_claim",

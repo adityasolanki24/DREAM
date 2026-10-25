@@ -54,6 +54,14 @@ if [[ "$WORKLOAD" == isaac-t1-* ]]; then
   source /work/DREAM/cloud/isaac_t1_job.sh
   exit 0
 fi
+if [[ "$WORKLOAD" == g1-qwen || "$WORKLOAD" == g1-autonomy ]]; then
+  # Validated on a prebuilt image before allocation; no apt/pip/uv download fallback.
+  source /opt/dream-runtime/bin/activate
+  export MUJOCO_GL=egl
+  export PYOPENGL_PLATFORM=egl
+  python /work/DREAM/cloud/cached_runtime.py --lock /work/DREAM/cloud/requirements.lock.txt \
+    --out /work/out/runtime_preflight.json --freeze /work/out/pip-freeze.txt --cuda
+else
 apt-get update -q
 apt-get install -y -q libosmesa6 python3-pip ffmpeg
 if [[ "$WORKLOAD" == g1-autonomy ]]; then
@@ -76,6 +84,7 @@ fi
 uv pip install --require-hashes -r "/work/DREAM/cloud/$LOCK"
 uv pip install --no-deps -e /work/DREAM
 uv pip freeze > /work/out/pip-freeze.txt
+fi
 cd /work/DREAM
 UP=$(cut -d. -f1 /proc/uptime)
 LEFT=$(( CAP * 60 - 120 - UP ))

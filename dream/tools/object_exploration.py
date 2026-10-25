@@ -50,8 +50,9 @@ EXPLORATION_SPECS = [
             ("release_object", "Lower to the observed target if holding, release and retract.", {}),
             (
                 "verify_goal",
-                "Verify a caller-bound region goal from fresh vision after release.",
-                {"goal": {"type": "goal", "required": True}},
+                'Verify placement with {"type":"in","object":"red","target":"target"} '
+                "from fresh vision after release.",
+                {"goal": {"type": "goal", "required": True, "goal_types": ["in"]}},
             ),
         )
     ],
@@ -127,7 +128,10 @@ class ExplorationToolbox(DexterousToolbox):
         try:
             result = getattr(self, "_" + name)(**args)
         except (ValueError, ActionStopped) as error:
-            self.robot.hold()
+            if isinstance(error, ActionStopped) or self.robot.state().protective_stop:
+                self.robot.hold()
+            else:
+                self.robot.hold_for_reasoning()
             result = ToolResult(
                 name, "stopped" if isinstance(error, ActionStopped) else "failed", str(error)
             )
@@ -168,11 +172,30 @@ class ExplorationToolbox(DexterousToolbox):
             raise ValueError("position uncertainty exceeds supported reach precision")
         return observed
 
-    def _move(self, position: np.ndarray, timeout: float = 6.0) -> float:
+    def _move(
+        self, position: np.ndarray, timeout: float = 6.0, *, stop_near_support: bool = False
+    ) -> float:
         self.robot.reach("left", np.asarray(position), self.orientation)
         end = self.robot.state().time + timeout
         while self.robot.state().time < end:
             error = float(np.linalg.norm(self.robot.grasp_pose("left")[0] - position))
+            if stop_near_support:
+                # A supported object can prevent the requested arm pose, just as
+                # a constrained probe can. Observe its response instead of pushing
+                # until timeout. Proximity is not a claim of released placement.
+                obj = self._object()
+                if self.perception.target is None:
+                    raise ValueError("target no longer visible during lowering")
+                centre, half = self.perception.target
+                allowance = 3 * float(np.sqrt(obj.covariance[2, 2]))
+                gap = abs(obj.position[2] - obj.radius - centre[2])
+                inside = np.max(abs(obj.position[:2] - centre[:2])) < half - obj.radius - allowance
+                if inside and gap <= allowance:
+                    self.robot.hold_for_reasoning()
+                    self._advance(0.1)
+                    return error
+                self._advance(0.05)  # observe at the existing 20 Hz snapshot cadence
+                continue
             if error < 0.006:  # 3x systematic sensor floor; object success verified separately
                 self._advance(0.1)
                 return error
@@ -369,10 +392,17 @@ class ExplorationToolbox(DexterousToolbox):
             obj = self._object()
             if self.perception.target is None:
                 raise ValueError("target no longer visible; refusing unchecked placement")
-            # Upstream finger bases are 28.5 mm off centre; mesh thickness plus
-            # 6 mm sensor allowance gives ~50 mm swept opening clearance.
-            height = max(obj.radius + 0.01, 0.05)
-            self._move(self.perception.target[0] + [0, 0, height] - self.grasp_offset)
+            # Lower using observed geometry before unloading. A fixed 50 mm
+            # centre height left small spheres falling ~30 mm with lateral spin.
+            # Three-sigma pose clearance matches the existing verification margin;
+            # tactile, workspace and joint guards still bound the descent.
+            height = obj.radius + 3 * float(np.sqrt(obj.covariance[2, 2]))
+            self.action = "release_object/lower"
+            self._move(
+                self.perception.target[0] + [0, 0, height] - self.grasp_offset,
+                stop_near_support=True,
+            )
+            self.action = "release_object/unload"
             # Opening fully beside a sphere sweeps it sideways. Unload tactile
             # contact first, then withdraw the side grasp before the full sweep.
             for _ in range(80):
@@ -386,7 +416,9 @@ class ExplorationToolbox(DexterousToolbox):
             self._advance(0.15)
             # Lift clear before lateral withdrawal: the horizontal DLS path can
             # initially dip under load and drag a supported object along the pad.
+            self.action = "release_object/withdraw"
             self._move(self.robot.grasp_pose("left")[0] + [0, 0, 0.065])
+        self.action = "release_object/open"
         self._open()
         self.holding, self.released = None, True
         self._move(self.robot.grasp_pose("left")[0] + [0, 0, 0.06])
@@ -399,7 +431,12 @@ class ExplorationToolbox(DexterousToolbox):
         if not isinstance(goal, InRegion):
             goal = parse_goal(goal)
         if goal != InRegion("red", "target"):
-            return ToolResult("verify_goal", "rejected", "unsupported caller-bound goal")
+            return ToolResult(
+                "verify_goal",
+                "rejected",
+                "unsupported caller-bound goal",
+                {"supported_goal": {"type": "in", "object": "red", "target": "target"}},
+            )
         obj = self.perception.observe()
         target = self.perception.target
         satisfied = False

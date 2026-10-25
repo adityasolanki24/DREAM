@@ -67,3 +67,14 @@ def test_encoder_failure_keeps_original_state_and_failed_outcome(tmp_path, monke
     assert (recorder.root / "snapshots.npz").is_file()
     assert json.loads((recorder.root / "summary.json").read_text())["goal_success"] is False
     assert not list(recorder.root.rglob("*success.mp4"))
+
+
+def test_capture_only_never_constructs_a_renderer(tmp_path, monkeypatch):
+    env = G1Env()
+    recorder = EpisodeRecorder(env, tmp_path / "recording", {})
+    episode = tmp_path / "evidence"
+    episode.mkdir()
+    monkeypatch.setattr(recorder, "render", lambda *args: pytest.fail("rendered during capture"))
+    result = recorder.finish(episode, False, render_media=False)
+    assert result["status"] == "captured" and result["rendering_deferred"]
+    assert (recorder.root / "snapshots.npz").is_file()

@@ -26,6 +26,33 @@ def file_hash(path: Path) -> str:
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
+def validate_recording_evidence(out: Path, row: dict, mode: str) -> None:
+    """Keep old video gates frozen; new freezes may require complete saved states."""
+    record = row.get("recording", {})
+    if mode == "video":
+        if record.get("status") != "complete":
+            raise ValueError("complete two-view recording required for every attempt")
+        return
+    if mode != "snapshots" or record.get("status") != "captured":
+        raise ValueError("unknown or incomplete recording evidence mode")
+    import numpy as np
+
+    root = out.parent / "recordings" / row["backend"] / row["backend"] / row["case"]
+    for name in ("scene.mjb", "snapshots.npz", "timeline.jsonl", "terminal.npz"):
+        if not (root / name).is_file():
+            raise ValueError("saved recording evidence missing")
+    with np.load(root / "snapshots.npz", allow_pickle=False) as arrays:
+        times, states = arrays["time_s"], arrays["integration_state"]
+        if (
+            len(times) < 2
+            or len(times) != record["frames"]
+            or len(states) != len(times)
+            or not np.isfinite(states).all()
+            or not np.allclose(np.diff(times), 1 / record["fps"], atol=1e-9)
+        ):
+            raise ValueError("saved recording chronology or state contract differs")
+
+
 def validate_evidence(out: Path, config_path: Path | None = None) -> None:
     """Require real inference/physics records; task and safety failures stay reportable."""
     cfg = json.loads((config_path or CONFIG).read_text())
@@ -40,10 +67,10 @@ def validate_evidence(out: Path, config_path: Path | None = None) -> None:
         raise ValueError("G1 checkpoint revision differs")
     decisions = 0
     for row in rows:
-        if cfg.get("acceptance", {}).get("record_all_attempts") and (
-            row.get("recording", {}).get("status") != "complete"
-        ):
-            raise ValueError("complete two-view recording required for every attempt")
+        if cfg.get("acceptance", {}).get("record_all_attempts"):
+            validate_recording_evidence(
+                out, row, cfg["acceptance"].get("recording_evidence", "video")
+            )
         folder = out / row["backend"] / row["case"]
         if not (folder / "summary.json").is_file() or not (folder / "physics.jsonl").is_file():
             raise ValueError("G1 physical record missing")
@@ -159,6 +186,7 @@ def main() -> None:
                 {**cfg, "backend": condition, **model},
                 args.out / condition / case["name"],
                 backend=backend,
+                render_media=False,
             )
             episodes.append(
                 {

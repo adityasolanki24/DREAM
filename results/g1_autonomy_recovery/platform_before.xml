@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.833" timestamp="2026-10-25T19:00:52.494307+11:00" hostname="LAPTOP-H2LK8P6D"><testcase classname="tests.test_g1_platform_audit" name="test_missing_depth_does_not_produce_a_nan_report" time="0.445"><failure message="AssertionError: assert np.False_&#10; +  where np.False_ = &lt;ufunc 'isfinite'&gt;(nan)&#10; +    where &lt;ufunc 'isfinite'&gt; = np.isfinite">tmp_path = WindowsPath('C:/Users/24adi/AppData/Local/Temp/pytest-of-24adi/pytest-465/test_missing_depth_does_not_pr0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000020265B26520&gt;
+
+    def test_missing_depth_does_not_produce_a_nan_report(tmp_path, monkeypatch):
+        cloud, local = tmp_path / "cloud", tmp_path / "local"
+        for name in ("free_shift", "free_heavier"):
+            for folder in (cloud / "deterministic" / name, local / name):
+                (folder / "frames").mkdir(parents=True)
+                np.savez(folder / "frames/0000.npz", rgb=np.zeros((1, 2, 3)), depth=[[np.nan, 1]])
+            (cloud / "deterministic" / name / "frames.json").write_text(json.dumps([]))
+        monkeypatch.setattr(audit, "estimate", lambda p: SimpleNamespace(position=np.zeros(3)))
+        result = audit.compare(cloud, local)
+&gt;       assert np.isfinite(result["free_shift"]["initial_depth_rms_difference_m"])
+E       AssertionError: assert np.False_
+E        +  where np.False_ = &lt;ufunc 'isfinite'&gt;(nan)
+E        +    where &lt;ufunc 'isfinite'&gt; = np.isfinite
+
+tests\test_g1_platform_audit.py:20: AssertionError</failure></testcase></testsuite></testsuites>

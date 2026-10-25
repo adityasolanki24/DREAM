@@ -38,3 +38,20 @@ def test_missing_attempts_and_rejected_success_are_reported_separately(tmp_path)
     assert baseline["peak_scored_hand_object_normal_force_n"] is None
     assert result["totals"]["deterministic/development"]["attempts"] == 1
     assert result["totals"]["deterministic/development"]["goal_success"] == 0
+
+
+def test_terminal_summary_without_finalized_comparison_stays_incomplete(tmp_path):
+    config = tmp_path / "config.json"
+    config.write_text(json.dumps({"cases": [{"name": "example", "seed": 1}], "model": {}}))
+    run = tmp_path / "run"
+    folder = run / "deterministic/example"
+    folder.mkdir(parents=True)
+    (folder / "summary.json").write_text(
+        json.dumps({"goal_success": False, "correct_safe_refusal": True})
+    )
+    (run / "comparison.json").write_text(json.dumps({"episodes": []}))
+    result = report(run, config)
+    totals = result["totals"]["deterministic/development"]
+    assert totals["correct_safe_refusal"] == 0
+    assert totals["incomplete_attempts"] == 1
+    assert result["episodes"][1]["official_outcome_available"] is False

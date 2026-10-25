@@ -200,7 +200,9 @@ def test_release_unloads_contact_and_withdraws_before_full_finger_sweep():
         i for i, (kind, value) in enumerate(events) if kind == "hand" and value == 0
     )
     assert any(
-        kind == "move" and value[2] > 0.995 and abs(value[0] - 0.4) < 0.005
+        kind == "move"
+        and value[2] >= events[0][1][2] + 0.065 - 1e-9
+        and abs(value[0] - 0.4) < 0.005
         for kind, value in events[:first_full_open]
     )
 

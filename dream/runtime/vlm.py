@@ -105,8 +105,14 @@ def tool_schemas(specs: list[dict] | None = None) -> list[dict]:
             "required": ["type", "object", "target"],
         },
     }
+    selected = TOOL_SPECS if specs is None else specs
+    verifier = next((s for s in selected if s["name"] == "verify_goal"), {})
+    relations = verifier.get("parameters", {}).get("goal", {}).get("goal_types", ["in", "on"])
+    if not relations or any(kind not in ("in", "on") for kind in relations):
+        raise ValueError("invalid verifier goal relation contract")
+    kinds["goal"]["properties"]["type"]["enum"] = list(relations)
     out = []
-    for spec in [*(TOOL_SPECS if specs is None else specs), FINISH_SPEC]:
+    for spec in [*selected, FINISH_SPEC]:
         if spec["name"] in MODEL_EXCLUDED_TOOLS:
             continue
         props = {k: dict(kinds[p["type"]]) for k, p in spec["parameters"].items()}

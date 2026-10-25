@@ -124,8 +124,14 @@ def test_joint_hold_remains_safe_while_real_physics_continues_during_inference()
     before = session.env.robot_state()
     session.start()
     try:
-        time.sleep(0.2)  # stand-in latency only; this test does not claim model inference
+        # Test asynchronous progress, not a wall-clock throughput guarantee. A
+        # loaded host can schedule fewer physics steps during a fixed short sleep.
+        # Five seconds bounds a stalled worker; no model inference is claimed.
+        deadline = time.monotonic() + 5
         after = session.env.robot_state()
+        while after.time - before.time <= 0.1 and time.monotonic() < deadline:
+            time.sleep(0.01)
+            after = session.env.robot_state()
         assert after.time - before.time > 0.1
         assert np.max(np.abs(after.joint_pos - before.joint_pos)) < 0.002
         assert not after.protective_stop

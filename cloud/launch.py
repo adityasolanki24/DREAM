@@ -75,9 +75,14 @@ def gcloud(*args: str) -> str:
         raise RuntimeError("Google Cloud SDK is required")
     # The 41 MiB source upload exceeded 120 s on the development uplink, before
     # VM allocation. Allow a bounded ten-minute transfer; keep RPC limits short.
-    timeout = 600 if args[:2] == ("storage", "cp") else 120
+    timeout = 600 if args[:2] in (("storage", "cp"), ("storage", "rsync")) else 120
     return subprocess.run(
-        [exe, *args, "--quiet"], text=True, capture_output=True, check=True, timeout=timeout
+        [exe, *args, "--quiet"],
+        text=True,
+        encoding="utf-8",
+        capture_output=True,
+        check=True,
+        timeout=timeout,
     ).stdout.strip()
 
 
@@ -157,6 +162,8 @@ def plan(project: str, cfg: dict, name: str) -> dict:
         "nat": name + "-nat",
         "account": "dream-" + hashlib.sha256(name.encode()).hexdigest()[:16],
         "image": cfg["image"],
+        "image_project": cfg.get("image_project", "deeplearning-platform-release"),
+        "cached_image_id": cfg.get("cached_image_id"),
         "estimated_usd": round(estimate, 2),
         "cost_note": "estimate, not a billing hard cap; VM lifetime is enforced by Google",
     }
@@ -181,7 +188,7 @@ def create_command(p: dict, sha: str, archive_hash: str, startup: Path | None = 
         f"--zone={p['zone']}",
         f"--machine-type={p['machine']}",
         f"--image={p['image']}",
-        "--image-project=deeplearning-platform-release",
+        f"--image-project={p.get('image_project', 'deeplearning-platform-release')}",
         f"--boot-disk-size={p.get('disk_gb', 100)}GB",
         "--boot-disk-type=pd-balanced",
         "--boot-disk-auto-delete",
@@ -611,6 +618,33 @@ def cleanup(p: dict, *, remove_results: bool) -> list[str]:
     return errors
 
 
+def validate_cached_image(p: dict) -> None:
+    """Future G1 jobs require an immutable, prevalidated image before any paid mutation."""
+    if p.get("workload") not in ("g1-qwen", "g1-autonomy"):
+        return
+    if not p.get("cached_image_id"):
+        raise ValueError("G1 GPU jobs require a prevalidated cached runtime image; no cold install")
+    image = json.loads(
+        gcloud(
+            "compute",
+            "images",
+            "describe",
+            p["image"],
+            f"--project={p['image_project']}",
+            "--format=json",
+        )
+    )
+    receipt = json.loads(image.get("description", "{}"))
+    lock_hash = hashlib.sha256((ROOT / "cloud/requirements.lock.txt").read_bytes()).hexdigest()
+    if (
+        str(image.get("id")) != str(p["cached_image_id"])
+        or image.get("status") != "READY"
+        or receipt.get("requirements_lock_sha256") != lock_hash
+        or receipt.get("preflight_passed") is not True
+    ):
+        raise ValueError("cached runtime image identity or preflight receipt differs")
+
+
 def launch(p: dict, allowance: float, yes: bool) -> None:
     """One foreground run. Approval is external; --yes acknowledges that specific approval."""
     if not yes or not math.isfinite(allowance) or not allowance >= p["estimated_usd"]:
@@ -619,6 +653,7 @@ def launch(p: dict, allowance: float, yes: bool) -> None:
         )
     if git("status", "--porcelain", "--untracked-files=no"):
         raise ValueError("commit first: only a clean committed snapshot can run")
+    validate_cached_image(p)
     if p.get("workload") == "groot-openloop":
         groot_access_preflight()
     lock = Path(os.environ.get("LOCALAPPDATA", Path.home() / ".cache")) / "DREAM/cloud/active.lock"

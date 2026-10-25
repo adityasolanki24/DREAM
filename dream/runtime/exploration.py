@@ -14,7 +14,13 @@ class ExplorationPlanner:
             return Finish(True, "released object verified in target by RGB-D")
         if any(
             sum(s.call.name == n and not s.result.ok for s in history) >= 2
-            for n in ("reach_object", "grasp_object", "move_object", "inspect_object")
+            for n in (
+                "reach_object",
+                "grasp_object",
+                "move_object",
+                "inspect_object",
+                "release_object",
+            )
         ):
             return Finish(False, "bounded recovery budget exhausted")
         if not scene["objects"]:

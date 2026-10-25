@@ -80,6 +80,16 @@ def aligned_samples(recording: Path) -> tuple[np.ndarray, np.ndarray, list[str],
     return state, action, [names[i] for i in ids], time[:-1]
 
 
+def original_video(recording: Path, movies: dict) -> Path:
+    """Resolve a retrieved cloud video without accepting replacement or edited bytes."""
+    original = Path(movies["videos"]["wide"]["file"])
+    if not original.is_file():
+        original = recording / "wide/episode.mp4"
+    if digest(original) != movies["videos"]["wide"]["sha256"]:
+        raise ValueError("recorded video checksum mismatch")
+    return original
+
+
 def export(recording: Path, out: Path) -> dict:
     """Write a real, independently labelled episode; never promote it to a trained policy."""
     import pyarrow as pa
@@ -92,9 +102,7 @@ def export(recording: Path, out: Path) -> dict:
     movies = json.loads((recording / "recording.json").read_text())
     if movies["status"] != "complete":
         raise ValueError("complete original video evidence required")
-    original = Path(movies["videos"]["wide"]["file"])
-    if digest(original) != movies["videos"]["wide"]["sha256"]:
-        raise ValueError("recorded video checksum mismatch")
+    original = original_video(recording, movies)
     out.mkdir(parents=True, exist_ok=False)
     for part in ("meta", "data/chunk-000", "videos/chunk-000/observation.images.external_scene"):
         (out / part).mkdir(parents=True)

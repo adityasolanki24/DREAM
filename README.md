@@ -64,14 +64,119 @@ unfamiliar physical behaviour.
 
 Every row marked "implemented and tested" has passing tests and/or saved results in `results/`.
 
-Current autonomy continuation (25 Oct 2026, based on `b9e25d4`): reasoning pauses now
+**Cloud recovery completed (25 Oct 2026).** The interrupted run
+`dream-qwen-20261025-102015-402461` at `a034cc7` exited **124** while rendering the last
+baseline recording. All **4,733 downloaded files / 2,858,084,373 bytes** now verify:
+4,730 against the final guest SHA-256 manifest, and the manifest plus two active logs
+against final Cloud Storage MD5/size metadata. The original source archive also verifies.
+Original bytes and the complete per-file verification remain outside Git/OneDrive at
+`C:/Users/24adi/AppData/Local/DREAM/cloud_runs/dream-qwen-20261025-102015-402461`.
+The interrupted two-view recording was recovered from 123 saved integration states in
+a separate directory: no physics rerun, frame interpolation or raw-output overwrite.
+Only after verification was the temporary bucket removed. Independent inventory confirms
+zero VMs, disks, addresses, routers or secrets, with only the default VPC. No GPU resources
+were created during recovery. Original estimate US$4.28 / allowance US$5; billed cost is
+unavailable. Verification, provenance, cleanup and recovered-video hashes are in
+`results/g1_autonomy_recovery`.
+
+The **original eight-attempt evaluation remains incomplete: seven finalized, one missing
+finalized baseline entry**. Full retrieval found terminal physics for all eight, including
+the last baseline, but its unpublished terminal summary is diagnostic-only. Offline video
+recovery does not finalize or rerun the comparison. The earlier partial-download analysis
+is retained in `results/g1_autonomy_cuda_frozen`; the final recovered report is separate.
+Qwen: **1/4 independent physical placements**, **1/4 safe refusals**, **2/4 conditional
+outcomes**, **0/4 agent-verified successful completions** and **zero observed false claims**.
+Its successful physical placement was followed by a decline after the unsupported `on`
+verification argument; the goal-schema fix was applied afterward, never retroactively.
+The baseline has zero successful placements across its three finalized attempts; the
+fourth planned slot stays incomplete and does not earn a safe-refusal score. No complete
+paired or generalisation result is claimed. All 32 genuine model outputs remain preserved.
+
+The offline phase audit isolates release failures: shifted-object carry drift is about
+1 mm, then asymmetric unloading imparts lateral motion; the sphere rolls off the platform
+and the largest penetration occurs on floor impact. Original peak penetrations are
+6.35/7.40 mm for Qwen/baseline on `free_shift`, and 5.44/5.37 mm on `unseen_free`.
+Reprocessing all 15 saved development-cloud detections locally reproduces their centres
+exactly. Initial rendered images differ but initial centre estimates agree; trajectories
+diverge later in probe/carry. Native numeric/contact sensitivity remains unisolated, so
+this does not identify the renderer or GPU as the sole cause. Frozen results are unchanged.
+
+The release-development correction lowers from the estimated sphere radius and three-sigma
+pose uncertainty, observes proximity to support, and preserves grip on ordinary skill
+failure. Protective stops still use the original hard hold; release now shares the existing
+two-failure recovery budget. Controller limits, scene geometry and independent scoring
+expressions are byte/AST verified unchanged in `safety_preservation.json`.
+Terminal-state diagnostics show continuing two-finger object contact in the heavier and
+independent small-object failures, with **wrist-yaw body / target-platform collision**
+(about 1.74 N and 1.47 N summed normal force) while the sphere remains above support.
+No arm joint is near its limit. This explains an obstruction to further lowering; the
+object-only contact trace did not expose the wrist contact. This is a failed release,
+not a safe-refusal success. The diagnostic restores saved states without stepping physics.
+The next measurable target is a collision-aware placement approach/orientation that
+completes unloading and withdrawal across these four development cases, followed by a
+fresh preregistered eight-episode development check: at least seven verified placements,
+all below the unchanged 1 mm penetration gate, zero falls and zero false claims. The
+current correction does not yet meet that target; no full model evaluation is justified.
+
+Matched local release development (two preserved failures plus two predetermined additional
+sphere cases; all now development evidence):
+
+| Skill revision | Verified placements | Episodes over 1 mm penetration | Outcome |
+|---|---|---|---|
+| Original skill | 1/4 | 3/4 | Heavier succeeds; shifted/small/large fall |
+| Pause before unload | 0/4 | 4/4 | Rejected; original proposal and failures preserved |
+| Lower by radius, require arm convergence | 0/4 | 1/4 | Rejected; repeated lowering timeouts expose missing recovery limit |
+| Observe support; preserve grip; bound release recovery | 1/4 | 0/4 | Shifted succeeds; other three stop holding above support |
+
+The final peaks are **0.558, 0.111, 0.180 and 0.136 mm** (shifted, heavier, small,
+large); zero protective stops or false claims. The shifted placement is independently
+verified after release and withdrawal. Task completion remains **1/4**, so the correction
+improves these observed failure outcomes without establishing reliable manipulation.
+All sixteen matched episodes and the initial single-case reproduction retain source
+snapshots, RGB-D, trajectories, summaries and 20 Hz recording states outside OneDrive at
+`C:/Users/24adi/AppData/Local/DREAM/artifacts/release_reliability_20261025` and
+`C:/Users/24adi/AppData/Local/DREAM/recordings`. Per-stage hash manifests and compact
+results are linked from `results/g1_release_*`; the comparison is
+`results/g1_autonomy_recovery/reliability_comparison.json`. The original metadata keeps
+the exact configs that ran; the reusable deterministic config removes inherited inference
+labels afterward. No model calls, frozen-score changes or further paid jobs occurred.
+
+Reproduce development into fresh output paths, then inspect saved states without rerunning
+physics:
+
+```powershell
+$env:DREAM_RECORDINGS_ROOT = "<external-new-recordings-root>"
+python -m experiments.g1_explore_unknown --config experiments/configs/g1_release_reliability_dev.json --out <new-results-directory>
+python -m experiments.audit_g1_terminal --root <external-recordings-directory> --out <new-terminal-audit.json>
+python -m experiments.g1_failure_audit --root <episode-results-directory> --out <new-phase-audit.json>
+```
+
+| Recovery/reliability change | Class | Evidence / limit |
+|---|---|---|
+| Match finalized comparison entries before scoring outcomes | General algorithmic correction | Missing-entry regression; unpublished terminal summary remains diagnostic |
+| Bound transfer time and UTF-8 decoding; constrain advertised goal relations | General algorithmic correction | Focused regressions; original model decisions never rewritten |
+| Retain grip after ordinary failures; bound release retries | General algorithmic correction | Failure-before/pass-after regressions; original protective-stop behavior unchanged |
+| Lower toward observed support before unloading | Task-specific heuristic, sphere/platform scope | Matched development attempts; residual lowering failures retained; not a reliable general release skill |
+| Cached-runtime gate and deferred media rendering | Measurement/engineering | Offline contracts pass; no paid cached image validated |
+| Wait for measured asynchronous physics progress in the hold test | General algorithmic correction to test scheduling | Original full run retained (346 pass / 1 wall-clock scheduling failure); drift/progress/safety assertions unchanged |
+
+Future G1 GPU launches now require an immutable cached-image ID and a preflight receipt
+matching the dependency lock before allocation. The guest verifies installed versions and
+CUDA offline, without an apt/pip fallback. **No cached image was built or validated here**;
+existing cold-image configurations fail closed. New recording captures snapshots without
+rendering; a fresh freeze can select `recording_evidence="snapshots"`, while original
+video gates remain strict. No further full Qwen evaluation or motor-policy training ran.
+
+Final recovery checkpoint validation: **347 full-suite tests passed in 530.29 s**; **320 fast tests passed in 167.62 s**, with 27 slow tests excluded. The fast suite remains above the 60-second target. Ruff lint/format, shell syntax and staged-diff checks pass. The earlier full run (346 passed, one fixed wall-clock scheduling failure) remains recorded, alongside failed-before/passing-after contract regressions. No historical tracked result was modified.
+
+Prior local autonomy continuation (25 Oct 2026, based on `b9e25d4`): reasoning pauses now
 retain finger references while stopping arm motion, and inspection preserves an existing
 grip and avoids moving an already visible object. Observed hand/object separation clears
 stale grasp/placement state. These are general control/recovery corrections, with the
 original safety limits and difficult scenes retained. Local evidence and failing/passing
 regressions are in `results/g1_autonomy_dev`.
-The latest fast run passes **302 tests in 121.61 s** (27 slow tests excluded), above the
-60-second target. The expanded full run passes **329 tests in 321.16 s** at the
+That earlier fast run passed **302 tests in 121.61 s** (27 slow tests excluded), above the
+60-second target. The earlier expanded full run passed **329 tests in 321.16 s** at the
 `a034cc7` checkpoint. A new verified grasp also clears the previous placement/release flags,
 so failed-placement recovery must carry the object to the target again.
 
@@ -99,9 +204,9 @@ intervals and conservative independent contact/placement labels. Failed episodes
 diagnostics, and held-out scenes cannot become imitation candidates. The local collection
 contains one successful candidate and two failures, still only one successful scene/seed;
 it is explicitly **not training-ready**. No fine-tuning or learned actuation has occurred.
-The REAL_G1 contract restriction remains in force. The fresh paired CUDA evaluation has
-an explicit US$5 allowance, a frozen development/held-out config and automatic cleanup;
-results will be reported separately from these local diagnostics.
+The REAL_G1 contract restriction remains in force. The interrupted paired CUDA evaluation
+is recovered and reported above, including its incomplete final baseline slot. Its
+US$5 allowance is historical; no new cloud workload is running or authorized by this result.
 
 Prior adaptation/recording checkpoint (25 Oct 2026, based on `97398ed` with recorded source
 hashes): **318 full-suite tests passed in 309.39 s**; **291 fast tests passed in 62.67 s**,
@@ -200,7 +305,7 @@ these cloud-only changes. The Windows fast-suite duration still exceeds the 60 s
 | 12f | Genuine Qwen CUDA decisions in supported G1 exploration | **Executed, negative task result:** 34 real model outputs, probing and belief feedback through G1 physics. Qwen 0/4 versus deterministic 1/4 on matched development cases; no false success claims or successful recovery. Known invalid contact scene retained | `experiments/cloud_g1_qwen.py`, `results/g1_qwen_cuda_dev`, `tests/test_g1_cloud.py` |
 | 12g | REAL_G1 learned motor-policy inference contract | **Genuine CUDA open-loop inference; physical mapping blocked:** all nine decoded streams reconstructed exactly offline. Hand slot identity/morphology, body references, camera, wrist frames, timing and command arbitration remain unresolved. No learned G1 actuation or integrated Qwen + GR00T episode. Original predictions and two loading failures preserved | `experiments/groot_contract.py`, `experiments/configs/groot_action_contract.json`, `results/groot_contract_audit`, `results/groot_cuda_openloop`, `results/groot_first_cuda_failure`, `results/groot_dispatch_failure` |
 | 12h | Named G1 adaptation data and automatic evaluation recording | **Local preparation and recorded classical baseline:** public NVIDIA dataset establishes its own named 43D joint order and 20 Hz sampling; exact N1.7 contract remains unverified. Selected official NEW_EMBODIMENT fine-tuning route, explicit 31D joint-reference configuration, real LeRobot export, automatic wide/hand MP4s from evaluation snapshots. One repeated development manipulation succeeds through classical tools; no adapted policy trained or executed | `experiments/g1_modality.py`, `experiments/g1_dataset.py`, `experiments/g1_recording.py`, `results/g1_contract_resolution`, `results/g1_adaptation_dev` |
-| 12i | Integrated G1 autonomy continuation | **Local corrections tested; fresh paired evaluation pending:** grip-preserving reasoning pauses, non-destructive inspection and observed-slip invalidation; classical regression 1/2, saved-output replay fails honestly. Actual upstream episode loader passes including video. One successful training scene remains insufficient; no fine-tuning or learned action | `tests/test_g1_autonomy.py`, `experiments/g1_skill_collection.py`, `experiments/g1_validate_loader.py`, `results/g1_autonomy_dev` |
+| 12i | Integrated G1 autonomy continuation | **Recovered evaluation incomplete (7/8 finalized):** Qwen 1/4 physical placements plus one safe refusal, zero agent-verified successful completions; baseline 0/3 finalized placements and one incomplete slot. All artifacts verify; original results unchanged. Shared release/recovery development continues; no fine-tuning or learned action | `results/g1_autonomy_recovery`, `tests/test_g1_autonomy.py`, `tests/test_g1_goal_contract.py` |
 | 13 | Generalisation evaluation across goals, arrangements and task families | Planned | n/a |
 | 14 | Learned world/motor models, mobile or whole-body embodiments | Planned, conditional on evidence and compute | n/a |
 
