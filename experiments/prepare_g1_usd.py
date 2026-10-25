@@ -64,6 +64,13 @@ def main() -> None:
     )
     if len(joints) != model.nu or len(roots) != 1 or abs(mass - model.body_subtreemass[1]) > 1e-3:
         raise ValueError("converted asset does not match the MJCF embodiment")
+    # A flattened text copy: self-contained and readable by an older USD than the converter's
+    # (Isaac Sim 6.2 composed nothing from the binary file; session 4, job 2).
+    usda = asset.with_suffix(".usda")
+    stage.Flatten().Export(str(usda))
+    flat = Usd.Stage.Open(str(usda))
+    if sum(p.IsA(UsdPhysics.RevoluteJoint) for p in flat.Traverse()) != model.nu:
+        raise ValueError("flattened asset lost joints")
     receipt = {
         "mjcf": MJCF.relative_to(ROOT).as_posix(),
         "mjcf_sha256": sha256(MJCF),
@@ -73,6 +80,9 @@ def main() -> None:
         "edits": ["meshdir redirected", "MJCF floor geom removed (external scene supplies it)"],
         "usd": asset.name,
         "usd_sha256": sha256(asset),
+        "usda": usda.name,
+        "usda_sha256": sha256(usda),
+        "usd_version": ".".join(map(str, Usd.GetVersion())),
         "articulation_root": str(roots[0].GetPath()),
         "revolute_joints": len(joints),
         "mjcf_actuators": model.nu,

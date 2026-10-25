@@ -139,6 +139,8 @@ class IsaacG1Env:
         self.floor_paths = floor_paths
         self.checkpoint = checkpoint
         self.stage = world.stage
+        if Sdf.Layer.FindOrOpen(robot_usd) is None:  # Isaac mutes USD diagnostics by default
+            raise ValueError(f"USD {Usd.GetVersion()} cannot open the robot layer {robot_usd}")
         add_reference_to_stage(robot_usd, ROBOT_PREFIX)
         checkpoint("robot_referenced")
         names, self.force_limit = mjcf_actuators()

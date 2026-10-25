@@ -219,6 +219,9 @@ def run(args, cfg, ev: Evidence) -> dict:
     from isaacsim import SimulationApp
 
     app = SimulationApp({"headless": True, "renderer": "RaytracedLighting"})
+    import carb
+
+    carb.settings.get_settings().set("/persistent/app/usd/muteUsdDiagnostics", False)
     ev.stage("app_started")
     try:
         result = _run(app, args, cfg, ev)
@@ -448,13 +451,19 @@ def main() -> None:
     ap.add_argument("--start", type=int, default=0)
     ap.add_argument("--robot-dir", type=pathlib.Path, required=True)
     ap.add_argument("--out", type=pathlib.Path, required=True)
+    ap.add_argument("--prepare-with", help="converter Python: rebuild the robot USD first")
+    ap.add_argument("--usd-format", choices=["usd", "usda"], default="usda")
     args = ap.parse_args()
     cfg = json.loads(args.config.read_text())
     allowed = cfg["development_kitchens"] + cfg["evaluation_kitchens"]
     if args.kitchen not in allowed:
         raise SystemExit(f"kitchen {args.kitchen} is not in the frozen config")
+    if args.prepare_with:  # separate converter environment (its USD must not mix with Isaac's)
+        subprocess.run([args.prepare_with, str(ROOT / "experiments/prepare_g1_usd.py"),
+                        "--out", str(args.robot_dir)], check=True)  # fmt: skip
     receipt = json.loads((args.robot_dir / "receipt.json").read_text())
-    args.robot_usd = str(args.robot_dir / "usd" / receipt["usd"])
+    name = receipt.get("usda") if args.usd_format == "usda" else receipt["usd"]
+    args.robot_usd = str(args.robot_dir / "usd" / name)
     ev = Evidence(args.out)
     sha = (
         os.environ.get("DREAM_CODE_SHA")
