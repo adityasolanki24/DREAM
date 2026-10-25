@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -93,6 +94,9 @@ def main() -> None:
     from experiments.tum_to_rosbag import STAMP_OFFSET, convert
 
     counts = convert(seq, data / "bag")
+    if shutil.which("docker") is None:  # the GCP image has none (session 4); ephemeral root VM
+        subprocess.run(["apt-get", "install", "-y", "-q", "docker.io"], check=True)
+        subprocess.run(["systemctl", "start", "docker"], check=True)
     subprocess.run(["docker", "pull", IMAGE], check=True)
     digest = subprocess.run(["docker", "inspect", "--format", "{{index .RepoDigests 0}}", IMAGE],
                             capture_output=True, text=True).stdout.strip()  # fmt: skip
