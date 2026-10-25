@@ -1,0 +1,67 @@
+{
+  "argv": [
+    "experiments/isaac_g1_kitchen.py",
+    "--config",
+    "experiments/configs/isaac_g1_kitchen.json",
+    "--mode",
+    "bringup",
+    "--kitchen",
+    "l_shape",
+    "--robot-dir",
+    "/work/out/jobs/14/g1_usd",
+    "--prepare-with",
+    "/work/conv-venv/bin/python",
+    "--out",
+    "/work/out/jobs/14/run"
+  ],
+  "config": {
+    "name": "isaac_g1_kitchen",
+    "_note": "Frozen before any Isaac execution (25 Oct 2026). Scenes: NVIDIA Isaac Sim 6.2 replicator_kitchen layouts, authored by NVIDIA, never seen by DREAM's agent during development. l_shape is the only development kitchen (locomotion bring-up and pipeline debugging). g_shape, l_island, peninsula and u_shape are evaluation kitchens: no code or threshold may change after seeing their episodes while still calling them held-out. The agent is the Milestone B agent unchanged (RoomSearchPlanner 'gain'); this measures transfer, it is not a tuned result. Starts: a free floor cell at least start_clearance_m from every collider footprint, drawn with seed [start, 7]; heading uniform. Bring-up uses the deterministic deepest-cell / longest-clear-heading rule instead.",
+    "isaac_sim": "6.2.0.0",
+    "development_kitchens": [
+      "l_shape"
+    ],
+    "evaluation_kitchens": [
+      "g_shape",
+      "l_island",
+      "peninsula",
+      "u_shape"
+    ],
+    "evaluation_starts": [
+      1,
+      2,
+      3
+    ],
+    "start_clearance_m": 0.55,
+    "bringup": {
+      "stand_s": 10.0,
+      "forward_m_s": 0.25,
+      "forward_s": 4.0,
+      "turn_rad_s": 0.5,
+      "turn_s": 4.0,
+      "stop_s": 3.0,
+      "_gates": "Milestone A gates (results/g1_locomotion): no fall, 10 s standing drift <= 0.2 m, tracking ratio 0.75-1.1; head RGB-D valid.",
+      "max_stand_drift_m": 0.2,
+      "tracking": [
+        0.75,
+        1.1
+      ],
+      "min_finite_depth": 0.5,
+      "max_self_mask": 0.3
+    },
+    "explore": {
+      "method": "gain",
+      "time_budget_s": 240,
+      "max_steps": 60,
+      "memory_seed": 2
+    },
+    "evaluation_gates": {
+      "_note": "Pre-registered for the 12 evaluation episodes. Success threshold equals Milestone B's shifted-room gate. Contacts with furniture and phantom handles are reported, not gated.",
+      "success_min": 0.5,
+      "max_false_claims": 0,
+      "max_falls": 0
+    }
+  },
+  "git_sha": "256079c959fcf1baf9446be7c9664d9c200fb6b0",
+  "kitchen_split": "development"
+}
