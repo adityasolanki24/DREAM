@@ -30,13 +30,17 @@ python3 -m pip install uv==0.9.4
 uv venv --python 3.12 /work/isaac-venv
 # Isaac Sim 6.2 pip install (docs: install_python.html): Python 3.12, torch first.
 uv pip install --python /work/isaac-venv 'torch==2.11.0' --index-url https://download.pytorch.org/whl/cu128
-uv pip install --python /work/isaac-venv 'isaacsim[all,extscache]==6.2.0.0' \
-  --extra-index-url https://pypi.nvidia.com 'onnxruntime==1.23.2' 'mujoco==3.16.0' pillow
+# isaacsim-core 6.2 pins mujoco==3.12.0 (Newton); DREAM only imports mujoco in this
+# environment (no MJCF compilation), so Isaac's pin is used. A dependency requires the
+# pre-release tinyobjloader>=2.0.0rc13 (resolver evidence, 26 Oct), hence --prerelease.
+uv pip install --python /work/isaac-venv --prerelease=allow 'isaacsim[all,extscache]==6.2.0.0' \
+  --extra-index-url https://pypi.nvidia.com 'onnxruntime==1.23.2' pillow
 uv pip install --python /work/isaac-venv --no-deps -e /work/DREAM
 uv pip freeze --python /work/isaac-venv > /work/out/pip-freeze.txt
 # Separate converter environment: its USD libraries must not mix with Isaac's.
 uv venv --python 3.12 /work/conv-venv
-uv pip install --python /work/conv-venv 'mujoco-usd-converter==0.8.0' 'mujoco==3.16.0'
+uv pip install --python /work/conv-venv --prerelease=allow 'mujoco-usd-converter==0.8.0' \
+  'mujoco==3.16.0'
 uv pip freeze --python /work/conv-venv > /work/out/converter-freeze.txt
 cd /work/DREAM
 /work/conv-venv/bin/python experiments/prepare_g1_usd.py --out /work/g1_usd > /work/out/prepare_g1_usd.log 2>&1
