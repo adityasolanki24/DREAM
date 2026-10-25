@@ -217,13 +217,14 @@ def main() -> None:
         jobs = [j for j in jobs if j[:3] not in done]
         print(f"resuming: {len(rows)} finished episodes kept, {len(jobs)} to run", flush=True)
     mode = "a" if args.resume else "w"
+    total = len(rows) + len(jobs)
     with ProcessPoolExecutor(args.workers) as pool, open(out / "episodes.jsonl", mode) as f:
         for r in pool.map(episode, jobs):
             rows.append(r)
             f.write(json.dumps(r, default=float) + "\n")
             f.flush()
             nav = r["motion"]["nav"] or {}
-            print(f"[{len(rows)}/{len(jobs)} {time.perf_counter() - t0:.0f}s] {r['kind']} "
+            print(f"[{len(rows)}/{total} {time.perf_counter() - t0:.0f}s] {r['kind']} "
                   f"{r['seed']} {r['navigator']}: success={r['success']} sim={r['sim_s']:.0f}s "
                   f"tip={nav.get('turn_in_place_s', 0):.1f}s stops={nav.get('stop_start_cycles')}"
                   f" contact={r['contact_steps']}", flush=True)  # fmt: skip
