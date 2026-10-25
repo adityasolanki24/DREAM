@@ -28,16 +28,16 @@ ldd --version > /work/out/glibc.txt 2>&1 || true
 date -u +'%Y-%m-%dT%H:%M:%SZ' > /work/out/install_started_utc.txt
 python3 -m pip install uv==0.9.4
 uv venv --python 3.12 /work/isaac-venv
-# Isaac Sim 6.2 pip install (docs: install_python.html): Python 3.12, torch first.
-uv pip install --python /work/isaac-venv 'torch==2.11.0' --index-url https://download.pytorch.org/whl/cu128
-# isaacsim-core 6.2 pins mujoco==3.12.0 (Newton); DREAM only imports mujoco in this
-# environment (no MJCF compilation), so Isaac's pin is used. A dependency requires the
-# pre-release tinyobjloader>=2.0.0rc13 (resolver evidence, 26 Oct), hence --prerelease.
-uv pip install --python /work/isaac-venv --prerelease=allow 'isaacsim[all,extscache]==6.2.0.0' \
-  --extra-index-url https://pypi.nvidia.com pillow
-# Isaac 6.2 brings onnxruntime-gpu 1.26 (offline resolution, 26 Oct). A second onnxruntime
-# distribution would overwrite the same module, so the WBC actors use Isaac's build with
-# the CPU provider named explicitly (dream/robot/g1_wbc.py); the version is recorded.
+# Isaac Sim 6.2 (docs: install_python.html; Python 3.12, torch 2.11 cu128) installed from
+# cloud/isaac62.lock.txt, resolved offline with exactly these index flags, so the guest never
+# resolves (sessions 2 and 3 failed in on-VM resolution). Facts from that resolution:
+# isaacsim-core pins mujoco==3.12.0 and mujoco-usd-converter==0.6.1 (PyPI, not NVIDIA's
+# index); a dependency needs the pre-release tinyobjloader 2.0.0rc13; Isaac ships
+# onnxruntime-gpu 1.26, which the WBC actors use with the CPU provider named explicitly.
+sha256sum /work/DREAM/cloud/isaac62.lock.txt > /work/out/isaac_lock_sha256.txt
+uv pip install --python /work/isaac-venv --index-strategy unsafe-best-match --prerelease=allow \
+  --index-url https://pypi.org/simple --extra-index-url https://pypi.nvidia.com \
+  --extra-index-url https://download.pytorch.org/whl/cu128 -r /work/DREAM/cloud/isaac62.lock.txt
 uv pip install --python /work/isaac-venv --no-deps -e /work/DREAM
 uv pip freeze --python /work/isaac-venv > /work/out/pip-freeze.txt
 # Separate converter environment: its USD libraries must not mix with Isaac's.

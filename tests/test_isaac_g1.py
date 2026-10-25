@@ -255,3 +255,15 @@ def test_guest_runs_a_job_end_to_end(tmp_path, monkeypatch):
     assert (out / "results/demo/r.txt").read_text() == "ok"
     listed = (out / "MANIFEST.sha256").read_text()
     assert "EXIT_CODE" in listed and "results" in listed
+
+
+def test_guest_installs_isaac_only_from_the_offline_lock():
+    """Regression (sessions 2-3): resolving on the VM failed twice; the lock was resolved
+    offline with the same index flags the guest uses."""
+    text = (ROOT / "cloud/isaac_g1_session.sh").read_text()
+    lock = (ROOT / "cloud/isaac62.lock.txt").read_text()
+    assert "-r /work/DREAM/cloud/isaac62.lock.txt" in text
+    assert "--index-strategy unsafe-best-match" in text
+    assert "'isaacsim[" not in text  # no unlocked Isaac requirement left
+    for pin in ("isaacsim==6.2.0.0", "mujoco==3.12.0", "torch==2.11.0+cu128"):
+        assert pin in lock
