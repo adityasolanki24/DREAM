@@ -129,6 +129,23 @@ def summarise(rows: list[dict]) -> dict:
     }  # fmt: skip
 
 
+def gates(summary: dict, cfg: dict) -> dict:
+    """The config's pre-registered gates, over scenes whose first session stored a model."""
+    g, n = cfg["gates"], max(summary["stored_after_learning"], 1)
+    re, ch = summary["reuse"], summary["changed"]
+    out = {
+        "reuse_zero_probe_success": re["zero_probe_successes"] / n
+        >= g["reuse_zero_probe_success_min"],
+        "changed_withdrawn": ch["withdrawn"] / n >= g["changed_withdrawn_min"],
+        "changed_correct_refusal": ch["correct_refusals"] / n >= g["changed_correct_refusal_min"],
+        "false_claims": re["false_claims"] + ch["false_claims"] <= g["max_false_claims"],
+        "reuse_faster": re["median_robot_s"] is not None
+        and re["median_robot_s"] < summary["learn"]["median_robot_s"],
+    }  # fmt: skip
+    out["all_pass"] = all(out.values())
+    return out
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("config")
@@ -161,7 +178,10 @@ def main() -> None:
         "dream_dirty_at_start": dirty,
         "perception": "oracle-assisted handle tracker (held-out compartment setting)",
     }
-    (out / "summary.json").write_text(json.dumps({"meta": meta, **summary}, indent=2))
+    verdict = gates(summary, cfg) if "gates" in cfg else None
+    (out / "summary.json").write_text(
+        json.dumps({"meta": meta, **summary, "gates": verdict}, indent=2)
+    )
     print(json.dumps(summary, indent=2))
 
 
