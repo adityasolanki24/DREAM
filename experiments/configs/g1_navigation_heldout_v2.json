@@ -1,0 +1,15 @@
+{
+  "name": "g1_navigation_heldout_v2",
+  "_note": "Fresh held-out paired comparison, frozen 26 Oct 2026 after the first held-out set (nominal 1100-1119, shifted 2100-2109) failed the success gate and was then used, as development evidence, to diagnose it: removing rpp's revisit filter turned all three of its 'never saw the handle' failures into successes. New seeds never run before: nominal 1200-1219, shifted 2200-2209. Gates unchanged from the first held-out config.",
+  "seeds": {"nominal": [1200, 1220], "shifted": [2200, 2210]},
+  "navigators": ["classic", "rpp"],
+  "time_budget_s": 240,
+  "max_steps": 60,
+  "gates": {
+    "rpp_success_not_below_classic_minus": 1,
+    "rpp_contact_episodes_not_above_classic": true,
+    "rpp_nav_angular_jerk_median_reduction_min": 0.2,
+    "rpp_false_claims_max": 0,
+    "rpp_falls_max": 0
+  }
+}

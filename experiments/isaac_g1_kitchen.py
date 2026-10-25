@@ -272,6 +272,7 @@ def _run(app, args, cfg, ev: Evidence) -> dict:
         {
             **env.parity_report(),
             "dof_names": env.dof_names,
+            "onnxruntime": __import__("onnxruntime").__version__,
             "robot_receipt": json.loads(
                 (pathlib.Path(args.robot_dir) / "receipt.json").read_text()
             ),

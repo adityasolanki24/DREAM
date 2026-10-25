@@ -128,3 +128,16 @@ def test_the_cabinet_handle_is_found_from_one_metre_in_front():
     rel = true[:2] - stand
     local = np.array([c * rel[0] + s * rel[1], -s * rel[0] + c * rel[1]])
     assert np.linalg.norm(with_handle[0].handle[:2] - local) < 0.06
+
+
+def test_viewpoints_follow_perception_not_where_the_robot_stood():
+    """Regression (held-out rooms 1105, 1119, 2105): an rpp filter dropped viewpoints near
+    poses already stood at, hiding faces perception had not seen up close; the search then
+    ended without finding the handle. Viewpoints must depend on the candidates' observed
+    sides only, for both navigators."""
+    import inspect
+
+    from dream.tools.mobile import MobileToolbox
+
+    src = inspect.getsource(MobileToolbox.viewpoints)
+    assert "visited" not in src and "sides_close" in src

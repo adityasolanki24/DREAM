@@ -104,8 +104,11 @@ class WBCLocomotion:
 
         opts = ort.SessionOptions()
         opts.intra_op_num_threads = 1  # deterministic, and small enough for one core
-        self._balance = ort.InferenceSession(str(balance_path), opts)
-        self._walk = ort.InferenceSession(str(walk_path), opts)
+        # Explicit CPU provider: the validated runs used the CPU build, and GPU builds (Isaac
+        # Sim ships onnxruntime-gpu) refuse a session without an explicit provider list.
+        cpu = ["CPUExecutionProvider"]
+        self._balance = ort.InferenceSession(str(balance_path), opts, providers=cpu)
+        self._walk = ort.InferenceSession(str(walk_path), opts, providers=cpu)
         self.command = np.zeros(3)
         self.action = np.zeros(N_ACTION, np.float32)
         self.target = DEFAULT.astype(float).copy()

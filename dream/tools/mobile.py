@@ -38,18 +38,16 @@ FRONTIER_COST_WEIGHT = 1.0  # m^2 of expected new area per metre walked (score =
 # Inspection pose: within this band of the handle, facing it.
 INSPECT_RANGE = (0.6, CLOSE_VIEW)
 INSPECT_ANGLE = math.radians(35)
-# rpp navigator only. Revisit: a viewpoint within 0.35 m and 30 degrees of one already stood
-# at sees the same thing (about the viewpoints' placement resolution, and half the camera's
-# 58 degree field of view). Approach run: the last 0.35 m is walked straight along the
-# viewing direction, so arriving needs no turn in place.
+# rpp navigator only. Approach run: the last 0.35 m is walked straight along the viewing
+# direction, so arriving needs no turn in place. (A revisit filter that skipped viewpoints
+# near poses already stood at was removed: on held-out rooms it hid faces that perception
+# had not yet seen up close, and all three such failures succeeded without it.)
 # Physical footprint for the rpp arc veto: the G1's ~0.25 m shoulder half-width (see
 # planning.ROBOT_RADIUS) plus 2 cm of map noise. Planning inflates further (0.35 m) for
 # comfort; vetoing at the inflation radius blocked every corridor the planner chose (dev
 # room 1: 35 vetoes and replans in one approach). Nav2 likewise checks lethal cost only.
 COLLISION_RADIUS = 0.27
 PLACE_TOLERANCE = 0.3  # m: twice the go_to goal tolerance, for the pose estimate's noise
-REVISIT_RADIUS = 0.35
-REVISIT_ANGLE = math.radians(30)
 APPROACH_RUN = 0.35
 
 MOBILE_TOOL_SPECS: list[dict] = [
@@ -116,12 +114,11 @@ class MobileToolbox:
         self, base: MobileBase, memory: SpatialMemory, on_event=None, navigator: str = "classic"
     ) -> None:
         """``navigator``: "classic" (the validated Milestone B follower, kept as the baseline)
-        or "rpp" (smoothed path, Regulated Pure Pursuit, continuous scanning, and no revisits
-        of viewpoints already stood at; dream/navigation/rpp.py)."""
+        or "rpp" (smoothed path, Regulated Pure Pursuit, continuous scanning, safe
+        preemption; dream/navigation/rpp.py)."""
         if navigator not in ("classic", "rpp"):
             raise ValueError(f"unknown navigator {navigator!r}")
         self.base, self.memory, self.navigator = base, memory, navigator
-        self.visited: list[np.ndarray] = []  # (x, y, heading) of viewpoints reached (rpp)
         self.places: dict[str, np.ndarray] = {}  # name -> (x, y), from home memory
         self.inspections: dict[int, dict] = {}  # candidate id -> last inspection report
         self.cancel = threading.Event()  # TaskAgent checks it between actions
@@ -173,18 +170,8 @@ class MobileToolbox:
                 if chosen is None:
                     continue
                 xy, n, cost = chosen
-                heading = math.atan2(-n[1], -n[0])
-                if c.handle_side() != k and self._visited(xy, heading):
-                    continue  # already looked from here: the same view adds nothing
-                out.append(Viewpoint(c.id, k, xy, heading, cost))
+                out.append(Viewpoint(c.id, k, xy, math.atan2(-n[1], -n[0]), cost))
         return out
-
-    def _visited(self, xy, heading) -> bool:
-        return any(
-            np.linalg.norm(v[:2] - xy) < REVISIT_RADIUS
-            and abs(wrap(v[2] - heading)) < REVISIT_ANGLE
-            for v in self.visited
-        )
 
     def side_point(self, c, k: int, passable, dist):
         """(where to stand, outward direction, walking cost) to look at side ``k``, or None.
@@ -492,7 +479,6 @@ class MobileToolbox:
             )
             if status == "arrived":
                 pose = self.base.odometry()
-                self.visited.append(pose.copy())
                 err = float(np.linalg.norm(pose[:2] - goal))
                 return ToolResult("go_to", "succeeded", "", {"error_m": err, "replans": replans})
             if status == "blocked":

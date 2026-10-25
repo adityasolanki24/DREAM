@@ -208,3 +208,50 @@ def test_guest_session_script_has_no_early_closing_pipes():
     """Regression: `ldd --version | head -1` under pipefail exited 141 before installation."""
     text = (ROOT / "cloud/isaac_g1_session.sh").read_text()
     assert "| head" not in text
+
+
+def test_guest_runs_a_job_end_to_end(tmp_path, monkeypatch):
+    """Executes cloud/isaac_session_guest.run with gsutil replaced by local copies: archive
+    checksum, extraction, argument substitution, results/ copy, EXIT_CODE and manifest."""
+    import hashlib
+    import importlib
+    import io
+    import shutil
+    import sys
+    import tarfile
+
+    monkeypatch.setattr(sys, "argv", ["guest", "bucket", "150", sys.executable, sys.executable])
+    guest = importlib.import_module("cloud.isaac_session_guest")
+    importlib.reload(guest)
+    remote = tmp_path / "remote"
+    (remote / "jobs/1").mkdir(parents=True)
+    code = b"import pathlib,sys\npathlib.Path('results/demo').mkdir(parents=True)\n"
+    code += b"pathlib.Path('results/demo/r.txt').write_text('ok')\n"
+    code += b"pathlib.Path(sys.argv[1]).write_text('marker')\n"
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tar:
+        info = tarfile.TarInfo("experiments/hello.py")
+        info.size = len(code)
+        tar.addfile(info, io.BytesIO(code))
+    (remote / "jobs/1/code.tar.gz").write_bytes(buf.getvalue())
+    spec = {"id": "1", "git_sha": "abc", "module": "experiments/hello.py",
+            "args": ["{out}/marker.txt"], "timeout_s": 120, "env": "dream",
+            "archive_sha256": hashlib.sha256(buf.getvalue()).hexdigest()}  # fmt: skip
+    (remote / "jobs/1/job.json").write_text(json.dumps(spec))
+
+    def fake_gs(*args, check=True):
+        if args[0] == "cp":
+            shutil.copy(remote / args[1].split("gs://bucket/")[1], args[2])
+        return SimpleNamespace(returncode=0, stdout="")
+
+    monkeypatch.setattr(guest, "gs", fake_gs)
+    monkeypatch.setattr(guest, "uptime", lambda: 0.0)
+    monkeypatch.setattr(guest, "OUT", tmp_path / "out")
+    monkeypatch.setattr(guest, "WORK", tmp_path / "work")
+    guest.run("1")
+    out = tmp_path / "out/1"
+    assert (out / "EXIT_CODE").read_text().strip() == "0", (out / "job.log").read_text()
+    assert (out / "marker.txt").read_text() == "marker"
+    assert (out / "results/demo/r.txt").read_text() == "ok"
+    listed = (out / "MANIFEST.sha256").read_text()
+    assert "EXIT_CODE" in listed and "results" in listed

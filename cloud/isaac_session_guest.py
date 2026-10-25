@@ -100,13 +100,12 @@ def run(job: str) -> None:
         code = proc.returncode
     except subprocess.TimeoutExpired:
         code = 124
+    except Exception as error:  # recorded, never hidden
+        log.write(f"\nJOB SETUP ERROR: {error!r}\n")
     finally:
         produced = folder / "DREAM" / "results"  # archives exclude results/: all of it is new
         if produced.is_dir():
             shutil.copytree(produced, out / "results", dirs_exist_ok=True)
-    except Exception as error:  # recorded, never hidden
-        log.write(f"\nJOB SETUP ERROR: {error!r}\n")
-    finally:
         log.close()
         (out / "EXIT_CODE").write_text(f"{code}\n")
         (out / "finished_utc.txt").write_text(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))

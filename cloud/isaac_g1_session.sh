@@ -34,7 +34,10 @@ uv pip install --python /work/isaac-venv 'torch==2.11.0' --index-url https://dow
 # environment (no MJCF compilation), so Isaac's pin is used. A dependency requires the
 # pre-release tinyobjloader>=2.0.0rc13 (resolver evidence, 26 Oct), hence --prerelease.
 uv pip install --python /work/isaac-venv --prerelease=allow 'isaacsim[all,extscache]==6.2.0.0' \
-  --extra-index-url https://pypi.nvidia.com 'onnxruntime==1.23.2' pillow
+  --extra-index-url https://pypi.nvidia.com pillow
+# Isaac 6.2 brings onnxruntime-gpu 1.26 (offline resolution, 26 Oct). A second onnxruntime
+# distribution would overwrite the same module, so the WBC actors use Isaac's build with
+# the CPU provider named explicitly (dream/robot/g1_wbc.py); the version is recorded.
 uv pip install --python /work/isaac-venv --no-deps -e /work/DREAM
 uv pip freeze --python /work/isaac-venv > /work/out/pip-freeze.txt
 # Separate converter environment: its USD libraries must not mix with Isaac's.
