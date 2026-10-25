@@ -1240,8 +1240,9 @@ generalisation claim beyond the stated evaluation.
 
 | Workstream | State | Evidence |
 |---|---|---|
-| Natural navigation (Nav2 RPP) | Implemented; **held-out success gate failed**; cause found and fixed; fresh held-out run pending | `results/g1_navigation_*` |
-| Persistent home memory (SQLite) | Implemented; CPU contracts; physical Tests A/B queued on GPU VM | `dream/memory/home.py`, `tests/test_home_memory.py` |
+| Natural navigation (Nav2 RPP) | First held-out success gate failed; cause found and fixed; **fresh held-out run: all gates pass**; slower in large rooms | `results/g1_navigation_*` |
+| Persistent home memory (SQLite) | Implemented; CPU contracts; physical Tests A/B on the GPU VM | `dream/memory/home.py`, `tests/test_home_memory.py` |
+| Explore only when needed (Tests E/F) | **Held-out: all gates pass, 20/20 scenes** | `results/compartment_experience` |
 | Hydra scene graph (Spark-DSG) | Hydra's own data structure integrated; Hydra's online pipeline not run | `dream/memory/scene_graph.py` |
 | Task scheduler + phone API | Implemented; CPU contracts; physical Test D queued | `dream/runtime/scheduler.py`, `phone_api.py` |
 | RTAB-Map | TUM RGB-D/IMU recorder written; SLAM not yet run | `experiments/record_rgbd_sequence.py` |
@@ -1275,12 +1276,47 @@ seen the handle; rerunning exactly those rooms without rpp's *revisit filter* (i
 viewpoints near poses already stood at) gave 3/3 successes
 (`results/g1_navigation_heldout_diagnosis`). The filter used "stood near here" as a proxy for
 "saw that face up close" and overrode perception's own record; it is removed. Those rooms are
-now development evidence; the corrected navigator is being evaluated on fresh frozen seeds
-(`experiments/configs/g1_navigation_heldout_v2.json`). The held-out run stopped at 17/60 on
+now development evidence. The corrected navigator was then evaluated on fresh frozen seeds
+(`experiments/configs/g1_navigation_heldout_v2.json`, run on the GCP L4 VM's DREAM environment at
+clean commit `83e6596`, `results/g1_navigation_heldout_v2`):
+
+| Held-out v2, fresh seeds, 30 rooms each | classic | rpp |
+|---|---|---|
+| Success | 28/30 | **28/30** (gate: pass) |
+| Episodes with contact (contact steps) | 7 (2993) | **3 (231)** (gate: pass) |
+| Navigation angular jerk, median RMS | 166 | **96** (-42%, gate: pass) |
+| False claims / falls | 0 / 0 | 0 / 0 (gates: pass) |
+| Nominal: median episode / navigation turn-in-place (not gated) | 66 s / 33 s | **54 s / 15 s** |
+| Shifted, larger cluttered rooms: median episode / navigation path (not gated) | **82 s / 10.8 m** | 110 s / 16.5 m |
+
+In ordinary rooms the corrected navigator turns in place half as much, finishes sooner and
+barely touches furniture; in the larger cluttered rooms it walks further and is slower, which
+is not understood yet. `classic` stays the default until that gap is explained. The first
+held-out run stopped at 17/60 on
 laptop memory exhaustion and resumed the missing 43 episodes under the same config (both logs
 kept); it ran the tree of `4fd4d28` (recorded SHA `fe583fb` plus that commit's one line).
 On this Windows laptop the classic follower failed development room 6, which Milestone B's
 Linux run passed: cross-platform numeric divergence, not investigated further.
+
+**Explore only when needed (Tests E/F, `results/compartment_experience`).** The validated
+Panda compartment task, three fresh simulations per scene with a home memory between them
+(oracle-assisted handle tracker, as in the held-out compartment results; fresh seeds
+7000-7009 per kind; gates frozen before running). `dream/memory/experience.py` stores a
+successful investigation, including its particle belief, as a checksummed artifact behind
+the object's "open" affordance, recalls it when the handle is observed within 2 cm of where
+it was, and withdraws it when opening fails, leaves the remembered constraint or makes no
+progress, so the planner investigates afresh.
+
+| 20 scenes (10 drawers, 10 lids) | Result |
+|---|---|
+| Learn (no memory) | 20/20 tasks, median 3 probes, 44.0 s robot time |
+| Reuse after a restart (Test F) | 20/20 recalled, **20/20 succeed with zero probes**, 33.5 s (-24%), 0 false claims |
+| Same-looking compartment now immovable (Test E) | remembered model **withdrawn 20/20** on physical evidence, re-investigated 20/20, **correctly declined 20/20**, 0 false claims |
+| Same changed scene without memory | declined 20/20, 28.4 s (stale memory costs 6.1 s) |
+
+Limits: one kind of change (made immovable); recall is keyed on handle position only, so a
+different object at the same spot would be tried with the old model first (and then caught
+by the same check).
 
 **Home memory.** One SQLite file per home: object identities, time-indexed observations with
 uncertainty and source, places and their connectivity, absences (looked and not seen),
