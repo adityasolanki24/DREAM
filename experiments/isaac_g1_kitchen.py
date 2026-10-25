@@ -319,7 +319,10 @@ def _run(app, args, cfg, ev: Evidence) -> dict:
     base.capture = capture_logged
     if args.mode == "bringup":
         result = bringup(env, base, cfg, ev, capture_logged)
-        result["hinge_test"] = hinge_test(world, env, stage, ev)
+        try:  # an audit failure must not discard the locomotion result
+            result["hinge_test"] = hinge_test(world, env, stage, ev)
+        except Exception as error:
+            result["hinge_test"] = {"tested": False, "error": repr(error)}
     else:
         result = explore(env, base, cfg, ev, handles)
     wall = time.perf_counter() - tick["wall"]
@@ -381,9 +384,11 @@ def bringup(env, base, cfg, ev, capture) -> dict:
 
 
 def hinge_test(world, env, stage, ev) -> dict:
-    """Push one cabinet door at its free edge and measure the hinge rotation (scene audit)."""
+    """Spin one cabinet door and check it turns about its hinge (scene audit, not an agent
+    action): a jointed door rotates with its hinge point fixed; a free body would drift or fall.
+    """
     import numpy as np
-    from omni.physx import get_physx_interface
+    from isaacsim.core.prims import SingleRigidPrim
     from pxr import UsdPhysics
 
     hinges = [p for p in stage.Traverse() if p.IsA(UsdPhysics.RevoluteJoint)
@@ -391,25 +396,20 @@ def hinge_test(world, env, stage, ev) -> dict:
     if not hinges:
         return {"tested": False, "reason": "no revolute joints"}
     joint = UsdPhysics.RevoluteJoint(hinges[0])
-    door = str(joint.GetBody1Rel().GetTargets()[0])
-    physx = get_physx_interface()
-
-    def pose():
-        t = physx.get_rigidbody_transformation(door)
-        return np.asarray(t["position"], float), np.asarray(t["rotation"], float)
-
-    p0, q0 = pose()
-    for _ in range(100):  # 0.5 s of a 15 N push along the door's world x/y, then release
-        physx.apply_force_at_pos(door, (15.0, 15.0, 0.0), tuple(p0 + [0, 0, 0.1]))
+    door_path = str(joint.GetBody1Rel().GetTargets()[0])
+    door = SingleRigidPrim(door_path, name="audit_door")
+    door.initialize()
+    p0, q0 = (np.asarray(v, float) for v in door.get_world_pose())
+    door.set_angular_velocity(np.array([0.0, 0.0, 1.5]))  # rad/s about world z, once
+    for _ in range(200):  # 1 s
         world.step(render=False)
-    for _ in range(100):
-        world.step(render=False)
-    p1, q1 = pose()
+    p1, q1 = (np.asarray(v, float) for v in door.get_world_pose())
     angle = 2 * np.degrees(np.arccos(min(1.0, abs(float(np.dot(q0, q1))))))
-    out = {"tested": True, "joint": str(hinges[0].GetPath()), "door": door,
-           "rotation_deg": angle, "door_translation_m": float(np.linalg.norm(p1 - p0)),
-           "note": "scene audit after the robot episode; not an agent action"}  # fmt: skip
-    ev.stage("hinge_test", rotation_deg=angle)
+    out = {"tested": True, "joint": str(hinges[0].GetPath()), "door": door_path,
+           "rotation_deg": angle, "door_centre_moved_m": float(np.linalg.norm(p1 - p0)),
+           "door_height_change_m": float(p1[2] - p0[2]),
+           "note": "after the robot episode; velocity set once on the door body"}  # fmt: skip
+    ev.stage("hinge_test", rotation_deg=angle, height_change_m=out["door_height_change_m"])
     return out
 
 
