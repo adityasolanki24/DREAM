@@ -1233,6 +1233,98 @@ speed (`experiments/mobile_recording.py`).
 on an exact TensorRT version, CUDA 12.4 and an NVIDIA GPU, with weights from Hugging Face. Not
 run: this environment has no GPU, no GCP credentials and no Hugging Face access.
 
+## Household autonomy continuation (26 Oct 2026, branch `claude/isaac-g1-kitchen`)
+
+Status of the requested workstreams. Each line says what ran; nothing here is a
+generalisation claim beyond the stated evaluation.
+
+| Workstream | State | Evidence |
+|---|---|---|
+| Natural navigation (Nav2 RPP) | Implemented; **held-out success gate failed**; cause found and fixed; fresh held-out run pending | `results/g1_navigation_*` |
+| Persistent home memory (SQLite) | Implemented; CPU contracts; physical Tests A/B queued on GPU VM | `dream/memory/home.py`, `tests/test_home_memory.py` |
+| Hydra scene graph (Spark-DSG) | Hydra's own data structure integrated; Hydra's online pipeline not run | `dream/memory/scene_graph.py` |
+| Task scheduler + phone API | Implemented; CPU contracts; physical Test D queued | `dream/runtime/scheduler.py`, `phone_api.py` |
+| RTAB-Map | TUM RGB-D/IMU recorder written; SLAM not yet run | `experiments/record_rgbd_sequence.py` |
+| nvblox, HOV-SG, ConceptGraphs, BT.ROS2 | Audited (pins, licences, runtime needs); not run | `experiments/configs/integration_sources.json` |
+| SuperMap | **No code published** upstream ("released after RSS"), no licence | same |
+| Isaac Sim 6.2 G1 | Harness built; two GPU sessions failed in setup (fixed); third running | below |
+| OmniGibson/BEHAVIOR | Not downloaded: its dataset licence must be accepted by the owner | same |
+
+**Navigation (Test C).** `MobileToolbox(navigator="rpp")` reimplements Nav2's Regulated Pure
+Pursuit, velocity-smoother limits and simple smoother (Apache-2.0) without ROS: it plans once,
+walks continuously, replans only when the map invalidates the path, slows on curvature, near
+obstacles and near the goal, rate-limits commands, vetoes arcs that would enter the robot's
+physical footprint, and stops safely on preemption. `navigator="classic"` (the Milestone B
+follower) stays the default and the baseline. Paired evaluation (same rooms, seeds, budgets,
+perception and planner; MuJoCo G1 under the WBC policy; oracle-assisted odometry):
+
+| Held-out, frozen config, 30 rooms each | classic | rpp |
+|---|---|---|
+| Success | **29/30** | 25/30 (gate: >= 28, **failed**) |
+| Episodes with furniture/wall contact (contact steps) | 9 (390) | **4 (190)** (gate: pass) |
+| Navigation angular jerk, median RMS | 146 | **94** (gate: >= 20% lower, pass) |
+| False claims / falls | 0 / 0 | 0 / 0 (gates: pass) |
+| Total robot time (not gated) | 2742 s | **2380 s** |
+| Nominal: median episode / navigation turn-in-place (not gated) | 57 s / 18 s | **44 s / 12 s** |
+
+Development (rooms 0-9) found two general defects, both fixed before the held-out run: the arc
+veto blocked motion *away* from a nearby obstacle, and vetoing at the planner's inflation radius
+(0.32 m) instead of the physical footprint (0.27 m) blocked the planner's own corridors
+(35 vetoes in one approach). After the held-out failure, three of rpp's five failures had never
+seen the handle; rerunning exactly those rooms without rpp's *revisit filter* (it skipped
+viewpoints near poses already stood at) gave 3/3 successes
+(`results/g1_navigation_heldout_diagnosis`). The filter used "stood near here" as a proxy for
+"saw that face up close" and overrode perception's own record; it is removed. Those rooms are
+now development evidence; the corrected navigator is being evaluated on fresh frozen seeds
+(`experiments/configs/g1_navigation_heldout_v2.json`). The held-out run stopped at 17/60 on
+laptop memory exhaustion and resumed the missing 43 episodes under the same config (both logs
+kept); it ran the tree of `4fd4d28` (recorded SHA `fe583fb` plus that commit's one line).
+On this Windows laptop the classic follower failed development room 6, which Milestone B's
+Linux run passed: cross-platform numeric divergence, not investigated further.
+
+**Home memory.** One SQLite file per home: object identities, time-indexed observations with
+uncertainty and source, places and their connectivity, absences (looked and not seen),
+affordances (a later failure withdraws a "known procedure"), task episodes. Beliefs are
+`observed` (seen within 30 s), `remembered` (confidence halves every 6 h) or `missing`; a
+far-away sighting of the same label is a new instance unless the known one is missing and
+appearance agrees, so a second bottle is not merged into the first. `MemoryGuidedPlanner`
+checks remembered locations first and records an absence only after reaching an in-view pose.
+Positions are in a named map frame; until a SLAM backend relocalises across sessions, the
+physical tests align sessions by an identical start pose under oracle-assisted odometry, and
+say so. `scene_graph.py` writes the same memory into a Spark-DSG `DynamicSceneGraph` (rooms,
+places, objects with evidence state; Spark-DSG's file format), the structure Hydra produces.
+
+**Tasks and phone.** `TaskScheduler` keeps a persistent priority queue. A higher-priority
+request sets a preemption flag; the running walk decelerates and stands, TaskAgent suspends at
+the next action boundary with its steps as the checkpoint, the urgent task runs, and the
+suspended one resumes from its checkpoint after observing afresh. Cancellation is acknowledged
+immediately and takes effect at a safe boundary; a task left "running" by a crash restarts as
+suspended. `phone_api.py` serves a token-authenticated HTTP API and phone page on localhost
+(`experiments/phone_session.py` runs it live with the simulated G1); control goes only through
+the scheduler. Voice and BehaviorTree.CPP trees inside a task are not implemented.
+
+**Isaac Sim 6.2 (Milestone 4).** NVIDIA's `replicator_kitchen` scenes (five kitchens with real
+hinge/drawer joints, colliders and semantic labels; `l_shape` development, four held out) and
+DREAM's exact G1 MJCF converted with `mujoco-usd-converter` 0.8.0 (29 joints, 34.394 kg as in
+MuJoCo), driven by the unchanged WBC policy with PD torques at 200 Hz (`dream/sim/isaac_g1.py`).
+L4 is used: it has RT cores and 24 GB (Isaac 6.x requires RT cores and >= 16 GB), but it is not a
+tested tier, so its adequacy is measured, not assumed; the project has no G4 quota. Session 1
+ended before installing (`ldd | head` SIGPIPE under pipefail); session 2 found that Isaac 6.2
+pins `mujoco==3.12.0` and ships `onnxruntime-gpu`. The full Linux environment now resolves
+offline (599 packages), and `cloud/isaac_session.py` cleanup was hardened after a 120 s gcloud
+timeout. Both sessions' resources were removed and audited. Each session is capped at
+150 minutes (Google-enforced) with a US$6 per-session and US$25 cumulative estimate guard;
+estimates, not bills.
+
+| Change | Rule 3 class | Evidence limit |
+|---|---|---|
+| rpp navigator (Nav2 RPP) as an option; classic default | General algorithmic correction (candidate) | Held-out gate failed; corrected version awaits fresh seeds |
+| Arc veto: leaving obstacles allowed; physical footprint radius | General algorithmic correction | Development rooms; regression test |
+| rpp revisit filter removed | General algorithmic correction | 3/3 diagnosis reruns (development evidence) |
+| WBC actors name the CPU provider | Deployment parity | Identical on the CPU build; needed for onnxruntime-gpu |
+| Robot friction combine "max" in Isaac (robot material only) | Physically justified calibration | MuJoCo combines by max; scene untouched |
+| Session alignment by identical start pose | Unverified workaround | Declared in memory tests; SLAM relocalisation pending |
+
 ## Limitations (read before citing any number)
 
 - **Perception.** Tabletop pick-and-place runs from camera images (classical RGB-D baseline,
