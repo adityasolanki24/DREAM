@@ -1,0 +1,162 @@
+{
+  "meta": {
+    "config": {
+      "name": "g1_navigation_heldout_v2",
+      "_note": "Fresh held-out paired comparison, frozen 26 Oct 2026 after the first held-out set (nominal 1100-1119, shifted 2100-2109) failed the success gate and was then used, as development evidence, to diagnose it: removing rpp's revisit filter turned all three of its 'never saw the handle' failures into successes. New seeds never run before: nominal 1200-1219, shifted 2200-2209. Gates unchanged from the first held-out config.",
+      "seeds": {
+        "nominal": [
+          1200,
+          1220
+        ],
+        "shifted": [
+          2200,
+          2210
+        ]
+      },
+      "navigators": [
+        "classic",
+        "rpp"
+      ],
+      "time_budget_s": 240,
+      "max_steps": 60,
+      "gates": {
+        "rpp_success_not_below_classic_minus": 1,
+        "rpp_contact_episodes_not_above_classic": true,
+        "rpp_nav_angular_jerk_median_reduction_min": 0.2,
+        "rpp_false_claims_max": 0,
+        "rpp_falls_max": 0
+      }
+    },
+    "git_sha": "83e65966f6c170df0eb1f565bef8c791de49b637",
+    "dream_dirty_at_start": false,
+    "machine": "Linux-6.8.0-1070-gcp-x86_64-with-glibc2.35",
+    "wall_s": 2512.737966991,
+    "odometry": "oracle-assisted (true increments + noise)"
+  },
+  "by_condition": {
+    "nominal/classic": {
+      "n": 20,
+      "success": 18,
+      "success_ci95": [
+        0.6989617935882066,
+        0.9721341060158468
+      ],
+      "false_claims": 0,
+      "falls": 0,
+      "episodes_with_contact": 3,
+      "median_sim_s": 65.77000000001247,
+      "median_wall_s": 222.80078916849993,
+      "median_path_m": 9.472044845525513,
+      "repeated_approaches": 2,
+      "nav_median": {
+        "time_s": 47.05,
+        "path_m": 7.598419860855056,
+        "rotation_rad": 20.165150066042813,
+        "turn_in_place_s": 32.7,
+        "stopped_s": 1.2,
+        "stop_start_cycles": 5.0,
+        "angular_jerk_rms": 164.81482477181535,
+        "forward_tracking_error_m_s": 0.04665273609790169
+      },
+      "all_median_turn_in_place_s": 47.82
+    },
+    "nominal/rpp": {
+      "n": 20,
+      "success": 18,
+      "success_ci95": [
+        0.6989617935882066,
+        0.9721341060158468
+      ],
+      "false_claims": 0,
+      "falls": 0,
+      "episodes_with_contact": 2,
+      "median_sim_s": 54.02000000000918,
+      "median_wall_s": 185.8345944959999,
+      "median_path_m": 8.98941992711534,
+      "repeated_approaches": 2,
+      "nav_median": {
+        "time_s": 37.5,
+        "path_m": 7.275679229502472,
+        "rotation_rad": 12.188013855386176,
+        "turn_in_place_s": 14.55,
+        "stopped_s": 0.3,
+        "stop_start_cycles": 5.0,
+        "angular_jerk_rms": 95.04036391508234,
+        "forward_tracking_error_m_s": 0.030817069324240814
+      },
+      "all_median_turn_in_place_s": 29.67
+    },
+    "shifted/classic": {
+      "n": 10,
+      "success": 10,
+      "success_ci95": [
+        0.7224598312333834,
+        1.0
+      ],
+      "false_claims": 0,
+      "falls": 0,
+      "episodes_with_contact": 4,
+      "median_sim_s": 81.66999999999821,
+      "median_wall_s": 340.6650424145,
+      "median_path_m": 12.660191692184716,
+      "repeated_approaches": 1,
+      "nav_median": {
+        "time_s": 62.95,
+        "path_m": 10.785952289629284,
+        "rotation_rad": 26.11253741485234,
+        "turn_in_place_s": 42.05,
+        "stopped_s": 1.9500000000000002,
+        "stop_start_cycles": 8.0,
+        "angular_jerk_rms": 168.14680967100927,
+        "forward_tracking_error_m_s": 0.04564488898505073
+      },
+      "all_median_turn_in_place_s": 57.17
+    },
+    "shifted/rpp": {
+      "n": 10,
+      "success": 10,
+      "success_ci95": [
+        0.7224598312333834,
+        1.0
+      ],
+      "false_claims": 0,
+      "falls": 0,
+      "episodes_with_contact": 1,
+      "median_sim_s": 109.76999999997265,
+      "median_wall_s": 339.4948161635002,
+      "median_path_m": 18.15681294027486,
+      "repeated_approaches": 2,
+      "nav_median": {
+        "time_s": 93.25,
+        "path_m": 16.465427947424335,
+        "rotation_rad": 35.124433672816934,
+        "turn_in_place_s": 42.900000000000006,
+        "stopped_s": 1.05,
+        "stop_start_cycles": 8.5,
+        "angular_jerk_rms": 96.95210012800925,
+        "forward_tracking_error_m_s": 0.033086291458223324
+      },
+      "all_median_turn_in_place_s": 58.02
+    }
+  },
+  "gates": {
+    "success": {
+      "classic": 28,
+      "rpp": 28
+    },
+    "contact_episodes": {
+      "classic": 7,
+      "rpp": 3
+    },
+    "nav_jerk_median": [
+      165.73943176877836,
+      95.79548038130005
+    ],
+    "rpp_success_not_below_classic_minus": true,
+    "rpp_contact_episodes_not_above_classic": true,
+    "rpp_nav_angular_jerk_median_reduction_min": true,
+    "rpp_false_claims_max": true,
+    "rpp_falls_max": true,
+    "all_pass": true
+  }
+}
