@@ -143,8 +143,11 @@ class IsaacG1Env:
         # A plain USD reference on the simulation's own stage. Isaac 6.2's deprecated
         # add_reference_to_stage left /World/G1 without the asset's prims (session 4, jobs
         # 1, 2 and 8: binary and flattened text assets alike).
+        # An explicit file URI: anchored to a stage whose root layer is an https URL (NVIDIA's
+        # asset server), Omniverse's resolver read "/work/..." as a path on that server.
+        uri = Path(robot_usd).resolve().as_uri()
         holder = self.stage.DefinePrim(ROBOT_PREFIX, "Xform")
-        holder.GetReferences().AddReference(robot_usd)
+        holder.GetReferences().AddReference(uri)
         if not holder.GetChildren():
             raise ValueError(f"robot reference did not compose on {self.stage.GetRootLayer()}")
         checkpoint("robot_referenced")
