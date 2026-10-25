@@ -1,0 +1,14 @@
+{
+  "name": "compartment_experience",
+  "_note": "Tests E/F, frozen 26 Oct 2026 after a smoke on development seed 0 only. Fresh seeds 7000-7009 per kind, never used before (compartment held-out runs used 5000-5029). Gates over scenes whose first session stored a model: reuse succeeds with zero probes in >= 80%; the changed (immovable, same-looking) compartment has its remembered model withdrawn in >= 90% and is correctly declined in >= 90%; no false claims in any session; median reuse robot time below learning.",
+  "kinds": ["drawer", "lid"],
+  "seeds": [7000, 7010],
+  "probe_budget": 12,
+  "max_steps": 14,
+  "gates": {
+    "reuse_zero_probe_success_min": 0.8,
+    "changed_withdrawn_min": 0.9,
+    "changed_correct_refusal_min": 0.9,
+    "max_false_claims": 0
+  }
+}
