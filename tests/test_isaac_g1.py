@@ -267,3 +267,18 @@ def test_guest_installs_isaac_only_from_the_offline_lock():
     assert "'isaacsim[" not in text  # no unlocked Isaac requirement left
     for pin in ("isaacsim==6.2.0.0", "mujoco==3.12.0", "torch==2.11.0+cu128"):
         assert pin in lock
+
+
+def test_ledger_reconciles_with_recorded_lifetime_and_keeps_reserves():
+    from cloud.isaac_session import CONFIG, charged, estimate, reconcile
+
+    cfg = json.loads(CONFIG.read_text())
+    full = estimate(cfg, cfg["max_minutes"])
+    short = {"estimated_usd": full, "started_utc": "2026-10-26T00:00:00Z",
+             "ended_utc": "2026-10-26T00:10:00Z"}  # fmt: skip
+    r = reconcile(short, cfg)
+    assert estimate(cfg, 0) < r < full  # reserves kept, compute prorated
+    assert charged({**short, "reconciled_usd": r}) == r
+    assert charged({"estimated_usd": full}) == full  # running sessions count in full
+    long = {**short, "ended_utc": "2026-10-26T09:00:00Z"}
+    assert reconcile(long, cfg) == full  # never above the enforced-lifetime estimate

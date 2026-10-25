@@ -77,6 +77,22 @@ def estimate(cfg: dict, minutes: int) -> float:
     )
 
 
+def charged(entry: dict) -> float:
+    """What a ledger entry counts against the cap: the reconciled estimate once the session
+    ended (actual VM lifetime, full network/storage reserves), else the full estimate."""
+    return entry.get("reconciled_usd", entry["estimated_usd"])
+
+
+def reconcile(entry: dict, cfg: dict) -> float:
+    """Estimate from the recorded lifetime (creation to verified deletion); never below the
+    reserves, never above the full estimate. Still an estimate, not a bill."""
+    fmt = "%Y-%m-%dT%H:%M:%SZ"
+    start = time.mktime(time.strptime(entry["started_utc"], fmt))
+    end = time.mktime(time.strptime(entry["ended_utc"], fmt))
+    minutes = max(0.0, (end - start) / 60)
+    return min(entry["estimated_usd"], estimate(cfg, math.ceil(minutes)))
+
+
 def plan(project: str, cfg: dict, name: str) -> dict:
     """Inspectable plan; no cloud calls."""
     if not re.fullmatch(r"[a-z][a-z0-9-]{4,61}[a-z0-9]", project):
@@ -113,7 +129,7 @@ def archive(directory: Path) -> tuple[Path, str, str]:
 
 
 def start(p: dict, allowance: float, yes: bool) -> Path:
-    spent = sum(e["estimated_usd"] for e in read_ledger())
+    spent = sum(charged(e) for e in read_ledger())
     if not yes or not math.isfinite(allowance) or allowance < p["estimated_usd"]:
         raise ValueError("--yes and --allowance-usd covering the estimate are required")
     if allowance > p["per_session_ceiling_usd"]:
@@ -268,6 +284,7 @@ def stop(manifest: Path, yes: bool) -> None:
                 entry["ended_utc"] = ended
                 entry["retrieved"] = retrieved
                 entry["cleanup_errors"] = errors
+                entry["reconciled_usd"] = reconcile(entry, json.loads(CONFIG.read_text()))
         ledger_path().write_text(json.dumps(ledger, indent=2), encoding="utf-8")
     if errors:
         raise RuntimeError(f"cleanup incomplete: {errors}")
@@ -289,8 +306,8 @@ def main() -> None:
     if args.command in ("plan", "start"):
         name = f"dream-qwen-isaac-{time.strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:6]}"
         p = plan(args.project, cfg, name)
-        print(json.dumps({**p, "ledger_estimated_usd": sum(
-            e["estimated_usd"] for e in read_ledger())}, indent=2), flush=True)  # fmt: skip
+        print(json.dumps({**p, "ledger_charged_usd": sum(
+            charged(e) for e in read_ledger())}, indent=2), flush=True)  # fmt: skip
         if args.command == "start":
             start(p, args.allowance_usd, args.yes)
     elif args.command == "submit":
