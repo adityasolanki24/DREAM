@@ -76,10 +76,15 @@ def main() -> None:
     cam = env._camera  # the robot's own head camera driver (renders sensor arrays only)
     every = max(1, round(1.0 / (args.hz * 0.02)))
     files = {k: open(out / f"{k}.txt", "w") for k in
-             ("rgb", "depth", "associations", "groundtruth", "imu", "odometry")}  # fmt: skip
+             ("rgb", "depth", "associations", "groundtruth", "groundtruth_base", "imu",
+              "odometry", "camera_in_base")}  # fmt: skip
     for k in ("rgb", "depth"):
         files[k].write(f"# {k} images: timestamp filename\n")
     files["groundtruth"].write("# EVALUATION ONLY: timestamp tx ty tz qx qy qz qw\n")
+    files["groundtruth_base"].write("# EVALUATION ONLY, pelvis: timestamp tx ty tz qx qy qz qw\n")
+    files["camera_in_base"].write(
+        "# camera (optical) in pelvis, encoders: t tx ty tz qx qy qz qw\n"
+    )
     files["imu"].write("# timestamp gx gy gz ax ay az (pelvis frame)\n")
     files["odometry"].write("# ORACLE-ASSISTED planar odometry: timestamp x y yaw\n")
     tick = {"n": 0}
@@ -115,6 +120,15 @@ def main() -> None:
         q = quat_xyzw(rot)
         files["groundtruth"].write(
             f"{t:.4f} " + " ".join(f"{x:.6f}" for x in (*c.position, *q)) + "\n"
+        )
+        rp, pp = d.xmat[env.pelvis].reshape(3, 3), d.xpos[env.pelvis]
+        files["groundtruth_base"].write(
+            f"{t:.4f} " + " ".join(f"{x:.6f}" for x in (*pp, *quat_xyzw(rp))) + "\n"
+        )
+        # Robot kinematics (encoders), not ground truth: the camera moves with the waist.
+        rc, pc = rp.T @ rot, rp.T @ (c.position - pp)
+        files["camera_in_base"].write(
+            f"{t:.4f} " + " ".join(f"{x:.6f}" for x in (*pc, *quat_xyzw(rc))) + "\n"
         )
 
     base = G1MobileBase(env, WBCLocomotion.from_cache(), on_tick)

@@ -48,7 +48,7 @@ uv pip freeze --python /work/conv-venv > /work/out/converter-freeze.txt
 # DREAM's own pinned environment for CPU MuJoCo jobs on the same VM (EGL rendering).
 uv venv --python 3.12 /work/dream-venv
 uv pip install --python /work/dream-venv 'mujoco==3.16.0' 'onnxruntime==1.23.2' numpy \
-  'matplotlib>=3.8' 'pillow==13.0.0' 'spark-dsg==1.1.3'
+  'matplotlib>=3.8' 'pillow==13.0.0' 'spark-dsg==1.1.3' 'rosbags==0.11.9'
 uv pip install --python /work/dream-venv --no-deps -e /work/DREAM
 uv pip freeze --python /work/dream-venv > /work/out/dream-freeze.txt
 cd /work/DREAM
