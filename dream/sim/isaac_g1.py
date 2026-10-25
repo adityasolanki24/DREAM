@@ -133,7 +133,7 @@ class IsaacG1Env:
     ) -> None:
         from isaacsim.core.prims import SingleArticulation
         from isaacsim.core.utils.stage import add_reference_to_stage
-        from pxr import PhysxSchema, Sdf, UsdPhysics, UsdShade
+        from pxr import PhysxSchema, Sdf, Usd, UsdPhysics, UsdShade
 
         self.world, self.rng, self.noise, self.head = world, rng, noise, head_camera
         self.floor_paths = floor_paths
@@ -150,7 +150,9 @@ class IsaacG1Env:
         physx_mat = PhysxSchema.PhysxMaterialAPI.Apply(material.GetPrim())
         physx_mat.CreateFrictionCombineModeAttr("max")  # MuJoCo combines friction by max
         roots, joints, bodies, colliders, torso = [], {}, [], 0, None
-        for prim in self.stage.Traverse():
+        robot = self.stage.GetPrimAtPath(ROBOT_PREFIX)
+        # Instance proxies included: a referenced asset may be composed as instances.
+        for prim in Usd.PrimRange(robot, Usd.TraverseInstanceProxies()):
             path = str(prim.GetPath())
             if not path.startswith(ROBOT_PREFIX + "/"):
                 continue
@@ -181,7 +183,14 @@ class IsaacG1Env:
                     material, UsdShade.Tokens.weakerThanDescendants, "physics"
                 )
         if len(roots) != 1 or set(names) - set(joints) or torso is None:
-            raise ValueError("converted G1 USD does not match the MJCF contract")
+            children = [str(c.GetPath()) for c in robot.GetChildren()] if robot else []
+            raise ValueError(
+                "converted G1 USD does not match the MJCF contract: "
+                f"robot prim valid={bool(robot and robot.IsValid())}, children={children[:8]}, "
+                f"roots={roots}, joints={len(joints)}, "
+                f"missing={sorted(set(names) - set(joints))[:5]}"
+                f", bodies={len(bodies)}, torso={torso}, colliders={colliders}"
+            )
         self.root_path, self.torso_path, self.bodies = roots[0], torso, bodies
         self.contract = {"articulation_root": roots[0], "revolute_joints": len(joints),
                          "rigid_bodies": len(bodies), "colliders": colliders,
