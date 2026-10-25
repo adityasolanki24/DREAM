@@ -140,3 +140,25 @@ def test_a_task_left_running_by_a_crash_restarts_as_suspended(tmp_path):
     s.db.commit()
     s2, _ = make(tmp_path, [], [])
     assert s2.get(tid).state == "suspended"
+
+
+def test_mobile_toolbox_verifies_a_goto_place_goal():
+    """Regression (Test D, rooms 4100-4102): the tool-argument validator rejected GoToPlace,
+    so every urgent 'goto entrance' task failed before moving."""
+    import numpy as np
+
+    from dream.tools.goals import GoToPlace, parse_goal
+    from dream.tools.mobile import MobileToolbox
+
+    class Base:
+        time, stop_reason = 0.0, None
+
+        def odometry(self):
+            return np.array([0.1, 0.0, 0.0])
+
+    tb = MobileToolbox(Base(), memory=None)
+    tb.places = {"entrance": np.zeros(2)}
+    r = tb.call("verify_goal", {"goal": parse_goal("goto entrance")})
+    assert r.ok and r.data["satisfied"], r.message
+    r = tb.call("verify_goal", {"goal": GoToPlace("kitchen")})
+    assert r.ok and r.data.get("unknown_place")

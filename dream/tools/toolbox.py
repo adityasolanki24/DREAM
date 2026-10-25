@@ -18,7 +18,7 @@ import numpy as np
 import dream.skills.articulation as art
 from dream.skills import manipulation as skills
 from dream.tools import discovery
-from dream.tools.goals import InRegion, Inspect, OnTop, parse_goal, resting_on, verify
+from dream.tools.goals import GoToPlace, InRegion, Inspect, OnTop, parse_goal, resting_on, verify
 from dream.types import Embodiment, Perception
 
 # m: TCP parking pose above the robot's side of the table, behind every object it can reach,
@@ -568,6 +568,6 @@ def _validate(params: dict, args: dict) -> str:
                 return f"'{key}' must be 3 numbers"
             if arr.shape != (3,) or not np.all(np.isfinite(arr)):
                 return f"'{key}' must be 3 finite numbers"
-        if t == "goal" and not isinstance(v, (str, dict, InRegion, OnTop, Inspect)):
+        if t == "goal" and not isinstance(v, (str, dict, InRegion, OnTop, Inspect, GoToPlace)):
             return f"'{key}' must be a structured goal"
     return ""
