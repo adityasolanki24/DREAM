@@ -1,0 +1,142 @@
+{
+  "meta": {
+    "config": {
+      "name": "g1_navigation_heldout",
+      "_note": "Held-out paired comparison, frozen 26 Oct 2026 before running, after development on rooms 0-9 (results/g1_navigation_dev, results/g1_navigation_dev_v2). Fresh seeds never run before: nominal 1100-1119, shifted 2100-2109. Gates follow the development evidence: rpp was safer and smoother there, not faster, so time and turning-in-place are reported without a gate.",
+      "seeds": {
+        "nominal": [
+          1100,
+          1120
+        ],
+        "shifted": [
+          2100,
+          2110
+        ]
+      },
+      "navigators": [
+        "classic",
+        "rpp"
+      ],
+      "time_budget_s": 240,
+      "max_steps": 60,
+      "gates": {
+        "rpp_success_not_below_classic_minus": 1,
+        "rpp_contact_episodes_not_above_classic": true,
+        "rpp_nav_angular_jerk_median_reduction_min": 0.2,
+        "rpp_false_claims_max": 0,
+        "rpp_falls_max": 0
+      }
+    },
+    "git_sha": "85ea37238cca18e3c8e4b9f0b425c79bd7d4fa74",
+    "dream_dirty_at_start": false,
+    "machine": "Windows-11-10.0.26100-SP0",
+    "wall_s": 8376.539017599891,
+    "odometry": "oracle-assisted (true increments + noise)"
+  },
+  "by_condition": {
+    "nominal/classic": {
+      "n": 20,
+      "success": 20,
+      "success_ci95": [
+        0.8388698745050667,
+        1.0
+      ],
+      "false_claims": 0,
+      "falls": 0,
+      "episodes_with_contact": 5,
+      "median_sim_s": 57.47000000001095,
+      "median_wall_s": 301.65832070005126,
+      "median_path_m": 8.929524779879221,
+      "repeated_approaches": 1,
+      "nav_median": {
+        "time_s": 38.75,
+        "path_m": 7.053603742023561,
+        "rotation_rad": 14.437726619832544,
+        "turn_in_place_s": 18.25,
+        "stopped_s": 1.2,
+        "stop_start_cycles": 4.5,
+        "angular_jerk_rms": 141.40638109983695,
+        "forward_tracking_error_m_s": 0.04897641894913509
+      },
+      "all_median_turn_in_place_s": 33.370000000000005
+    },
+    "nominal/rpp": {
+      "n": 20,
+      "success": 17,
+      "success_ci95": [
+        0.6395767041130426,
+        0.9476322080405041
+      ],
+      "false_claims": 0,
+      "falls": 0,
+      "episodes_with_contact": 3,
+      "median_sim_s": 43.920000000004016,
+      "median_wall_s": 216.4673052500002,
+      "median_path_m": 6.708846844999775,
+      "repeated_approaches": 1,
+      "nav_median": {
+        "time_s": 27.4,
+        "path_m": 4.903859499338255,
+        "rotation_rad": 10.326133427386674,
+        "turn_in_place_s": 11.850000000000001,
+        "stopped_s": 0.3,
+        "stop_start_cycles": 3.0,
+        "angular_jerk_rms": 93.3591035055802,
+        "forward_tracking_error_m_s": 0.03336934604084267
+      },
+      "all_median_turn_in_place_s": 26.97
+    },
+    "shifted/classic": {
+      "n": 10,
+      "success": 9,
+      "success_ci95": [
+        0.5958436145024278,
+        0.9821242504842788
+      ],
+      "false_claims": 0,
+      "falls": 0,
+      "episodes_with_contact": 4,
+      "median_sim_s": 130.43999999995387,
+      "median_wall_s": 501.1060853000381,
+      "median_path_m": 22.56370208618094,
+      "repeated_approaches": 5,
+      "nav_median": {
+        "time_s": 97.0,
+        "path_m": 19.372252598620648,
+        "rotation_rad": 37.57708130108736,
+        "turn_in_place_s": 44.35,
+        "stopped_s": 2.4,
+        "stop_start_cycles": 9.5,
+        "angular_jerk_rms": 156.9905570652876,
+        "forward_tracking_error_m_s": 0.04836007061549358
+      },
+      "all_median_turn_in_place_s": 69.09
+    },
+    "shifted/rpp": {
+      "n": 10,
+      "success": 8,
+      "success_ci95": [
+        0.49015684672072335,
+        0.9433190520193067
+      ],
+      "false_claims": 0,
+      "falls": 0,
+      "episodes_with_contact": 1,
+      "median_sim_s": 110.41999999997206,
+      "median_wall_s": 499.35260270000435,
+      "median_path_m": 16.139569919954845,
+      "repeated_approaches": 5,
+      "nav_median": {
+        "time_s": 93.9,
+        "path_m": 14.439861507246283,
+        "rotation_rad": 36.74397229047058,
+        "turn_in_place_s": 48.75,
+        "stopped_s": 1.5,
+        "stop_start_cycles": 10.0,
+        "angular_jerk_rms": 94.23415763519971,
+        "forward_tracking_error_m_s": 0.028224777647529377
+      },
+      "all_median_turn_in_place_s": 66.92
+    }
+  }
+}

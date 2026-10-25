@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "config": {
+      "name": "g1_navigation_dev_v2",
+      "_note": "Development rerun of rpp only, after two general corrections found on development rooms (arc veto must not block motion away from an obstacle; veto at the physical footprint, not the planning inflation). Classic is unchanged by these edits; its development rows are in results/g1_navigation_dev. NOT held-out evidence.",
+      "seeds": {
+        "nominal": [
+          0,
+          10
+        ]
+      },
+      "navigators": [
+        "rpp"
+      ],
+      "time_budget_s": 240,
+      "max_steps": 60
+    },
+    "git_sha": "98abcb257dd69337cad6e64916d16d381010b38d",
+    "dream_dirty_at_start": true,
+    "machine": "Windows-11-10.0.26100-SP0",
+    "wall_s": 964.3082920999732,
+    "odometry": "oracle-assisted (true increments + noise)"
+  },
+  "by_condition": {
+    "nominal/rpp": {
+      "n": 10,
+      "success": 10,
+      "success_ci95": [
+        0.7224598312333834,
+        1.0
+      ],
+      "false_claims": 0,
+      "falls": 0,
+      "episodes_with_contact": 0,
+      "median_sim_s": 35.90999999999992,
+      "median_wall_s": 191.95135614997707,
+      "median_path_m": 5.4635187902517615,
+      "repeated_approaches": 0,
+      "nav_median": {
+        "time_s": 17.55,
+        "path_m": 3.639075767182121,
+        "rotation_rad": 6.273599104384935,
+        "turn_in_place_s": 6.15,
+        "stopped_s": 0.1,
+        "stop_start_cycles": 2.5,
+        "angular_jerk_rms": 90.05716960836821,
+        "forward_tracking_error_m_s": 0.03705558134689502
+      },
+      "all_median_turn_in_place_s": 22.509999999999998
+    }
+  }
+}

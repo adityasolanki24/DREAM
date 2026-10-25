@@ -1,0 +1,79 @@
+{
+  "meta": {
+    "config": {
+      "name": "g1_navigation_dev",
+      "_note": "Development comparison on Milestone B development rooms 0-9 (nominal generator). Used to diagnose and develop the rpp navigator; NOT held-out evidence.",
+      "seeds": {
+        "nominal": [
+          0,
+          10
+        ]
+      },
+      "navigators": [
+        "classic",
+        "rpp"
+      ],
+      "time_budget_s": 240,
+      "max_steps": 60
+    },
+    "git_sha": "98abcb257dd69337cad6e64916d16d381010b38d",
+    "dream_dirty_at_start": true,
+    "machine": "Windows-11-10.0.26100-SP0",
+    "wall_s": 1916.375003199908,
+    "odometry": "oracle-assisted (true increments + noise)"
+  },
+  "by_condition": {
+    "nominal/classic": {
+      "n": 10,
+      "success": 9,
+      "success_ci95": [
+        0.5958436145024278,
+        0.9821242504842788
+      ],
+      "false_claims": 0,
+      "falls": 0,
+      "episodes_with_contact": 1,
+      "median_sim_s": 31.01999999999876,
+      "median_wall_s": 182.9738248999929,
+      "median_path_m": 4.191406031656181,
+      "repeated_approaches": 0,
+      "nav_median": {
+        "time_s": 12.3,
+        "path_m": 2.320530345727927,
+        "rotation_rad": 4.478791855583005,
+        "turn_in_place_s": 6.4,
+        "stopped_s": 0.6,
+        "stop_start_cycles": 2.0,
+        "angular_jerk_rms": 148.18922317954227,
+        "forward_tracking_error_m_s": 0.04465811071722092
+      },
+      "all_median_turn_in_place_s": 21.52
+    },
+    "nominal/rpp": {
+      "n": 10,
+      "success": 10,
+      "success_ci95": [
+        0.7224598312333834,
+        1.0
+      ],
+      "false_claims": 0,
+      "falls": 0,
+      "episodes_with_contact": 0,
+      "median_sim_s": 38.86000000000143,
+      "median_wall_s": 197.951997450029,
+      "median_path_m": 5.708970424991506,
+      "repeated_approaches": 2,
+      "nav_median": {
+        "time_s": 20.5,
+        "path_m": 4.03579256572775,
+        "rotation_rad": 6.713154839379514,
+        "turn_in_place_s": 6.050000000000001,
+        "stopped_s": 0.15000000000000002,
+        "stop_start_cycles": 3.0,
+        "angular_jerk_rms": 97.73108740113659,
+        "forward_tracking_error_m_s": 0.037454057601704505
+      },
+      "all_median_turn_in_place_s": 22.41
+    }
+  }
+}

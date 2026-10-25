@@ -1,0 +1,76 @@
+[1/60 242s] nominal 1100 classic: success=True sim=51s tip=17.7s stops=4 contact=61
+[2/60 242s] nominal 1100 rpp: success=True sim=44s tip=11.5s stops=3 contact=0
+[3/60 242s] nominal 1101 classic: success=True sim=35s tip=3.3s stops=4 contact=0
+[4/60 435s] nominal 1101 rpp: success=True sim=37s tip=4.3s stops=4 contact=0
+[5/60 616s] nominal 1102 classic: success=True sim=84s tip=36.2s stops=6 contact=51
+[6/60 706s] nominal 1102 rpp: success=True sim=109s tip=51.0s stops=8 contact=0
+[7/60 706s] nominal 1103 classic: success=True sim=30s tip=7.5s stops=2 contact=0
+[8/60 713s] nominal 1103 rpp: success=True sim=24s tip=4.3s stops=0 contact=0
+[9/60 761s] nominal 1104 classic: success=True sim=26s tip=1.0s stops=1 contact=0
+[10/60 966s] nominal 1104 rpp: success=True sim=23s tip=0.6s stops=0 contact=0
+[11/60 1254s] nominal 1105 classic: success=True sim=60s tip=27.9s stops=5 contact=0
+[12/60 1462s] nominal 1105 rpp: success=False sim=98s tip=42.4s stops=9 contact=94
+[13/60 1462s] nominal 1106 classic: success=True sim=24s tip=2.9s stops=1 contact=0
+[14/60 1462s] nominal 1106 rpp: success=True sim=20s tip=0.0s stops=0 contact=0
+[15/60 1637s] nominal 1107 classic: success=True sim=68s tip=33.0s stops=5 contact=0
+[16/60 1810s] nominal 1107 rpp: success=True sim=83s tip=33.0s stops=6 contact=0
+[17/60 1810s] nominal 1108 classic: success=True sim=47s tip=10.7s stops=3 contact=0
+concurrent.futures.process._RemoteTraceback: 
+"""
+Traceback (most recent call last):
+  File "C:\Users\24adi\miniconda3\Lib\concurrent\futures\process.py", line 254, in _process_worker
+    r = call_item.fn(*call_item.args, **call_item.kwargs)
+  File "C:\Users\24adi\miniconda3\Lib\concurrent\futures\process.py", line 203, in _process_chunk
+    return [fn(*args) for args in chunk]
+            ~~^^^^^^^
+  File "C:\Users\24adi\OneDrive\DREAM\experiments\g1_navigation_eval.py", line 121, in episode
+    ep = TaskAgent(tb, planner, max_steps=cfg["max_steps"]).run(Inspect("cabinet"), on_event)
+  File "C:\Users\24adi\OneDrive\DREAM\dream\runtime\agent.py", line 300, in run
+    result = self.tools.call(action.name, action.args)
+  File "C:\Users\24adi\OneDrive\DREAM\dream\tools\mobile.py", line 143, in call
+    result = getattr(self, f"_{name}")(**args)
+  File "C:\Users\24adi\OneDrive\DREAM\dream\tools\mobile.py", line 547, in _inspect
+    self._look()
+    ~~~~~~~~~~^^
+  File "C:\Users\24adi\OneDrive\DREAM\dream\tools\mobile.py", line 149, in _look
+    self.memory.update(self.base.capture())
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\24adi\OneDrive\DREAM\dream\perception\spatial.py", line 98, in update
+    dets, _ = detect(frame, self.rng, FLOOR_PLANE, DEPTH_NOISE)
+              ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\24adi\OneDrive\DREAM\dream\perception\detect.py", line 180, in detect
+    d = _describe(mask, ctx)
+  File "C:\Users\24adi\OneDrive\DREAM\dream\perception\detect.py", line 315, in _describe
+    container = _container(
+        mask, pts, height, valid, centre, sides, angle, top, occluded, bbox, frame
+    )
+  File "C:\Users\24adi\OneDrive\DREAM\dream\perception\detect.py", line 353, in _container
+    local = (pts[..., :2] - centre) @ rot  # every pixel in the rectangle's frame
+             ~~~~~~~~~~~~~^~~~~~~~
+numpy._core._exceptions._ArrayMemoryError: Unable to allocate 1.17 MiB for an array with shape (240, 320, 2) and data type float64
+"""
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\24adi\OneDrive\DREAM\experiments\g1_navigation_eval.py", line 200, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\24adi\OneDrive\DREAM\experiments\g1_navigation_eval.py", line 182, in main
+    for r in pool.map(episode, jobs):
+             ~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\24adi\miniconda3\Lib\concurrent\futures\process.py", line 617, in _chain_from_iterable_of_lists
+    for element in iterable:
+                   ^^^^^^^^
+  File "C:\Users\24adi\miniconda3\Lib\concurrent\futures\_base.py", line 625, in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\24adi\miniconda3\Lib\concurrent\futures\_base.py", line 318, in _result_or_cancel
+    return fut.result(timeout)
+           ~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\24adi\miniconda3\Lib\concurrent\futures\_base.py", line 460, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\24adi\miniconda3\Lib\concurrent\futures\_base.py", line 402, in __get_result
+    raise self._exception
+numpy._core._exceptions._ArrayMemoryError: Unable to allocate 1.17 MiB for an array with shape (240, 320, 2) and data type float64
