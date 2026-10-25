@@ -1241,14 +1241,14 @@ generalisation claim beyond the stated evaluation.
 | Workstream | State | Evidence |
 |---|---|---|
 | Natural navigation (Nav2 RPP) | First held-out success gate failed; cause found and fixed; **fresh held-out run: all gates pass**; slower in large rooms | `results/g1_navigation_*` |
-| Persistent home memory (SQLite) | Implemented; CPU contracts; physical Tests A/B on the GPU VM | `dream/memory/home.py`, `tests/test_home_memory.py` |
+| Persistent home memory (SQLite) | Tests A/B on 5 fresh rooms: recall halves search time; moved objects marked missing; one false absence found | `results/g1_memory_demo` |
 | Explore only when needed (Tests E/F) | **Held-out: all gates pass, 20/20 scenes** | `results/compartment_experience` |
 | Hydra scene graph (Spark-DSG) | Hydra's own data structure integrated; Hydra's online pipeline not run | `dream/memory/scene_graph.py` |
-| Task scheduler + phone API | Implemented; CPU contracts; physical Test D queued | `dream/runtime/scheduler.py`, `phone_api.py` |
-| RTAB-Map | TUM RGB-D/IMU recorder written; SLAM not yet run | `experiments/record_rgbd_sequence.py` |
+| Task scheduler + phone API | **Test D passes 3/3 on fresh rooms** (after a validator fix and an evaluator fix, both disclosed) | `results/g1_interruption_demo*` |
+| RTAB-Map | G1 sensor stream to ROS 2 bag to official rtabmap_ros on the VM; first replay received no frames (TF QoS); fixed, not rerun | `experiments/rtabmap_eval.py` |
 | nvblox, HOV-SG, ConceptGraphs, BT.ROS2 | Audited (pins, licences, runtime needs); not run | `experiments/configs/integration_sources.json` |
 | SuperMap | **No code published** upstream ("released after RSS"), no licence | same |
-| Isaac Sim 6.2 G1 | Harness built; two GPU sessions failed in setup (fixed); third running | below |
+| Isaac Sim 6.2 G1 | **Walking G1 passes every bring-up gate in NVIDIA's kitchen**; frozen agent succeeds in one development-kitchen episode; held-out kitchens not yet run | `results/isaac_g1_kitchen_*` |
 | OmniGibson/BEHAVIOR | Not downloaded: its dataset licence must be accepted by the owner | same |
 
 **Navigation (Test C).** `MobileToolbox(navigator="rpp")` reimplements Nav2's Regulated Pure
@@ -1348,9 +1348,66 @@ tested tier, so its adequacy is measured, not assumed; the project has no G4 quo
 ended before installing (`ldd | head` SIGPIPE under pipefail); session 2 found that Isaac 6.2
 pins `mujoco==3.12.0` and ships `onnxruntime-gpu`. The full Linux environment now resolves
 offline (599 packages), and `cloud/isaac_session.py` cleanup was hardened after a 120 s gcloud
-timeout. Both sessions' resources were removed and audited. Each session is capped at
-150 minutes (Google-enforced) with a US$6 per-session and US$25 cumulative estimate guard;
-estimates, not bills.
+timeout. Session 3 failed resolving on the VM (index strategy); the guest now installs an
+offline-resolved lock (`cloud/isaac62.lock.txt`, 169 pins) and installed in under 3 minutes.
+
+Session 4 then found, one at a time, why the robot did not appear in the stage: the asset is
+now a flattened text USDA referenced by `file://` URI on the simulation's stage (Isaac's
+deprecated `add_reference_to_stage` left it empty, and a bare `/work/...` path anchored to the
+kitchen's https root layer resolved on the asset server). Bring-up in the development kitchen
+(`results/isaac_g1_kitchen_bringup`, commit `256079c`):
+
+| Bring-up gate (Milestone A) | Result |
+|---|---|
+| Falls | 0 |
+| 10 s standing drift (<= 0.2 m) | 0.077 m |
+| Forward / yaw tracking (0.75-1.1) | 0.81 / 0.98 |
+| Head RGB-D valid (RTX frames kept) | yes |
+| Furniture contact steps (reported) | 0 |
+| Real-time factor on L4 (measured) | 0.44 (0.16 with 95 camera renders while exploring) |
+
+A cabinet door spun once turned 24.5 degrees about its hinge with its hinge origin fixed and no
+height change, so the scene's joints are simulated. The frozen Milestone B agent then ran one
+episode in the development kitchen (`results/isaac_g1_kitchen_explore_dev`): success under the
+label-based scoring (0.84 m from a true cabinet handle, facing error 12.7 degrees, reported
+handle 9.6 cm from it), no contact, no fall, 82 s robot time; but 22 candidates, 10 with
+handles and 3 phantom handles show the colour/geometry perception's limits in a photoreal
+kitchen. One development episode is not transfer evidence: the 12 frozen held-out episodes
+(four kitchens, three starts) are the next session's first job.
+
+Costs: four sessions, reconciled estimate US$15.33 of the US$25 cap (estimates from recorded VM
+lifetimes plus full network/storage reserves; not bills). Every VM, network, router and
+service account was removed and audited. Session 4's bucket (about 1 GB, every job already
+retrieved and checksum-verified per job) is preserved because the final full download filled
+this laptop's disk; retrieve and delete it with
+`python cloud/isaac_session.py stop --manifest <session-4 manifest> --yes` once space is free.
+
+**Tests A/B (memory across a restart, a moved object; `results/g1_memory_demo`).** Five fresh
+rooms, real MuJoCo G1, sessions aligned by an identical start pose under oracle-assisted
+odometry (declared). Recall succeeded 5/5 with median 34.8 s against 69.0 s without memory
+(path 5.3 m against 11.9 m). Wherever the old belief was live (3/3 moved rooms) the robot
+checked it, marked it missing and stored the new sighting; the moved search is slower with
+memory (median 94.6 s against 46.6 s) because it first walks to the stale place. Defect found:
+in one unchanged room the recall session recorded a false absence on arrival (one look, the
+handle not re-detected); the bearing/range in-view test is too weak a basis for absence and
+needs a visibility check from the depth image.
+
+**Test D (phone interruption; `results/g1_interruption_demo_v2/rescored_summary.json`).** On
+fresh rooms 4103-4105, the request arrived over authenticated HTTP while the robot walked at
+0.17-0.29 m/s; it slowed to 0.04-0.05 m/s and yielded; the inspection was suspended with its
+checkpoint; the urgent "goto entrance" reached the entrance (true error 0.120/0.128/0.151 m);
+the inspection resumed, re-observed and succeeded; no false claims or falls: 3/3 pass. The
+first run (rooms 4100-4102) failed 0/3 because the tool validator rejected the new goal type
+(fixed). The evaluator measured the entrance error from the world origin instead of the start
+pose that the config defines as the entrance; it was fixed with a regression test and both runs
+were rescored from saved timelines (originals kept).
+
+**RTAB-Map.** The G1's head RGB-D, pelvis IMU and calibration are written as a ROS 2 bag
+(`experiments/tum_to_rosbag.py`, rosbags 0.11.9) and replayed through the official
+`introlab3it/rtabmap_ros:jazzy-latest` container (digest recorded) on the VM. The first replay
+received no usable frames: rosbag2 would not deliver the bag's `/tf_static` (volatile QoS
+offered, transient-local required), and `ros2 launch` ignored SIGINT. Both are fixed (live
+static transform, process-group kill) but not yet rerun; no SLAM accuracy is claimed.
 
 | Change | Rule 3 class | Evidence limit |
 |---|---|---|
