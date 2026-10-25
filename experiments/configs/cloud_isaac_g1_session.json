@@ -1,0 +1,27 @@
+{
+  "workload": "isaac-g1-session",
+  "machine": "g2-standard-8",
+  "zone": "us-central1-c",
+  "max_minutes": 150,
+  "disk_gb": 200,
+  "image": "common-cu129-ubuntu-2204-nvidia-580-v20261019",
+  "image_project": "deeplearning-platform-release",
+  "per_session_ceiling_usd": 6.0,
+  "continuation_cap_usd": 25.0,
+  "gpu_choice": "NVIDIA L4 (Ada, 3rd-gen RT cores, 24 GB). Isaac Sim 6.x requirements: RT cores required (A100/H100 unsupported), >= 16 GB VRAM; tested tiers RTX 4080 / 5080 / RTX PRO 6000. L4 meets the RT-core and VRAM requirements but is not a tested tier, so sufficiency is measured (startup, render validity, real-time factor, VRAM) in the first session rather than assumed. RTX PRO 6000 (G4) is offered in us-central1-b/c/f but this project has no G4 GPU quota; L4 quota is 8.",
+  "cost": {
+    "checked_date": "2026-10-23",
+    "vm_usd_per_hour": 0.853624312,
+    "disk_usd_per_hour": 0.028,
+    "nat_gateway_and_ip_usd_per_hour": 0.0064,
+    "nat_usd_per_gib": 0.045,
+    "nat_download_gib": 50,
+    "storage_egress_and_reserve_usd": 0.8,
+    "sources": [
+      "https://cloud.google.com/products/compute/pricing/accelerator-optimized",
+      "https://cloud.google.com/nat/pricing",
+      "https://cloud.google.com/compute/disks-image-pricing"
+    ],
+    "note": "Rates carried from cloud_isaac_t1_stand.json (checked 23 Oct 2026). 50 GiB NAT reserve covers the Isaac Sim 6.2 wheels, PyTorch and streamed NVIDIA assets. Estimate, not a billing cap."
+  }
+}

@@ -50,6 +50,10 @@ export PYOPENGL_PLATFORM=osmesa
 export OPENBLAS_NUM_THREADS=1
 export TOKENIZERS_PARALLELISM=false
 export HF_HUB_DISABLE_TELEMETRY=1
+if [[ "$WORKLOAD" == isaac-g1-session ]]; then
+  source /work/DREAM/cloud/isaac_g1_session.sh
+  exit 0
+fi
 if [[ "$WORKLOAD" == isaac-t1-* ]]; then
   source /work/DREAM/cloud/isaac_t1_job.sh
   exit 0
