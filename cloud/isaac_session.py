@@ -269,7 +269,7 @@ def main() -> None:
     ap.add_argument("--allowance-usd", type=float, default=0.0)
     ap.add_argument("--timeout-s", type=int, default=1800)
     ap.add_argument("--yes", action="store_true")
-    ap.add_argument("job", nargs=argparse.REMAINDER)
+    ap.add_argument("job", nargs="*", help="after --: experiments/<name>.py and its arguments")
     args = ap.parse_args()
     cfg = json.loads(CONFIG.read_text())
     if args.command in ("plan", "start"):
