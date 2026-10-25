@@ -229,7 +229,11 @@ def run(args, cfg, ev: Evidence) -> dict:
         raise
     finally:
         ev.stage("closing")
-        app.close()
+        # Evidence is already fsynced; a full Kit teardown took ~8.5 min (session 4, job 1).
+        try:
+            app.close(wait_for_replicator=False, skip_cleanup=True)
+        except TypeError:  # older SimulationApp.close signature
+            app.close()
 
 
 def _run(app, args, cfg, ev: Evidence) -> dict:
