@@ -81,10 +81,17 @@ def handle_closing_yaw(obs: ArticulatedObservation, current_yaw: float) -> float
 
 
 def grasp_handle(
-    robot: Embodiment, perception: Perception, name: str, handle_size: float = 0.025
+    robot: Embodiment,
+    perception: Perception,
+    name: str,
+    handle_size: float = 0.025,
+    obs: ArticulatedObservation | None = None,
 ) -> SkillResult:
-    """Top-down grasp across the handle. Verified by finger width (closed on the handle)."""
-    obs = find_articulated(perception, name)
+    """Top-down grasp across the handle. Verified by finger width (closed on the handle).
+
+    ``obs``: a better handle estimate than perception's current one, if the caller has it.
+    """
+    obs = obs or find_articulated(perception, name)
     if obs is None:
         return SkillResult(False, f"no handle observed on '{name}'")
     t0 = robot.state().time

@@ -68,10 +68,11 @@ class WorldModel:
             est = replace(t.detection, occluded=True) if keep_old else d
             if t.detection.kind == "handle" and est.kind == "object":
                 est = replace(est, kind="handle", position=est.top_centre)
-            if d.occluded and t.detection.opening is not None:
-                # An occluded view hides cells; it is no evidence that an opening shrank or
-                # closed. Keep the opening last seen in a clear view.
-                est = replace(est, opening=t.detection.opening)
+            old = t.detection.opening
+            if d.occluded and old is not None and (est.opening is None or est.opening[1] < old[1]):
+                # An occluded view hides cells: no evidence that an opening shrank or closed.
+                # Open cells it does see are evidence, so a larger opening still replaces it.
+                est = replace(est, opening=old)
             self.tracks[i] = Track(t.id, est, time, True, t.n_seen + 1, t.articulated)
         for i in unmatched:
             self.tracks[i] = replace(self.tracks[i], visible=False)

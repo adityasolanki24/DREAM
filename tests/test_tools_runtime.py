@@ -298,3 +298,31 @@ def test_setting_an_unwanted_object_aside_is_bounded():
     ] * 2
     act = p.next_action(InRegion("red", "tray"), _scene(objs, "grey"), {"satisfied": False}, fails)
     assert isinstance(act, Finish) and not act.success and "grey" in act.reason
+
+
+def test_a_re_grasp_uses_where_the_hand_let_go_unless_the_camera_shows_the_handle_moved():
+    """Measurement-source selection for a re-grasp: proprioception at release (2.2 mm) beats a
+    camera estimate that is last-known or less certain, but a clear camera view that disagrees
+    by more than 3 combined sigma means the handle moved since, and wins."""
+    from dream.tools.discovery import GRASP_STD, best_handle_estimate
+    from dream.types import ArticulatedObservation
+
+    released = np.array([0.70, 0.20, 0.30])
+
+    def seen(pos, std, visible):
+        return ArticulatedObservation(
+            "compartment", np.asarray(pos), np.array([1.0, 0, 0, 0]), np.zeros(3), np.ones(3),
+            np.ones(3) * 0.01, orientation_observed=False, handle_visible=visible,
+            position_std=std,
+        )  # fmt: skip
+
+    stale = seen([0.49, 0.19, 0.18], 0.025, False)  # last seen before the lid carried it up
+    assert np.allclose(best_handle_estimate(stale, released).handle_pos, released)
+    assert best_handle_estimate(stale, released).position_std == GRASP_STD
+    close = seen(released + [0.005, 0, 0], 0.007, True)  # consistent but less certain
+    assert np.allclose(best_handle_estimate(close, released).handle_pos, released)
+    moved = seen(released + [0.06, 0, 0], 0.007, True)  # clearly seen elsewhere
+    assert best_handle_estimate(moved, released) is moved
+    precise = seen(released + [0.001, 0, 0], 0.002, True)  # the oracle tracker: 2 mm
+    assert best_handle_estimate(precise, released) is precise
+    assert best_handle_estimate(stale, None) is stale

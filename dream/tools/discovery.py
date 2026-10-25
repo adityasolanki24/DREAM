@@ -111,6 +111,9 @@ class Investigation:
     steps: list[dict] = field(default_factory=list)
     belief: Belief | None = field(default=None, repr=False)
     handle_source: str = "perception"  # or "grasp": measured through the rigid grasp
+    # TCP position (m) where the hand last let go of the handle while closed on it: the
+    # robot's own proprioception, kept for this session only (not memory).
+    released_at: np.ndarray | None = field(default=None, repr=False)
 
     def summary(self) -> dict:
         """What a planner sees (no particles, no step logs)."""
@@ -276,6 +279,7 @@ def investigate(
     inv = _result(name, status, reason, belief, steps, robot.state().time - t_start)
     inv.handle_source = "grasp" if via_grasp else "perception"
     if not inv.opening_supported:
+        inv.released_at = _gripped_at(robot)
         released = art.release_handle(robot)
         if not released.ok:  # the conclusion stands, but the robot did not get free safely
             inv.status = "unsafe"
@@ -372,16 +376,42 @@ def near_handle(obs) -> float:
     return max(0.02, 3.0 * obs.position_std)
 
 
-def _ensure_grasped(robot: Embodiment, perception: Perception, name: str) -> SkillResult:
+def _gripped_at(robot: Embodiment) -> np.ndarray | None:
+    """The TCP position if the fingers are closed on something (about to let go), else None."""
+    st = robot.state()
+    closed = st.gripper_command < 0.005 and st.gripper_width > GRASP_MIN_WIDTH
+    return st.tcp_pos.copy() if closed else None
+
+
+def best_handle_estimate(obs, released_at: np.ndarray | None):
+    """The camera's handle estimate, or where the hand last let go of the handle if that is
+    better. Proprioception at the release locates the handle to GRASP_STD, and a handle
+    left alone stays where it was let go. A camera estimate that is visible and disagrees
+    with the release point by more than 3 combined sigma means the handle moved since:
+    trust the camera. A camera estimate that is not visible is last-known and may be older
+    than the release (a knob carried 25 cm up with a lid is re-detected as a new thing)."""
+    if released_at is None:
+        return obs
+    gap = float(np.linalg.norm(obs.handle_pos - released_at))
+    moved = gap > 3.0 * np.hypot(obs.position_std, GRASP_STD)
+    if obs.handle_visible and (moved or obs.position_std <= GRASP_STD):
+        return obs
+    return replace(obs, handle_pos=released_at.copy(), position_std=GRASP_STD)
+
+
+def _ensure_grasped(
+    robot: Embodiment, perception: Perception, name: str, inv: Investigation | None = None
+) -> SkillResult:
     """Grasp the handle unless the fingers are already closed on something near it."""
     st = robot.state()
     obs = art.find_articulated(perception, name)
     if obs is None:
         return SkillResult(False, f"no articulated object '{name}' observed")
+    obs = best_handle_estimate(obs, None if inv is None else inv.released_at)
     near = np.linalg.norm(obs.handle_pos - st.tcp_pos) < near_handle(obs)
     if near and st.gripper_command < 0.005 and st.gripper_width > GRASP_MIN_WIDTH:
         return SkillResult(True, "")
-    return art.grasp_handle(robot, perception, name)
+    return art.grasp_handle(robot, perception, name, obs=obs)
 
 
 def _handle_now(robot: Embodiment, perception: Perception, name: str, inv: Investigation):
@@ -414,7 +444,7 @@ def open_learned(
     st = robot.state()
     still_closed = st.gripper_command < 0.005 and st.gripper_width > GRASP_MIN_WIDTH
     if not (already_gripped and still_closed):
-        g = _ensure_grasped(robot, perception, name)
+        g = _ensure_grasped(robot, perception, name, inv)
         if not g.ok:
             return SkillResult(False, f"could not grasp the handle: {g.reason}")
     width0 = robot.state().gripper_width
@@ -451,6 +481,7 @@ def open_learned(
         seen = perception.fixtures().get(name)
         if min_opening is not None and seen is not None and seen[1] >= min_opening:
             break
+    inv.released_at = _gripped_at(robot)
     released = art.release_handle(robot)
     details = {
         "segments": log,
