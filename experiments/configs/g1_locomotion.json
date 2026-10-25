@@ -1,0 +1,24 @@
+{
+  "name": "g1_locomotion",
+  "_note": "Milestone A. Pretrained NVIDIA Decoupled WBC walk/balance policies (weights in experiments/configs/wbc_policy.json) on the free-standing G1 in MuJoCo. Seeds set the start yaw, small initial joint offsets, odometry noise and goal positions. Gates written before the first run; seeds 100-109 were never used in development (the feasibility check used one start state and the 0.4 m/s and 0.5 rad/s commands).",
+  "seeds": [100, 101, 102, 103, 104, 105, 106, 107, 108, 109],
+  "stand_s": 2.0,
+  "profile_s": 6.0,
+  "profiles": [[0.2, 0, 0], [0.35, 0, 0], [0.5, 0, 0], [0, 0.2, 0], [0, 0, 0.3], [0, 0, -0.6], [0.3, 0, 0.3]],
+  "standing_s": 10.0,
+  "pushes_n": [40, 80, 120],
+  "push_duration_s": 0.2,
+  "push_walk_speed": 0.3,
+  "goto_per_seed": 3,
+  "goto_distance_m": [1.5, 3.0],
+  "goto_timeout_s": 30.0,
+  "gates": {
+    "falls_nominal_max": 0,
+    "forward_tracking_ratio_median": [0.75, 1.1],
+    "yaw_tracking_ratio_median": [0.75, 1.1],
+    "standing_drift_m_max": 0.2,
+    "goto_success_min": 0.8,
+    "goto_error_m_max": 0.3,
+    "push_40n_recovery_min": 0.8
+  }
+}
