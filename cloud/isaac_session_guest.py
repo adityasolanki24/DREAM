@@ -25,7 +25,13 @@ BUCKET, CAP_MIN = sys.argv[1], int(sys.argv[2])
 PYTHONS = {"isaac": sys.argv[3], "dream": sys.argv[4] if len(sys.argv) > 4 else sys.argv[3]}
 OUT, WORK = Path("/work/out/jobs"), Path("/work/jobs")
 MARGIN_S = 180  # final sync and self-deletion before Google's deadline
-SUBS = {"{robot_dir}": "/work/g1_usd", "{policy_cache}": "/work/cache"}
+# Placeholders, because Git Bash on Windows rewrites literal /work/... arguments into
+# C:/Program Files/Git/work/... before they reach the job spec (session 4, job 6).
+SUBS = {
+    "{robot_dir}": "/work/g1_usd",
+    "{policy_cache}": "/work/cache",
+    "{conv_python}": "/work/conv-venv/bin/python",
+}
 
 
 def uptime() -> float:
