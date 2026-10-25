@@ -164,9 +164,12 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("config")
     ap.add_argument("--record", action="store_true", help="record one go-to episode")
+    ap.add_argument("--record-only", action="store_true", help="skip the evaluation")
     args = ap.parse_args()
     cfg = json.loads(pathlib.Path(args.config).read_text())
     sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    if args.record_only:
+        return record(cfg, sha)
     dirty = bool(subprocess.check_output(["git", "status", "--porcelain", "dream"], cwd=ROOT))
     t_start = time.perf_counter()
     rows = {"tracking": [], "standing": [], "push": [], "goto": []}
@@ -193,17 +196,22 @@ def main() -> None:
     (out / "summary.json").write_text(json.dumps({"meta": meta, **summary}, indent=2))
     print(json.dumps(summary, indent=2))
     if args.record:
-        from experiments.mobile_recording import MobileRecorder, render
+        record(cfg, sha)
 
-        root = pathlib.Path(os.environ.get("DREAM_RECORDINGS_ROOT", "/tmp/DREAM/recordings"))
-        rec = MobileRecorder(
-            _env(cfg["seeds"][0], camera=True)[0],
-            root / f"g1_locomotion_goto_{time.strftime('%Y%m%dT%H%M%S')}",
-            {"experiment": "g1_locomotion go-to", "git_sha": sha, "seed": cfg["seeds"][0]},
-        )
-        result = goto(cfg["seeds"][0], cfg, recorder=rec)
-        rec.save({"goto": result})
-        print(json.dumps(render(rec.root), indent=2))
+
+def record(cfg: dict, sha: str) -> None:
+    """Record one go-to episode (the first seed) and render it from the saved states."""
+    from experiments.mobile_recording import MobileRecorder, render
+
+    root = pathlib.Path(os.environ.get("DREAM_RECORDINGS_ROOT", "/tmp/DREAM/recordings"))
+    rec = MobileRecorder(
+        _env(cfg["seeds"][0], camera=True)[0],
+        root / f"g1_locomotion_goto_{time.strftime('%Y%m%dT%H%M%S')}",
+        {"experiment": "g1_locomotion go-to", "git_sha": sha, "seed": cfg["seeds"][0]},
+    )
+    result = goto(cfg["seeds"][0], cfg, recorder=rec)
+    rec.save({"goto": result})
+    print(json.dumps(render(rec.root), indent=2))
 
 
 def summarise(rows: dict, cfg: dict) -> dict:

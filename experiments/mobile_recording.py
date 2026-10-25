@@ -1,7 +1,7 @@
 """Record a mobile-G1 episode as it runs; render video from the saved states afterwards.
 
 The same rules as experiments/g1_recording.py: integration states are copied from the
-running simulation at 20 Hz together with timestamped decisions, and footage is rendered
+running simulation at 25 Hz together with timestamped decisions, and footage is rendered
 offline on a separate MjData with mj_setState + mj_forward. Nothing is re-simulated, edited,
 interpolated or sped up. Large files go outside the repository (external_recording_root).
 
@@ -31,7 +31,7 @@ sys.path.insert(0, str(ROOT))
 
 from experiments.g1_recording import digest, external_recording_root  # noqa: E402
 
-FPS = 20
+FPS = 25  # 40 ms: exactly two 50 Hz policy ticks, so frames are evenly spaced in time
 STATE = mujoco.mjtState.mjSTATE_INTEGRATION
 
 
@@ -61,8 +61,10 @@ class MobileRecorder:
 
     def sample(self) -> None:
         step = round(self.env.data.time / self.env.model.opt.timestep)
-        if step - self._last_step < self.period and self._last_step >= 0:
+        if step % self.period or step == self._last_step:
             return
+        if self._last_step >= 0 and step - self._last_step != self.period:
+            raise ValueError("recording skipped a frame: sample() must be called every tick")
         state = np.empty(mujoco.mj_stateSize(self.env.model, STATE))
         mujoco.mj_getState(self.env.model, self.env.data, state, STATE)
         self.states.append(state)

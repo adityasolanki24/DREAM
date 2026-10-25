@@ -1,0 +1,160 @@
+{
+  "meta": {
+    "config": {
+      "name": "g1_locomotion",
+      "_note": "Milestone A. Pretrained NVIDIA Decoupled WBC walk/balance policies (weights in experiments/configs/wbc_policy.json) on the free-standing G1 in MuJoCo. Seeds set the start yaw, small initial joint offsets, odometry noise and goal positions. Gates written before the first run; seeds 100-109 were never used in development (the feasibility check used one start state and the 0.4 m/s and 0.5 rad/s commands).",
+      "seeds": [
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109
+      ],
+      "stand_s": 2.0,
+      "profile_s": 6.0,
+      "profiles": [
+        [
+          0.2,
+          0,
+          0
+        ],
+        [
+          0.35,
+          0,
+          0
+        ],
+        [
+          0.5,
+          0,
+          0
+        ],
+        [
+          0,
+          0.2,
+          0
+        ],
+        [
+          0,
+          0,
+          0.3
+        ],
+        [
+          0,
+          0,
+          -0.6
+        ],
+        [
+          0.3,
+          0,
+          0.3
+        ]
+      ],
+      "standing_s": 10.0,
+      "pushes_n": [
+        40,
+        80,
+        120
+      ],
+      "push_duration_s": 0.2,
+      "push_walk_speed": 0.3,
+      "goto_per_seed": 3,
+      "goto_distance_m": [
+        1.5,
+        3.0
+      ],
+      "goto_timeout_s": 30.0,
+      "gates": {
+        "falls_nominal_max": 0,
+        "forward_tracking_ratio_median": [
+          0.75,
+          1.1
+        ],
+        "yaw_tracking_ratio_median": [
+          0.75,
+          1.1
+        ],
+        "standing_drift_m_max": 0.2,
+        "goto_success_min": 0.8,
+        "goto_error_m_max": 0.3,
+        "push_40n_recovery_min": 0.8
+      }
+    },
+    "git_sha": "1e3eda9523e32bf198ef57b3f46d990f7b771ea8",
+    "dream_dirty_at_start": false,
+    "mujoco": "3.16.0",
+    "onnxruntime": "1.23.2",
+    "machine": "Linux-6.18.44-fc-v153-x86_64-with-glibc2.39",
+    "wall_s": 74.86249917100008,
+    "odometry": "oracle-assisted (true increments + noise), dream/sim/g1_mobile.py"
+  },
+  "measured": {
+    "falls_nominal": 0,
+    "forward_tracking_ratio_median": 0.8582259194984667,
+    "yaw_tracking_ratio_median": 0.9825175919970695,
+    "standing_drift_m_max": 0.04709702604309166,
+    "goto_success": 1.0,
+    "goto_true_error_m_median": 0.1615539528752759,
+    "push_recovery": {
+      "40": 1.0,
+      "80": 1.0,
+      "120": 1.0
+    }
+  },
+  "per_profile": {
+    "[0.2, 0, 0]": {
+      "falls": 0,
+      "forward_m_s_median": 0.17186477695279345,
+      "lateral_m_s_median": -0.017106215997082792,
+      "yaw_rad_s_median": -0.02017895828256905
+    },
+    "[0.35, 0, 0]": {
+      "falls": 0,
+      "forward_m_s_median": 0.30020102513567837,
+      "lateral_m_s_median": -0.01740877743271267,
+      "yaw_rad_s_median": -0.011943662086704882
+    },
+    "[0.5, 0, 0]": {
+      "falls": 0,
+      "forward_m_s_median": 0.45259595820335335,
+      "lateral_m_s_median": -0.010672428119866607,
+      "yaw_rad_s_median": -0.014314443362475887
+    },
+    "[0, 0.2, 0]": {
+      "falls": 0,
+      "forward_m_s_median": 0.013223023927653049,
+      "lateral_m_s_median": 0.12572421471042278,
+      "yaw_rad_s_median": -0.0031388568137858328
+    },
+    "[0, 0, 0.3]": {
+      "falls": 0,
+      "forward_m_s_median": 0.014906628688054153,
+      "lateral_m_s_median": 0.009251142569400541,
+      "yaw_rad_s_median": 0.2774783909914639
+    },
+    "[0, 0, -0.6]": {
+      "falls": 0,
+      "forward_m_s_median": -0.010617928805752378,
+      "lateral_m_s_median": -0.006726327244174648,
+      "yaw_rad_s_median": -0.6179529806519581
+    },
+    "[0.3, 0, 0.3]": {
+      "falls": 0,
+      "forward_m_s_median": 0.1458770971936117,
+      "lateral_m_s_median": 0.1799748359305921,
+      "yaw_rad_s_median": 0.2947552775991208
+    }
+  },
+  "gates": {
+    "falls_nominal": true,
+    "forward_tracking": true,
+    "yaw_tracking": true,
+    "standing_drift": true,
+    "goto_success": true,
+    "push_40n": true
+  }
+}
