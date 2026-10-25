@@ -1,0 +1,9 @@
+{
+  "name": "g1_interruption_demo",
+  "_note": "Test D on fresh nominal rooms 4100-4102 (never used in development). The request arrives 2 s of robot time into the inspection's second action, i.e. while it walks. Pass requires: the interrupted walk stopped safely (< 0.15 m/s pelvis speed when it yielded), the urgent goto succeeded with true error <= 0.3 m, the inspection resumed and succeeded under Milestone B scoring, no false claim, no fall.",
+  "seeds": [4100, 4103],
+  "interrupt_at_action": 2,
+  "interrupt_after_s": 2.0,
+  "time_budget_s": 240,
+  "max_steps": 60
+}

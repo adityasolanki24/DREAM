@@ -23,9 +23,10 @@ from dream.navigation.planning import (
     path_to,
     traversable,
 )
+from dream.navigation.rpp import RegulatedPurePursuit, densify, line_of_sight, shortcut, smooth
 from dream.perception.occupancy import CELL
 from dream.perception.spatial import CLOSE_VIEW, SIDES, SpatialMemory
-from dream.tools.goals import Inspect, parse_goal
+from dream.tools.goals import GoToPlace, Inspect, parse_goal
 from dream.tools.toolbox import ToolResult, _validate
 from dream.types import MobileBase
 
@@ -37,6 +38,19 @@ FRONTIER_COST_WEIGHT = 1.0  # m^2 of expected new area per metre walked (score =
 # Inspection pose: within this band of the handle, facing it.
 INSPECT_RANGE = (0.6, CLOSE_VIEW)
 INSPECT_ANGLE = math.radians(35)
+# rpp navigator only. Revisit: a viewpoint within 0.35 m and 30 degrees of one already stood
+# at sees the same thing (about the viewpoints' placement resolution, and half the camera's
+# 58 degree field of view). Approach run: the last 0.35 m is walked straight along the
+# viewing direction, so arriving needs no turn in place.
+# Physical footprint for the rpp arc veto: the G1's ~0.25 m shoulder half-width (see
+# planning.ROBOT_RADIUS) plus 2 cm of map noise. Planning inflates further (0.35 m) for
+# comfort; vetoing at the inflation radius blocked every corridor the planner chose (dev
+# room 1: 35 vetoes and replans in one approach). Nav2 likewise checks lethal cost only.
+COLLISION_RADIUS = 0.27
+PLACE_TOLERANCE = 0.3  # m: twice the go_to goal tolerance, for the pose estimate's noise
+REVISIT_RADIUS = 0.35
+REVISIT_ANGLE = math.radians(30)
+APPROACH_RUN = 0.35
 
 MOBILE_TOOL_SPECS: list[dict] = [
     {
@@ -98,10 +112,22 @@ class Viewpoint:
 
 
 class MobileToolbox:
-    def __init__(self, base: MobileBase, memory: SpatialMemory, on_event=None) -> None:
-        self.base, self.memory = base, memory
+    def __init__(
+        self, base: MobileBase, memory: SpatialMemory, on_event=None, navigator: str = "classic"
+    ) -> None:
+        """``navigator``: "classic" (the validated Milestone B follower, kept as the baseline)
+        or "rpp" (smoothed path, Regulated Pure Pursuit, continuous scanning, and no revisits
+        of viewpoints already stood at; dream/navigation/rpp.py)."""
+        if navigator not in ("classic", "rpp"):
+            raise ValueError(f"unknown navigator {navigator!r}")
+        self.base, self.memory, self.navigator = base, memory, navigator
+        self.visited: list[np.ndarray] = []  # (x, y, heading) of viewpoints reached (rpp)
+        self.places: dict[str, np.ndarray] = {}  # name -> (x, y), from home memory
         self.inspections: dict[int, dict] = {}  # candidate id -> last inspection report
         self.cancel = threading.Event()  # TaskAgent checks it between actions
+        # Set by a scheduler for a higher-priority task: the rpp navigator brings the robot
+        # to a standing stop and returns "interrupted"; TaskAgent then suspends.
+        self.preempt = threading.Event()
         self.on_event = on_event or (lambda kind, text, **data: None)
 
     def call(self, name: str, args: dict | None = None) -> ToolResult:
@@ -147,8 +173,18 @@ class MobileToolbox:
                 if chosen is None:
                     continue
                 xy, n, cost = chosen
-                out.append(Viewpoint(c.id, k, xy, math.atan2(-n[1], -n[0]), cost))
+                heading = math.atan2(-n[1], -n[0])
+                if c.handle_side() != k and self._visited(xy, heading):
+                    continue  # already looked from here: the same view adds nothing
+                out.append(Viewpoint(c.id, k, xy, heading, cost))
         return out
+
+    def _visited(self, xy, heading) -> bool:
+        return any(
+            np.linalg.norm(v[:2] - xy) < REVISIT_RADIUS
+            and abs(wrap(v[2] - heading)) < REVISIT_ANGLE
+            for v in self.visited
+        )
 
     def side_point(self, c, k: int, passable, dist):
         """(where to stand, outward direction, walking cost) to look at side ``k``, or None.
@@ -224,6 +260,15 @@ class MobileToolbox:
 
     def _verify_goal(self, goal) -> ToolResult:
         goal = parse_goal(goal) if isinstance(goal, (str, dict)) else goal
+        if isinstance(goal, GoToPlace):
+            if goal.place not in self.places:
+                return ToolResult("verify_goal", "succeeded", "",
+                                  {"satisfied": False, "reason": f"unknown place {goal.place}",
+                                   "unknown_place": True})  # fmt: skip
+            d = float(np.linalg.norm(self.base.odometry()[:2] - self.places[goal.place]))
+            return ToolResult("verify_goal", "succeeded", "",
+                              {"satisfied": d <= PLACE_TOLERANCE, "reason": f"{d:.2f} m away",
+                               "place_xy": self.places[goal.place].tolist()})  # fmt: skip
         if not isinstance(goal, Inspect):
             return ToolResult("verify_goal", "rejected", "this robot verifies 'inspect' goals")
         found = [c for c in self.memory.candidates if c.handle is not None]
@@ -268,6 +313,13 @@ class MobileToolbox:
     # ----- actions ---------------------------------------------------------------------
     def _look_around(self) -> ToolResult:
         self._look()
+        if self.navigator == "rpp":  # one continuous turn, looking every 45 degrees
+            for _ in range(8):
+                if not self.base.walk(0.0, 0.0, 0.5, math.pi / 4 / 0.5):
+                    return ToolResult("look_around", "stopped", self.base.stop_reason or "")
+                self._look()
+            self.base.walk(0, 0, 0, 0.2)  # come to rest before the next action
+            return ToolResult("look_around", "succeeded", "", {"frames": self.memory.frames})
         for _ in range(8):
             if not self.base.walk(0.0, 0.0, 0.5, math.pi / 4 / 0.5) or not self.base.walk(
                 0, 0, 0, 0.3
@@ -290,6 +342,8 @@ class MobileToolbox:
         return bool(np.any((d < ROBOT_RADIUS - 0.03) & ahead))
 
     def _go_to(self, x: float, y: float, heading: float | None = None) -> ToolResult:
+        if self.navigator == "rpp":
+            return self._go_to_rpp(x, y, heading)
         goal = np.array([x, y], float)
         t0 = self.base.time
         follower = PathFollower()
@@ -331,6 +385,135 @@ class MobileToolbox:
                     return ToolResult("go_to", "stopped", self.base.stop_reason or "")
             if blocked_streak >= 5:
                 return ToolResult("go_to", "failed", "path repeatedly blocked")
+        self.base.walk(0, 0, 0, 0.3)
+        return ToolResult("go_to", "timeout", f"not there after {GO_TO_TIMEOUT:.0f} s")
+
+    # ----- rpp navigator -----------------------------------------------------------------
+    def _goal_cell(self, goal, dist):
+        """The reachable cell nearest the goal, within 0.3 m of it, or None."""
+        grid = self.memory.grid
+        gi, gj = grid.cell(goal)
+        if not grid.inside(gi, gj):
+            return None
+        r = int(0.3 / CELL)
+        i0, j0 = max(0, gi - r), max(0, gj - r)
+        win = dist[i0 : gi + r + 1, j0 : gj + r + 1]
+        if not np.isfinite(win).any():
+            return None
+        ii, jj = np.nonzero(np.isfinite(win))
+        k = int(np.argmin((ii + i0 - gi) ** 2 + (jj + j0 - gj) ** 2))
+        return int(ii[k] + i0), int(jj[k] + j0)
+
+    def _plan_rpp(self, goal, heading):
+        """Smoothed path to ``goal`` over observed free space, arriving along ``heading``."""
+        passable, start, dist = self._passable()
+        grid = self.memory.grid
+        cell = self._goal_cell(goal, dist)
+        if cell is None:
+            return None
+        here = self.base.odometry()[:2]
+        cells = None
+        if heading is not None:  # approach along the viewing direction, if there is room
+            pre = grid.centre(*cell) - APPROACH_RUN * np.array(
+                [math.cos(heading), math.sin(heading)]
+            )
+            pc = tuple(int(v) for v in grid.cell(pre))
+            if (
+                grid.inside(*pc)
+                and np.isfinite(dist[pc])
+                and line_of_sight(passable, pc, cell)
+                and float(np.linalg.norm(pre - here)) > APPROACH_RUN
+            ):
+                cells = shortcut(path_to(dist, pc), passable, start) + [cell]
+        if cells is None:
+            cells = shortcut(path_to(dist, cell), passable, start)
+        pts = [here] + [grid.centre(i, j) for i, j in cells]
+
+        def free(p):
+            i, j = grid.cell(p)
+            return bool(grid.inside(i, j) and passable[i, j])
+
+        return smooth(densify(pts), free)
+
+    def _clearance(self, p) -> float:
+        """Distance (m) to the nearest occupied cell within 1 m of ``p`` (1 m if none)."""
+        grid = self.memory.grid
+        i, j = (int(v) for v in grid.cell(p))
+        r = int(1.0 / CELL)
+        i0, j0 = max(0, i - r), max(0, j - r)
+        k = np.argwhere(grid.occupied()[i0 : i + r + 1, j0 : j + r + 1])
+        if not len(k):
+            return 1.0
+        pts = grid.centre(k[:, 0] + i0, k[:, 1] + j0)
+        return float(min(1.0, np.linalg.norm(pts - np.asarray(p)[:2], axis=1).min()))
+
+    def _safe_stop(self, tool: str) -> ToolResult:
+        """Decelerate within the command slew and stand before yielding control."""
+        command = getattr(getattr(self.base, "controller", None), "command", np.zeros(3))
+        v, w = float(command[0]), float(command[2])
+        for k in (0.5, 0.0):
+            if not self.base.walk(v * k, 0, w * k, 0.2):
+                return ToolResult(tool, "stopped", self.base.stop_reason or "")
+        self.base.walk(0, 0, 0, 0.4)
+        return ToolResult(tool, "interrupted", "stopped safely for a higher-priority task",
+                          {"pose": self.base.odometry().tolist()})  # fmt: skip
+
+    def _go_to_rpp(self, x: float, y: float, heading: float | None) -> ToolResult:
+        """Plan once, walk continuously, re-observe every REPLAN_S and replan only when the
+        new map invalidates the path; Nav2-style backup recovery after repeated blocking."""
+        goal = np.array([x, y], float)
+        t0 = self.base.time
+        follower = RegulatedPurePursuit(dt=STEP_S)
+        path = self._plan_rpp(goal, heading)
+        if path is None:
+            return ToolResult("go_to", "failed", "no path over observed free space")
+        follower.set_path(path, heading)
+        blocked, replans, last_look = 0, 0, self.base.time
+        grid = self.memory.grid
+
+        while self.base.time - t0 < GO_TO_TIMEOUT:
+            if self.preempt.is_set():
+                return self._safe_stop("go_to")
+            if self.base.time - last_look >= REPLAN_S:
+                self._look()
+                last_look = self.base.time
+                ok = traversable(grid)
+                # Points under and just ahead of the robot may lie in newly inflated cells.
+                cells = [tuple(int(v) for v in grid.cell(p)) for p in follower.path[6:]]
+                if any(not (grid.inside(*c) and ok[c]) for c in cells):
+                    path = self._plan_rpp(goal, heading)
+                    replans += 1
+                    if path is None:
+                        self.base.walk(0, 0, 0, 0.3)
+                        return ToolResult("go_to", "failed", "no path after the map changed")
+                    follower.set_path(path, heading)
+            vx, wz, status = follower.update(
+                self.base.odometry(), self._blocked(), self._clearance, COLLISION_RADIUS
+            )
+            if status == "arrived":
+                pose = self.base.odometry()
+                self.visited.append(pose.copy())
+                err = float(np.linalg.norm(pose[:2] - goal))
+                return ToolResult("go_to", "succeeded", "", {"error_m": err, "replans": replans})
+            if status == "blocked":
+                blocked += 1
+                if blocked >= 5:
+                    self.base.walk(0, 0, 0, 0.3)
+                    return ToolResult("go_to", "failed", "path repeatedly blocked")
+                if blocked >= 2 and not self.base.walk(-0.15, 0, 0, 0.5):  # backup recovery
+                    return ToolResult("go_to", "stopped", self.base.stop_reason or "")
+                self._look()
+                last_look = self.base.time
+                path = self._plan_rpp(goal, heading)
+                replans += 1
+                if path is None:
+                    return ToolResult("go_to", "failed", "no path over observed free space")
+                follower.set_path(path, heading)
+                continue
+            if status == "walking":
+                blocked = 0
+            if not self.base.walk(vx, 0.0, wz, STEP_S):
+                return ToolResult("go_to", "stopped", self.base.stop_reason or "")
         self.base.walk(0, 0, 0, 0.3)
         return ToolResult("go_to", "timeout", f"not there after {GO_TO_TIMEOUT:.0f} s")
 

@@ -30,7 +30,7 @@ import time
 from concurrent.futures import ProcessPoolExecutor
 from math import atan2, cos, sin
 
-if "DISPLAY" not in os.environ:
+if os.name != "nt" and "DISPLAY" not in os.environ:
     os.environ.setdefault("MUJOCO_GL", "osmesa")
     os.environ.setdefault("PYOPENGL_PLATFORM", os.environ["MUJOCO_GL"])
 

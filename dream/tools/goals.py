@@ -47,7 +47,17 @@ class Inspect:
     target: str
 
 
-Goal = InRegion | OnTop | Inspect
+@dataclass(frozen=True)
+class GoToPlace:
+    """Walk to a named place the robot already knows (from its home memory), and stop there.
+
+    Verified from the robot's own pose estimate against the remembered place, not from the
+    simulator."""
+
+    place: str
+
+
+Goal = InRegion | OnTop | Inspect | GoToPlace
 
 
 def parse_goal(spec: str | dict) -> Goal:
@@ -56,6 +66,8 @@ def parse_goal(spec: str | dict) -> Goal:
         words = spec.strip().split()
         if len(words) == 2 and words[0] == "inspect":
             spec = {"type": "inspect", "target": words[1]}
+        elif len(words) == 2 and words[0] == "goto":
+            spec = {"type": "goto", "target": words[1]}
         elif len(words) != 3 or words[0] not in ("in", "on"):
             raise ValueError(
                 f"not a structured goal: {spec!r}. Use 'in <object> <region>' or "
@@ -64,6 +76,10 @@ def parse_goal(spec: str | dict) -> Goal:
         else:
             spec = {"type": words[0], "object": words[1], "target": words[2]}
     kind, obj, target = spec.get("type"), spec.get("object"), spec.get("target")
+    if kind == "goto":
+        if not (isinstance(target, str) and target.isidentifier()):
+            raise ValueError(f"place name must be a single word: {target!r}")
+        return GoToPlace(target)
     if kind == "inspect":
         if target != "cabinet":
             raise ValueError(f"cannot inspect {target!r}: the only known target is 'cabinet'")

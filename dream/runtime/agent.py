@@ -211,6 +211,7 @@ class Episode:
     success_claimed: bool
     reason: str
     steps: list[Step]
+    suspended: bool = False  # stopped at an action boundary for a higher-priority task
 
     @property
     def tool_calls(self) -> int:
@@ -252,16 +253,32 @@ class TaskAgent:
         self.planner = planner or RuleBasedPlanner()
         self.max_steps = max_steps
 
-    def run(self, goal: Goal, on_event: Callable[[str, dict], None] | None = None) -> Episode:
+    def run(
+        self,
+        goal: Goal,
+        on_event: Callable[[str, dict], None] | None = None,
+        history: list[Step] | None = None,
+        preempt=None,
+    ) -> Episode:
+        """Run to completion, failure or the step budget.
+
+        ``history`` resumes a suspended episode: its steps count toward the budget and the
+        planner sees them, but the scene is observed afresh before the next action, so a
+        changed world is revalidated rather than assumed. ``preempt`` (an Event) suspends
+        at the next action boundary, after the running tool has brought the robot to a safe
+        state, returning ``suspended=True`` with the steps so far as the checkpoint."""
         emit = on_event or (lambda kind, data: None)
-        steps: list[Step] = []
-        emit("goal", {"goal": repr(goal)})
-        for _ in range(self.max_steps):
+        steps: list[Step] = list(history or [])
+        emit("goal", {"goal": repr(goal), "resumed_steps": len(steps)})
+        for _ in range(self.max_steps - len(steps)):
             hold = getattr(self.tools, "hold_for_reasoning", None)
             if hold is not None:
                 hold()  # Same deterministic pause contract as the VLM on this embodiment.
             if self.tools.cancel.is_set():
                 return self._finish(goal, False, "cancelled by user", steps, emit)
+            if preempt is not None and preempt.is_set():
+                emit("suspended", {"steps": len(steps)})
+                return Episode(goal, False, "suspended for a higher-priority task", steps, True)
             observed = [
                 self.tools.call("observe_scene"),
                 self.tools.call("verify_goal", {"goal": goal}),
@@ -287,6 +304,8 @@ class TaskAgent:
             )
             if result.status == "stopped":
                 return self._finish(goal, False, result.message, steps, emit)
+            if result.status == "interrupted":  # the tool stopped safely for a preemption
+                continue
         return self._finish(goal, False, f"step budget ({self.max_steps}) exhausted", steps, emit)
 
     @staticmethod

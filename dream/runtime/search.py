@@ -103,3 +103,20 @@ class RoomSearchPlanner:
             False,
             f"explored the reachable space; {n} candidate object(s) checked, none with a handle",
         )
+
+
+@dataclass
+class PlacePlanner:
+    """Walk to a known place (``GoToPlace``): one go_to, retried once, then report failure."""
+
+    def next_action(self, goal: Goal, scene: dict, verdict: dict, history: list[Step]):
+        if verdict.get("satisfied"):
+            return Finish(True, f"at {goal.place}")
+        if verdict.get("unknown_place"):
+            return Finish(False, f"{goal.place} is not a place I know")
+        x, y = verdict["place_xy"]
+        tries = sum(1 for s in history if s.call.name == "go_to" and
+                    (s.call.args["x"], s.call.args["y"]) == (x, y))  # fmt: skip
+        if tries >= 2:
+            return Finish(False, f"could not reach {goal.place}")
+        return ToolCall("go_to", {"x": x, "y": y})

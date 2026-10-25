@@ -607,11 +607,20 @@ Before adding any dependency, pretrained model or upstream code:
 
 ## 11. Testing and evaluation standards
 
-**Test suite.**
-- `pytest -m "not slow"` must pass before every commit. It takes about 40–60 s now; keep it
-  under 60 s.
-- Mark long simulation tests `@pytest.mark.slow`. The full suite must pass before pushing a
-  milestone.
+**Test suite: focused while developing, complete at checkpoints.**
+- While developing, run only the tests for the code being changed, the new regression tests
+  and small representative physics experiments. Do not rerun the whole suite after every
+  edit, regenerate old datasets or recordings, or reinstall dependencies a verified cache
+  already provides. Reuse an earlier validated result only while the code, dependencies
+  and contracts it depends on are unchanged.
+- Before committing a completed milestone: the relevant integration and physical acceptance
+  checks, the complete fast suite (`pytest -m "not slow"`) once, the complete full suite
+  once, ruff, and the isolation test, all on the final tree; then commit and push.
+- If that final run finds a defect, fix it with a focused test and rerun the affected checks
+  plus whatever broader checks are needed to establish that the final tree is valid. An
+  earlier full-suite result never validates a changed tree.
+- Mark long simulation tests `@pytest.mark.slow`; keep the fast suite short.
+- Long integration evaluations are for experimental milestones, not routine edits.
 - Every bug fix gets a regression test first.
 - After an edit made by a script, verify that it applied (an assertion or a test). Silent
   no-op replacements have already caused bugs here.
@@ -658,8 +667,9 @@ Before adding any dependency, pretrained model or upstream code:
 
 - Develop on a focused branch per milestone, created from the latest validated branch. Never
   overwrite or discard unmerged work.
-- Commit in small, meaningful checkpoints that pass the fast suite. Commit messages say what
-  changed, why, how it was verified, and the Rule 3 class of any change that affects results.
+- Commit in small, meaningful checkpoints that pass the focused checks for the change
+  (section 11). Commit messages say what changed, why, how it was verified, and the Rule 3
+  class of any change that affects results.
   No model identifiers in commits.
 - Do not open pull requests unless asked.
 - There are exactly two Markdown files: `README.md` and this file. Do not add more. Design notes
