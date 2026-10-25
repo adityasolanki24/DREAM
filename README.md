@@ -316,7 +316,7 @@ these cloud-only changes. The Windows fast-suite duration still exceeds the 60 s
 | 12i | Integrated G1 autonomy continuation | **Recovered evaluation incomplete (7/8 finalized):** Qwen 1/4 physical placements plus one safe refusal, zero agent-verified successful completions; baseline 0/3 finalized placements and one incomplete slot. All artifacts verify; original results unchanged. Shared release/recovery development continues; no fine-tuning or learned action | `results/g1_autonomy_recovery`, `tests/test_g1_autonomy.py`, `tests/test_g1_goal_contract.py` |
 | 13 | Generalisation evaluation across goals, arrangements and task families | Planned | n/a |
 | 12j | Mobile G1 walking under NVIDIA's pretrained Decoupled WBC (Milestone A) | **Implemented and tested; every pre-registered gate passed** on 10 unseen seeds: 0 falls, tracking 0.86 (forward) / 0.98 (yaw), 30/30 go-to goals, pushes to 120 N. Velocity-commanded locomotion only; arms held | `tests/test_g1_wbc.py`, `results/g1_locomotion` |
-| 12k | Room exploration: find and inspect an unfamiliar cabinet from the head camera (Milestone B) | See the Mobile G1 section for held-out results. Classical exploration; oracle-assisted odometry; no physical discovery on this robot yet | `tests/test_mobile_exploration.py`, `results/g1_explore_room`, `results/g1_explore_room_dev` |
+| 12k | Room exploration: find and inspect an unfamiliar cabinet from the head camera (Milestone B) | **Held-out gates passed:** nominal 20/20, shifted 8/10, no-cabinet 6/6 refusals, 0 false claims, 0 falls. Furniture contact in 18/66 episodes; frontier strategy untested. Classical; oracle-assisted odometry; no physical discovery on this robot yet | `tests/test_mobile_exploration.py`, `results/g1_explore_room`, `results/g1_explore_room_dev` |
 | 14 | Learned world/motor models, whole-body manipulation, GEAR-SONIC | Planned. Pretrained locomotion in use (12j); SONIC needs a GPU with TensorRT and Hugging Face access | n/a |
 
 ## Install
@@ -1176,6 +1176,62 @@ but unexecuted; no Isaac video or validated simulator/locomotion combination exi
 Concurrent RTX rendering and navigation inference must be measured, not assumed to fit L4.
 The Qwen pilot recorded decision frames, not continuous motion footage, so those frames must
 not be presented as an unedited execution recording.
+
+## Mobile G1: pretrained whole-body locomotion and room exploration
+
+**Milestone A: walking under a pretrained whole-body controller** (`results/g1_locomotion`).
+NVIDIA's released Decoupled WBC policies (GR00T-WholeBodyControl @ `45c03fa`, NVIDIA Open
+Model License; weights fetched hash-pinned, not in Git) drive a free-standing 29-DoF G1 in
+MuJoCo. The observation/action contract is copied from NVIDIA's maintained policy class and
+checked against their config and MJCF in `tests/test_g1_wbc.py`. Arms are held by PD;
+commands are planar velocities. Gates were fixed before the run; 10 unseen seeds, CPU only:
+
+| Measure | Result | Gate |
+|---|---|---|
+| Falls (70 velocity profiles, 10 standing trials, 30 go-to goals) | 0 | 0 |
+| Forward / yaw tracking (achieved / commanded, median) | 0.86 / 0.98 | 0.75-1.1 |
+| Standing drift in 10 s (max) | 4.7 cm | <= 20 cm |
+| Go-to goals 1.5-3 m, oracle-assisted odometry | 30/30, median true error 16 cm | >= 80% |
+| Recovery from 0.2 s pushes of 40 / 80 / 120 N while walking | 10/10 each | 40 N >= 80% |
+
+**Milestone B: find and inspect an unfamiliar cabinet** (`results/g1_explore_room`, run at
+`44ab7c4`, clean `dream/`). Procedural rooms with walls, tables, shelves, crates and
+cabinet-sized distractors in the same colours. The agent (TaskAgent + `RoomSearchPlanner` over
+`MobileToolbox`) sees only the head RGB-D camera and its odometry; it maps the room, approaches
+candidates to look for a handle up close, and must re-detect the handle from an inspection
+pose before claiming success. Scoring is independent and physical (true robot pose 0.5-1.5 m
+in front of the true handle, facing it, and the reported handle matching the real one
+drift-free within 0.3 m). Gates pre-registered; none of these seeds was used in development.
+
+| Condition | Success (Wilson 95%) | False claims | Falls | Episodes touching furniture/walls | Median robot time |
+|---|---|---|---|---|---|
+| Nominal rooms, 20 | **20/20** [84, 100] | 0 | 0 | 3 | 64 s |
+| Shifted rooms (larger, more clutter and distractors), 10 | **8/10** [49, 94] | 0 | 0 | 4 | 97 s |
+| No cabinet (correct answer: not found), 6 | **6/6 correct refusals** | 0 | 0 | 4 | 142 s |
+
+All five gates passed (nominal >= 70%, shifted >= 50%, refusal >= 80%, no false claims, no
+falls). Development rooms 0-9: 10/10 (`results/g1_explore_room_dev`, not held-out evidence).
+
+What these results do **not** show:
+- **No evidence about the frontier strategy.** The "nearest" baseline produced step-for-step
+  identical episodes in all 30 pairs: only one frontier move occurred in 30 episodes, because
+  candidates seen from the start were always checked first. The rooms are too open to test it.
+- **Contact is not prevented.** The robot touched furniture or walls in 18 of 66 episodes
+  (up to 7.5 s in shifted room 2000). Collision-free motion was not a gate; it is a real gap.
+- **Phantom handle.** In no-cabinet room 3001 perception attributed a handle to a crate; the
+  agent made no claim only because no viewpoint to confirm it was reachable.
+- **Shifted failures** (rooms 2008, 2009): both strategies spent the 240 s budget; undiagnosed.
+- How the cabinet opens is reported as unknown; no physical probing on this robot yet.
+
+Simplifications (audit): odometry is ORACLE-ASSISTED (true increments + 2% noise and gyro
+bias); neutral-coloured detections are treated as walls (task-specific heuristic); flat
+single rooms; a cabinet is defined as a box with a handle; arms only hang while walking.
+Recordings are kept outside Git (`DREAM_RECORDINGS_ROOT`), rendered from saved states at real
+speed (`experiments/mobile_recording.py`).
+
+**GEAR-SONIC** (next whole-body controller): its MuJoCo sim-to-sim path needs the C++ stack
+on an exact TensorRT version, CUDA 12.4 and an NVIDIA GPU, with weights from Hugging Face. Not
+run: this environment has no GPU, no GCP credentials and no Hugging Face access.
 
 ## Limitations (read before citing any number)
 

@@ -1,0 +1,142 @@
+{
+  "meta": {
+    "config": {
+      "name": "g1_explore_room",
+      "_note": "Milestone B, gates pre-registered before any held-out run. Development used room seeds 0-9 (nominal) only; the held-out nominal, shifted and no-cabinet seeds below were never run. Shifted: larger rooms (6.5-8 x 5.5-7 m vs 4.5-6 x 4-5.5), 1-2 cabinet-sized distractors and 3-5 other furniture (vs 0-1 and 1-3). no_cabinet: the nominal held-out generator with a handle-less crate in the cabinet's place. 'nearest' is the classical nearest-frontier baseline; it differs from 'gain' only in frontier choice.",
+      "seeds": {
+        "nominal": [
+          1000,
+          1020
+        ],
+        "shifted": [
+          2000,
+          2010
+        ],
+        "no_cabinet": [
+          3000,
+          3006
+        ]
+      },
+      "methods": [
+        "gain",
+        "nearest"
+      ],
+      "time_budget_s": 240,
+      "max_steps": 60,
+      "record": [
+        [
+          "nominal",
+          1000,
+          "gain"
+        ],
+        [
+          "shifted",
+          2000,
+          "gain"
+        ],
+        [
+          "no_cabinet",
+          3000,
+          "gain"
+        ]
+      ],
+      "gates": {
+        "nominal_success_min": 0.7,
+        "shifted_success_min": 0.5,
+        "no_cabinet_refusal_min": 0.8,
+        "max_false_claims": 0,
+        "max_falls": 0
+      }
+    },
+    "git_sha": "44ab7c424d3a913132e541f981fc1bbfe6459dba",
+    "dream_dirty_at_start": false,
+    "mujoco": "3.16.0",
+    "machine": "Linux-6.18.44-fc-v153-x86_64-with-glibc2.39",
+    "wall_s": 3729.2297048890005,
+    "odometry": "oracle-assisted (true increments + noise), dream/sim/g1_mobile.py"
+  },
+  "by_condition": {
+    "nominal/gain": {
+      "n": 20,
+      "success": 20,
+      "success_ci95": [
+        0.8388698745050667,
+        1.0
+      ],
+      "false_claims": 0,
+      "correct_refusals": 0,
+      "falls": 0,
+      "episodes_with_contact": 3,
+      "median_sim_s": 63.62000000001372,
+      "median_path_m": 9.518934183138253,
+      "median_success_sim_s": 63.62000000001372
+    },
+    "nominal/nearest": {
+      "n": 20,
+      "success": 20,
+      "success_ci95": [
+        0.8388698745050667,
+        1.0
+      ],
+      "false_claims": 0,
+      "correct_refusals": 0,
+      "falls": 0,
+      "episodes_with_contact": 3,
+      "median_sim_s": 63.62000000001372,
+      "median_path_m": 9.518934183138253,
+      "median_success_sim_s": 63.62000000001372
+    },
+    "shifted/gain": {
+      "n": 10,
+      "success": 8,
+      "success_ci95": [
+        0.49015684672072335,
+        0.9433190520193067
+      ],
+      "false_claims": 0,
+      "correct_refusals": 0,
+      "falls": 0,
+      "episodes_with_contact": 4,
+      "median_sim_s": 96.66999999998457,
+      "median_path_m": 13.391301996046177,
+      "median_success_sim_s": 67.62000000001099
+    },
+    "shifted/nearest": {
+      "n": 10,
+      "success": 8,
+      "success_ci95": [
+        0.49015684672072335,
+        0.9433190520193067
+      ],
+      "false_claims": 0,
+      "correct_refusals": 0,
+      "falls": 0,
+      "episodes_with_contact": 4,
+      "median_sim_s": 96.66999999998457,
+      "median_path_m": 13.391301996046177,
+      "median_success_sim_s": 67.62000000001099
+    },
+    "no_cabinet/gain": {
+      "n": 6,
+      "success": 0,
+      "success_ci95": [
+        0.0,
+        0.3903430336530645
+      ],
+      "false_claims": 0,
+      "correct_refusals": 6,
+      "falls": 0,
+      "episodes_with_contact": 4,
+      "median_sim_s": 141.7399999999436,
+      "median_path_m": 23.70051614217611,
+      "median_success_sim_s": null
+    }
+  },
+  "gates": {
+    "nominal_success": true,
+    "shifted_success": true,
+    "no_cabinet_refusal": true,
+    "false_claims": true,
+    "falls": true
+  }
+}
