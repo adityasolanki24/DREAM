@@ -22,8 +22,12 @@ import sys
 import time
 from math import cos, sin
 
-import mujoco
-import numpy as np
+if "DISPLAY" not in os.environ:  # offscreen GL, chosen when MuJoCo is imported
+    os.environ.setdefault("MUJOCO_GL", "osmesa")
+    os.environ.setdefault("PYOPENGL_PLATFORM", os.environ["MUJOCO_GL"])
+
+import mujoco  # noqa: E402
+import numpy as np  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -64,12 +68,19 @@ def tracking(seed: int, cfg: dict) -> list[dict]:
         ctrl.set_command(*cmd)
         ok = ok and _run(env, ctrl, 1.0)  # gait onset, not scored
         p0, t0 = env.true_pose(), env.time
-        ok = ok and _run(env, ctrl, cfg["profile_s"])
+        turned = [0.0, p0[2]]  # accumulated yaw (rad), last yaw: turns may exceed pi
+
+        def accumulate(env=env, turned=turned):
+            y = env.true_pose()[2]
+            turned[0] += wrap(y - turned[1])
+            turned[1] = y
+
+        ok = ok and _run(env, ctrl, cfg["profile_s"], accumulate)
         p1, dt = env.true_pose(), env.time - t0
         c, s = cos(p0[2]), sin(p0[2])
         d = p1[:2] - p0[:2]
         fwd, left = (c * d[0] + s * d[1]) / dt, (-s * d[0] + c * d[1]) / dt
-        yaw_rate = wrap(p1[2] - p0[2]) / dt if abs(cmd[2]) * dt < np.pi else None
+        yaw_rate = turned[0] / dt
         out.append(
             {
                 "seed": seed, "command": cmd, "fell": not ok,
@@ -198,11 +209,7 @@ def main() -> None:
 def summarise(rows: dict, cfg: dict) -> dict:
     tr = rows["tracking"]
     fwd = [r["forward_m_s"] / r["command"][0] for r in tr if r["command"][0] and not r["fell"]]
-    yaw = [
-        r["yaw_rad_s"] / r["command"][2]
-        for r in tr
-        if r["command"][2] and r["yaw_rad_s"] is not None and not r["fell"]
-    ]
+    yaw = [r["yaw_rad_s"] / r["command"][2] for r in tr if r["command"][2] and not r["fell"]]
     per_profile = {}
     for r in tr:
         k = str(r["command"])
@@ -212,9 +219,7 @@ def summarise(rows: dict, cfg: dict) -> dict:
             "falls": sum(r["fell"] for r in v),
             "forward_m_s_median": float(np.median([r["forward_m_s"] for r in v])),
             "lateral_m_s_median": float(np.median([r["lateral_m_s"] for r in v])),
-            "yaw_rad_s_median": None
-            if v[0]["yaw_rad_s"] is None
-            else float(np.median([r["yaw_rad_s"] for r in v])),
+            "yaw_rad_s_median": float(np.median([r["yaw_rad_s"] for r in v])),
         }
         for k, v in per_profile.items()
     }
