@@ -162,3 +162,12 @@ def test_mobile_toolbox_verifies_a_goto_place_goal():
     assert r.ok and r.data["satisfied"], r.message
     r = tb.call("verify_goal", {"goal": GoToPlace("kitchen")})
     assert r.ok and r.data.get("unknown_place")
+
+
+def test_interruption_scoring_measures_from_the_start_pose():
+    """Regression: Test D scored the entrance error from the world origin, so arrivals
+    0.12-0.15 m from the true start were reported as 1.2-1.8 m."""
+    from experiments.g1_interruption_demo import entrance_error
+
+    assert entrance_error((1.78, -0.34, 0.2), (1.72, -0.44, 0.0)) < 0.13
+    assert entrance_error((0.0, 0.0, 0.0), (1.72, -0.44, 0.0)) > 1.7

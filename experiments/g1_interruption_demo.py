@@ -47,6 +47,12 @@ from dream.tools.mobile import MobileToolbox  # noqa: E402
 from experiments.g1_explore_room import Budgeted, Monitor, score  # noqa: E402
 
 
+def entrance_error(true_pose, start) -> float:
+    """True distance from the entrance, which is the robot's start pose (not the world origin:
+    the first two Test D runs scored against the origin, a bug in this evaluator)."""
+    return float(np.linalg.norm(np.asarray(true_pose)[:2] - np.asarray(start)[:2]))
+
+
 def episode(seed: int, cfg: dict, store: pathlib.Path) -> dict:
     import secrets
 
@@ -95,7 +101,7 @@ def episode(seed: int, cfg: dict, store: pathlib.Path) -> dict:
             task.goal, on_event, history=history, preempt=preempt
         )
         if isinstance(task.goal, GoToPlace) and ep.success_claimed:
-            truth["entrance_error_m"] = float(np.linalg.norm(env.true_pose()[:2]))
+            truth["entrance_error_m"] = entrance_error(env.true_pose(), room.start)
         return ep
 
     sched = TaskScheduler(str(store / f"tasks_{seed}.sqlite"), run_task, parse_goal, notify=note)
