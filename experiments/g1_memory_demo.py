@@ -70,29 +70,62 @@ def moved_room(room):
     return dataclasses.replace(room, cabinet=cab, furniture=furniture)
 
 
-def run(room, seed, cfg, memory: HomeMemory | None, now: float, map_id: str) -> tuple:
+def run(
+    room, seed, cfg, memory: HomeMemory | None, now: float, map_id: str, record: str | None = None
+) -> tuple:
     env = G1MobileEnv(
         build_mobile_g1(scene=lambda s: add_room(s, room)), np.random.default_rng([seed, 1])
     )
     env.reset(*room.start)
     monitor = Monitor(env)
-    base = G1MobileBase(env, WBCLocomotion.from_cache(), monitor.tick)
-    tb = MobileToolbox(base, SpatialMemory(np.random.default_rng([seed, 2])), navigator="rpp")
+    rec = None
+    if record:
+        from experiments.mobile_recording import MobileRecorder
+
+        rec = MobileRecorder(
+            env,
+            record,
+            {
+                "experiment": cfg["name"],
+                "seed": seed,
+                "memory": memory is not None,
+                "day": now / DAY,
+            },
+        )
+
+    def on_tick():
+        monitor.tick()
+        if rec:
+            rec.sample()
+
+    base = G1MobileBase(env, WBCLocomotion.from_cache(), on_tick)
+    tb = MobileToolbox(
+        base,
+        SpatialMemory(np.random.default_rng([seed, 2])),
+        navigator="rpp",
+        on_event=(lambda k, t, **_: rec.event(k, t)) if rec else None,
+    )
     inner = Budgeted(RoomSearchPlanner("gain"), base, cfg["time_budget_s"])
     planner = MemoryGuidedPlanner(inner, memory, map_id, now) if memory else inner
     t0 = time.perf_counter()
-    ep = TaskAgent(tb, planner, max_steps=cfg["max_steps"]).run(GOAL)
+    log = (lambda k, d: rec.event(k, str(d)[:60])) if rec else None
+    ep = TaskAgent(tb, planner, max_steps=cfg["max_steps"]).run(GOAL, log)
     out = {"claimed": ep.success_claimed, "reason": ep.reason, "sim_s": env.time,
            "wall_s": time.perf_counter() - t0, "path_m": monitor.path_m,
            "contact_steps": monitor.contact_steps, "fell": base.stop_reason is not None,
            "tool_calls": [s.call.name for s in ep.steps],
            "memory_log": list(getattr(planner, "log", []))}  # fmt: skip
     out.update(score(env, room, tb, ep.success_claimed))
+    if rec:
+        for state, entry in out["memory_log"]:
+            rec.event("memory", f"{state}: {entry}"[:60])
+        rec.save(out)
     return out, tb, env
 
 
 def room_sessions(args) -> dict:
-    seed, cfg, store = args
+    seed, cfg, store, record = (*args, None)[:4]
+    rp = (lambda name: f"{record}/memory_{seed}_{name}") if record else (lambda name: None)
     room = sample_room(np.random.default_rng([seed, 0]))
     moved = moved_room(room)
     path = pathlib.Path(store) / f"home_{seed}.sqlite"
@@ -100,16 +133,16 @@ def room_sessions(args) -> dict:
     map_id = f"odom-start-aligned:room{seed}"
     res = {"seed": seed, "moved_available": moved is not None}
     mem = HomeMemory(path)
-    res["explore"], tb, env = run(room, seed, cfg, None, 0.0, map_id)
+    res["explore"], tb, env = run(room, seed, cfg, None, 0.0, map_id, rp("1_explore"))
     stored = remember_inspections(tb, mem, map_id, GOAL, now=env.time) if res["explore"][
         "success"] else []  # fmt: skip
     res["stored"] = stored
     mem.close()  # restart: nothing survives but the file
     mem = HomeMemory(path)
-    res["recall"], _, _ = run(room, seed, cfg, mem, DAY, map_id)
+    res["recall"], _, _ = run(room, seed, cfg, mem, DAY, map_id, rp("2_recall"))
     res["recall_control"], _, _ = run(room, seed, cfg, None, DAY, map_id)
     if moved is not None:
-        res["moved"], tb, env = run(moved, seed, cfg, mem, 2 * DAY, map_id)
+        res["moved"], tb, env = run(moved, seed, cfg, mem, 2 * DAY, map_id, rp("3_moved"))
         if res["moved"]["success"]:
             remember_inspections(tb, mem, map_id, GOAL, now=2 * DAY + env.time)
         res["moved_control"], _, _ = run(moved, seed, cfg, None, 2 * DAY, map_id)
@@ -149,6 +182,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("config")
     ap.add_argument("--workers", type=int, default=3)
+    ap.add_argument("--record", help="external directory for full-state recordings")
     args = ap.parse_args()
     cfg = json.loads(pathlib.Path(args.config).read_text())
     from experiments.provenance import code_revision
@@ -159,7 +193,7 @@ def main() -> None:
     store = pathlib.Path(os.environ.get("LOCALAPPDATA", "/tmp")) / "DREAM/memory" / cfg["name"]
     store.mkdir(parents=True, exist_ok=True)
     rows = []
-    jobs = [(s, cfg, str(store)) for s in range(*cfg["seeds"])]
+    jobs = [(s, cfg, str(store), args.record) for s in range(*cfg["seeds"])]
     with ProcessPoolExecutor(args.workers) as pool, open(out / "rooms.jsonl", "w") as f:
         for r in pool.map(room_sessions, jobs):
             rows.append(r)

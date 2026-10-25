@@ -53,7 +53,7 @@ def entrance_error(true_pose, start) -> float:
     return float(np.linalg.norm(np.asarray(true_pose)[:2] - np.asarray(start)[:2]))
 
 
-def episode(seed: int, cfg: dict, store: pathlib.Path) -> dict:
+def episode(seed: int, cfg: dict, store: pathlib.Path, record: str | None = None) -> dict:
     import secrets
 
     room = sample_room(np.random.default_rng([seed, 0]))
@@ -62,10 +62,18 @@ def episode(seed: int, cfg: dict, store: pathlib.Path) -> dict:
     )
     env.reset(*room.start)
     monitor = Monitor(env)
+    rec = None
+    if record:
+        from experiments.mobile_recording import MobileRecorder
+
+        rec = MobileRecorder(env, pathlib.Path(record) / f"interruption_{seed}",
+                             {"experiment": cfg["name"], "seed": seed})  # fmt: skip
     trigger = {}  # set when the inspection's chosen action starts; fires mid-motion
 
     def on_tick():
         monitor.tick()
+        if rec:
+            rec.sample()
         if "at" in trigger and "phone" not in truth and env.time >= trigger["at"]:
             truth["phone"] = phone_request("goto entrance", 5)  # during a walk, over HTTP
 
@@ -81,6 +89,8 @@ def episode(seed: int, cfg: dict, store: pathlib.Path) -> dict:
         timeline.append({"t": env.time, "kind": kind, **data, "true_xy": p[:2].tolist(),
                          "speed": float(np.linalg.norm(env.data.qvel[:2]))})  # fmt: skip
         api.notify(kind, data)
+        if rec:
+            rec.event(kind, " ".join(f"{k}={v}" for k, v in data.items())[:60])
 
     def run_task(task, history, preempt, cancel):
         tb.preempt, tb.cancel = preempt, cancel
@@ -145,12 +155,15 @@ def episode(seed: int, cfg: dict, store: pathlib.Path) -> dict:
         and inspect_score["success"] and not inspect_score["false_claim"] and not out["fell"]
     )  # fmt: skip
     home.close()
+    if rec:
+        rec.save({k: v for k, v in out.items() if k != "tasks"})
     return {**out, "timeline": timeline}
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("config")
+    ap.add_argument("--record", help="external directory for full-state recordings")
     args = ap.parse_args()
     cfg = json.loads(pathlib.Path(args.config).read_text())
     from experiments.provenance import code_revision
@@ -164,7 +177,7 @@ def main() -> None:
         f.unlink()
     rows = []
     for seed in range(*cfg["seeds"]):
-        r = episode(seed, cfg, store)
+        r = episode(seed, cfg, store, args.record)
         rows.append(r)
         print(
             f"room {seed}: pass={r['pass']} safe_stop={r['interrupted_tool_stopped_safely']}"

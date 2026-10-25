@@ -300,6 +300,7 @@ def _run(app, args, cfg, ev: Evidence) -> dict:
         tick["n"] += 1
         if tick["n"] % 5 == 0:  # 10 Hz telemetry: true pose for scoring, odometry as estimated
             p = env.true_pose()
+            root_p, root_q = env._root()  # full state, so an offline replay can be rendered
             ev.line(
                 "trajectory.jsonl",
                 {
@@ -312,6 +313,9 @@ def _run(app, args, cfg, ev: Evidence) -> dict:
                     "stopped": base.controller.stopped,
                     "contact_steps": env.contact_steps,
                     "wall_s": time.perf_counter() - tick["wall"],
+                    "root_pos": root_p,
+                    "root_quat": root_q,
+                    "q": env.proprioception().q,
                 },
             )
 
