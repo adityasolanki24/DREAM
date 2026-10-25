@@ -1,0 +1,42 @@
+{
+  "reference_revision": "f74e2dec7ab162f9c9df0468afc2ec6381682772",
+  "upstream": [
+    {
+      "url": "https://raw.githubusercontent.com/isaac-sim/IsaacLab/v2.3.2/source/isaaclab/isaaclab/envs/mdp/actions/joint_actions.py",
+      "sha256": "6bbf0f7837636eb7d6b17db3e8d25a433e8a69ba671dde0e993b0a0b2025cf55",
+      "licence": "BSD-3-Clause"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/isaac-sim/IsaacLab/v2.3.2/source/isaaclab/isaaclab/envs/mdp/observations.py",
+      "sha256": "3cbe93ba4e37b9ad9063a65dab244547ad4582798960c0190375fd74d930fd54",
+      "licence": "BSD-3-Clause"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/isaac-sim/IsaacLab/v2.3.2/source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/velocity_env_cfg.py",
+      "sha256": "8bc788ece76116f238e4469542a9320710090d8dc2801f4380134158aa64cc6a",
+      "licence": "BSD-3-Clause"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/isaac-sim/IsaacLab/v2.3.2/source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/config/g1/agents/rsl_rl_ppo_cfg.py",
+      "sha256": "aed1885627492c88f88b40aeae971a764de2fd10c5a92a23569094b5265c2b89",
+      "licence": "BSD-3-Clause"
+    }
+  ],
+  "facts": {
+    "observation_order": "body linear3, angular3, projected gravity3, command3, joint offsets23, joint velocities23, previous action23",
+    "units": "m/s, rad/s, unit projected gravity, rad and rad/s; body x forward/y left",
+    "normalization": "Inherited G1 runner declares actor_obs_normalization=False; no added normalization in DREAM",
+    "action": "default joint position + 0.5 * raw action; no added target clamp/rejection; physical mechanical limits unchanged",
+    "joint_order": "Saved articulation names equal pinned env_cfg order; mapping still explicit by name",
+    "frequency": "physics dt .005; four steps per .02 control step",
+    "state_timing": "PPO reads pre-action proprioception; safety/outcome logs now sample again after decimation",
+    "preserved_safety": "Finite input/output, actual realized joint validation, zero lateral/.2 forward/.4 yaw bounds and 25 degree tilt guard",
+    "deployment_gaps": [
+      "training noise and perturbations not reproduced",
+      "training randomizes Trunk added mass -2..3 kg; deployment uses stock body mass",
+      "training material randomization and ground combine modes not independently matched in deployment; no contact calibration claim",
+      "realized joint-range guard may encounter PhysX limit overshoot; no tolerances changed without evidence",
+      "real stable standing and camera capture have not yet completed"
+    ]
+  }
+}

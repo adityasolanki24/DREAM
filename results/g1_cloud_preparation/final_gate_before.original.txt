@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="7" time="2.464" timestamp="2026-10-24T21:46:08.316546+11:00" hostname="LAPTOP-H2LK8P6D"><testcase classname="tests.test_g1_cloud" name="test_cloud_runner_help_does_not_require_inference_packages" time="1.174"><failure message="AssertionError: Traceback (most recent call last):&#10;    File &quot;&lt;frozen runpy&gt;&quot;, line 203, in _run_module_as_main&#10;    File &quot;&lt;frozen runpy&gt;&quot;, line 88, in _run_code&#10;    File &quot;C:\Users\24adi\OneDrive\DREAM\experiments\cloud_g1_qwen.py&quot;, line 167, in &lt;module&gt;&#10;      main()&#10;      ~~~~^^&#10;    File &quot;C:\Users\24adi\OneDrive\DREAM\experiments\cloud_g1_qwen.py&quot;, line 78, in main&#10;      import torch&#10;  ModuleNotFoundError: No module named 'torch'&#10;  &#10;assert 1 == 0&#10; +  where 1 = CompletedProcess(args=['C:\\Users\\24adi\\OneDrive\\DREAM\\.venv\\Scripts\\python.exe', '-m', 'experiments.cloud_g1_qw...\experiments\\cloud_g1_qwen.py&quot;, line 78, in main\n    import torch\nModuleNotFoundError: No module named \'torch\'\n').returncode">tests\test_g1_cloud.py:18: in test_cloud_runner_help_does_not_require_inference_packages
+    assert result.returncode == 0, result.stderr
+E   AssertionError: Traceback (most recent call last):
+E       File "&lt;frozen runpy&gt;", line 203, in _run_module_as_main
+E       File "&lt;frozen runpy&gt;", line 88, in _run_code
+E       File "C:\Users\24adi\OneDrive\DREAM\experiments\cloud_g1_qwen.py", line 167, in &lt;module&gt;
+E         main()
+E         ~~~~^^
+E       File "C:\Users\24adi\OneDrive\DREAM\experiments\cloud_g1_qwen.py", line 78, in main
+E         import torch
+E     ModuleNotFoundError: No module named 'torch'
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['C:\\Users\\24adi\\OneDrive\\DREAM\\.venv\\Scripts\\python.exe', '-m', 'experiments.cloud_g1_qw...\experiments\\cloud_g1_qwen.py", line 78, in main\n    import torch\nModuleNotFoundError: No module named \'torch\'\n').returncode</failure></testcase><testcase classname="tests.test_g1_cloud" name="test_g1_gate_requires_probe_belief_feedback_not_just_reaching" time="0.290"><failure message="Failed: DID NOT RAISE ValueError">tests\test_g1_cloud.py:45: in test_g1_gate_requires_probe_belief_feedback_not_just_reaching
+    with pytest.raises(ValueError, match="belief"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError</failure></testcase><testcase classname="tests.test_g1_cloud" name="test_source_metadata_works_in_committed_cloud_archive" time="0.119" /><testcase classname="tests.test_g1_cloud" name="test_cuda_configuration_fails_before_checkpoint_loading_without_cuda" time="0.047" /><testcase classname="tests.test_g1_cloud" name="test_selected_cuda_device_reaches_existing_backend" time="0.005" /><testcase classname="tests.test_g1_cloud" name="test_g1_cloud_gate_rejects_missing_inference_even_with_physics" time="0.014" /><testcase classname="tests.test_g1_cloud" name="test_g1_budget_alert_is_project_scoped_and_requires_billing_visibility" time="0.001" /></testsuite></testsuites>

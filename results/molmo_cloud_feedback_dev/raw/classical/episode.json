@@ -1,0 +1,50 @@
+{
+  "condition": "classical",
+  "seed": 223,
+  "instruction": "Pick up the red object and put it in the tray.",
+  "success": true,
+  "steps": [
+    {
+      "controller": "classical",
+      "episode": {
+        "goal": "InRegion(object='red', region='tray')",
+        "success_claimed": true,
+        "reason": "goal verified by observation",
+        "tool_calls": 2,
+        "failed_actions": 0,
+        "steps": [
+          {
+            "tool": "grasp",
+            "args": {
+              "object": "red"
+            },
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 21.94,
+            "wall_time": 22.407
+          },
+          {
+            "tool": "place",
+            "args": {
+              "object": "red",
+              "target": "tray"
+            },
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 14.4,
+            "wall_time": 14.983
+          }
+        ]
+      }
+    }
+  ],
+  "error": null,
+  "wall_s": 57.59320379100001,
+  "fresh_model_inference": false,
+  "classical_fallback": false,
+  "protective_stop": false,
+  "stop_reason": "",
+  "peak_link_contact_N": 0.0,
+  "peak_finger_contact_N": 11.638505656789556,
+  "link_collision": false
+}

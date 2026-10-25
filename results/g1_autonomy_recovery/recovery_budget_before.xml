@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="4" time="0.570" timestamp="2026-10-25T19:05:23.005344+11:00" hostname="LAPTOP-H2LK8P6D"><testcase classname="tests.test_g1_release" name="test_release_lowers_by_measured_radius_and_three_sigma_before_unloading" time="0.012" /><testcase classname="tests.test_g1_release" name="test_ordinary_skill_failure_preserves_grip_but_safety_stop_does_not[ValueError-True]" time="0.001"><failure message="AssertionError: assert ['hard'] == ['preserve']&#10;  &#10;  At index 0 diff: 'hard' != 'preserve'&#10;  Use -v to get more diff">error = &lt;class 'ValueError'&gt;, preserve = True
+
+    @pytest.mark.parametrize("error,preserve", [(ValueError, True), (ActionStopped, False)])
+    def test_ordinary_skill_failure_preserves_grip_but_safety_stop_does_not(error, preserve):
+        events = []
+        robot = SimpleNamespace(
+            grasp_pose=lambda side: (np.zeros(3), np.array([1, 0, 0, 0])),
+            state=lambda: SimpleNamespace(time=0.0, protective_stop=False),
+            hold=lambda: events.append("hard"),
+            hold_for_reasoning=lambda: events.append("preserve"),
+        )
+        toolbox = ExplorationToolbox(robot, lambda: None, None)
+    
+        def failed(**kwargs):
+            raise error("bounded execution failure")
+    
+        toolbox._reach_object = failed
+        result = toolbox.call("reach_object", {"object": "red"})
+        assert not result.ok
+&gt;       assert events == (["preserve"] if preserve else ["hard"])
+E       AssertionError: assert ['hard'] == ['preserve']
+E         
+E         At index 0 diff: 'hard' != 'preserve'
+E         Use -v to get more diff
+
+tests\test_g1_release.py:47: AssertionError</failure></testcase><testcase classname="tests.test_g1_release" name="test_ordinary_skill_failure_preserves_grip_but_safety_stop_does_not[ActionStopped-False]" time="0.001" /><testcase classname="tests.test_g1_release" name="test_two_release_failures_exhaust_recovery_budget" time="0.011"><failure message="KeyError: 'objects'">def test_two_release_failures_exhaust_recovery_budget():
+        from dream.runtime.agent import Finish, Step, ToolCall
+        from dream.runtime.exploration import ExplorationPlanner
+        from dream.tools.goals import InRegion
+        from dream.tools.toolbox import ToolResult
+    
+        history = [Step(ToolCall("release_object"), ToolResult("release_object", "failed", "timeout"), 0)] * 2
+&gt;       decision = ExplorationPlanner().next_action(InRegion("red", "target"), {}, {}, history)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_g1_release.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = &lt;dream.runtime.exploration.ExplorationPlanner object at 0x000001AF4EC7B230&gt;
+goal = InRegion(object='red', region='target'), scene = {}, verdict = {}
+history = [Step(call=ToolCall(name='release_object', args={}), result=ToolResult(tool='release_object', status='failed', message...{}), result=ToolResult(tool='release_object', status='failed', message='timeout', data={}, sim_time=0.0), wall_time=0)]
+
+    def next_action(self, goal: Goal, scene: dict, verdict: dict, history: list[Step]):
+        if verdict.get("satisfied"):
+            return Finish(True, "released object verified in target by RGB-D")
+        if any(
+            sum(s.call.name == n and not s.result.ok for s in history) &gt;= 2
+            for n in ("reach_object", "grasp_object", "move_object", "inspect_object")
+        ):
+            return Finish(False, "bounded recovery budget exhausted")
+&gt;       if not scene["objects"]:
+               ^^^^^^^^^^^^^^^^
+E       KeyError: 'objects'
+
+dream\runtime\exploration.py:20: KeyError</failure></testcase></testsuite></testsuites>

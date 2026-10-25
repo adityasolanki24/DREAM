@@ -156,7 +156,7 @@ def build_model(
     world.add_camera(name="overview", pos=[1.35, 0.0, 0.85], xyaxes=[0, 1, 0, -0.5, 0, 0.87])
     add_camera(world, camera or CameraSpec())
     for extra in extra_cameras:
-        add_camera(world, extra)
+        add_camera(s.body(extra.mount_body) if extra.mount_body else world, extra)
 
     for obj in spec.objects:
         b = world.add_body(name=obj.name, pos=[*obj.xy, obj.half_size], quat=_yaw_quat(obj.yaw))

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.567" timestamp="2026-10-24T12:30:47.712323+11:00" hostname="LAPTOP-H2LK8P6D"><testcase classname="tests.test_cloud_telemetry" name="test_gpu_sampling_survives_a_transient_management_library_failure" time="0.323"><failure message="AssertionError: assert [] == ['recovered GPU sample']&#10;  &#10;  Right contains one more item: 'recovered GPU sample'&#10;  Use -v to get more diff">tmp_path = WindowsPath('C:/Users/24adi/AppData/Local/Temp/pytest-of-24adi/pytest-377/test_gpu_sampling_survives_a_t0')
+
+    def test_gpu_sampling_survives_a_transient_management_library_failure(tmp_path):
+        bash = Path("C:/Program Files/Git/bin/bash.exe")
+        executable = str(bash) if bash.exists() else shutil.which("bash")
+        if not executable:
+            pytest.skip("Bash unavailable")
+        source = (Path(__file__).parents[1] / "cloud/vm_startup.sh").read_text()
+        begin = source.index("( while true; do\n    nvidia-smi --query-gpu=timestamp")
+        end = source.index("  done ) &amp;", begin) + len("  done ) &amp;")
+        loop = source[begin:end].replace("/work/out", ".")
+        script = """set -e
+    count=0
+    nvidia-smi() {
+      count=$((count + 1))
+      if [ "$count" -eq 1 ]; then echo 'transient management-library error' &gt;&amp;2; return 1; fi
+      echo 'recovered GPU sample'
+    }
+    sleep() { if [ "$count" -ge 2 ]; then exit 0; fi; }
+    """ + loop + "\nwait\n"
+        result = subprocess.run([executable, "-c", script], cwd=tmp_path,
+                                capture_output=True, text=True, timeout=10)
+        assert result.returncode == 0, result.stderr
+&gt;       assert (tmp_path / "gpu.csv").read_text().splitlines() == ["recovered GPU sample"]
+E       AssertionError: assert [] == ['recovered GPU sample']
+E         
+E         Right contains one more item: 'recovered GPU sample'
+E         Use -v to get more diff
+
+tests\test_cloud_telemetry.py:31: AssertionError</failure></testcase></testsuite></testsuites>

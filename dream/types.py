@@ -170,6 +170,34 @@ class Embodiment(Protocol):
     def set_compliance(self, mode: CompliantMode | None) -> None: ...  # None: stiff tracking
 
 
+@dataclass(frozen=True)
+class DexterousState:
+    """Named humanoid proprioception, SI units; root quaternion is wxyz in world frame."""
+
+    time: float
+    joint_names: tuple[str, ...]
+    joint_pos: np.ndarray
+    joint_vel: np.ndarray
+    root_position: np.ndarray
+    root_quaternion: np.ndarray
+    protective_stop: bool
+    stop_reason: str = ""
+
+
+class DexterousEmbodiment(Protocol):
+    """Multi-finger capability without pretending fingers are a parallel gripper."""
+
+    def state(self) -> DexterousState: ...
+    def palm_pose(self, side: str) -> tuple[np.ndarray, np.ndarray]: ...
+    def grasp_pose(self, side: str) -> tuple[np.ndarray, np.ndarray]: ...
+    def finger_forces(self, side: str) -> dict[str, float]: ...
+    def reach(self, side: str, position: np.ndarray, quaternion: np.ndarray) -> None: ...
+    def set_hand(self, side: str, closure: float) -> None: ...
+    def move_arm(self, side: str, positions: np.ndarray) -> None: ...
+    def hold(self) -> None: ...
+    def hold_for_reasoning(self) -> None: ...
+
+
 class Perception(Protocol):
     def observe_objects(self) -> list[ObjectObservation]: ...
     def fixtures(self) -> dict[str, tuple[np.ndarray, float]]: ...  # name -> (centre, half width)
@@ -199,3 +227,5 @@ class ArticulatedObservation:
     # and must not be used as a measurement.
     handle_visible: bool = True
     position_std: float = 0.0  # m, 1-sigma uncertainty of handle_pos (0: not reported)
+    handle_id: int | None = None  # perception track identity, never a simulator identifier
+    last_seen: float | None = None  # s, last actual handle detection

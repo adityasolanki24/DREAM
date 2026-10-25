@@ -1,0 +1,18 @@
+{
+  "code_sha": "36109f9",
+  "failure_category": "deployment IAM propagation",
+  "audit_log": {
+    "method": "storage.setIamPermissions",
+    "status_code": 3,
+    "message": "Service account [new run identity] does not exist.",
+    "timestamp_utc": "2026-10-23T11:52:04.101153904Z"
+  },
+  "gpu_booted": false,
+  "correction": "Retry only nonexistent newly created exact identity, same bucket and role, four bounded attempts. Permission-denied errors still fail immediately.",
+  "class": "General algorithmic correction",
+  "empty_bucket_deleted_after_failed_launcher_cleanup": true,
+  "shared_allowance_usd": 4,
+  "failed_gpu_startup_reserve_usd": 0.1,
+  "remaining_allowance_usd": 3.9,
+  "bootstrap_hardening": "Enable camera/storage extensions after SimulationApp and before adapter imports, as in pinned Isaac reference; offline ordering test only, not simulator validation."
+}

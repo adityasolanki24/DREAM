@@ -1,0 +1,12 @@
+{
+  "source_run": "dream-qwen-20261024-221645-283811",
+  "guest_exit_code": "1",
+  "genuine_inference": false,
+  "normalized_actions_present": false,
+  "model_downloads_completed": true,
+  "root_cause": "Transformers4.57.3 tokenizer _patch_mistral_regex makes model_info call for remote repository identity under explicit HF_HUB_OFFLINE, despite complete cached weights. Resolve model_name to local verified path in both derived model and processor configuration.",
+  "class": "General algorithmic correction to offline loading configuration",
+  "cleanup_errors": [],
+  "manifest_sha256": "8043ccc1944c31438c036f152c3b981228f95dc2a7c0303c922222688b91965d",
+  "new_constraint": "Do not upload local HF token; signed file-scoped download capabilities only, sanitized out of logs/artifacts."
+}

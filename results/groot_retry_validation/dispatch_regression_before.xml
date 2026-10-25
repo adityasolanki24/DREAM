@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="3" time="0.938" timestamp="2026-10-25T02:43:33.193804+11:00" hostname="LAPTOP-H2LK8P6D"><testcase classname="tests.test_groot_assets" name="test_both_model_and_processor_use_local_backbone_without_touching_original" time="0.073"><failure message="AssertionError: assert ('nvidia/Cosmos-Reason2' in 'C:\\Users\\24adi\\AppData\\Local\\Temp\\pytest-of-24adi\\pytest-435\\test_both_model_and_processor_0\\backbone' or 'Qwen/Qwen3-VL' in 'C:\\Users\\24adi\\AppData\\Local\\Temp\\pytest-of-24adi\\pytest-435\\test_both_model_and_processor_0\\backbone')">tmp_path = WindowsPath('C:/Users/24adi/AppData/Local/Temp/pytest-of-24adi/pytest-435/test_both_model_and_processor_0')
+
+    def test_both_model_and_processor_use_local_backbone_without_touching_original(tmp_path):
+        from experiments.groot_assets import localize_checkpoint
+    
+        checkpoint = tmp_path / "checkpoint"
+        backbone = tmp_path / "backbone"
+        checkpoint.mkdir()
+        backbone.mkdir()
+        original = {"action_horizon": 40, "model_name": "nvidia/Cosmos-Reason2-2B"}
+        processor = {"processor_kwargs": {"modality_configs": {"keep": True}}}
+        (checkpoint / "config.json").write_text(json.dumps(original))
+        (checkpoint / "processor_config.json").write_text(json.dumps(processor))
+        (checkpoint / "model.safetensors").write_bytes(b"untouched-weights")
+        (backbone / "config.json").write_text('{"model_type":"qwen3_vl"}')
+        result = localize_checkpoint(checkpoint, backbone, tmp_path / "localized")
+        identity = json.loads((result / "config.json").read_text())["model_name"]
+        # Exact upstream get_backbone_cls dispatch, before importing any CUDA modules.
+&gt;       assert "nvidia/Cosmos-Reason2" in identity or "Qwen/Qwen3-VL" in identity
+E       AssertionError: assert ('nvidia/Cosmos-Reason2' in 'C:\\Users\\24adi\\AppData\\Local\\Temp\\pytest-of-24adi\\pytest-435\\test_both_model_and_processor_0\\backbone' or 'Qwen/Qwen3-VL' in 'C:\\Users\\24adi\\AppData\\Local\\Temp\\pytest-of-24adi\\pytest-435\\test_both_model_and_processor_0\\backbone')
+
+tests\test_groot_assets.py:24: AssertionError</failure></testcase><testcase classname="tests.test_groot_assets" name="test_offline_environment_drops_local_credentials" time="0.685" /><testcase classname="tests.test_groot_assets" name="test_artifact_download_rejects_untrusted_host_and_hides_signed_urls" time="0.006" /></testsuite></testsuites>

@@ -1,0 +1,49 @@
+{
+  "base_git_sha": "1110cd8b0173cb3eca1dc0691829723f0e808590",
+  "python": "3.13.14",
+  "tested_sources_sha256": {
+    "experiments\\groot_contract.py": "2765d1b57d28db4d1ef23d21b874df9f0313951e634ce654c8a802ce05e1c1ff",
+    "experiments\\configs\\groot_action_contract.json": "a5191d22e068777ff4f34a41e7ebfc306e08a061d95891616e982424e88291b8",
+    "tests\\test_groot_contract.py": "711736e560b378361ca18d33799a24a443002f98540159793740011195d0eeb8"
+  },
+  "tests": {
+    "fast": {
+      "tests": 285,
+      "failures": 0,
+      "errors": 0,
+      "elapsed_s": 116.761,
+      "xml_sha256": "d436b033765f5f3789394a08898759806c8ed551c6bb26d44e2ea3c7275c2069"
+    },
+    "full": {
+      "tests": 312,
+      "failures": 0,
+      "errors": 0,
+      "elapsed_s": 455.987,
+      "xml_sha256": "b5d553322c4c1abb6b3b3e53dd5297e9f546ec9af6dcfb46d53ab377f3bad3b4"
+    },
+    "focused": {
+      "tests": 30,
+      "failures": 0,
+      "errors": 0,
+      "elapsed_s": 1.3,
+      "xml_sha256": "89d9c11ccf8ad3737123aa89d01237b3a2656e2a6735904e584519658ff01cec"
+    }
+  },
+  "commands": [
+    "python -m pytest -m \"not slow\" --junitxml=results/groot_contract_audit/fast.xml",
+    "python -m pytest --junitxml=results/groot_contract_audit/full.xml",
+    "python -m ruff check .",
+    "python -m ruff format --check .",
+    "git diff --check"
+  ],
+  "classification": "Engineering/measurement; no control, scene or safety changes",
+  "physical_milestones_achieved": false,
+  "cloud_workloads_started": 0,
+  "original_evidence_preserved": true,
+  "pytest_reported_duration_s": {
+    "fast": 118.42,
+    "full": 456.14,
+    "focused": 1.51
+  },
+  "timing_note": "Pytest terminal-reported run durations above; XML suite times in tests exclude some runner overhead."
+}

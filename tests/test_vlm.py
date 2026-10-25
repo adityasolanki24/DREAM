@@ -12,6 +12,7 @@ import pytest
 
 from dream.runtime.vlm import (
     MAX_IMAGES_IN_CONTEXT,
+    MODEL_EXCLUDED_TOOLS,
     VLMAgent,
     _bounded_images,
     parse_tool_call,
@@ -20,6 +21,210 @@ from dream.runtime.vlm import (
 from dream.sim.tabletop import sample_tabletop
 from dream.sim.tabletop_env import TabletopEnv
 from dream.tools.toolbox import TOOL_SPECS, Toolbox
+
+
+def test_multiple_calls_are_rejected_without_executing_a_prefix():
+    assert parse_tool_call(call("grasp", object="red") + call("retract"))[0] is None
+
+
+def test_model_coordinates_and_benchmark_opening_strategy_are_not_dispatched(monkeypatch):
+    _, agent, _ = _agent(
+        [
+            call("move_end_effector", position=[0.5, 0.0, 0.1]),
+            call("open_articulated", object="compartment", strategy="fixed_pull"),
+            call("finish", success=False, reason="unsupported"),
+        ]
+    )
+    original = agent.tools.call
+    dispatched = []
+
+    def tools(name, args=None):
+        dispatched.append(name)
+        return original(name, args)
+
+    monkeypatch.setattr(agent.tools, "call", tools)
+    ep = agent.run("Put red in the container")
+    assert ep.rejected_calls == 2
+    assert "move_end_effector" not in dispatched and "open_articulated" not in dispatched
+    assert "move_end_effector" not in [s["function"]["name"] for s in tool_schemas()]
+
+
+def test_a_success_claim_cannot_substitute_an_easier_goal(monkeypatch):
+    from dream.tools.goals import parse_goal
+    from dream.tools.toolbox import ToolResult
+
+    _, agent, _ = _agent(
+        [
+            call(
+                "finish",
+                success=True,
+                reason="done",
+                goal={"type": "in", "object": "blue", "target": "tray"},
+            ),
+            call("finish", success=False, reason="wrong object"),
+        ]
+    )
+    original = agent.tools.call
+    verified = []
+
+    def tools(name, args=None):
+        if name == "verify_goal":
+            verified.append(args)
+            return ToolResult(name, "succeeded", data={"satisfied": True})
+        return original(name, args)
+
+    monkeypatch.setattr(agent.tools, "call", tools)
+    ep = agent.run("Put red in the tray", expected_goal=parse_goal("in red tray"))
+    assert not ep.success_claimed and "different" in ep.steps[0].error
+    assert not verified  # substituted objective never reaches the verifier
+
+
+def test_cancellation_during_inference_prevents_dispatch(monkeypatch):
+    _, agent, backend = _agent([call("grasp", object="red")])
+    generate = backend.generate
+
+    def cancelled(messages, tools):
+        agent.tools.cancel.set()
+        return generate(messages, tools)
+
+    monkeypatch.setattr(backend, "generate", cancelled)
+    ep = agent.run("Put red in the tray")
+    assert not ep.success_claimed and "cancel" in ep.reason
+    assert not ep.tool_calls
+
+
+def test_inference_holds_current_pose_instead_of_continuing_an_old_target(monkeypatch):
+    env, agent, backend = _agent([])
+    start = env.robot_state()
+    env.embodiment().move_tcp(start.tcp_pos + [0.05, 0.0, 0.0], start.tcp_quat)
+
+    def inspect_hold(*args):
+        assert np.linalg.norm(env.robot.target_pos - env.robot_state().tcp_pos) < 0.001
+        return call("finish", success=False, reason="test")
+
+    monkeypatch.setattr(backend, "generate", inspect_hold)
+    agent.run("Test holding during cloud inference")
+
+
+def test_hosted_backend_does_not_drop_additional_tool_calls(monkeypatch):
+    import io
+    import urllib.request
+
+    from dream.runtime.qwen import OpenAICompatibleBackend
+
+    response = {
+        "choices": [
+            {
+                "message": {
+                    "tool_calls": [
+                        {"function": {"name": "grasp", "arguments": '{"object":"red"}'}},
+                        {"function": {"name": "retract", "arguments": "{}"}},
+                    ]
+                }
+            }
+        ]
+    }
+    monkeypatch.setattr(
+        urllib.request, "urlopen", lambda *a, **k: io.BytesIO(json.dumps(response).encode())
+    )
+    text = OpenAICompatibleBackend("http://unused").generate([], [])
+    assert text.count("<tool_call>") == 2
+    assert parse_tool_call(text)[0] is None
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {},
+        {"choices": []},
+        {"choices": [{"message": []}]},
+        {"choices": [{"message": {"tool_calls": [{}]}}]},
+    ],
+)
+def test_malformed_hosted_responses_become_bounded_inference_errors(monkeypatch, payload):
+    import io
+    import urllib.request
+
+    from dream.runtime.qwen import OpenAICompatibleBackend
+
+    monkeypatch.setattr(
+        urllib.request, "urlopen", lambda *a, **k: io.BytesIO(json.dumps(payload).encode())
+    )
+    with pytest.raises(ValueError):
+        OpenAICompatibleBackend("http://unused").generate([], [])
+
+
+def test_local_backend_passes_images_tools_and_cancellation_to_official_interfaces(monkeypatch):
+    import contextlib
+    import sys
+    import threading
+    from types import SimpleNamespace
+
+    from dream.runtime.qwen import QwenTransformersBackend
+
+    monkeypatch.setitem(
+        sys.modules,
+        "transformers",
+        SimpleNamespace(StoppingCriteria=object, StoppingCriteriaList=list),
+    )
+    backend = QwenTransformersBackend.__new__(QwenTransformersBackend)
+    backend.cancel = threading.Event()
+    backend.timeout_s = 60.0
+    backend.max_new_tokens = 10
+    backend._torch = SimpleNamespace(inference_mode=contextlib.nullcontext)
+    seen = {}
+
+    class Inputs(dict):
+        def to(self, device, dtype):
+            seen["device"], seen["dtype"] = device, dtype
+            return self
+
+    def template(messages, **kwargs):
+        seen["messages"], seen["kwargs"] = messages, kwargs
+        return Inputs(input_ids=np.array([[1, 2]]))
+
+    def generate(**kwargs):
+        assert not kwargs["stopping_criteria"][0](None, None)
+        backend.cancel.set()
+        assert kwargs["stopping_criteria"][0](None, None)
+        return np.array([[1, 2, 3]])
+
+    backend.processor = SimpleNamespace(
+        apply_chat_template=template, decode=lambda *a, **k: "<tool_call>{}</tool_call><|im_end|>"
+    )
+    backend.model = SimpleNamespace(device="cpu", dtype="bf16", generate=generate)
+    text = backend.generate(
+        [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image", "image": np.zeros((2, 2, 3), dtype=np.uint8)},
+                    {"type": "text", "text": "task"},
+                ],
+            }
+        ],
+        tool_schemas(),
+    )
+    assert text == "<tool_call>{}</tool_call>"
+    assert seen["messages"][0]["content"][0]["image"].size == (2, 2)
+    assert seen["kwargs"]["tools"] == tool_schemas()
+    assert seen["kwargs"]["tokenize"] and seen["kwargs"]["add_generation_prompt"]
+    assert (seen["device"], seen["dtype"]) == ("cpu", "bf16")
+    backend.cancel.clear()
+    backend.timeout_s = -1.0
+    with pytest.raises(TimeoutError):
+        backend.generate([], [])
+
+
+def test_inference_failure_stops_without_a_physical_tool_call(monkeypatch):
+    _, agent, backend = _agent([])
+
+    def timeout(*args):
+        raise TimeoutError("test backend timeout")
+
+    monkeypatch.setattr(backend, "generate", timeout)
+    ep = agent.run("Put red in the tray")
+    assert not ep.tool_calls and not ep.success_claimed and "TimeoutError" in ep.reason
 
 
 class ScriptedBackend:
@@ -52,7 +257,9 @@ def _agent(outputs, seed=3, **kw):
 def test_every_tool_is_offered_as_a_json_schema_function():
     schemas = tool_schemas()
     names = [s["function"]["name"] for s in schemas]
-    assert names == [t["name"] for t in TOOL_SPECS] + ["finish"]
+    assert names == [t["name"] for t in TOOL_SPECS if t["name"] not in MODEL_EXCLUDED_TOOLS] + [
+        "finish"
+    ]
     for s in schemas:
         json.dumps(s)  # serialisable
         p = s["function"]["parameters"]
@@ -150,7 +357,9 @@ def test_scripted_calls_run_through_real_physics_and_success_is_verified():
             ),
         ]
     )
-    ep = agent.run("Put the red cube in the tray.")
+    from dream.tools.goals import parse_goal
+
+    ep = agent.run("Put the red cube in the tray.", expected_goal=parse_goal("in red tray"))
     env.step(250)
     assert ep.success_claimed and object_in_tray(env, "red")
     assert ep.tool_calls == ["observe_scene", "grasp", "place", "verify_goal", "finish"]

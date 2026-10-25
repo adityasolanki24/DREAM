@@ -1,0 +1,284 @@
+{
+  "code_sha": "0078e5396b53238710eb2a9221772809f0347eff",
+  "config": {
+    "seed_role": "development pilot only; no held-out or transfer claim",
+    "seed": 223,
+    "inference_seed": 233,
+    "instruction": "Pick up the red object and put it in the tray.",
+    "goal_object": "red",
+    "max_inferences": 6,
+    "max_episode_wall_s": 120,
+    "rows_per_inference": 1,
+    "nominal_frequency_hz": 15,
+    "record_period_s": 0.002,
+    "conditions": [
+      "classical",
+      "learned_joint"
+    ],
+    "gates": {
+      "real_finite_predictions": true,
+      "at_least_one_verified_target": true,
+      "no_teleportation": true
+    },
+    "report_only": [
+      "task_success",
+      "safety_stops",
+      "time_dilation",
+      "gripper_saturation",
+      "invalid_outputs"
+    ],
+    "note": "One real inference then one safely retimed absolute target then fresh sensing. Never replay an entire chunk instantly. Stop on cancellation, rejected target, tracking failure, watchdog or safety signal. No classical fallback in learned condition. Independent goal scoring never reaches the acting policy. Separate paid approval required."
+  },
+  "fresh_model_inference": true,
+  "verified_target_count": 6,
+  "raw_prediction_count": 6,
+  "conditions": {
+    "classical": {
+      "success": true,
+      "error": null,
+      "protective_stop": false,
+      "stop_reason": "",
+      "link_collision": false,
+      "fresh_model_inference": false,
+      "classical_fallback": false,
+      "wall_s": 57.59320379100001,
+      "simulation_span_s": 54.5380000000213,
+      "peak_measured_joint_speed_rad_s": 0.43459555432212527,
+      "peak_measured_joint_accel_rad_s2": 159.91310890867427,
+      "joint_motion_range_rad": [
+        0.40160222824795916,
+        0.6689516102545762,
+        0.20921281589225713,
+        0.8381145452018524,
+        0.13660781969229918,
+        1.2724749430173328,
+        0.5908972643944905
+      ],
+      "trace_sha256": "f75a23ce81c0d7f97a5fe141fcb050564860b9d3fefd556eb1537699ed7be128"
+    },
+    "learned_joint": {
+      "success": false,
+      "error": null,
+      "protective_stop": false,
+      "stop_reason": "",
+      "link_collision": false,
+      "fresh_model_inference": true,
+      "classical_fallback": false,
+      "wall_s": 17.495845453000015,
+      "simulation_span_s": 13.798000000001444,
+      "peak_measured_joint_speed_rad_s": 0.38099481000943,
+      "peak_measured_joint_accel_rad_s2": 0.9073324408436251,
+      "joint_motion_range_rad": [
+        0.00912779715277228,
+        0.10009421066658386,
+        0.022512833328895775,
+        0.1245894208300602,
+        0.059804591174842506,
+        0.2729539570497874,
+        0.3380229613892525
+      ],
+      "trace_sha256": "4bc03578bd89e30cb57defa685f6eed6c75089dd35bde77bbcc3726a363a97ed"
+    }
+  },
+  "predictions": [
+    {
+      "index": 0,
+      "raw_sha256": "f593094e4cf244f6519baefa2ad95ebd0a8d1751e20664263a9dffdbbff8dc8f",
+      "state_time_s": 0.5200000000000004,
+      "max_input_joint_change_since_previous_rad": null,
+      "max_first_target_delta_from_observation_rad": 0.26186251640319824,
+      "raw_gripper_outside_unit_interval_count": 5,
+      "execution": {
+        "inference": 0,
+        "inference_s": 2.9429221500000153,
+        "raw_gripper": -0.0062255859375,
+        "gripper_saturated": true,
+        "controller": "absolute_joint_quintic",
+        "nominal_period_s": 0.06666666666666667,
+        "duration_s": 1.229578728124671,
+        "time_dilation": 18.443680921870065,
+        "executed": true,
+        "target_reached": true,
+        "reason": "target reached",
+        "tracking_error_rad": 0.001621218495291954,
+        "sim_start": 3.599999999999825,
+        "sim_end": 4.939999999999678,
+        "actual_displacement_rad": [
+          -0.00014925389228607715,
+          0.008933423031792308,
+          0.001083789045368504,
+          -0.030593415257658574,
+          -0.00035353321513038167,
+          0.17033835284296006,
+          0.26024128150470804
+        ]
+      }
+    },
+    {
+      "index": 1,
+      "raw_sha256": "f4a44317ebf1a3459ca87e839a3625be6506cd95838847d388912663e59dba04",
+      "state_time_s": 4.939999999999678,
+      "max_input_joint_change_since_previous_rad": 0.2602412700653076,
+      "max_first_target_delta_from_observation_rad": 0.03924155235290527,
+      "raw_gripper_outside_unit_interval_count": 5,
+      "execution": {
+        "inference": 1,
+        "inference_s": 1.093578703999981,
+        "raw_gripper": -0.0048828125,
+        "gripper_saturated": true,
+        "controller": "absolute_joint_quintic",
+        "nominal_period_s": 0.06666666666666667,
+        "duration_s": 0.47489730353224535,
+        "time_dilation": 7.123459552983681,
+        "executed": true,
+        "target_reached": true,
+        "reason": "target reached",
+        "tracking_error_rad": 0.0016465378424534993,
+        "sim_start": 6.179999999999541,
+        "sim_end": 6.7599999999994775,
+        "actual_displacement_rad": [
+          -0.001716617066076042,
+          0.02589288811013538,
+          -0.0011055379652325302,
+          -0.037415962707933126,
+          -0.01292969752305885,
+          0.007407087439528226,
+          2.403223667846177e-07
+        ]
+      }
+    },
+    {
+      "index": 2,
+      "raw_sha256": "d3139d80b4c6aaa184fa7ead63b9405b5b03f31976415111ab8e8060fb2e4686",
+      "state_time_s": 6.7599999999994775,
+      "max_input_joint_change_since_previous_rad": 0.03759503364562988,
+      "max_first_target_delta_from_observation_rad": 0.017625179141759872,
+      "raw_gripper_outside_unit_interval_count": 6,
+      "execution": {
+        "inference": 2,
+        "inference_s": 1.0963850850000085,
+        "raw_gripper": -0.0048828125,
+        "gripper_saturated": true,
+        "controller": "absolute_joint_quintic",
+        "nominal_period_s": 0.06666666666666667,
+        "duration_s": 0.30959516434116663,
+        "time_dilation": 4.6439274651175,
+        "executed": true,
+        "target_reached": true,
+        "reason": "target reached",
+        "tracking_error_rad": 0.0015961346342530103,
+        "sim_start": 7.999999999999341,
+        "sim_end": 8.399999999999475,
+        "actual_displacement_rad": [
+          2.8822308597819786e-05,
+          0.015079151417396477,
+          0.006589950758582452,
+          -0.007123669523110054,
+          0.002852584035158659,
+          0.014028867379359822,
+          -3.913644678332773e-07
+        ]
+      }
+    },
+    {
+      "index": 3,
+      "raw_sha256": "4da539d5848a20b851205840b1fec8ed03231786213ab514ca1566180fc233ae",
+      "state_time_s": 8.399999999999475,
+      "max_input_joint_change_since_previous_rad": 0.01610276848077774,
+      "max_first_target_delta_from_observation_rad": 0.015926707535982132,
+      "raw_gripper_outside_unit_interval_count": 8,
+      "execution": {
+        "inference": 3,
+        "inference_s": 1.10956559899995,
+        "raw_gripper": -0.00537109375,
+        "gripper_saturated": true,
+        "controller": "absolute_joint_quintic",
+        "nominal_period_s": 0.06666666666666667,
+        "duration_s": 0.288380385572052,
+        "time_dilation": 4.32570578358078,
+        "executed": true,
+        "target_reached": true,
+        "reason": "target reached",
+        "tracking_error_rad": 0.0017731308293781889,
+        "sim_start": 9.659999999999895,
+        "sim_end": 10.020000000000016,
+        "actual_displacement_rad": [
+          0.0027537412071725297,
+          0.01263116761588056,
+          0.006218088662521634,
+          -0.006870157802819188,
+          -0.01058251054522049,
+          0.006756574043485397,
+          -5.290260585155693e-07
+        ]
+      }
+    },
+    {
+      "index": 4,
+      "raw_sha256": "6b158336f124d374faf2bebb6587da73be4e1a88c1ee62ed7523818612b94655",
+      "state_time_s": 10.020000000000016,
+      "max_input_joint_change_since_previous_rad": 0.014153573662042618,
+      "max_first_target_delta_from_observation_rad": 0.04793095588684082,
+      "raw_gripper_outside_unit_interval_count": 8,
+      "execution": {
+        "inference": 4,
+        "inference_s": 1.11773522499999,
+        "raw_gripper": -0.00341796875,
+        "gripper_saturated": true,
+        "controller": "absolute_joint_quintic",
+        "nominal_period_s": 0.06666666666666667,
+        "duration_s": 0.5202239312859772,
+        "time_dilation": 7.8033589692896586,
+        "executed": true,
+        "target_reached": true,
+        "reason": "target reached",
+        "tracking_error_rad": 0.001656252534579794,
+        "sim_start": 11.280000000000436,
+        "sim_end": 11.92000000000065,
+        "actual_displacement_rad": [
+          -0.001148700262584344,
+          0.011433477377150211,
+          0.001827746985100456,
+          -0.03781189255262607,
+          0.0022345084584712016,
+          0.045218750924890694,
+          0.03015805249611686
+        ]
+      }
+    },
+    {
+      "index": 5,
+      "raw_sha256": "1d52d3964ba21602fdaa0df0b75b0f4314ff310cc0ad0001bcd1628a4d9e367a",
+      "state_time_s": 11.92000000000065,
+      "max_input_joint_change_since_previous_rad": 0.046274662017822266,
+      "max_first_target_delta_from_observation_rad": 0.046013832092285156,
+      "raw_gripper_outside_unit_interval_count": 9,
+      "execution": {
+        "inference": 5,
+        "inference_s": 1.112562258999958,
+        "raw_gripper": -0.0038299560546875,
+        "gripper_saturated": true,
+        "controller": "absolute_joint_quintic",
+        "nominal_period_s": 0.06666666666666667,
+        "duration_s": 0.5092706218088053,
+        "time_dilation": 7.63905932713208,
+        "executed": true,
+        "target_reached": true,
+        "reason": "target reached",
+        "tracking_error_rad": 0.001784674449834267,
+        "sim_start": 13.18000000000107,
+        "sim_end": 13.800000000001278,
+        "actual_displacement_rad": [
+          0.006892085480870386,
+          0.020732573335153617,
+          0.00601756636470269,
+          -5.430860182453756e-05,
+          -0.03763146162788116,
+          0.022500535804401256,
+          0.04313720377345165
+        ]
+      }
+    }
+  ],
+  "interpretation": "Development scene; motion tracking is not task completion or transfer."
+}

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.451" timestamp="2026-10-24T17:50:07.619572+11:00" hostname="LAPTOP-H2LK8P6D"><testcase classname="tests.test_g1_exploration" name="test_release_unloads_contact_and_withdraws_before_full_finger_sweep" time="0.036"><failure message="assert False&#10; +  where False = any(&lt;generator object test_release_unloads_contact_and_withdraws_before_full_finger_sweep.&lt;locals&gt;.&lt;genexpr&gt; at 0x000002172E34F680&gt;)">def test_release_unloads_contact_and_withdraws_before_full_finger_sweep():
+        from types import SimpleNamespace
+        from dream.perception.sphere import SphereEstimate
+        from dream.tools.object_exploration import ExplorationToolbox
+    
+        events = []
+        class Robot:
+            position = np.array([.4,.26,.96])
+            closure = .5
+            def grasp_pose(self, side):
+                return self.position.copy(), np.array([1.,0,0,0])
+            def set_hand(self, side, closure):
+                self.closure = closure
+                events.append(("hand", closure))
+            def finger_forces(self, side):
+                return {"thumb":float(self.closure &gt; .3),"index":float(self.closure &gt; .3)}
+        robot = Robot()
+        tools = ExplorationToolbox(robot,lambda:None,
+                                  SimpleNamespace(target=(np.array([.4,.26,.895]),.065)))
+        tools.holding, tools.closure = "red", .5
+        tools._object = lambda: SphereEstimate(0,robot.position,np.eye(3)*.002**2,.025,.001,100)
+        tools._advance = lambda duration: None
+        def move(point, **kwargs):
+            robot.position = point.copy()
+            events.append(("move",point.copy()))
+            return 0
+        tools._move = move
+        tools._release_object()
+        first_full_open = next(i for i,(kind,value) in enumerate(events) if kind == "hand" and value == 0)
+&gt;       assert any(kind == "move" and value[2] &gt; .995 and abs(value[0]-.4) &lt; .005
+                   for kind,value in events[:first_full_open])
+E       assert False
+E        +  where False = any(&lt;generator object test_release_unloads_contact_and_withdraws_before_full_finger_sweep.&lt;locals&gt;.&lt;genexpr&gt; at 0x000002172E34F680&gt;)
+
+tests\test_g1_exploration.py:162: AssertionError</failure></testcase></testsuite></testsuites>

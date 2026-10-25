@@ -15,6 +15,120 @@ from dream.sim.tabletop_env import TabletopEnv
 from dream.tools.toolbox import WALL_CLEARANCE
 
 
+def test_an_occluded_view_never_shrinks_an_opening_but_can_widen_it():
+    from dataclasses import replace
+
+    from dream.perception.detect import Detection
+    from dream.perception.world import WorldModel
+
+    world = WorldModel()
+    d = Detection(
+        "box",
+        "grey",
+        np.array([0.5, 0.0, 0.05]),
+        0.0,
+        np.array([0.2, 0.2, 0.1]),
+        0.003,
+        False,
+        True,
+        opening=(np.array([0.5, 0.0, 0.01]), 0.02),
+    )
+    world.update([d], 0.0)
+    for time, width in enumerate([0.06, 0.018, 0.08], 1):
+        world.update([replace(d, occluded=True, opening=(d.opening[0], width))], time)
+        assert world.tracks[0].detection.opening[1] == max(0.02, 0.06, width)
+
+
+def test_a_clear_view_can_show_a_compartment_closing_again():
+    from dataclasses import replace
+
+    from dream.perception.detect import Detection
+    from dream.perception.world import WorldModel
+
+    world = WorldModel()
+    d = Detection(
+        "box",
+        "grey",
+        np.array([0.5, 0.0, 0.05]),
+        0.0,
+        np.array([0.2, 0.2, 0.1]),
+        0.003,
+        False,
+        True,
+        opening=(np.array([0.5, 0.0, 0.01]), 0.08),
+    )
+    world.update([d], 0.0)
+    world.update([replace(d, opening=(d.opening[0], 0.02))], 1.0)
+    assert world.tracks[0].detection.opening[1] == 0.02
+    world.update([replace(d, opening=None)], 2.0)
+    assert world.tracks[0].detection.opening is None
+
+
+def test_old_open_space_is_not_an_indefinite_fixture_under_occlusion():
+    from dataclasses import replace
+
+    from dream.perception.detect import Detection
+    from dream.perception.world import OPENING_MAX_AGE_S
+
+    vis = VisionPerception(lambda: None, lambda: 0.0, np.random.default_rng(0))
+    vis.refresh = lambda: None
+    vis._clock = lambda: vis.world.time
+    d = Detection(
+        "box",
+        "grey",
+        np.array([0.5, 0.0, 0.05]),
+        0.0,
+        np.array([0.2, 0.2, 0.1]),
+        0.003,
+        False,
+        True,
+        opening=(np.array([0.5, 0.0, 0.01]), 0.08),
+    )
+    vis.world.update([d], 0.0)
+    vis.world.tracks[0] = replace(vis.world.tracks[0], articulated=True)
+    vis.world.update([replace(d, occluded=True, opening=None)], 1.0)
+    assert "compartment" in vis.fixtures()
+    vis.world.update([replace(d, occluded=True, opening=None)], OPENING_MAX_AGE_S + 1.0)
+    assert "compartment" not in vis.fixtures()
+    assert vis.world.tracks[0].detection.opening is not None  # retained as historical evidence
+
+
+def test_opening_motion_does_not_swap_two_handles_between_receptacles():
+    from dataclasses import replace
+
+    from dream.perception.detect import Detection
+    from dream.perception.world import WorldModel
+
+    world = WorldModel()
+    box = Detection(
+        "box",
+        "grey",
+        np.array([0.4, 0.0, 0.05]),
+        0.0,
+        np.array([0.2, 0.2, 0.1]),
+        0.003,
+        False,
+        True,
+    )
+    handle = replace(box, kind="handle", color="blue", position=np.array([0.4, -0.1, 0.1]))
+    other_box = replace(box, position=np.array([0.7, 0.0, 0.05]))
+    other_handle = replace(handle, color="red", position=np.array([0.7, -0.1, 0.1]))
+    world.update([box, other_box, handle, other_handle], 0.0)
+    receptacles = [t for t in world.tracks if t.articulated]
+    assert len(receptacles) == 2
+    ids = [world.handle_of(t).id for t in receptacles]
+    world.update(
+        [
+            box,
+            other_box,
+            replace(handle, position=other_handle.position + [0, 0, 0.2]),
+            other_handle,
+        ],
+        1.0,
+    )
+    assert [world.handle_of(t).id for t in world.tracks if t.articulated] == ids
+
+
 def _env(seed=3, spec=None, **kw):
     spec = spec or sample_tabletop(np.random.default_rng(seed))
     return spec, TabletopEnv(spec, np.random.default_rng(seed + 1), **kw)
@@ -214,25 +328,3 @@ def test_a_cube_on_a_closed_lid_is_not_an_opening():
     lo, hi = env._compartment_aabb()
     _put(env, "red", [*((lo + hi) / 2)[:2], hi[2] + 0.021])
     assert "compartment" not in vis.fixtures()
-
-
-def test_an_occluded_view_never_shrinks_an_opening_but_can_widen_it():
-    """Occlusion hides cells, so a smaller opening seen under occlusion is not evidence of
-    closing; the open cells it does show are evidence. Development lid seed 1: the raised lid
-    made every view occluded, and the opening stayed at its 18 mm first estimate after the lid
-    was fully open."""
-    from dream.perception.detect import Detection
-    from dream.perception.world import WorldModel
-
-    def box(opening, occluded):
-        return Detection(
-            "box", "orange", np.array([0.5, 0.0, 0.05]), 0.0, np.array([0.2, 0.2, 0.1]),
-            0.003, occluded, True, opening=(np.array([0.5, 0.0, 0.006]), opening),
-        )  # fmt: skip
-
-    world = WorldModel()
-    world.update([box(0.03, False)], 0.0)
-    world.update([box(0.02, True)], 0.1)
-    assert world.tracks[0].detection.opening[1] == 0.03
-    world.update([box(0.06, True)], 0.2)
-    assert world.tracks[0].detection.opening[1] == 0.06

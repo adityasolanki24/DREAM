@@ -1,0 +1,88 @@
+{
+  "goal": "InRegion(object='red', region='target')",
+  "success_claimed": false,
+  "reason": "bounded recovery budget exhausted",
+  "tool_calls": 8,
+  "failed_actions": 2,
+  "steps": [
+    {
+      "tool": "reach_object",
+      "args": {
+        "object": "red"
+      },
+      "status": "succeeded",
+      "message": "",
+      "sim_time": 0.76,
+      "wall_time": 2.608
+    },
+    {
+      "tool": "probe_object",
+      "args": {
+        "object": "red"
+      },
+      "status": "succeeded",
+      "message": "bounded-lift response only",
+      "sim_time": 2.85,
+      "wall_time": 9.315
+    },
+    {
+      "tool": "grasp_object",
+      "args": {
+        "object": "red"
+      },
+      "status": "succeeded",
+      "message": "vision lift and tactile evidence",
+      "sim_time": 1.29,
+      "wall_time": 4.132
+    },
+    {
+      "tool": "move_object",
+      "args": {
+        "object": "red",
+        "target": "target"
+      },
+      "status": "succeeded",
+      "message": "",
+      "sim_time": 2.32,
+      "wall_time": 5.87
+    },
+    {
+      "tool": "release_object",
+      "args": {},
+      "status": "succeeded",
+      "message": "release commanded; goal still needs vision verification",
+      "sim_time": 4.35,
+      "wall_time": 5.243
+    },
+    {
+      "tool": "reach_object",
+      "args": {
+        "object": "red"
+      },
+      "status": "failed",
+      "message": "bounded Cartesian reach timed out",
+      "sim_time": 6.01,
+      "wall_time": 7.068
+    },
+    {
+      "tool": "inspect_object",
+      "args": {
+        "object": "red"
+      },
+      "status": "succeeded",
+      "message": "",
+      "sim_time": 2.36,
+      "wall_time": 3.16
+    },
+    {
+      "tool": "reach_object",
+      "args": {
+        "object": "red"
+      },
+      "status": "failed",
+      "message": "bounded Cartesian reach timed out",
+      "sim_time": 6.0,
+      "wall_time": 7.421
+    }
+  ]
+}

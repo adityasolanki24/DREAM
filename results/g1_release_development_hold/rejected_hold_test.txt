@@ -1,0 +1,26 @@
+"""Release must not keep driving a converging arm while unloading the fingers."""
+
+from types import SimpleNamespace
+
+import numpy as np
+
+from dream.tools.object_exploration import ExplorationToolbox
+
+
+def test_release_stops_arm_before_first_finger_unload_and_preserves_grip():
+    events = []
+    robot = SimpleNamespace(
+        grasp_pose=lambda side: (np.array([0.4, 0.26, 0.95]), np.array([1, 0, 0, 0])),
+        finger_forces=lambda side: {"thumb": 0.0, "index": 0.0, "middle": 0.0},
+        hold_for_reasoning=lambda: events.append("hold_preserving_fingers"),
+        set_hand=lambda *args: events.append("unload"),
+    )
+    toolbox = ExplorationToolbox(robot, lambda: None, SimpleNamespace(target=(np.zeros(3), 0.065)))
+    toolbox.holding = "red"
+    toolbox._object = lambda: SimpleNamespace(radius=0.021)
+    toolbox._move = lambda *args: events.append("move")
+    toolbox._advance = lambda *args: None
+    toolbox._open = lambda: events.append("full_open")
+    toolbox._release_object()
+    assert "hold_preserving_fingers" in events
+    assert events.index("hold_preserving_fingers") < events.index("unload")

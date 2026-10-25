@@ -1,0 +1,79 @@
+{
+  "code_git_sha": "70065f25b389e361cdfe64bfd494f8c97dc7db7e",
+  "checkpoint_revision": "d8c1abd8a27d8e859455bbe514df2bcc617db0fb",
+  "machine": "g2-standard-8",
+  "zone": "us-central1-c",
+  "allocation_attempts": [
+    {
+      "zone": "us-central1-b",
+      "status": "capacity_rejected"
+    },
+    {
+      "zone": "us-central1-c",
+      "status": "allocated"
+    }
+  ],
+  "allowance_usd": 3,
+  "estimated_usd": 2.61,
+  "actual_billed_usd": null,
+  "started_utc": "2026-10-23T06:28:55Z",
+  "finished_utc": "2026-10-23T06:35:30Z",
+  "guest_duration_s": 395.0,
+  "result": {
+    "shape": [
+      15,
+      8
+    ],
+    "finite": true,
+    "arm_within_panda_joint_limits": true,
+    "gripper_within_unit_interval": false,
+    "execution_permitted": false,
+    "reason": "inference-only: gripper mapping, camera shift and control frequency unvalidated",
+    "inference_s": 2.9246829069999762,
+    "real_model_executed": true
+  },
+  "cleanup_errors": [],
+  "manual_cleanup": "Guest shut down but remained TERMINATED. Scoped instance deleted by attached agent; launcher then retrieved, verified and cleaned remaining resources. Wait-loop correction is separate from the experiment code.",
+  "post_audit": {
+    "billing_enabled": true,
+    "quotas": [
+      {
+        "limit": 200.0,
+        "metric": "CPUS",
+        "usage": 0.0
+      },
+      {
+        "limit": 8.0,
+        "metric": "NVIDIA_L4_GPUS",
+        "usage": 0.0
+      }
+    ],
+    "project_instance_count": 0,
+    "dream_instances": [],
+    "dream_inventory": {
+      "disks": [],
+      "addresses": [],
+      "routers": [],
+      "networks": []
+    },
+    "budget_alert": {
+      "status": "read",
+      "authorization": false,
+      "nerva": [
+        {
+          "specifiedAmount": {
+            "currencyCode": "AUD",
+            "units": "50"
+          }
+        }
+      ]
+    },
+    "remaining_credit_or_spending_allowance": "not established"
+  },
+  "extra_cleanup_inventory": {
+    "accounts": [],
+    "buckets": []
+  },
+  "reproducibility_limits": "Torch generator seed was not explicitly set. Raw tensor is retained; bit-identical regeneration is not established. meta.json records initial real_model_executed=false; final summary.json records actual completion true.",
+  "scope": "One real open-loop prediction from development seed 210. No actions dispatched, task success not evaluated, no learned closed-loop or transfer claim."
+}

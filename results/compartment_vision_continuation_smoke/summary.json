@@ -1,0 +1,121 @@
+{
+  "meta": {
+    "config": {
+      "name": "compartment_vision_continuation_smoke",
+      "seed0": 1,
+      "n_per_kind": 1,
+      "kinds": [
+        "drawer",
+        "lid",
+        "fixed"
+      ],
+      "methods": [
+        "dream_eig"
+      ],
+      "probe_budget": 12,
+      "perception": "vision",
+      "_purpose": "Development smoke, previously inspected seed 1. Full pipeline before the separate diagnostic run; report all failures. Not held-out evidence.",
+      "gates": {
+        "max_false_claims": 0
+      }
+    },
+    "git_sha": "7ef4d8af8cafeb92dcb5aae2cae884367688452e",
+    "dirty": true,
+    "mujoco": "3.16.0",
+    "wall_s": 184.20046758651733
+  },
+  "by_method": {
+    "dream_eig": {
+      "openable_n": 2,
+      "openable_success": 2,
+      "openable_success_rate": 1.0,
+      "openable_success_ci95": [
+        0.34237195288961925,
+        1.0
+      ],
+      "success_per_10_interactions": 1.3333333333333333,
+      "success_per_10_interactions_ci95": [
+        1.0,
+        2.0
+      ],
+      "mean_interactions_openable": 7.5,
+      "correct_outcomes_per_10_interactions": 1.3636363636363635,
+      "mean_probes_openable": 5.5,
+      "mean_exploration_robot_s": 32.85999999999907,
+      "mean_robot_s": 48.06000000001338,
+      "fixed_n": 1,
+      "correct_rejections": 1,
+      "correct_rejection_ci95": [
+        0.20654329147389294,
+        1.0
+      ],
+      "mean_interactions_fixed": 7.0,
+      "false_claims": 0,
+      "protective_stops": 0,
+      "link_collisions": 0,
+      "mean_failed_actions": 0.0,
+      "recovered": 0,
+      "drawer": {
+        "n": 1,
+        "success": 1,
+        "success_ci95": [
+          0.20654329147389294,
+          1.0
+        ],
+        "mean_interactions": 5.0,
+        "mean_probes": 4.0,
+        "identified_correctly": 1,
+        "investigation_status": {
+          "identified": 1
+        },
+        "median_axis_error_deg": 0.3781719441650899,
+        "mean_pre_action_pred_err_mm": 16.09066550555416,
+        "max_probe_slip_mm": 10.229295965126463,
+        "max_probe_force_n": 15.004908753935165
+      },
+      "lid": {
+        "n": 1,
+        "success": 1,
+        "success_ci95": [
+          0.20654329147389294,
+          1.0
+        ],
+        "mean_interactions": 10.0,
+        "mean_probes": 7.0,
+        "identified_correctly": 1,
+        "investigation_status": {
+          "identified": 1
+        },
+        "median_axis_error_deg": 9.906488494215473,
+        "mean_pre_action_pred_err_mm": 10.339659883210173,
+        "max_probe_slip_mm": 28.519852090628074,
+        "max_probe_force_n": 15.00302389907599
+      },
+      "fixed": {
+        "n": 1,
+        "success": 0,
+        "success_ci95": [
+          0.0,
+          0.7934567085261071
+        ],
+        "mean_interactions": 7.0,
+        "mean_probes": 7.0,
+        "identified_correctly": 1,
+        "investigation_status": {
+          "identified": 1
+        },
+        "mean_pre_action_pred_err_mm": 3.498784847735702,
+        "max_probe_slip_mm": 29.960021233477804,
+        "max_probe_force_n": 15.008841496836073
+      }
+    }
+  },
+  "paired": {},
+  "gates": {
+    "false_claims_all_methods": {
+      "value": 0,
+      "gate": 0,
+      "pass": true
+    }
+  }
+}

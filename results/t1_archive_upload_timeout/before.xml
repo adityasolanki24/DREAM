@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="2" time="0.644" timestamp="2026-10-24T16:20:20.696605+11:00" hostname="LAPTOP-H2LK8P6D"><testcase classname="tests.test_cloud" name="test_pre_vm_archive_upload_has_a_bounded_transfer_deadline[True]" time="0.001"><failure message="subprocess.TimeoutExpired: Command '['gcloud-test', 'storage', 'cp', 'source.tar.gz', 'gs://test/code.tar.gz', '--quiet']' timed out after 120 seconds">monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001D4BD5E4770&gt;
+transfer = True
+
+    @pytest.mark.parametrize("transfer", [True, False])
+    def test_pre_vm_archive_upload_has_a_bounded_transfer_deadline(monkeypatch, transfer):
+        """A slow upload must not inherit the short resource-control RPC deadline."""
+        monkeypatch.setattr(cloud.shutil, "which", lambda _: "gcloud-test")
+        deadlines = []
+    
+        def run(command, **kwargs):
+            deadlines.append(kwargs["timeout"])
+            if transfer and kwargs["timeout"] &lt; 180:
+                raise subprocess.TimeoutExpired(command, kwargs["timeout"])
+            return subprocess.CompletedProcess(command, 0, stdout="completed\n")
+    
+        monkeypatch.setattr(cloud.subprocess, "run", run)
+        args = (
+            ("storage", "cp", "source.tar.gz", "gs://test/code.tar.gz")
+            if transfer
+            else ("compute", "instances", "list")
+        )
+&gt;       assert cloud.gcloud(*args) == "completed"
+               ^^^^^^^^^^^^^^^^^^^
+
+tests\test_cloud.py:39: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+cloud\launch.py:57: in gcloud
+    return subprocess.run(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+command = ['gcloud-test', 'storage', 'cp', 'source.tar.gz', 'gs://test/code.tar.gz', '--quiet']
+kwargs = {'text': True, 'capture_output': True, 'check': True, 'timeout': 120}
+
+    def run(command, **kwargs):
+        deadlines.append(kwargs["timeout"])
+        if transfer and kwargs["timeout"] &lt; 180:
+&gt;           raise subprocess.TimeoutExpired(command, kwargs["timeout"])
+E           subprocess.TimeoutExpired: Command '['gcloud-test', 'storage', 'cp', 'source.tar.gz', 'gs://test/code.tar.gz', '--quiet']' timed out after 120 seconds
+
+tests\test_cloud.py:30: TimeoutExpired</failure></testcase><testcase classname="tests.test_cloud" name="test_pre_vm_archive_upload_has_a_bounded_transfer_deadline[False]" time="0.001" /></testsuite></testsuites>

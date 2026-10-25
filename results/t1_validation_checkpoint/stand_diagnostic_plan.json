@@ -1,0 +1,22 @@
+{
+  "workload": "isaac-t1-stand",
+  "zone": "us-central1-c",
+  "region": "us-central1",
+  "machine": "g2-standard-8",
+  "disk_gb": 200,
+  "max_minutes": 25,
+  "image": "common-cu129-ubuntu-2204-nvidia-580-v20261019",
+  "estimated_usd": 3.42,
+  "cost_note": "estimate, not a billing hard cap; VM lifetime is enforced by Google",
+  "approval_status": "NOT APPROVED; no allocation performed",
+  "requested_allowance_usd": 3.5,
+  "cost_components_usd": {
+    "compute": 0.3557,
+    "disk": 0.0117,
+    "NAT_gateway_IP": 0.0027,
+    "NAT_data_reserve_50_GiB": 2.25,
+    "storage_egress_contingency": 0.8
+  },
+  "scope": "standing PPO physics and first RGB-D only; no video, language/navigation model, forward or turn commands",
+  "recovery": "Google max-run DELETE 25m; host fetch/checksums/cleanup; preserve bucket if retrieval fails, recover by run manifest. No recurring authorization."
+}

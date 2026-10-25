@@ -1,0 +1,84 @@
+[
+  {
+    "tool": "observe_scene",
+    "arguments": "{}",
+    "status": "succeeded",
+    "message": "",
+    "data": {
+      "objects": [
+        {
+          "name": "red",
+          "time_s": 0.0,
+          "position_m": [
+            0.3705638382867537,
+            0.10967175001140576,
+            0.920500423991804
+          ],
+          "covariance_m2": [
+            [
+              4.120205847907091e-06,
+              -7.838778819469953e-08,
+              6.005302357292039e-08
+            ],
+            [
+              -7.838778819469963e-08,
+              4.163611796930575e-06,
+              -7.788193100106448e-08
+            ],
+            [
+              6.005302357292048e-08,
+              -7.78819310010645e-08,
+              4.119942885686463e-06
+            ]
+          ],
+          "radius_m": 0.02437925110568783,
+          "fit_rms_m": 0.0016172197442546104,
+          "pixels": 174,
+          "source": "rendered RGB-D, red segmentation, sphere surface fit",
+          "orientation": "unobservable for sphere"
+        }
+      ],
+      "fixtures": {
+        "target": [
+          [
+            -0.3242073601666998,
+            0.8778134593732829,
+            0.006931079295699805
+          ],
+          0.8558351403509783
+        ]
+      },
+      "holding": null,
+      "at_target": false,
+      "released": false,
+      "hand_closed": false,
+      "reached": false,
+      "belief": {
+        "p_movable": 0.5,
+        "probes": 0,
+        "model_inadequate": false
+      }
+    },
+    "time_s": 0.0
+  },
+  {
+    "tool": "verify_goal",
+    "arguments": "{'goal': InRegion(object='red', region='target')}",
+    "status": "succeeded",
+    "message": "RGB-D placement verification",
+    "data": {
+      "satisfied": false,
+      "margin_m": -0.8771900935904163,
+      "uncertain": false
+    },
+    "time_s": 0.0
+  },
+  {
+    "tool": "reach_object",
+    "arguments": "{'object': 'red'}",
+    "status": "stopped",
+    "message": "12 N tactile load budget exceeded",
+    "data": {},
+    "time_s": 0.0
+  }
+]

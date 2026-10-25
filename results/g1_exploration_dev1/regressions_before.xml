@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="5.577" timestamp="2026-10-24T17:42:16.347860+11:00" hostname="LAPTOP-H2LK8P6D"><testcase classname="tests.test_g1_exploration" name="test_development_scene_starts_without_finger_fixture_interpenetration" time="0.731"><failure message="AssertionError: assert 119.64757101934853 == 0&#10; +  where 119.64757101934853 = sum(dict_values([0.0, 0.0, 119.64757101934853]))&#10; +    where dict_values([0.0, 0.0, 119.64757101934853]) = &lt;built-in method values of dict object at 0x000001A5A2A97540&gt;()&#10; +      where &lt;built-in method values of dict object at 0x000001A5A2A97540&gt; = {'thumb': 0.0, 'index': 0.0, 'middle': 119.64757101934853}.values&#10; +        where {'thumb': 0.0, 'index': 0.0, 'middle': 119.64757101934853} = finger_forces('left')&#10; +          where finger_forces = &lt;dream.robot.g1.G1Controller object at 0x000001A5B8E01A90&gt;.finger_forces&#10; +            where &lt;dream.robot.g1.G1Controller object at 0x000001A5B8E01A90&gt; = &lt;dream.sim.g1.G1Env object at 0x000001A5B8E01940&gt;.robot">def test_development_scene_starts_without_finger_fixture_interpenetration():
+        cfg = json.loads(Path("experiments/configs/g1_explore_dev.json").read_text())
+        scene = cfg["cases"][0]
+        env = G1Env(build_g1(tuple(scene["position_m"]), camera=CameraSpec(**cfg["camera"]),
+                            contact_timeconst=cfg["contact_timeconst_s"],
+                            target_position=tuple(cfg["target_position_m"])))
+&gt;       assert sum(env.robot.finger_forces("left").values()) == 0
+E       AssertionError: assert 119.64757101934853 == 0
+E        +  where 119.64757101934853 = sum(dict_values([0.0, 0.0, 119.64757101934853]))
+E        +    where dict_values([0.0, 0.0, 119.64757101934853]) = &lt;built-in method values of dict object at 0x000001A5A2A97540&gt;()
+E        +      where &lt;built-in method values of dict object at 0x000001A5A2A97540&gt; = {'thumb': 0.0, 'index': 0.0, 'middle': 119.64757101934853}.values
+E        +        where {'thumb': 0.0, 'index': 0.0, 'middle': 119.64757101934853} = finger_forces('left')
+E        +          where finger_forces = &lt;dream.robot.g1.G1Controller object at 0x000001A5B8E01A90&gt;.finger_forces
+E        +            where &lt;dream.robot.g1.G1Controller object at 0x000001A5B8E01A90&gt; = &lt;dream.sim.g1.G1Env object at 0x000001A5B8E01940&gt;.robot
+
+tests\test_g1_exploration.py:21: AssertionError</failure></testcase><testcase classname="tests.test_g1_exploration" name="test_blue_target_detection_rejects_blue_floor_and_sphere_pose_comes_from_pixels" time="4.198"><failure message="AssertionError: assert ((array([-0.31260381,  0.87797312,  0.0068296 ]), 0.8563556896673123) is not None and np.float64(1.2955854418422232) &lt; 0.008)&#10; +  where np.float64(1.2955854418422232) = &lt;function norm at 0x000001A5B8DD7B30&gt;((array([-0.31260381,  0.87797312,  0.0068296 ]) - array([0.4  , 0.26 , 0.895])))&#10; +    where &lt;function norm at 0x000001A5B8DD7B30&gt; = &lt;module 'numpy.linalg' from 'C:\\Users\\24adi\\OneDrive\\DREAM\\.venv\\Lib\\site-packages\\numpy\\linalg\\__init__.py'&gt;.norm&#10; +      where &lt;module 'numpy.linalg' from 'C:\\Users\\24adi\\OneDrive\\DREAM\\.venv\\Lib\\site-packages\\numpy\\linalg\\__init__.py'&gt; = np.linalg">@pytest.mark.slow
+    def test_blue_target_detection_rejects_blue_floor_and_sphere_pose_comes_from_pixels():
+        camera_spec = CameraSpec(position=(.85, -.45, 1.35), target=(.36, .1, .91),
+                                 width=320, height=240)
+        pos = np.array([.37, .11, .92])
+        target = np.array([.4, .26, .895])
+        env = G1Env(build_g1(tuple(pos), camera=camera_spec, target_position=tuple(target)))
+        camera = RGBDCamera(env.model, camera_spec, np.random.default_rng(35))
+        try:
+            frame = camera.capture(env.data)
+            sphere = detect_sphere(frame)
+            fixture = detect_target(frame)
+            assert sphere is not None and np.linalg.norm(sphere.position-pos) &lt; .006
+&gt;           assert fixture is not None and np.linalg.norm(fixture[0]-target) &lt; .008
+E           AssertionError: assert ((array([-0.31260381,  0.87797312,  0.0068296 ]), 0.8563556896673123) is not None and np.float64(1.2955854418422232) &lt; 0.008)
+E            +  where np.float64(1.2955854418422232) = &lt;function norm at 0x000001A5B8DD7B30&gt;((array([-0.31260381,  0.87797312,  0.0068296 ]) - array([0.4  , 0.26 , 0.895])))
+E            +    where &lt;function norm at 0x000001A5B8DD7B30&gt; = &lt;module 'numpy.linalg' from 'C:\\Users\\24adi\\OneDrive\\DREAM\\.venv\\Lib\\site-packages\\numpy\\linalg\\__init__.py'&gt;.norm
+E            +      where &lt;module 'numpy.linalg' from 'C:\\Users\\24adi\\OneDrive\\DREAM\\.venv\\Lib\\site-packages\\numpy\\linalg\\__init__.py'&gt; = np.linalg
+
+tests\test_g1_exploration.py:37: AssertionError</failure></testcase></testsuite></testsuites>

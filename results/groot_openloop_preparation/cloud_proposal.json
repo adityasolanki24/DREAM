@@ -1,0 +1,32 @@
+{
+  "name": "dream-qwen-groot-proposal",
+  "workload": "groot-openloop",
+  "project": "nerva-adityapersonal",
+  "zone": "us-central1-c",
+  "region": "us-central1",
+  "machine": "g2-standard-8",
+  "disk_gb": 100,
+  "max_minutes": 45,
+  "bucket": "dream-qwen-groot-proposal",
+  "network": "dream-qwen-groot-proposal",
+  "subnet": "dream-qwen-groot-proposal-subnet",
+  "router": "dream-qwen-groot-proposal-router",
+  "nat": "dream-qwen-groot-proposal-nat",
+  "account": "dream-b8a0cabe8973b3bd",
+  "image": "common-cu129-ubuntu-2204-nvidia-580-v20261019",
+  "estimated_usd": 3.03,
+  "cost_note": "estimate, not a billing hard cap; VM lifetime is enforced by Google",
+  "authorization": "User granted ongoing cloud-job approval; no repeat approval requested. No allocation until authorized backbone access is established.",
+  "self_imposed_ceiling_usd": 3.5,
+  "scope": "one inference-only attempt, no actuator mapping",
+  "software": "Separate pinned CPython3.12/Torch2.9/Transformers4.57.3; upstream native SDPA fallback; physical policy compatibility unverified",
+  "cost_breakdown_usd": {
+    "compute": 0.640218234,
+    "disk": 0.0105,
+    "nat_ip": 0.0048,
+    "nat_processing_35gib": 1.575,
+    "storage_egress_reserve": 0.8
+  },
+  "credential": "Local login preflight before cloud mutation; one ephemeral secret with per-secret service-account access; never token in command values, source archive or results; secret deleted by scoped cleanup.",
+  "automatic_deletion": "Google max45min DELETE plus on-exit self-deletion; 60-second/out-exit artifact sync; local manifest verification before bucket deletion; recover manifest if interrupted"
+}

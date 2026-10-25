@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="9" time="3.442" timestamp="2026-10-24T17:14:56.518111+11:00" hostname="LAPTOP-H2LK8P6D"><testcase classname="tests.test_g1" name="test_both_hands_move_within_ranges_and_upstream_effort_limits" time="0.824" /><testcase classname="tests.test_g1" name="test_names_map_to_correct_joints_even_with_different_right_finger_order" time="0.291" /><testcase classname="tests.test_g1" name="test_targets_reject_atomically_and_state_does_not_alias_physics" time="0.321" /><testcase classname="tests.test_g1" name="test_reset_reproduces_actual_dynamics_and_latched_stop" time="0.308"><failure message="AssertionError: &#10;Not equal to tolerance rtol=1e-07, atol=0&#10;&#10;Mismatched elements: 10 / 43 (23.3%)&#10;First 5 mismatches are at indices:&#10; [0]: 0.0 (ACTUAL), -3.7243870670389104e-20 (DESIRED)&#10; [1]: 1.0842021724855044e-19 (ACTUAL), 6.249523290835316e-20 (DESIRED)&#10; [2]: 0.0 (ACTUAL), -5.644629677156698e-21 (DESIRED)&#10; [3]: 0.0 (ACTUAL), 9.780150321162856e-20 (DESIRED)&#10; [4]: 0.0 (ACTUAL), -3.694430469129731e-20 (DESIRED)&#10;Max absolute difference among violations: 1.02705995e-19&#10;Max relative difference among violations: 1.&#10; ACTUAL: array([ 0.000000e+00,  1.084202e-19,  0.000000e+00,  0.000000e+00,&#10;        0.000000e+00,  3.139930e-21,  0.000000e+00, -1.084202e-19,&#10;       -1.355253e-20,  0.000000e+00,  0.000000e+00, -1.648812e-22,...&#10; DESIRED: array([-3.724387e-20,  6.249523e-20, -5.644630e-21,  9.780150e-20,&#10;       -3.694430e-20,  3.139930e-21, -3.868625e-20, -5.919382e-20,&#10;       -8.787649e-21,  1.027060e-19, -3.599566e-20, -1.648812e-22,...">def test_reset_reproduces_actual_dynamics_and_latched_stop():
+        env = G1Env()
+        outcomes = []
+        for _ in range(2):
+            env.reset()
+            env.robot.set_hand("right", 0.5)
+            for _ in range(100):
+                env.step()
+            outcomes.append(env.data.qpos.copy())
+        np.testing.assert_array_equal(*outcomes)
+        env.data.qvel[env.robot.dadr[0]] = 21
+        env.step()
+        assert env.robot.state().protective_stop
+        # A protective hold must not command all position servos back to zero.
+&gt;       np.testing.assert_allclose(
+            env.data.ctrl - env.data.qfrc_bias[env.robot.dadr] / env.robot.kp,
+            env.robot.state().joint_pos,
+        )
+E       AssertionError: 
+E       Not equal to tolerance rtol=1e-07, atol=0
+E       
+E       Mismatched elements: 10 / 43 (23.3%)
+E       First 5 mismatches are at indices:
+E        [0]: 0.0 (ACTUAL), -3.7243870670389104e-20 (DESIRED)
+E        [1]: 1.0842021724855044e-19 (ACTUAL), 6.249523290835316e-20 (DESIRED)
+E        [2]: 0.0 (ACTUAL), -5.644629677156698e-21 (DESIRED)
+E        [3]: 0.0 (ACTUAL), 9.780150321162856e-20 (DESIRED)
+E        [4]: 0.0 (ACTUAL), -3.694430469129731e-20 (DESIRED)
+E       Max absolute difference among violations: 1.02705995e-19
+E       Max relative difference among violations: 1.
+E        ACTUAL: array([ 0.000000e+00,  1.084202e-19,  0.000000e+00,  0.000000e+00,
+E               0.000000e+00,  3.139930e-21,  0.000000e+00, -1.084202e-19,
+E              -1.355253e-20,  0.000000e+00,  0.000000e+00, -1.648812e-22,...
+E        DESIRED: array([-3.724387e-20,  6.249523e-20, -5.644630e-21,  9.780150e-20,
+E              -3.694430e-20,  3.139930e-21, -3.868625e-20, -5.919382e-20,
+E              -8.787649e-21,  1.027060e-19, -3.599566e-20, -1.648812e-22,...
+
+tests\test_g1.py:78: AssertionError</failure></testcase><testcase classname="tests.test_g1" name="test_adapter_rejects_incompatible_motor_convention" time="0.230" /><testcase classname="tests.test_g1" name="test_tools_reject_unsupported_grasp_and_honor_mid_execution_cancel" time="0.349" /><testcase classname="tests.test_g1" name="test_existing_vlm_boundary_can_dispatch_g1_tools_without_claiming_grasp" time="0.610" /><testcase classname="tests.test_g1" name="test_grasp_scoring_requires_unsupported_lift_and_two_distinct_fingers" time="0.010" /><testcase classname="tests.test_t1_residuals" name="test_inward_solver_velocity_does_not_hide_growing_sampled_penetration" time="0.042" /></testsuite></testsuites>

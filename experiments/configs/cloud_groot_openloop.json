@@ -1,0 +1,22 @@
+{
+  "machine": "g2-standard-8",
+  "zone": "us-central1-c",
+  "max_minutes": 45,
+  "image": "common-cu129-ubuntu-2204-nvidia-580-v20261019",
+  "cost": {
+    "checked_date": "2026-10-25",
+    "vm_usd_per_hour": 0.853624312,
+    "disk_usd_per_hour": 0.014,
+    "nat_gateway_and_ip_usd_per_hour": 0.0064,
+    "nat_usd_per_gib": 0.045,
+    "nat_download_gib": 35,
+    "storage_egress_and_reserve_usd": 0.8,
+    "sources": [
+      "https://cloud.google.com/products/compute/pricing/accelerator-optimized",
+      "https://cloud.google.com/nat/pricing",
+      "https://cloud.google.com/compute/disks-image-pricing"
+    ],
+    "note": "One inference-only REAL_G1 retry. Same reviewed L4 pricing and isolated Torch2.9/TF4.57.3 lock; source uses SDPA. Local HF token never transferred: only metadata and short-lived file-scoped CDN capabilities in private input bucket. 35 GiB total NAT, 45-minute VM DELETE, no policy actuation. Original offline-loader failure preserved."
+  },
+  "workload": "groot-openloop"
+}

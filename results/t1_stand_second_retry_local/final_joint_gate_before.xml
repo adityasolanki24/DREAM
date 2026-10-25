@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="8" time="1.163" timestamp="2026-10-24T15:56:05.727795+11:00" hostname="LAPTOP-H2LK8P6D"><testcase classname="tests.test_cloud" name="test_policy_evidence_validator_checks_complete_synthetic_contract[None]" time="0.051" /><testcase classname="tests.test_cloud" name="test_policy_evidence_validator_checks_complete_synthetic_contract[nan_action]" time="0.040" /><testcase classname="tests.test_cloud" name="test_policy_evidence_validator_checks_complete_synthetic_contract[missing_warmup]" time="0.047" /><testcase classname="tests.test_cloud" name="test_policy_evidence_validator_checks_complete_synthetic_contract[bad_decimation]" time="0.034" /><testcase classname="tests.test_cloud" name="test_policy_evidence_validator_checks_complete_synthetic_contract[final_lower]" time="0.037"><failure message="Failed: DID NOT RAISE RuntimeError">tmp_path = WindowsPath('C:/Users/24adi/AppData/Local/Temp/pytest-of-24adi/pytest-390/test_policy_evidence_validator4')
+corruption = 'final_lower'
+
+    @pytest.mark.parametrize(
+        "corruption",
+        [
+            None,
+            "nan_action",
+            "missing_warmup",
+            "bad_decimation",
+            "final_lower",
+            "final_upper",
+            "bad_limits",
+            "missing_limits",
+        ],
+    )
+    def test_policy_evidence_validator_checks_complete_synthetic_contract(tmp_path, corruption):
+        """A complete synthetic contract is accepted; never evidence of simulated standing."""
+        keys = (
+            "joint_position_rad",
+            "joint_velocity_rad_s",
+            "post_joint_position_rad",
+            "post_joint_velocity_rad_s",
+            "joint_target_rad",
+            "raw_ppo_action",
+            "target_limit_excess_rad",
+        )
+        rows = []
+        for i in range(226):
+            rows.append(
+                {
+                    **{key: [0.0] * 23 for key in keys},
+                    "time_s": (i + 1) * 0.02,
+                    "state_time_s": (i + 1) * 0.02,
+                    "physics_step_count": (i + 1) * 4,
+                    "tilt_rad": 0.0,
+                    "stopped": False,
+                    "state_finite": True,
+                    "score_position_m": [0.0, 0.0, 0.7],
+                    "orientation_wxyz": [1.0, 0.0, 0.0, 0.0],
+                    "body_linear_velocity_m_s": [0.0] * 3,
+                    "body_angular_velocity_rad_s": [0.0] * 3,
+                }
+            )
+        if corruption == "nan_action":
+            rows[60]["raw_ppo_action"][0] = float("nan")
+        if corruption == "bad_decimation":
+            rows[60]["physics_step_count"] += 1
+        if corruption == "final_lower":
+            rows[-1]["post_joint_position_rad"][14] = -1.000001
+        if corruption == "final_upper":
+            rows[-1]["post_joint_position_rad"][8] = 1.1
+        if corruption != "missing_limits":
+            limits = [[-1.0, 1.0]] * (22 if corruption == "bad_limits" else 23)
+            (tmp_path / "articulation.json").write_text(json.dumps({"limits_rad": limits}))
+        warmup = rows[:49] if corruption == "missing_warmup" else rows[:50]
+        (tmp_path / "warmup.jsonl").write_text("\n".join(json.dumps(r) for r in warmup))
+        record = {"rows": rows[50:], "case": "stand", "warmup_steps": 50, "physics_steps": 904}
+        if corruption:
+&gt;           with pytest.raises(RuntimeError, match="policy step evidence"):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE RuntimeError
+
+tests\test_cloud.py:198: Failed</failure></testcase><testcase classname="tests.test_cloud" name="test_policy_evidence_validator_checks_complete_synthetic_contract[final_upper]" time="0.038"><failure message="Failed: DID NOT RAISE RuntimeError">tmp_path = WindowsPath('C:/Users/24adi/AppData/Local/Temp/pytest-of-24adi/pytest-390/test_policy_evidence_validator5')
+corruption = 'final_upper'
+
+    @pytest.mark.parametrize(
+        "corruption",
+        [
+            None,
+            "nan_action",
+            "missing_warmup",
+            "bad_decimation",
+            "final_lower",
+            "final_upper",
+            "bad_limits",
+            "missing_limits",
+        ],
+    )
+    def test_policy_evidence_validator_checks_complete_synthetic_contract(tmp_path, corruption):
+        """A complete synthetic contract is accepted; never evidence of simulated standing."""
+        keys = (
+            "joint_position_rad",
+            "joint_velocity_rad_s",
+            "post_joint_position_rad",
+            "post_joint_velocity_rad_s",
+            "joint_target_rad",
+            "raw_ppo_action",
+            "target_limit_excess_rad",
+        )
+        rows = []
+        for i in range(226):
+            rows.append(
+                {
+                    **{key: [0.0] * 23 for key in keys},
+                    "time_s": (i + 1) * 0.02,
+                    "state_time_s": (i + 1) * 0.02,
+                    "physics_step_count": (i + 1) * 4,
+                    "tilt_rad": 0.0,
+                    "stopped": False,
+                    "state_finite": True,
+                    "score_position_m": [0.0, 0.0, 0.7],
+                    "orientation_wxyz": [1.0, 0.0, 0.0, 0.0],
+                    "body_linear_velocity_m_s": [0.0] * 3,
+                    "body_angular_velocity_rad_s": [0.0] * 3,
+                }
+            )
+        if corruption == "nan_action":
+            rows[60]["raw_ppo_action"][0] = float("nan")
+        if corruption == "bad_decimation":
+            rows[60]["physics_step_count"] += 1
+        if corruption == "final_lower":
+            rows[-1]["post_joint_position_rad"][14] = -1.000001
+        if corruption == "final_upper":
+            rows[-1]["post_joint_position_rad"][8] = 1.1
+        if corruption != "missing_limits":
+            limits = [[-1.0, 1.0]] * (22 if corruption == "bad_limits" else 23)
+            (tmp_path / "articulation.json").write_text(json.dumps({"limits_rad": limits}))
+        warmup = rows[:49] if corruption == "missing_warmup" else rows[:50]
+        (tmp_path / "warmup.jsonl").write_text("\n".join(json.dumps(r) for r in warmup))
+        record = {"rows": rows[50:], "case": "stand", "warmup_steps": 50, "physics_steps": 904}
+        if corruption:
+&gt;           with pytest.raises(RuntimeError, match="policy step evidence"):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE RuntimeError
+
+tests\test_cloud.py:198: Failed</failure></testcase><testcase classname="tests.test_cloud" name="test_policy_evidence_validator_checks_complete_synthetic_contract[bad_limits]" time="0.039"><failure message="Failed: DID NOT RAISE RuntimeError">tmp_path = WindowsPath('C:/Users/24adi/AppData/Local/Temp/pytest-of-24adi/pytest-390/test_policy_evidence_validator6')
+corruption = 'bad_limits'
+
+    @pytest.mark.parametrize(
+        "corruption",
+        [
+            None,
+            "nan_action",
+            "missing_warmup",
+            "bad_decimation",
+            "final_lower",
+            "final_upper",
+            "bad_limits",
+            "missing_limits",
+        ],
+    )
+    def test_policy_evidence_validator_checks_complete_synthetic_contract(tmp_path, corruption):
+        """A complete synthetic contract is accepted; never evidence of simulated standing."""
+        keys = (
+            "joint_position_rad",
+            "joint_velocity_rad_s",
+            "post_joint_position_rad",
+            "post_joint_velocity_rad_s",
+            "joint_target_rad",
+            "raw_ppo_action",
+            "target_limit_excess_rad",
+        )
+        rows = []
+        for i in range(226):
+            rows.append(
+                {
+                    **{key: [0.0] * 23 for key in keys},
+                    "time_s": (i + 1) * 0.02,
+                    "state_time_s": (i + 1) * 0.02,
+                    "physics_step_count": (i + 1) * 4,
+                    "tilt_rad": 0.0,
+                    "stopped": False,
+                    "state_finite": True,
+                    "score_position_m": [0.0, 0.0, 0.7],
+                    "orientation_wxyz": [1.0, 0.0, 0.0, 0.0],
+                    "body_linear_velocity_m_s": [0.0] * 3,
+                    "body_angular_velocity_rad_s": [0.0] * 3,
+                }
+            )
+        if corruption == "nan_action":
+            rows[60]["raw_ppo_action"][0] = float("nan")
+        if corruption == "bad_decimation":
+            rows[60]["physics_step_count"] += 1
+        if corruption == "final_lower":
+            rows[-1]["post_joint_position_rad"][14] = -1.000001
+        if corruption == "final_upper":
+            rows[-1]["post_joint_position_rad"][8] = 1.1
+        if corruption != "missing_limits":
+            limits = [[-1.0, 1.0]] * (22 if corruption == "bad_limits" else 23)
+            (tmp_path / "articulation.json").write_text(json.dumps({"limits_rad": limits}))
+        warmup = rows[:49] if corruption == "missing_warmup" else rows[:50]
+        (tmp_path / "warmup.jsonl").write_text("\n".join(json.dumps(r) for r in warmup))
+        record = {"rows": rows[50:], "case": "stand", "warmup_steps": 50, "physics_steps": 904}
+        if corruption:
+&gt;           with pytest.raises(RuntimeError, match="policy step evidence"):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE RuntimeError
+
+tests\test_cloud.py:198: Failed</failure></testcase><testcase classname="tests.test_cloud" name="test_policy_evidence_validator_checks_complete_synthetic_contract[missing_limits]" time="0.033"><failure message="Failed: DID NOT RAISE RuntimeError">tmp_path = WindowsPath('C:/Users/24adi/AppData/Local/Temp/pytest-of-24adi/pytest-390/test_policy_evidence_validator7')
+corruption = 'missing_limits'
+
+    @pytest.mark.parametrize(
+        "corruption",
+        [
+            None,
+            "nan_action",
+            "missing_warmup",
+            "bad_decimation",
+            "final_lower",
+            "final_upper",
+            "bad_limits",
+            "missing_limits",
+        ],
+    )
+    def test_policy_evidence_validator_checks_complete_synthetic_contract(tmp_path, corruption):
+        """A complete synthetic contract is accepted; never evidence of simulated standing."""
+        keys = (
+            "joint_position_rad",
+            "joint_velocity_rad_s",
+            "post_joint_position_rad",
+            "post_joint_velocity_rad_s",
+            "joint_target_rad",
+            "raw_ppo_action",
+            "target_limit_excess_rad",
+        )
+        rows = []
+        for i in range(226):
+            rows.append(
+                {
+                    **{key: [0.0] * 23 for key in keys},
+                    "time_s": (i + 1) * 0.02,
+                    "state_time_s": (i + 1) * 0.02,
+                    "physics_step_count": (i + 1) * 4,
+                    "tilt_rad": 0.0,
+                    "stopped": False,
+                    "state_finite": True,
+                    "score_position_m": [0.0, 0.0, 0.7],
+                    "orientation_wxyz": [1.0, 0.0, 0.0, 0.0],
+                    "body_linear_velocity_m_s": [0.0] * 3,
+                    "body_angular_velocity_rad_s": [0.0] * 3,
+                }
+            )
+        if corruption == "nan_action":
+            rows[60]["raw_ppo_action"][0] = float("nan")
+        if corruption == "bad_decimation":
+            rows[60]["physics_step_count"] += 1
+        if corruption == "final_lower":
+            rows[-1]["post_joint_position_rad"][14] = -1.000001
+        if corruption == "final_upper":
+            rows[-1]["post_joint_position_rad"][8] = 1.1
+        if corruption != "missing_limits":
+            limits = [[-1.0, 1.0]] * (22 if corruption == "bad_limits" else 23)
+            (tmp_path / "articulation.json").write_text(json.dumps({"limits_rad": limits}))
+        warmup = rows[:49] if corruption == "missing_warmup" else rows[:50]
+        (tmp_path / "warmup.jsonl").write_text("\n".join(json.dumps(r) for r in warmup))
+        record = {"rows": rows[50:], "case": "stand", "warmup_steps": 50, "physics_steps": 904}
+        if corruption:
+&gt;           with pytest.raises(RuntimeError, match="policy step evidence"):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE RuntimeError
+
+tests\test_cloud.py:198: Failed</failure></testcase></testsuite></testsuites>

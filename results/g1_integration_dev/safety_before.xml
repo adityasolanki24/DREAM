@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="1.578" timestamp="2026-10-24T17:14:32.896254+11:00" hostname="LAPTOP-H2LK8P6D"><testcase classname="tests.test_g1" name="test_reset_reproduces_actual_dynamics_and_latched_stop" time="0.690"><failure message="AssertionError: &#10;Not equal to tolerance rtol=1e-07, atol=0&#10;&#10;Mismatched elements: 43 / 43 (100%)&#10;First 5 mismatches are at indices:&#10; [0]: 0.015241206628825932 (ACTUAL), 0.020709277473592858 (DESIRED)&#10; [1]: 0.006546420750856363 (ACTUAL), -1.9662470575240683e-05 (DESIRED)&#10; [2]: -0.0018864209421662892 (ACTUAL), -0.0001002162096680592 (DESIRED)&#10; [3]: 0.051674205255794046 (ACTUAL), 0.0006558022608040365 (DESIRED)&#10; [4]: 0.056575069223830966 (ACTUAL), 0.00048464118934345136 (DESIRED)&#10;Max absolute difference among violations: 0.15133879&#10;Max relative difference among violations: 6352.19826316&#10; ACTUAL: array([ 1.524121e-02,  6.546421e-03, -1.886421e-03,  5.167421e-02,&#10;        5.657507e-02,  5.512611e-07,  1.524121e-02, -8.533461e-04,&#10;        1.168978e-04,  3.202972e-03,  1.910146e-03,  1.387779e-18,...&#10; DESIRED: array([ 2.070928e-02, -1.966247e-05, -1.002162e-04,  6.558023e-04,&#10;        4.846412e-04,  5.403037e-06,  2.398982e-06, -2.997214e-07,&#10;       -1.037378e-06, -4.994465e-06,  2.352076e-05,  2.013637e-07,...">def test_reset_reproduces_actual_dynamics_and_latched_stop():
+        env = G1Env()
+        outcomes = []
+        for _ in range(2):
+            env.reset()
+            env.robot.set_hand("right", 0.5)
+            for _ in range(100):
+                env.step()
+            outcomes.append(env.data.qpos.copy())
+        np.testing.assert_array_equal(*outcomes)
+        env.data.qvel[env.robot.dadr[0]] = 21
+        env.step()
+        assert env.robot.state().protective_stop
+        # A protective hold must not command all position servos back to zero.
+&gt;       np.testing.assert_allclose(
+            env.data.ctrl - env.data.qfrc_bias[env.robot.dadr] / env.robot.kp,
+            env.robot.state().joint_pos,
+        )
+E       AssertionError: 
+E       Not equal to tolerance rtol=1e-07, atol=0
+E       
+E       Mismatched elements: 43 / 43 (100%)
+E       First 5 mismatches are at indices:
+E        [0]: 0.015241206628825932 (ACTUAL), 0.020709277473592858 (DESIRED)
+E        [1]: 0.006546420750856363 (ACTUAL), -1.9662470575240683e-05 (DESIRED)
+E        [2]: -0.0018864209421662892 (ACTUAL), -0.0001002162096680592 (DESIRED)
+E        [3]: 0.051674205255794046 (ACTUAL), 0.0006558022608040365 (DESIRED)
+E        [4]: 0.056575069223830966 (ACTUAL), 0.00048464118934345136 (DESIRED)
+E       Max absolute difference among violations: 0.15133879
+E       Max relative difference among violations: 6352.19826316
+E        ACTUAL: array([ 1.524121e-02,  6.546421e-03, -1.886421e-03,  5.167421e-02,
+E               5.657507e-02,  5.512611e-07,  1.524121e-02, -8.533461e-04,
+E               1.168978e-04,  3.202972e-03,  1.910146e-03,  1.387779e-18,...
+E        DESIRED: array([ 2.070928e-02, -1.966247e-05, -1.002162e-04,  6.558023e-04,
+E               4.846412e-04,  5.403037e-06,  2.398982e-06, -2.997214e-07,
+E              -1.037378e-06, -4.994465e-06,  2.352076e-05,  2.013637e-07,...
+
+tests\test_g1.py:78: AssertionError</failure></testcase><testcase classname="tests.test_g1" name="test_adapter_rejects_incompatible_motor_convention" time="0.236"><failure message="Failed: DID NOT RAISE ValueError">def test_adapter_rejects_incompatible_motor_convention():
+        from dream.robot.g1 import G1Controller
+    
+        env = G1Env()
+        env.model.actuator_biasprm[0, 2] = 0  # raw motor / different damping contract
+&gt;       with pytest.raises(ValueError, match="servo"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\test_g1.py:91: Failed</failure></testcase></testsuite></testsuites>

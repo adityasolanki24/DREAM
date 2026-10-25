@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="0.759" timestamp="2026-10-24T12:30:26.332011+11:00" hostname="LAPTOP-H2LK8P6D"><testcase classname="tests.test_t1_adapter" name="test_initialization_clears_root_velocity_from_reset[residual0]" time="0.049"><failure message="AssertionError: &#10;Arrays are not equal&#10;&#10;Mismatched elements: 4 / 6 (66.7%)&#10;Mismatch at indices:&#10; [0]: 0.1 (ACTUAL), 0.0 (DESIRED)&#10; [1]: -0.2 (ACTUAL), 0.0 (DESIRED)&#10; [3]: 0.3 (ACTUAL), 0.0 (DESIRED)&#10; [5]: -0.1 (ACTUAL), 0.0 (DESIRED)&#10;Max absolute difference among violations: 0.3&#10;Max relative difference among violations: inf&#10; ACTUAL: array([ 0.1, -0.2,  0. ,  0.3,  0. , -0.1])&#10; DESIRED: array([0., 0., 0., 0., 0., 0.])">residual = [0.1, -0.2, 0, 0.3, 0, -0.1]
+
+    @pytest.mark.parametrize("residual", [[.1, -.2, 0, .3, 0, -.1], [-.4, .1, .2, 0, -.2, .5]])
+    def test_initialization_clears_root_velocity_from_reset(residual):
+        """Execute the real initialization block on an articulation carrying reset motion."""
+        art = SimpleNamespace(velocity=np.array(residual))
+        art.set_joint_positions = lambda q: setattr(art, "q", q)
+        art.set_joint_velocities = lambda dq: setattr(art, "dq", dq)
+        art.set_world_pose = lambda **kw: setattr(art, "pose", kw)
+        art.set_world_velocity = lambda velocity: setattr(art, "velocity", velocity)
+        body = SimpleNamespace(art=art, actor=SimpleNamespace(
+            indices=np.arange(22, -1, -1), default=np.arange(23) * .01))
+        statements = ast.parse(textwrap.dedent(inspect.getsource(IsaacT1.__init__))).body[0].body
+        begin = next(i for i, node in enumerate(statements) if isinstance(node, ast.Assign)
+                     and any(isinstance(t, ast.Name) and t.id == "initial" for t in node.targets))
+        end = next(i for i, node in enumerate(statements) if isinstance(node, ast.Assign)
+                   and any(isinstance(t, ast.Attribute) and t.attr == "odom" for t in node.targets))
+        exec(compile(ast.Module(body=statements[begin:end], type_ignores=[]), "init_state", "exec"),
+             {"self": body, "np": np})
+&gt;       np.testing.assert_equal(art.velocity, np.zeros(6))
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 4 / 6 (66.7%)
+E       Mismatch at indices:
+E        [0]: 0.1 (ACTUAL), 0.0 (DESIRED)
+E        [1]: -0.2 (ACTUAL), 0.0 (DESIRED)
+E        [3]: 0.3 (ACTUAL), 0.0 (DESIRED)
+E        [5]: -0.1 (ACTUAL), 0.0 (DESIRED)
+E       Max absolute difference among violations: 0.3
+E       Max relative difference among violations: inf
+E        ACTUAL: array([ 0.1, -0.2,  0. ,  0.3,  0. , -0.1])
+E        DESIRED: array([0., 0., 0., 0., 0., 0.])
+
+tests\test_t1_adapter.py:32: AssertionError</failure></testcase><testcase classname="tests.test_t1_adapter" name="test_initialization_clears_root_velocity_from_reset[residual1]" time="0.013"><failure message="AssertionError: &#10;Arrays are not equal&#10;&#10;Mismatched elements: 5 / 6 (83.3%)&#10;Mismatch at indices:&#10; [0]: -0.4 (ACTUAL), 0.0 (DESIRED)&#10; [1]: 0.1 (ACTUAL), 0.0 (DESIRED)&#10; [2]: 0.2 (ACTUAL), 0.0 (DESIRED)&#10; [4]: -0.2 (ACTUAL), 0.0 (DESIRED)&#10; [5]: 0.5 (ACTUAL), 0.0 (DESIRED)&#10;Max absolute difference among violations: 0.5&#10;Max relative difference among violations: inf&#10; ACTUAL: array([-0.4,  0.1,  0.2,  0. , -0.2,  0.5])&#10; DESIRED: array([0., 0., 0., 0., 0., 0.])">residual = [-0.4, 0.1, 0.2, 0, -0.2, 0.5]
+
+    @pytest.mark.parametrize("residual", [[.1, -.2, 0, .3, 0, -.1], [-.4, .1, .2, 0, -.2, .5]])
+    def test_initialization_clears_root_velocity_from_reset(residual):
+        """Execute the real initialization block on an articulation carrying reset motion."""
+        art = SimpleNamespace(velocity=np.array(residual))
+        art.set_joint_positions = lambda q: setattr(art, "q", q)
+        art.set_joint_velocities = lambda dq: setattr(art, "dq", dq)
+        art.set_world_pose = lambda **kw: setattr(art, "pose", kw)
+        art.set_world_velocity = lambda velocity: setattr(art, "velocity", velocity)
+        body = SimpleNamespace(art=art, actor=SimpleNamespace(
+            indices=np.arange(22, -1, -1), default=np.arange(23) * .01))
+        statements = ast.parse(textwrap.dedent(inspect.getsource(IsaacT1.__init__))).body[0].body
+        begin = next(i for i, node in enumerate(statements) if isinstance(node, ast.Assign)
+                     and any(isinstance(t, ast.Name) and t.id == "initial" for t in node.targets))
+        end = next(i for i, node in enumerate(statements) if isinstance(node, ast.Assign)
+                   and any(isinstance(t, ast.Attribute) and t.attr == "odom" for t in node.targets))
+        exec(compile(ast.Module(body=statements[begin:end], type_ignores=[]), "init_state", "exec"),
+             {"self": body, "np": np})
+&gt;       np.testing.assert_equal(art.velocity, np.zeros(6))
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       Mismatched elements: 5 / 6 (83.3%)
+E       Mismatch at indices:
+E        [0]: -0.4 (ACTUAL), 0.0 (DESIRED)
+E        [1]: 0.1 (ACTUAL), 0.0 (DESIRED)
+E        [2]: 0.2 (ACTUAL), 0.0 (DESIRED)
+E        [4]: -0.2 (ACTUAL), 0.0 (DESIRED)
+E        [5]: 0.5 (ACTUAL), 0.0 (DESIRED)
+E       Max absolute difference among violations: 0.5
+E       Max relative difference among violations: inf
+E        ACTUAL: array([-0.4,  0.1,  0.2,  0. , -0.2,  0.5])
+E        DESIRED: array([0., 0., 0., 0., 0., 0.])
+
+tests\test_t1_adapter.py:32: AssertionError</failure></testcase></testsuite></testsuites>

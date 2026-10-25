@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="5" time="0.333" timestamp="2026-10-25T19:06:01.704063+11:00" hostname="LAPTOP-H2LK8P6D"><testcase classname="tests.test_g1_release" name="test_release_lowers_by_measured_radius_and_three_sigma_before_unloading" time="0.010" /><testcase classname="tests.test_g1_release" name="test_ordinary_skill_failure_preserves_grip_but_safety_stop_does_not[ValueError-True]" time="0.001"><failure message="AssertionError: assert ['hard'] == ['preserve']&#10;  &#10;  At index 0 diff: 'hard' != 'preserve'&#10;  Use -v to get more diff">error = &lt;class 'ValueError'&gt;, preserve = True
+
+    @pytest.mark.parametrize("error,preserve", [(ValueError, True), (ActionStopped, False)])
+    def test_ordinary_skill_failure_preserves_grip_but_safety_stop_does_not(error, preserve):
+        events = []
+        robot = SimpleNamespace(
+            grasp_pose=lambda side: (np.zeros(3), np.array([1, 0, 0, 0])),
+            state=lambda: SimpleNamespace(time=0.0, protective_stop=False),
+            hold=lambda: events.append("hard"),
+            hold_for_reasoning=lambda: events.append("preserve"),
+        )
+        toolbox = ExplorationToolbox(robot, lambda: None, None)
+    
+        def failed(**kwargs):
+            raise error("bounded execution failure")
+    
+        toolbox._reach_object = failed
+        result = toolbox.call("reach_object", {"object": "red"})
+        assert not result.ok
+&gt;       assert events == (["preserve"] if preserve else ["hard"])
+E       AssertionError: assert ['hard'] == ['preserve']
+E         
+E         At index 0 diff: 'hard' != 'preserve'
+E         Use -v to get more diff
+
+tests\test_g1_release.py:47: AssertionError</failure></testcase><testcase classname="tests.test_g1_release" name="test_ordinary_skill_failure_preserves_grip_but_safety_stop_does_not[ActionStopped-False]" time="0.001" /><testcase classname="tests.test_g1_release" name="test_two_release_failures_exhaust_recovery_budget" time="0.008"><failure message="AssertionError: assert (False)&#10; +  where False = isinstance(ToolCall(name='inspect_object', args={'object': 'red'}), &lt;class 'dream.runtime.agent.Finish'&gt;)">def test_two_release_failures_exhaust_recovery_budget():
+        from dream.runtime.agent import Finish, Step, ToolCall
+        from dream.runtime.exploration import ExplorationPlanner
+        from dream.tools.goals import InRegion
+        from dream.tools.toolbox import ToolResult
+    
+        history = [Step(ToolCall("release_object"), ToolResult("release_object", "failed", "timeout"), 0)] * 2
+        decision = ExplorationPlanner().next_action(InRegion("red", "target"), {"objects": []}, {}, history)
+&gt;       assert isinstance(decision, Finish) and not decision.success
+E       AssertionError: assert (False)
+E        +  where False = isinstance(ToolCall(name='inspect_object', args={'object': 'red'}), &lt;class 'dream.runtime.agent.Finish'&gt;)
+
+tests\test_g1_release.py:58: AssertionError</failure></testcase><testcase classname="tests.test_g1_release" name="test_lowering_uses_observed_support_instead_of_requiring_arm_convergence" time="0.001"><failure message="TypeError: ExplorationToolbox._move() got an unexpected keyword argument 'stop_near_support'">def test_lowering_uses_observed_support_instead_of_requiring_arm_convergence():
+        clock = [0.0]
+        robot = SimpleNamespace(
+            grasp_pose=lambda side: (np.zeros(3), np.array([1, 0, 0, 0])),
+            state=lambda: SimpleNamespace(time=clock[0]),
+            reach=lambda *args: None,
+            hold_for_reasoning=lambda: None,
+        )
+        centre = np.array([0.4, 0.26, 0.895])
+        toolbox = ExplorationToolbox(robot, lambda: None, SimpleNamespace(target=(centre, 0.065)))
+        toolbox._object = lambda: SimpleNamespace(
+            position=centre + [0, 0, 0.021], radius=0.021, covariance=np.eye(3) * 0.002**2,
+        )
+        toolbox._advance = lambda dt: clock.__setitem__(0, clock[0] + dt)
+&gt;       error = toolbox._move(centre + [0, 0, 0.027], stop_near_support=True)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: ExplorationToolbox._move() got an unexpected keyword argument 'stop_near_support'
+
+tests\test_g1_release.py:75: TypeError</failure></testcase></testsuite></testsuites>

@@ -1,0 +1,35 @@
+{
+  "scope": "Predeclared development challenge: offset beyond nominal capture region; no controller tuning",
+  "sim_dt_s": 0.001,
+  "sample_hz": 100,
+  "render": "phase endpoints; original stills, no video or interpolated frames",
+  "phases_s": {
+    "open": 0.5,
+    "close": 2.0,
+    "lift": 2.0,
+    "hold": 1.0,
+    "release": 1.5
+  },
+  "lift_elbow_rad": -0.35,
+  "cases": [
+    {
+      "name": "outside_capture_region",
+      "offset_from_palm_m": [
+        0.14,
+        -0.09,
+        0
+      ],
+      "radius_m": 0.025,
+      "mass_kg": 0.05
+    }
+  ],
+  "gates": {
+    "hand_contact_force_n": 0.01,
+    "object_displacement_m": 0.001,
+    "lift_above_start_m": 0.02,
+    "hold_min_distinct_finger_chains": 2,
+    "hold_min_fraction": 0.9,
+    "release_drop_m": 0.02
+  },
+  "gate_rationale": "Commissioning gates, frozen before these runs: nontrivial force/displacement; 2 cm unsupported lift and >=2 distinct finger chains for >=90% of final 1 s hold. Contact or pedestal retention alone cannot pass a grasp."
+}

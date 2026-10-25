@@ -40,7 +40,7 @@ tasks.
 
 The objective is a system that can:
 
-- receive an unfamiliar physical goal;
+- receive an unfamiliar natural-language physical goal;
 - understand its environment and work out what needs to happen;
 - use the physical capabilities it has;
 - acquire missing knowledge through observation and experimentation;
@@ -52,7 +52,9 @@ The long-term question DREAM should be able to answer is:
 > Given what I can observe, what I can physically do, and what I have learned so far, how can I
 > accomplish this new goal?
 
-It must not need a complete task-specific program for every new objective.
+It must not need a complete task-specific program for every new objective. The research
+direction includes long-horizon, feedback-driven skill composition and transfer across
+embodiments, including future humanoid systems; none is established by architectural intent.
 
 **Target behaviours.** These are directions, not claims:
 
@@ -108,12 +110,14 @@ there must not be described as working. In summary:
 
 4. **Camera perception, first slice** (`dream/perception/`): a classical RGB-D pipeline replaces
    the object tracker for tabletop pick-and-place. It is a colour-and-depth baseline for box-like
-   objects, not open-world vision. Camera-driven mechanism discovery does not work yet, so
-   handle poses for discovery still come from the oracle-assisted tracker.
+   objects, not open-world vision. Camera-driven mechanism discovery has mixed development
+   outcomes and is not held-out validated; validated compartment results still use the
+   oracle-assisted handle tracker. Keep successes and failures visible in the README.
 
-There is no language understanding (goals are structured; no LLM is integrated) and no
-experience memory. The only embodiment used for manipulation is a simulated Panda with a
-top-down parallel gripper.
+A pretrained multimodal runtime now selects typed tools from language and camera observations;
+its measured scope belongs in the README. Its motor execution is classical. No learned-action
+policy, persistent experience memory or Isaac Sim embodiment is validated. The manipulation
+embodiment remains a simulated Panda with a top-down parallel gripper.
 
 ---
 
@@ -404,9 +408,17 @@ than separate demonstrations. Build each component only when a vertical slice ne
 never create placeholder packages. The MuJoCo Panda is the first manipulation embodiment, not a
 limit of the architecture. Mechanism discovery is one tool, not the project's purpose.
 
+The intended hierarchy combines multimodal goal understanding; bounded programmatic skill
+composition; persistent object-centric and relational world representation; reusable learned
+manipulation policies over robot-specific controllers; active discovery; learned predictive
+models only when validated; experience and acquired-skill memory; deterministic safety with
+independent evaluation; and embodiment adapters. Planned components are not created until a
+vertical slice uses and tests them. Generated task programs must use typed operations, explicit
+preconditions and predicates, bounded loops/retries and cancellation, never arbitrary Python.
+
 | | Component | Responsibility | Status / home |
 |---|---|---|---|
-| A | Embodied reasoning and task planning | Interpret goals, choose skills and tools, track multi-step progress; may use pretrained (V)LMs behind an interface | rule-based planner over structured goals with preconditions: `dream/runtime/` (LLM planner planned) |
+| A | Embodied reasoning and task planning | Interpret goals, choose skills and tools, track multi-step progress; may use pretrained (V)LMs behind an interface | structured-goal planner and multimodal typed-tool runtime: `dream/runtime/`; bounded task-program composition planned |
 | B | Perception and scene understanding | Object poses, relations, affordances *with uncertainty*, from robot sensors | camera backend `dream/perception/` (RGB-D detection, world model; camera driver `dream/sim/camera.py`); oracle-assisted trackers in `dream/sim/tabletop_env.py` as the baseline |
 | C | Reusable motor skills and control | Reach, grasp, place, probe, pull along a constraint, release; reuse existing controllers | `dream/skills/` (manipulation, articulation); typed tools in `dream/tools/` |
 | D | Physical prediction and world modelling | Interpretable models first; learned dynamics only when they measurably win | quasi-static mechanism model, `dream/agent/model.py` |
@@ -501,28 +513,58 @@ Work on **one coherent vertical slice at a time**. The README names the current 
 3. A task runtime with structured tool calling.
 4. Several tasks in shared scenes without a script per task.
 
-**Current: camera-driven perception, then camera-driven discovery.** Milestone 11 (discovery
-in Panda task execution) is implemented with the oracle tracker on a narrowed scene and audited
-in the README. Camera pick-and-place works; mechanism discovery from camera measurements is the
-next dependency. The discovery milestone's goals remain: The milestone must
-demonstrate that DREAM can do the following, with held-out evidence and a clear account of the
-simplifications used:
-- encounter an unfamiliar mechanism and recognise that knowledge is missing;
-- select informative experiments and execute them through the real controller;
-- update its physical understanding and operate using the discovered constraint;
-- compose that with other skills;
-- verify the task, and recover or decline when appropriate.
+**Current: genuine foundation-model inference in supported G1 physical exploration.**
+Prioritise real Qwen CUDA decisions through the existing VLM runtime, rendered observations,
+exploration tools and independent scoring. Compare against the deterministic planner on
+identical scenes, preserving failures. Then establish genuine GR00T REAL_G1 open-loop
+inference in its isolated compatible environment; matching action dimensions alone never
+authorize actuator mapping. Each new paid workload requires a fresh itemised estimate and
+explicit dollar-cap approval. Synchronous inference does not establish real-time control.
+Preserve
+the Panda and T1 baselines. Use RGB-D estimates with uncertainty, bounded proprioceptive
+control, tactile/displacement evidence and independent contact/object scoring. Object scene
+parameters never enter decisions. Keep the fixed pelvis explicit. Prioritise physically
+valid initial scenes, contact-aware release and bounded recovery across parameter shifts;
+numerically converged solver settings are not measured material calibration. Require fresh
+evaluation after a held-out failure guides a correction. Do not expand to articulated
+mechanisms or free-base motion before this closed-loop slice has reliable evidence.
+No new T1 cloud run or paid infrastructure is authorized by this milestone. Pretrained motor
+reuse still requires verified cameras, state, units, frames, normalization, action horizon
+and control frequency, with no silent classical fallback.
 
 **Next, in order:**
-1. Camera-based perception instead of oracle-assisted poses.
-2. Real language or vision-language reasoning and tool calling, behind the `Planner` interface,
-   with a deterministic stub in tests.
-3. Persistent experience memory that changes decisions, measured against no memory.
-4. More general manipulation skills and task compositions, removing recorded simplifications
-   (for example, handle types and collision-aware placement).
-5. Broader generalisation tests across physical environments.
-6. Learned motor or world models, where demonstrably beneficial.
-7. More embodiments and whole-body control, when justified.
+1. Preserve and diagnose learned Panda manipulation failures; test bounded chunk execution
+   without changing safety limits to fit a demonstration.
+2. Validate ordinary goal-directed Booster T1 walking with a compatible pretrained Isaac Lab
+   locomotion policy in an isolated Isaac Sim environment. Preserve the Panda baseline.
+3. Audit NavGPT-3's observation and cumulative local-waypoint contract, then connect it only
+   after locomotion validation. Navigation predictions never authorize teleports or joint
+   commands. Runtime authority, sensor freshness, deterministic safety and independent scoring
+   stay outside the model. Habitat harness compatibility is not Isaac humanoid transfer.
+4. Record genuine simulation frames and action events, including original footage and timing;
+   edited video labels model, controller, simulator, speed changes and verified outcome.
+5. Evaluate new compositions and shifted conditions before claiming transfer.
+6. Add persistent experience retrieval only with evidence that it changes useful decisions.
+7. Broaden manipulation and embodiments when justified.
+
+The humanoid direction tests whether visual navigation can compose with DREAM's existing
+manipulation and discovery capabilities. Audit APM/NERVA only as references; DREAM owns its
+adapter and never changes their checkout or cloud resources. Reuse requires verified source,
+policy observation/action conventions, software compatibility and recorded licensing. A CPU
+policy invocation or deterministic waypoint test is not evidence of physical walking. Do not
+integrate real NavGPT inference before ordinary walking is validated, or claim navigation,
+manipulation and discovery are one humanoid capability until that composition is executed.
+
+Camera-driven mechanism discovery remains partial. Keep lid successes, drawer failures,
+fixed refusals and all original hard cases reproducible; no scene simplification to improve a
+video. Its unresolved dependencies include calibrated handle uncertainty, slip discrimination,
+position-only adequacy checks and grasping from uncertain vision estimates.
+
+Before each new paid workload provide exact hardware/region, software compatibility, runtime,
+itemised storage/network/compute estimate, automatic expiry and recovery/cleanup procedure,
+then obtain explicit user approval. An earlier workload's allowance does not authorize a new
+VLA or simulator workload. Keep original outputs and failures. Weights, caches, credentials
+and large videos stay outside Git and OneDrive; link recorded artifacts after verifying them.
 
 Avoid tangents. Do not jump to impressive but unrelated experiments, and do not optimise
 drawer-opening indefinitely when the next general capability is ready to build. More variants of

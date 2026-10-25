@@ -1,0 +1,76 @@
+diff --git a/cloud/launch.py b/cloud/launch.py
+index 83cf14a..6265699 100644
+--- a/cloud/launch.py
++++ b/cloud/launch.py
+@@ -61,7 +61,7 @@ def plan(project: str, cfg: dict, name: str) -> dict:
+         raise ValueError("supply a valid --project or DREAM_GCP_PROJECT")
+     if not re.fullmatch(r"dream-qwen-[a-z0-9-]{1,35}", name):
+         raise ValueError("run names must be DREAM-specific")
+-    if cfg["machine"] != "g2-standard-8" or cfg["zone"] != "us-central1-a":
++    if cfg["machine"] != "g2-standard-8" or cfg["zone"] not in ("us-central1-a", "us-central1-c"):
+         raise ValueError("this pilot is restricted to one reviewed L4 configuration")
+     minutes = cfg["max_minutes"]
+     if not isinstance(minutes, int) or isinstance(minutes, bool) or not 1 <= minutes <= 45:
+@@ -394,7 +394,9 @@ def recover(manifest: Path, yes: bool) -> None:
+     if not yes:
+         raise ValueError("--yes is required to stop and clean up this DREAM run")
+     p = json.loads(manifest.read_text())
+-    expected = plan(p["project"], json.loads(CONFIG.read_text()), p["name"])
++    # A later pilot's zone must not redirect recovery of an earlier allocation attempt.
++    cfg = {**json.loads(CONFIG.read_text()), "zone": p["zone"]}
++    expected = plan(p["project"], cfg, p["name"])
+     for field in ("zone", "region", "bucket", "network", "subnet", "router", "nat", "account"):
+         if p[field] != expected[field]:
+             raise ValueError(f"manifest resource mismatch: {field}")
+diff --git a/experiments/configs/cloud_qwen_pilot.json b/experiments/configs/cloud_qwen_pilot.json
+index 909f470..7159d5c 100644
+--- a/experiments/configs/cloud_qwen_pilot.json
++++ b/experiments/configs/cloud_qwen_pilot.json
+@@ -1,6 +1,6 @@
+ {
+   "machine": "g2-standard-8",
+-  "zone": "us-central1-a",
++  "zone": "us-central1-c",
+   "max_minutes": 45,
+   "image": "common-cu129-ubuntu-2204-nvidia-580-v20261019",
+   "cost": {
+diff --git a/tests/test_cloud.py b/tests/test_cloud.py
+index e6c2c5f..d6d841c 100644
+--- a/tests/test_cloud.py
++++ b/tests/test_cloud.py
+@@ -28,6 +28,35 @@ def test_pilot_is_private_isolated_and_deleted_even_if_the_job_hangs():
+     assert not any("nerva" in arg for arg in command)
+ 
+ 
++@pytest.mark.parametrize("zone", ["us-central1-a", "us-central1-c"])
++def test_reviewed_regional_zones_keep_the_same_hardware_budget_and_deadline(zone):
++    cfg = json.loads(cloud.CONFIG.read_text())
++    cfg["zone"] = zone
++    p = cloud.plan("example-project", cfg, "dream-qwen-test")
++    assert p["zone"] == zone and p["region"] == "us-central1"
++    assert p["machine"] == "g2-standard-8" and p["max_minutes"] == 45
++    assert p["estimated_usd"] == _plan()["estimated_usd"]
++
++
++def test_recovery_keeps_the_manifest_zone_when_the_next_pilot_changes_zone(tmp_path, monkeypatch):
++    p = _plan()
++    p["zone"] = "us-central1-a"
++    manifest = tmp_path / "manifest.json"
++    manifest.write_text(json.dumps(p))
++    cfg = json.loads(cloud.CONFIG.read_text())
++    cfg["zone"] = "us-central1-c"
++    config = tmp_path / "config.json"
++    config.write_text(json.dumps(cfg))
++    monkeypatch.setattr(cloud, "CONFIG", config)
++    calls = []
++    monkeypatch.setattr(cloud, "gcloud", lambda *args: calls.append(args) or "")
++    monkeypatch.setattr(cloud, "fetch", lambda *args: None)
++    monkeypatch.setattr(cloud, "cleanup", lambda *args, **kwargs: [])
++    monkeypatch.setattr(cloud, "audit", lambda *args: {})
++    cloud.recover(manifest, True)
++    assert "--zone=us-central1-a" in calls[0]
++
++
+ @pytest.mark.parametrize(
+     "field,value",
+     [

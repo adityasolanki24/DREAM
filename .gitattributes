@@ -1,0 +1,32 @@
+# Guest checksums must survive Windows checkouts byte-for-byte.
+cloud/*.sh text eol=lf
+results/qwen_cloud_pilot_dev/raw/** -text
+results/molmo_cloud_openloop/raw/** -text
+results/molmo_cloud_feedback_dev/raw/** -text
+results/t1_cloud_startup_failure/raw/** -text
+results/t1_isaac_initialization_failure/raw/** -text -whitespace
+# Preserve pytest traceback whitespace in the original machine-generated evidence.
+results/t1_validation_checkpoint/*.xml -whitespace
+results/t1_stand_target_failure/raw/** -text -whitespace
+results/t1_stand_followup_local/*.xml -whitespace
+results/t1_stand_state_failure/raw/** -text -whitespace
+results/t1_stand_second_retry_local/*.xml -whitespace
+results/t1_archive_upload_timeout/*.xml -whitespace
+results/t1_archive_upload_timeout/raw/** -text -whitespace
+# Upstream models and recovered diagnostics must retain their published checksums.
+third_party/unitree_g1/** -text
+results/g1_t1_knee_audit/original/** -text -whitespace
+results/g1_integration_dev/*.xml -whitespace
+# Preserve sensor arrays, source snapshots, failure traces and validation evidence.
+results/g1_exploration_*/** -text -whitespace
+results/g1_contact_resolution_dev/** -text -whitespace
+results/groot_first_cuda_failure/out/** -text -whitespace
+results/groot_cuda_openloop/raw/** -text -whitespace
+results/groot_retry_validation/*.xml -whitespace
+results/groot_dispatch_failure/raw/** -text -whitespace
+results/g1_autonomy_recovery/** -text -whitespace
+results/g1_release_*/** -text -whitespace
+results/g1_autonomy_dev/postrun_* -text -whitespace
+results/g1_autonomy_dev/goal_contract_before.txt -text -whitespace
+results/g1_autonomy_dev/transfer_runtime* -text -whitespace
+results/g1_autonomy_cuda_frozen/** -text -whitespace

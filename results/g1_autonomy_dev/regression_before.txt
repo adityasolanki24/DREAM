@@ -1,0 +1,73 @@
+FFF                                                                      [100%]
+================================== FAILURES ===================================
+___ test_reasoning_hold_stops_arm_motion_without_resetting_finger_setpoints ___
+
+    def test_reasoning_hold_stops_arm_motion_without_resetting_finger_setpoints():
+        env = G1Env()
+        robot = env.robot
+        robot.set_hand("left", 0.5)
+        robot.move_arm("left", np.array([0, 0, 0, 0.1, 0, 0, 0]))
+        for _ in range(100):
+            env.step()
+        hand = np.array(["_hand_" in name for name in robot.names])
+        target, reference = robot.target.copy(), robot.reference.copy()
+        q = robot.state().joint_pos
+>       robot.hold_for_reasoning()
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'G1Controller' object has no attribute 'hold_for_reasoning'
+
+tests\test_g1_autonomy.py:22: AttributeError
+____ test_inspection_does_not_move_or_open_when_a_fresh_object_is_visible _____
+
+    def test_inspection_does_not_move_or_open_when_a_fresh_object_is_visible():
+        obj = SphereEstimate(0, np.array([0.37, 0.11, 0.92]), np.eye(3)*4e-6, 0.025, 0, 100)
+        robot = SimpleNamespace(grasp_pose=lambda side: (obj.position, np.array([1, 0, 0, 0])))
+        toolbox = ExplorationToolbox(robot, lambda: None, SimpleNamespace(observe=lambda: obj))
+        toolbox._open = lambda: (_ for _ in ()).throw(AssertionError("visible object opened"))
+        toolbox._move = lambda point: (_ for _ in ()).throw(AssertionError("visible object moved"))
+>       assert toolbox._inspect_object("red").ok
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_g1_autonomy.py:35: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+dream\tools\object_exploration.py:226: in _inspect_object
+    self._open()
+tests\test_g1_autonomy.py:33: in <lambda>
+    toolbox._open = lambda: (_ for _ in ()).throw(AssertionError("visible object opened"))
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+.0 = <tuple_iterator object at 0x0000013043192DA0>
+
+>   toolbox._open = lambda: (_ for _ in ()).throw(AssertionError("visible object opened"))
+E   AssertionError: visible object opened
+
+tests\test_g1_autonomy.py:33: AssertionError
+_____ test_tracking_loss_during_inspection_preserves_grasp_and_reacquires _____
+
+    def test_tracking_loss_during_inspection_preserves_grasp_and_reacquires():
+        obj = SphereEstimate(0, np.array([0.37, 0.11, 0.92]), np.eye(3)*4e-6, 0.025, 0, 100)
+        observations = iter([None, obj])
+        robot = SimpleNamespace(
+            grasp_pose=lambda side: (obj.position, np.array([1, 0, 0, 0])),
+            finger_forces=lambda side: {"thumb": 1., "middle": 1.},
+        )
+        toolbox = ExplorationToolbox(robot, lambda: None,
+                                     SimpleNamespace(observe=lambda: next(observations)))
+        toolbox.holding = "red"
+        toolbox.closure = 0.4
+        moves = []
+        toolbox._move = lambda point: moves.append(point)
+        toolbox._open = lambda: (_ for _ in ()).throw(AssertionError("lost held object released"))
+>       assert toolbox._inspect_object("red").ok
+E       AssertionError: assert False
+E        +  where False = ToolResult(tool='inspect_object', status='rejected', message='cannot release a held object to inspect', data={}, sim_time=0.0).ok
+E        +    where ToolResult(tool='inspect_object', status='rejected', message='cannot release a held object to inspect', data={}, sim_time=0.0) = _inspect_object('red')
+E        +      where _inspect_object = <dream.tools.object_exploration.ExplorationToolbox object at 0x00000130431A5810>._inspect_object
+
+tests\test_g1_autonomy.py:52: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_g1_autonomy.py::test_reasoning_hold_stops_arm_motion_without_resetting_finger_setpoints
+FAILED tests/test_g1_autonomy.py::test_inspection_does_not_move_or_open_when_a_fresh_object_is_visible
+FAILED tests/test_g1_autonomy.py::test_tracking_loss_during_inspection_preserves_grasp_and_reacquires
+3 failed in 3.66s

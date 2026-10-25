@@ -26,6 +26,7 @@ import numpy as np
 
 from dream.perception.vision import VisionPerception
 from dream.runtime.agent import Episode, TaskAgent
+from dream.sim.camera import CameraSpec
 from dream.sim.tabletop import TabletopSpec, sample_compartment_scene, sample_tabletop
 from dream.sim.tabletop_env import TabletopEnv
 from dream.tools.goals import Goal, parse_goal
@@ -62,6 +63,7 @@ class LiveSession:
         log_dir: str | pathlib.Path | None = None,
         scene: str = "tray",
         perception: str = "oracle",
+        extra_cameras: tuple[CameraSpec, ...] = (),
     ) -> None:
         """``perception``: "oracle" (noisy ground-truth trackers) or "vision" (the RGB-D camera
         pipeline). Logs record which one ran."""
@@ -73,7 +75,10 @@ class LiveSession:
         self.scene_kind = scene
         self.rate = rate  # simulated seconds per wall second (0 = as fast as possible)
         self.env = TabletopEnv(
-            make_scene(scene, seed), np.random.default_rng([seed, 1]), camera_seed=seed
+            make_scene(scene, seed),
+            np.random.default_rng([seed, 1]),
+            camera_seed=seed,
+            extra_cameras=extra_cameras,
         )
         self.perception = (
             self.env

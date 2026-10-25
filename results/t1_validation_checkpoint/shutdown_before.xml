@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="0.390" timestamp="2026-10-23T23:11:25.540442+11:00" hostname="LAPTOP-H2LK8P6D"><testcase classname="tests.test_t1_packaging" name="test_episode_evidence_precedes_process_terminating_shutdown[False]" time="0.009"><failure message="FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\24adi\\AppData\\Local\\Temp\\pytest-of-24adi\\pytest-345\\test_episode_evidence_precedes0\\episode.json'">tmp_path = WindowsPath('C:/Users/24adi/AppData/Local/Temp/pytest-of-24adi/pytest-345/test_episode_evidence_precedes0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000194FEEE48A0&gt;
+fails = False
+
+    @pytest.mark.parametrize("fails", [False, True])
+    def test_episode_evidence_precedes_process_terminating_shutdown(tmp_path, monkeypatch, fails):
+        """Kit shutdown may terminate Python before execute returns to its caller."""
+        def close():
+            raise SystemExit(0)
+    
+        monkeypatch.setattr(runner, "start_application", lambda: SimpleNamespace(close=close))
+    
+        def episode(*args):
+            if fails:
+                raise ValueError("diagnostic failure before first action")
+            return {"gate_pass": False, "physics_executed": True}
+    
+        monkeypatch.setattr(runner, "run_episode", episode, raising=False)
+        with pytest.raises(SystemExit):
+            runner.execute(tmp_path, {}, "stand", tmp_path)
+        assert json.loads((tmp_path / "partial_trace.json").read_text()) == []
+        if fails:
+            failure = json.loads((tmp_path / "failure.json").read_text())
+            assert failure["type"] == "ValueError"
+            assert "diagnostic failure" in failure["traceback"]
+            assert not (tmp_path / "episode.json").exists()
+        else:
+&gt;           assert json.loads((tmp_path / "episode.json").read_text())["gate_pass"] is False
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_t1_packaging.py:95: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\miniconda3\Lib\pathlib\_local.py:546: in read_text
+    return PathBase.read_text(self, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\miniconda3\Lib\pathlib\_abc.py:632: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/24adi/AppData/Local/Temp/pytest-of-24adi/pytest-345/test_episode_evidence_precedes0/episode.json')
+mode = 'r', buffering = -1, encoding = 'locale', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+&gt;       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\24adi\\AppData\\Local\\Temp\\pytest-of-24adi\\pytest-345\\test_episode_evidence_precedes0\\episode.json'
+
+..\..\miniconda3\Lib\pathlib\_local.py:537: FileNotFoundError</failure></testcase><testcase classname="tests.test_t1_packaging" name="test_episode_evidence_precedes_process_terminating_shutdown[True]" time="0.004"><failure message="FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\24adi\\AppData\\Local\\Temp\\pytest-of-24adi\\pytest-345\\test_episode_evidence_precedes1\\failure.json'">tmp_path = WindowsPath('C:/Users/24adi/AppData/Local/Temp/pytest-of-24adi/pytest-345/test_episode_evidence_precedes1')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000194FEEE4510&gt;
+fails = True
+
+    @pytest.mark.parametrize("fails", [False, True])
+    def test_episode_evidence_precedes_process_terminating_shutdown(tmp_path, monkeypatch, fails):
+        """Kit shutdown may terminate Python before execute returns to its caller."""
+        def close():
+            raise SystemExit(0)
+    
+        monkeypatch.setattr(runner, "start_application", lambda: SimpleNamespace(close=close))
+    
+        def episode(*args):
+            if fails:
+                raise ValueError("diagnostic failure before first action")
+            return {"gate_pass": False, "physics_executed": True}
+    
+        monkeypatch.setattr(runner, "run_episode", episode, raising=False)
+        with pytest.raises(SystemExit):
+            runner.execute(tmp_path, {}, "stand", tmp_path)
+        assert json.loads((tmp_path / "partial_trace.json").read_text()) == []
+        if fails:
+&gt;           failure = json.loads((tmp_path / "failure.json").read_text())
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_t1_packaging.py:90: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\miniconda3\Lib\pathlib\_local.py:546: in read_text
+    return PathBase.read_text(self, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\miniconda3\Lib\pathlib\_abc.py:632: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/24adi/AppData/Local/Temp/pytest-of-24adi/pytest-345/test_episode_evidence_precedes1/failure.json')
+mode = 'r', buffering = -1, encoding = 'locale', errors = None, newline = None
+
+    def open(self, mode='r', buffering=-1, encoding=None,
+             errors=None, newline=None):
+        """
+        Open the file pointed to by this path and return a file object, as
+        the built-in open() function does.
+        """
+        if "b" not in mode:
+            encoding = io.text_encoding(encoding)
+&gt;       return io.open(self, mode, buffering, encoding, errors, newline)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\24adi\\AppData\\Local\\Temp\\pytest-of-24adi\\pytest-345\\test_episode_evidence_precedes1\\failure.json'
+
+..\..\miniconda3\Lib\pathlib\_local.py:537: FileNotFoundError</failure></testcase></testsuite></testsuites>

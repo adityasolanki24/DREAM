@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.867" timestamp="2026-10-24T12:04:48.418907+11:00" hostname="LAPTOP-H2LK8P6D"><testcase classname="tests.test_cloud" name="test_stand_flags_and_camera_do_not_replace_policy_step_evidence" time="0.058"><failure message="Failed: DID NOT RAISE RuntimeError">tmp_path = WindowsPath('C:/Users/24adi/AppData/Local/Temp/pytest-of-24adi/pytest-372/test_stand_flags_and_camera_do0')
+
+    def test_stand_flags_and_camera_do_not_replace_policy_step_evidence(tmp_path):
+        """Synthetic fixture, deliberately missing warmup and actual actuator telemetry."""
+        folder = tmp_path / "stand"
+        folder.mkdir()
+        (tmp_path / "EXIT_CODE").write_text("0")
+        record = {
+            "physics_executed": True, "real_actor_executed": True, "navgpt_executed": False,
+            "gate_pass": True, "rows": [{"time_s": t, "tilt_rad": 0} for t in (1.02, 1.04)],
+            "score_final_position_m": [0, 0, 0.7], "score_target_m": [0, 0, 0.7],
+            "status": "waypoint reached", "final_speed_m_s": 0.0,
+        }
+        (folder / "episode.json").write_text(json.dumps(record))
+        (folder / "sensor_calibration.json").write_text("{}")
+        np.savez_compressed(folder / "sensor_0000.npz",
+                            rgb=np.zeros((400, 400, 3), np.uint8), depth=np.ones((400, 400)))
+&gt;       with pytest.raises(RuntimeError, match="policy step evidence"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE RuntimeError
+
+tests\test_cloud.py:132: Failed</failure></testcase></testsuite></testsuites>

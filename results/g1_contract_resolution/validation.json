@@ -1,0 +1,54 @@
+{
+  "base_git_sha": "97398ed582010e38c4273ddd44157b2934601dcb",
+  "python": "3.13.14",
+  "tests": {
+    "fast": {
+      "tests": 291,
+      "failures": 0,
+      "errors": 0,
+      "suite_time_s": 62.665,
+      "xml_sha256": "c61a7b27e0af79476ccd33df3799c963e56a0d4d3f76c4a5a9d4ca653abf57dc"
+    },
+    "full": {
+      "tests": 318,
+      "failures": 0,
+      "errors": 0,
+      "suite_time_s": 309.375,
+      "xml_sha256": "ae0efa4ac3b1ea5a699a74ff1933ff71233756ea3300701ac735fd289ea6311c"
+    }
+  },
+  "pytest_reported_duration_s": {
+    "fast": 62.67,
+    "full": 309.39
+  },
+  "tested_sources_sha256": {
+    "experiments/g1_recording.py": "eacc0a4e31e50e23e82cd40a36cfe82faab35371239a431c6f54972d5e8cb628",
+    "experiments/g1_dataset.py": "13857a377213245252ea0e0cf5e643439fd03fedce652f1a4099ad3a80570102",
+    "experiments/g1_modality.py": "491c9ab40621c8019c34e6f09ef6bc5f6e96c9a652bfe4460f949f9c2d694734",
+    "experiments/resolve_g1_contract.py": "b0914054ed740ab0fc19f8d0eda38b17192d4c52c5fde4de3b2b548bcfc9ba37",
+    "experiments/g1_explore_unknown.py": "68d268b6e0c34bf00be397331099baefc1cdacca3bdbc057e12aafc401d5d951",
+    "experiments/g1_dexterous.py": "ac9eb6b82015ecda059c8ab053bc0d4c21cd092c851060ac762db9b89773c9f8",
+    "experiments/configs/g1_adaptation_dev.json": "9da88892929d175ac934b962e1e4fccbb66945ca2d09af2e1e9d7ff2b691b8f6",
+    "tests/test_g1_dataset.py": "177894f9d73486a3543be46573655eca1dc3553d15cecca7516c0f985b7d64e1",
+    "tests/test_g1_recording.py": "3bc196aba9867b6847197971dc25a73c78d55c00b11d51961260b137e0893bb1",
+    "cloud/vm_startup.sh": "6d350246492663f7989c8162263a5ad9e8bcbd302bb4a46ed52b07fce55f65e8",
+    "pyproject.toml": "91b53f1dc61ba1f21bfa246984ebdd2000f8e72ba3db6dcf41e4c539bef109ff"
+  },
+  "classification": "Engineering/measurement; no physics, scene, controller, limits, scoring or model weight changes",
+  "local_physical_evaluation": "results/g1_adaptation_dev, original free_heavier/seed4003, deterministic planner and classical motor skills",
+  "model_calls": 0,
+  "paid_workloads": 0,
+  "upstream_training_loader_executed": false,
+  "fine_tuning_executed": false,
+  "learned_physical_milestone_achieved": false,
+  "checks": [
+    "pytest -m not-slow and full suite",
+    "ruff check .",
+    "ruff format --check .",
+    "Git Bash -n cloud/vm_startup.sh",
+    "git diff --check",
+    "111-frame public trajectory range/FK comparison",
+    "actual wide/hand MP4 frame count, resolution, FPS and SHA-256",
+    "exported Parquet values vs original measured state and next reference"
+  ]
+}

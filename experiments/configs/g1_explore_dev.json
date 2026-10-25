@@ -1,0 +1,16 @@
+{
+  "scope": "development, fixed pelvis and prepositioned reachable workspace; object state is hidden from decisions",
+  "instruction": "Investigate the unfamiliar red object, determine whether it can be moved, and if possible move it to the blue target.",
+  "backend": "deterministic",
+  "strategy": "eig",
+  "max_steps": 12,
+  "contact_timeconst_s": 0.005,
+  "target_position_m": [0.40, 0.26, 0.895],
+  "camera": {"position": [0.85, -0.45, 1.35], "target": [0.36, 0.1, 0.91], "width": 320, "height": 240},
+  "gates": {"penetration_m": 0.001, "localization_m": 0.006, "rest_height_m": 0.008, "max_episode_s": 90},
+  "cases": [
+    {"name": "free", "position_m": [0.37, 0.11, 0.92], "radius_m": 0.025, "mass_kg": 0.05, "constrained": false, "seed": 10},
+    {"name": "constrained", "position_m": [0.37, 0.11, 0.92], "radius_m": 0.025, "mass_kg": 0.05, "constrained": true, "seed": 11}
+  ],
+  "gate_rationale": "1 mm penetration is 4% of nominal radius and the numerical sensitivity gate, not hardware compliance. 6 mm localization is 3x the covariance floor. Goal scoring independently requires the released sphere on the platform, within its edges, and no safety/penetration violation."
+}

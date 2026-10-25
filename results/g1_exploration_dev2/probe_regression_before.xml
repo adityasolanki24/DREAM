@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.672" timestamp="2026-10-24T17:44:01.696933+11:00" hostname="LAPTOP-H2LK8P6D"><testcase classname="tests.test_g1_exploration" name="test_probe_measures_resistance_instead_of_requiring_successful_target_tracking" time="0.091"><failure message="ValueError: obstructed reach">def test_probe_measures_resistance_instead_of_requiring_successful_target_tracking():
+        """An obstructed exploration command is evidence, not an ordinary reach failure."""
+        from dream.perception.sphere import SphereEstimate
+        from dream.tools.object_exploration import ExplorationToolbox
+    
+        class Robot:
+            def grasp_pose(self, side):
+                return np.array([.37, .11, .92]), np.array([1., 0, 0, 0])
+            def finger_forces(self, side):
+                return {"thumb": 1., "middle": 1., "index": 0.}
+            def reach(self, *args):
+                pass
+    
+        toolbox = ExplorationToolbox(Robot(), lambda: None, None)
+        estimate = SphereEstimate(0, np.array([.37, .11, .92]), np.eye(3)*.002**2, .025, .001, 100)
+        toolbox._object = lambda: estimate
+        toolbox._close = lambda: True
+        toolbox._advance = lambda duration: None
+        toolbox._move = lambda *args: (_ for _ in ()).throw(ValueError("obstructed reach"))
+&gt;       result = toolbox._probe_object("red")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_g1_exploration.py:34: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+dream\tools\object_exploration.py:198: in _probe_object
+    error = self._move(hand_before + [0, 0, selection["distance_m"]])
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\test_g1_exploration.py:33: in &lt;lambda&gt;
+    toolbox._move = lambda *args: (_ for _ in ()).throw(ValueError("obstructed reach"))
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+.0 = &lt;tuple_iterator object at 0x000002A4C49B6770&gt;
+
+&gt;   toolbox._move = lambda *args: (_ for _ in ()).throw(ValueError("obstructed reach"))
+E   ValueError: obstructed reach
+
+tests\test_g1_exploration.py:33: ValueError</failure></testcase></testsuite></testsuites>

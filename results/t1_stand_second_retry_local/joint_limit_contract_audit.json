@@ -1,0 +1,62 @@
+{
+  "reference_revision": "f74e2dec7ab162f9c9df0468afc2ec6381682772",
+  "reference_file": "src/apm_isaac/lab/t1.py",
+  "observed_physics_extension": "omni.physx-107.3.26",
+  "sources": [
+    {
+      "url": "https://raw.githubusercontent.com/isaac-sim/IsaacLab/v2.3.2/source/isaaclab_tasks/isaaclab_tasks/manager_based/locomotion/velocity/velocity_env_cfg.py",
+      "licence": "BSD-3-Clause",
+      "finding": "Inherited terminations are timeout and base contact. The pinned T1 changes the contact body to Trunk; it adds no joint-range termination. Joint observations are offsets, without clipping to mechanical travel."
+    },
+    {
+      "url": "https://raw.githubusercontent.com/isaac-sim/IsaacLab/v2.3.2/source/isaaclab/isaaclab/envs/mdp/terminations.py",
+      "licence": "BSD-3-Clause",
+      "finding": "Optional joint_pos_out_of_limit checks soft limits. Availability of this helper does not mean this task enables it."
+    },
+    {
+      "url": "https://docs.omniverse.nvidia.com/kit/docs/omni_physics/107.3/dev_guide/rigid_bodies_articulations/joints.html",
+      "finding": "Articulation limits are hard constraints; soft-limit stiffness/damping through PhysxLimitAPI is not supported for ordinary articulation joints. No residual allowance is established by that API."
+    },
+    {
+      "url": "https://nvidia-omniverse.github.io/PhysX/physx/5.6.1/docs/Articulations.html#articulation-drive-stability",
+      "finding": "Finite iterative constraint solving can leave joint limits violated when drive, joint limit and contact compete. The documented mechanism is compatible with a residual here, but neither proves this run's cause nor supplies a universally safe numeric tolerance."
+    }
+  ],
+  "reviewed_contract": {
+    "observations": "body linear velocity3, body angular velocity3, projected gravity3, SI command3, named q minus home23, unscaled dq23, previous raw action23; total81",
+    "normalization": "No additional normalization; inherited PPO runner actor_obs_normalization=False",
+    "action": "home plus0.5 times raw23 output; no target clipping; identical physical joint limits",
+    "pd_gains": "hip100/3, knee150/4, waist100/3, ankle40/2, arm40/2, head20/1",
+    "armature_kg_m2": "head0.005, others0.01",
+    "solver": "8 position and4 velocity iterations, self-collision disabled, max depenetration velocity1m/s",
+    "initial_state": "root z0.70m, audited home joints, zero joint and six-dimensional root velocity; root-velocity parity corrected locally",
+    "frequency": "physics200Hz, actor50Hz, four substeps per action",
+    "drive_limits": "USD effort/velocity limits retained and saved in articulation.json; no relaxed drive limit",
+    "remaining_differences": "Stock deployment mass and ground/contact material; training observation corruption, mass/material randomization and external pushes not reproduced. Material parity is not established."
+  },
+  "saved_failure": {
+    "file": "results/t1_stand_state_failure/raw/stand/warmup_failure.json",
+    "joint": "Left_Knee_Pitch",
+    "interpretation": "Measured q is below zero while dq is inward. Prior PPO targets push below zero. Drive/limit/contact competition is a plausible explanation, not a demonstrated harmless roundoff error. The 50Hz samples cannot resolve the preceding200Hz trajectory."
+  },
+  "decision": {
+    "guard_changed": false,
+    "observations_clipped": false,
+    "calibrated_safe_tolerance_available": false,
+    "reason": "One excursion cannot calibrate a safe bound or distinguish transient solver error from persistent constraint failure. Neither the source task nor the reviewed PhysX documentation specifies an acceptable physical residual. Choosing a value to admit this sample would be tuning on the failure.",
+    "local_correction": "Restore training reset parity; preserve all200Hz proprioception and residuals for diagnosis, plus root score state and traceback on failure.",
+    "still_unresolved": "A nonzero residual acceptance contract and its physical safety validation. Do not describe the knee rejection as fixed.",
+    "next_physical_test": "New separately approved stand diagnostic with current exact guard. If an excursion recurs, stop and retain all substeps. If none recurs, require the existing50-action warmup, longer stand, stability and RGB-D gates. No automatic tolerance search or paid retry."
+  },
+  "new_dependencies_or_vendored_code": false,
+  "physics_executed_by_this_audit": false,
+  "root_reset_api_audit": {
+    "url": "https://docs.isaacsim.omniverse.nvidia.com/5.1.0/py/source/extensions/isaacsim.core.prims/docs/index.html#isaacsim.core.prims.SingleArticulation.set_world_velocity",
+    "signature": "set_world_velocity(velocity: ndarray)",
+    "shape": [
+      6
+    ],
+    "meaning": "Set articulation root linear and angular velocity; used only during initialization.",
+    "verification": "Confirmed in Isaac Sim5.1 SingleArticulation documentation; real physical reset effect unvalidated."
+  }
+}

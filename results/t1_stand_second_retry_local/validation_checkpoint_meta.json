@@ -1,0 +1,58 @@
+{
+  "base_git_sha": "5a4d2179c41cb361003cc730182f7d3ffe45ac4b",
+  "dirty": true,
+  "source_sha256": {
+    "cloud/launch.py": "7eb1d06ebac8a8aad69b9d6bb881eb88516a3ecfca321f4c6526b8668448b977",
+    "cloud/vm_startup.sh": "bd8c563561bf37c8189d6d4fe8d5e3c4fbcb42447ff949c4a58fea0a88e323c7",
+    "dream/sim/isaac_t1.py": "350a0f22e99d7c0b2b2702ee99a8001d5a4cebc6b7c3754b699be687133ae77d",
+    "dream/robot/t1.py": "7769894d24b2780e40f8e57bd0e6d3c67eabe9cc180e84a422b2984120d65e39",
+    "experiments/isaac_t1_walk.py": "6e5a2c0bd06e93be79d3a9ef8d3ba70cfffee60c07e5f206c775def4758083d1",
+    "experiments/inspect_t1_stand.py": "224b4bf96ffbd77c90f6ff977f3a05df36cdaabb4eeb0641d669bfa8458e2ad3",
+    "tests/test_t1_adapter.py": "74ce477f333d9a3d008701cea628ff9f3743cd760b6579109af8ab19e7189c15",
+    "tests/test_t1_packaging.py": "0e052359d8efda815b96ae933d01c93e4b7c46b33f3accd63f725dba271dddd2",
+    "tests/test_navigation.py": "6209f8decef5f925608f97f00cd9625b53373b1c9f05ed4b45e4e4df9f4863a3",
+    "tests/test_cloud_telemetry.py": "514334ad757ed7a8d48d886176b8f2fac0c02dc9c5cb3f7fc79868cf12e5f939",
+    "tests/test_cloud.py": "73da6e595d6102d6b1dd71fde796109ec222a9139bd8a848e2e7b11259a595ab"
+  },
+  "env": {
+    "MUJOCO_GL": "glfw",
+    "PYOPENGL_PLATFORM": "win32",
+    "OPENBLAS_NUM_THREADS": "1"
+  },
+  "commands": [
+    "python -m pytest -m \"not slow\" -q --junitxml=results/t1_stand_second_retry_local/fast_checkpoint.xml",
+    "python -m pytest -q --junitxml=results/t1_stand_second_retry_local/full_checkpoint.xml"
+  ],
+  "note": "New final scoring defect justifies fresh final suite. No physical execution in this local validation.",
+  "results": {
+    "fast_checkpoint": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "239",
+      "time": "109.639",
+      "timestamp": "2026-10-24T15:57:30.598951+11:00",
+      "hostname": "LAPTOP-H2LK8P6D"
+    },
+    "full_checkpoint": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "261",
+      "time": "451.919",
+      "timestamp": "2026-10-24T15:59:22.006918+11:00",
+      "hostname": "LAPTOP-H2LK8P6D"
+    }
+  },
+  "python": "3.13.14 | packaged by Anaconda, Inc. | (main, Jul  9 2026, 14:26:41) [MSC v.1942 64 bit (AMD64)]",
+  "checks": {
+    "compileall": "passed",
+    "ruff_check": "passed",
+    "ruff_format_check": "passed",
+    "bash_syntax": "passed both guest scripts",
+    "git_diff_check": "passed",
+    "original_raw_manifest": "verified"
+  }
+}

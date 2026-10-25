@@ -1,0 +1,35 @@
+{
+  "base_git_sha": "ff19e5ede0c0b04a70544c3189e97ff12bc0761c",
+  "dirty": true,
+  "run": "dream-qwen-20261024-161406-11ebe6",
+  "original_archive_bytes": 43016701,
+  "failure_category": "deployment transport timeout before allocation",
+  "exception": "subprocess.TimeoutExpired",
+  "timeout_s": 120,
+  "failed_operation": "gcloud storage cp code.tar.gz to scoped bucket",
+  "vm_allocation_attempted": false,
+  "physics_executed": false,
+  "cleanup_errors": [],
+  "source_sha256": {
+    "cloud/launch.py": "9ee07b1ed8ad6a135b5cc05a6c0177c6f756d3a57f35796a88c9ab42286c4a37",
+    "tests/test_cloud.py": "29c5fff3cf9b8ccd591b22c384803ba9c68146752902dc056248b5167460d990"
+  },
+  "hypothesis": "A single120s deadline intended for control-plane RPCs is insufficient for a41MiB source upload. Bound only storage cp to600s before allocating the one approved VM; keep control-plane deadline120s.",
+  "change_class": "general algorithmic correction",
+  "controller_changed": false,
+  "approved_gpu_workloads_completed": 0,
+  "allowance_usd": 3.5,
+  "estimate_including_preallocation_contingency_usd": 3.43,
+  "actual_bill": "unavailable",
+  "full_suite_reference": "261 passed at ff19e5e; simulator, policy, constraints and task code unchanged by this transport fix",
+  "fast_validation": {
+    "name": "pytest",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "tests": "241",
+    "time": "99.129",
+    "timestamp": "2026-10-24T16:20:58.452187+11:00",
+    "hostname": "LAPTOP-H2LK8P6D"
+  }
+}
