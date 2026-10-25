@@ -28,7 +28,13 @@ import numpy as np  # noqa: E402
 from dream.eval.manipulation import object_in_tray, safety_summary  # noqa: E402
 from dream.runtime.agent import TaskAgent  # noqa: E402
 from dream.runtime.qwen import QwenTransformersBackend  # noqa: E402
-from dream.runtime.vlm import FINISH_SPEC, SYSTEM_PROMPT, VLMAgent, parse_tool_call, tool_schemas  # noqa: E402
+from dream.runtime.vlm import (  # noqa: E402
+    FINISH_SPEC,
+    SYSTEM_PROMPT,
+    VLMAgent,
+    parse_tool_call,
+    tool_schemas,
+)
 from dream.session import LiveSession  # noqa: E402
 from dream.tools.goals import parse_goal  # noqa: E402
 from dream.tools.toolbox import SPECS, _validate  # noqa: E402

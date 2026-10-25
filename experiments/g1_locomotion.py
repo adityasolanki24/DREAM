@@ -44,7 +44,7 @@ def _env(seed: int, camera: bool = False):
     kw = {} if camera else {"head_camera": None}
     env = G1MobileEnv(build_mobile_g1(**kw), rng, **kw)
     env.reset(0.0, 0.0, float(rng.uniform(-np.pi, np.pi)))
-    env.data.qpos[7:] += rng.normal(scale=0.02, size=env.data.qpos[7:].shape)  # scene setup
+    env.data.qpos[env.qadr] += rng.normal(scale=0.02, size=len(env.qadr))  # scene setup
     mujoco.mj_forward(env.model, env.data)
     return env, WBCLocomotion.from_cache(), rng
 

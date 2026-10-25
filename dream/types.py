@@ -229,3 +229,25 @@ class ArticulatedObservation:
     position_std: float = 0.0  # m, 1-sigma uncertainty of handle_pos (0: not reported)
     handle_id: int | None = None  # perception track identity, never a simulator identifier
     last_seen: float | None = None  # s, last actual handle detection
+
+
+class MobileBase(Protocol):
+    """A walking or wheeled base with a head camera, seen only through its own sensors.
+
+    ``odometry`` is the robot's pose estimate (x, y, yaw) in its odometry frame (origin where
+    it started); frames from ``capture`` carry calibration in that same frame. ``walk`` runs
+    the base's own controller at a body-frame velocity for ``seconds`` of robot time and
+    returns False if the base stopped itself (a fall or a safety stop, see ``stop_reason``).
+    """
+
+    @property
+    def time(self) -> float: ...
+
+    @property
+    def stop_reason(self) -> str | None: ...
+
+    def odometry(self) -> np.ndarray: ...
+
+    def capture(self) -> RGBDFrame: ...
+
+    def walk(self, forward: float, lateral: float, turn: float, seconds: float) -> bool: ...

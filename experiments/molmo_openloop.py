@@ -22,7 +22,12 @@ sys.path.insert(0, str(ROOT))
 
 import numpy as np  # noqa: E402
 
-from dream.runtime.molmo import MolmoBackend, inspect_actions, observation, verify_checkpoint  # noqa: E402
+from dream.runtime.molmo import (  # noqa: E402
+    MolmoBackend,
+    inspect_actions,
+    observation,
+    verify_checkpoint,
+)
 from dream.sim.camera import CameraSpec  # noqa: E402
 from dream.sim.tabletop import sample_tabletop  # noqa: E402
 from dream.sim.tabletop_env import TabletopEnv  # noqa: E402

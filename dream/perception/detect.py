@@ -145,9 +145,18 @@ def min_area_rect(xy: np.ndarray) -> tuple[np.ndarray, np.ndarray, float]:
 
 
 def detect(
-    frame: RGBDFrame, rng: np.random.Generator, plane: tuple[np.ndarray, float] | None = None
+    frame: RGBDFrame,
+    rng: np.random.Generator,
+    plane: tuple[np.ndarray, float] | None = None,
+    depth_noise: tuple[float, float] | None = None,
 ) -> tuple[list[Detection], tuple[np.ndarray, float]]:
-    """Detections in one frame, and the support plane used (pass it back to reuse it)."""
+    """Detections in one frame, and the support plane used (pass it back to reuse it).
+
+    ``depth_noise`` = (a, b), the sensor's depth sigma a + b z^2 (m): if given, a pixel is
+    foreground only if it is also more than 3 sigma above the plane at its own range. A
+    camera that sees the floor out to 3 m needs this (sigma 14 mm there); the constant
+    FG_HEIGHT alone is ~3 sigma at 1 m, the tabletop camera's range, and stays the default.
+    """
     pts = backproject(frame)
     valid = np.isfinite(pts).all(axis=-1) & ~frame.self_mask
     if plane is None:
@@ -157,6 +166,9 @@ def detect(
     n, c = plane
     height = np.where(valid, pts @ n - c, np.nan)
     fg = valid & (height > FG_HEIGHT)
+    if depth_noise is not None:
+        a, b = depth_noise
+        fg &= height > 3.0 * (a + b * np.nan_to_num(frame.depth) ** 2)
     labels = components(fg, pts, frame.rgb)
     out = []
     ids, counts = np.unique(labels[labels >= 0], return_counts=True)
@@ -295,7 +307,11 @@ def _describe(mask, ctx: _Context) -> Detection | None:
     bbox = (int(us.min()), int(vs.min()), int(us.max()), int(vs.max()))
     depth = float(np.nanmedian(frame.depth[mask]))
     pixel = depth / frame.calibration.focal  # m per pixel at this range
-    if max(sides) > CONTAINER_MIN_SIDE:
+    # A thin bar that does not rest on the support is a small thing (a handle), however long:
+    # receptacles and boxes stand on the support. A 12 cm cabinet bar handle otherwise
+    # exceeded CONTAINER_MIN_SIDE and was taken for a box (development room seed 1).
+    thin_bar = bottom >= RESTING_BOTTOM and min(sides) < 0.05 and top - bottom < 0.05
+    if max(sides) > CONTAINER_MIN_SIDE and not thin_bar:
         container = _container(
             mask, pts, height, valid, centre, sides, angle, top, occluded, bbox, frame
         )

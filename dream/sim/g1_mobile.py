@@ -110,16 +110,19 @@ class G1MobileEnv:
         self.data = mujoco.MjData(model)
         self.head = head_camera
         self._camera = None if head_camera is None else RGBDCamera(model, head_camera, rng)
-        names = [model.joint(i).name for i in range(model.njnt)]
-        if names[0] != "floating_base_joint" or model.nu != N_BODY:
+        if model.joint(0).name != "floating_base_joint" or model.nu != N_BODY:
             raise ValueError("expected the 29-DoF free-base G1 of g1_gear_wbc.xml")
+        # Robot joints in actuator (= policy) order; scene joints (doors) come after them.
+        joints = [model.actuator(i).trnid[0] for i in range(model.nu)]
+        self.qadr = np.array([model.jnt_qposadr[j] for j in joints])
+        self.vadr = np.array([model.jnt_dofadr[j] for j in joints])
         self.pelvis = model.body("pelvis").id
 
     def reset(self, x: float = 0.0, y: float = 0.0, yaw: float = 0.0) -> None:
         mujoco.mj_resetData(self.model, self.data)
         self.data.qpos[0:3] = [x, y, STAND_HEIGHT]
         self.data.qpos[3:7] = [cos(yaw / 2), 0, 0, sin(yaw / 2)]
-        self.data.qpos[7 : 7 + len(DEFAULT)] = DEFAULT
+        self.data.qpos[self.qadr[: len(DEFAULT)]] = DEFAULT
         mujoco.mj_forward(self.model, self.data)
         self._odom = np.zeros(3)
         self._last_true = self.true_pose()
@@ -129,7 +132,7 @@ class G1MobileEnv:
     def proprioception(self) -> Proprioception:
         d = self.data
         return Proprioception(
-            d.qpos[3:7].copy(), d.qvel[3:6].copy(), d.qpos[7:].copy(), d.qvel[6:].copy()
+            d.qpos[3:7].copy(), d.qvel[3:6].copy(), d.qpos[self.qadr], d.qvel[self.vadr]
         )
 
     def odometry(self) -> np.ndarray:
@@ -196,3 +199,37 @@ class G1MobileEnv:
     @property
     def time(self) -> float:
         return float(self.data.time)
+
+
+class G1MobileBase:
+    """``MobileBase`` for the walking G1: velocity commands go to the pretrained WBC policy.
+
+    ``on_tick`` (optional) runs after every 50 Hz policy step, e.g. a recorder's sample().
+    """
+
+    def __init__(self, env: G1MobileEnv, controller, on_tick=None) -> None:
+        self.env, self.controller, self.on_tick = env, controller, on_tick
+
+    @property
+    def time(self) -> float:
+        return self.env.time
+
+    @property
+    def stop_reason(self) -> str | None:
+        return self.controller.stopped
+
+    def odometry(self) -> np.ndarray:
+        return self.env.odometry()
+
+    def capture(self) -> RGBDFrame:
+        return self.env.capture_head()
+
+    def walk(self, forward: float, lateral: float, turn: float, seconds: float) -> bool:
+        self.controller.set_command(forward, lateral, turn)
+        for _ in range(max(1, round(seconds / (DT_PHYSICS * DECIMATION)))):
+            self.env.step(self.controller)
+            if self.on_tick:
+                self.on_tick()
+            if self.controller.stopped:
+                return False
+        return True

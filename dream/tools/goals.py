@@ -35,20 +35,39 @@ class OnTop:
     support: str
 
 
-Goal = InRegion | OnTop
+@dataclass(frozen=True)
+class Inspect:
+    """Find ``target`` in an unfamiliar space and stand where it can be examined.
+
+    The only target is "cabinet", defined at the perception level: a box-like piece of
+    furniture with a handle on one side, i.e. something that probably opens. How it opens
+    is not part of the goal; finding that out is a separate, physical question.
+    """
+
+    target: str
+
+
+Goal = InRegion | OnTop | Inspect
 
 
 def parse_goal(spec: str | dict) -> Goal:
     """Parse a structured goal. Raises ``ValueError`` for anything that is not one."""
     if isinstance(spec, str):
         words = spec.strip().split()
-        if len(words) != 3 or words[0] not in ("in", "on"):
+        if len(words) == 2 and words[0] == "inspect":
+            spec = {"type": "inspect", "target": words[1]}
+        elif len(words) != 3 or words[0] not in ("in", "on"):
             raise ValueError(
                 f"not a structured goal: {spec!r}. Use 'in <object> <region>' or "
                 "'on <object> <support>' (natural language is not supported yet)."
             )
-        spec = {"type": words[0], "object": words[1], "target": words[2]}
+        else:
+            spec = {"type": words[0], "object": words[1], "target": words[2]}
     kind, obj, target = spec.get("type"), spec.get("object"), spec.get("target")
+    if kind == "inspect":
+        if target != "cabinet":
+            raise ValueError(f"cannot inspect {target!r}: the only known target is 'cabinet'")
+        return Inspect(target)
     if not (isinstance(obj, str) and isinstance(target, str)):
         raise ValueError(f"goal needs string 'object' and 'target': {spec!r}")
     if kind == "in":
