@@ -30,21 +30,30 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 IMAGE = "introlab3it/rtabmap_ros:jazzy-latest"
 
+# Session 4 found two defects: rosbag2 would not deliver the bag's /tf_static (volatile QoS
+# offered, transient-local required), so RTAB-Map never received usable frames; and
+# ros2 launch ignored SIGINT, so the container never exited. The static camera transform is
+# now published live (from the encoder calibration) and the launch is a killed process group.
 RUN = r"""
 set -e
 source /opt/ros/jazzy/setup.bash
 cd /data
-ros2 launch rtabmap_launch rtabmap.launch.py rtabmap_viz:=false use_sim_time:=true \
+setsid ros2 run tf2_ros static_transform_publisher --x {x} --y {y} --z {z} \
+  --qx {qx} --qy {qy} --qz {qz} --qw {qw} \
+  --frame-id base_link --child-frame-id camera_color_optical_frame > /data/tf.log 2>&1 &
+TF=$!
+setsid ros2 launch rtabmap_launch rtabmap.launch.py rtabmap_viz:=false use_sim_time:=true \
   frame_id:=base_link rgb_topic:=/camera/color/image_raw \
   depth_topic:=/camera/depth/image_raw camera_info_topic:=/camera/color/camera_info \
   approx_sync:=false visual_odometry:=true database_path:=/data/rtabmap.db \
   rtabmap_args:="--delete_db_on_start" > /data/launch.log 2>&1 &
 LAUNCH=$!
 sleep 15
-ros2 bag play /data/bag --clock 100 > /data/play.log 2>&1
+timeout 300 ros2 bag play /data/bag --clock 100 > /data/play.log 2>&1 || true
 sleep 10
-kill -INT $LAUNCH || true
-wait $LAUNCH || true
+kill -INT -- -$LAUNCH -$TF 2>/dev/null || true
+sleep 10
+kill -KILL -- -$LAUNCH -$TF 2>/dev/null || true
 rtabmap-report --poses_raw /data/rtabmap.db > /data/report.log 2>&1 || true
 ls -la /data > /data/listing.txt
 """
@@ -100,10 +109,15 @@ def main() -> None:
     subprocess.run(["docker", "pull", IMAGE], check=True)
     digest = subprocess.run(["docker", "inspect", "--format", "{{index .RepoDigests 0}}", IMAGE],
                             capture_output=True, text=True).stdout.strip()  # fmt: skip
-    (data / "run.sh").write_text(RUN)
+    ext = json.loads((seq / "calibration.json").read_text())["camera_in_pelvis_at_reset"]
+    from experiments.record_rgbd_sequence import quat_xyzw
+
+    q = quat_xyzw(np.asarray(ext["rotation"]))
+    x, y, z = ext["translation"]
+    (data / "run.sh").write_text(RUN.format(x=x, y=y, z=z, qx=q[0], qy=q[1], qz=q[2], qw=q[3]))
     t1 = time.time()
     command = ["docker", "run", "--rm", "-v", f"{data}:/data", IMAGE, "bash", "/data/run.sh"]
-    proc = subprocess.run(command, capture_output=True, text=True, timeout=1800)
+    proc = subprocess.run(command, capture_output=True, text=True, timeout=900)
     (data / "docker.log").write_text(proc.stdout + proc.stderr)
     gt = load_tum(seq / "groundtruth_base.txt")
     result = {"seed": args.seed, "image": digest, "bag_counts": counts,
