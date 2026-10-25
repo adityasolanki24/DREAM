@@ -23,7 +23,6 @@ import dataclasses
 import json
 import os
 import pathlib
-import subprocess
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor
@@ -152,8 +151,9 @@ def main() -> None:
     ap.add_argument("--workers", type=int, default=3)
     args = ap.parse_args()
     cfg = json.loads(pathlib.Path(args.config).read_text())
-    sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
-    dirty = bool(subprocess.check_output(["git", "status", "--porcelain", "dream"], cwd=ROOT))
+    from experiments.provenance import code_revision
+
+    sha, dirty = code_revision()
     out = ROOT / "results" / cfg["name"]
     out.mkdir(parents=True, exist_ok=True)
     store = pathlib.Path(os.environ.get("LOCALAPPDATA", "/tmp")) / "DREAM/memory" / cfg["name"]

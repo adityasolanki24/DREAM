@@ -21,7 +21,6 @@ import argparse
 import json
 import os
 import pathlib
-import subprocess
 import sys
 import urllib.request
 
@@ -148,7 +147,9 @@ def main() -> None:
     ap.add_argument("config")
     args = ap.parse_args()
     cfg = json.loads(pathlib.Path(args.config).read_text())
-    sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    from experiments.provenance import code_revision
+
+    sha, _ = code_revision()
     out = ROOT / "results" / cfg["name"]
     out.mkdir(parents=True, exist_ok=True)
     store = pathlib.Path(os.environ.get("LOCALAPPDATA", "/tmp")) / "DREAM/interruption"

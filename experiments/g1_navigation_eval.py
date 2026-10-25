@@ -23,7 +23,6 @@ import json
 import os
 import pathlib
 import platform
-import subprocess
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor
@@ -204,8 +203,9 @@ def main() -> None:
                     help="keep finished episodes (same config) and run only the rest")  # fmt: skip
     args = ap.parse_args()
     cfg = json.loads(pathlib.Path(args.config).read_text())
-    sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
-    dirty = bool(subprocess.check_output(["git", "status", "--porcelain", "dream"], cwd=ROOT))
+    from experiments.provenance import code_revision
+
+    sha, dirty = code_revision()
     jobs = [(kind, seed, nav, cfg, sha) for kind, seeds in cfg["seeds"].items()
             for seed in range(*seeds) for nav in cfg["navigators"]]  # fmt: skip
     out = ROOT / "results" / cfg["name"]
