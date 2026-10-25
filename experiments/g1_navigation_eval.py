@@ -165,6 +165,37 @@ def summarise(rows: list[dict], cfg: dict) -> dict:
     return out
 
 
+def gates(rows: list[dict], cfg: dict) -> dict | None:
+    """Pre-registered rpp-vs-classic gates over all conditions pooled (config "gates")."""
+    g = cfg.get("gates")
+    if not g:
+        return None
+    by = {n: [r for r in rows if r["navigator"] == n] for n in ("classic", "rpp")}
+    if not all(by.values()):
+        return None
+
+    def jerk(rs):
+        v = [r["motion"]["nav"]["angular_jerk_rms"] for r in rs if r["motion"]["nav"]]
+        return float(np.median(v)) if v else None
+
+    succ = {n: sum(r["success"] for r in rs) for n, rs in by.items()}
+    contact = {n: sum(r["contact_steps"] > 0 for r in rs) for n, rs in by.items()}
+    jc, jr = jerk(by["classic"]), jerk(by["rpp"])
+    out = {
+        "success": succ, "contact_episodes": contact, "nav_jerk_median": [jc, jr],
+        "rpp_success_not_below_classic_minus": succ["rpp"]
+        >= succ["classic"] - g["rpp_success_not_below_classic_minus"],
+        "rpp_contact_episodes_not_above_classic": contact["rpp"] <= contact["classic"],
+        "rpp_nav_angular_jerk_median_reduction_min": jc is not None and jr is not None
+        and jr <= (1 - g["rpp_nav_angular_jerk_median_reduction_min"]) * jc,
+        "rpp_false_claims_max": sum(r["false_claim"] for r in by["rpp"])
+        <= g["rpp_false_claims_max"],
+        "rpp_falls_max": sum(r["fell"] for r in by["rpp"]) <= g["rpp_falls_max"],
+    }  # fmt: skip
+    out["all_pass"] = all(v for k, v in out.items() if k.startswith("rpp_"))
+    return out
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("config")
@@ -200,7 +231,10 @@ def main() -> None:
     meta = {"config": cfg, "git_sha": sha, "dream_dirty_at_start": dirty,
             "machine": platform.platform(), "wall_s": time.perf_counter() - t0,
             "odometry": "oracle-assisted (true increments + noise)"}  # fmt: skip
-    (out / "summary.json").write_text(json.dumps({"meta": meta, "by_condition": summary}, indent=2))
+    verdict = gates(rows, cfg)
+    (out / "summary.json").write_text(
+        json.dumps({"meta": meta, "by_condition": summary, "gates": verdict}, indent=2)
+    )
     print(json.dumps(summary, indent=2))
 
 
