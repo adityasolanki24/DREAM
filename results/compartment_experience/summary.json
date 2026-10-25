@@ -1,0 +1,61 @@
+{
+  "meta": {
+    "config": {
+      "name": "compartment_experience",
+      "_note": "Tests E/F, frozen 26 Oct 2026 after a smoke on development seed 0 only. Fresh seeds 7000-7009 per kind, never used before (compartment held-out runs used 5000-5029). Gates over scenes whose first session stored a model: reuse succeeds with zero probes in >= 80%; the changed (immovable, same-looking) compartment has its remembered model withdrawn in >= 90% and is correctly declined in >= 90%; no false claims in any session; median reuse robot time below learning.",
+      "kinds": [
+        "drawer",
+        "lid"
+      ],
+      "seeds": [
+        7000,
+        7010
+      ],
+      "probe_budget": 12,
+      "max_steps": 14,
+      "gates": {
+        "reuse_zero_probe_success_min": 0.8,
+        "changed_withdrawn_min": 0.9,
+        "changed_correct_refusal_min": 0.9,
+        "max_false_claims": 0
+      }
+    },
+    "git_sha": "0d2707c9029a513e9e74deabe5c97b272f095569",
+    "dream_dirty_at_start": false,
+    "perception": "oracle-assisted handle tracker (held-out compartment setting)"
+  },
+  "scenes": 20,
+  "stored_after_learning": 20,
+  "learn": {
+    "success": 20,
+    "median_probes": 3.0,
+    "median_robot_s": 44.04000000000847
+  },
+  "reuse": {
+    "recalled": 20,
+    "success": 20,
+    "zero_probe_successes": 20,
+    "median_probes": 0.0,
+    "median_robot_s": 33.529999999995624,
+    "false_claims": 0
+  },
+  "changed": {
+    "withdrawn": 20,
+    "reinvestigated": 20,
+    "correct_refusals": 20,
+    "false_claims": 0,
+    "median_robot_s": 34.55999999999688
+  },
+  "changed_control": {
+    "correct_refusals": 20,
+    "median_robot_s": 28.41999999999485
+  },
+  "gates": {
+    "reuse_zero_probe_success": true,
+    "changed_withdrawn": true,
+    "changed_correct_refusal": true,
+    "false_claims": true,
+    "reuse_faster": true,
+    "all_pass": true
+  }
+}
