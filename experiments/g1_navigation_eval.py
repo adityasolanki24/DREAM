@@ -169,6 +169,8 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("config")
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--resume", action="store_true",
+                    help="keep finished episodes (same config) and run only the rest")  # fmt: skip
     args = ap.parse_args()
     cfg = json.loads(pathlib.Path(args.config).read_text())
     sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
@@ -178,7 +180,13 @@ def main() -> None:
     out = ROOT / "results" / cfg["name"]
     out.mkdir(parents=True, exist_ok=True)
     rows, t0 = [], time.perf_counter()
-    with ProcessPoolExecutor(args.workers) as pool, open(out / "episodes.jsonl", "w") as f:
+    if args.resume and (out / "episodes.jsonl").is_file():  # after an infrastructure failure
+        rows = [json.loads(line) for line in (out / "episodes.jsonl").read_text().splitlines()]
+        done = {(r["kind"], r["seed"], r["navigator"]) for r in rows}
+        jobs = [j for j in jobs if j[:3] not in done]
+        print(f"resuming: {len(rows)} finished episodes kept, {len(jobs)} to run", flush=True)
+    mode = "a" if args.resume else "w"
+    with ProcessPoolExecutor(args.workers) as pool, open(out / "episodes.jsonl", mode) as f:
         for r in pool.map(episode, jobs):
             rows.append(r)
             f.write(json.dumps(r, default=float) + "\n")
