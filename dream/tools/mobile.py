@@ -18,6 +18,7 @@ import numpy as np
 from dream.navigation.follow import PathFollower, wrap
 from dream.navigation.planning import (
     ROBOT_RADIUS,
+    dilate,
     distances,
     frontiers,
     path_to,
@@ -148,6 +149,8 @@ class MobileToolbox:
     def _passable(self) -> tuple[np.ndarray, tuple[int, int], np.ndarray]:
         grid = self.memory.grid
         ok = traversable(grid)
+        if getattr(self, "allow_unknown", False):  # Nav2 allow_unknown: unseen floor is
+            ok = ok | (grid.unknown() & ~dilate(grid.occupied(), int(0.3 / CELL)))  # walkable
         pose = self.base.odometry()
         i, j = grid.cell(pose[:2])
         r = int(0.3 / CELL)  # the robot's own footprint is where it stands: passable

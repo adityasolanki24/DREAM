@@ -258,6 +258,7 @@ def run_task(world, env, base, cfg, ev, start, task: str) -> dict:
     base.on_tick = on_tick
     tb = MobileToolbox(base, SpatialMemory(np.random.default_rng([2])), navigator="rpp",
                        on_event=lambda k, t, **_: log(k, t))  # fmt: skip
+    tb.allow_unknown = True  # plan through floor not yet seen; replanning corrects it
     out = {"task": task, "target_label": want}
     log("command", f"task: {task.replace('_', ' ')}")
 
@@ -290,9 +291,18 @@ def run_task(world, env, base, cfg, ev, start, task: str) -> dict:
                           "heading": float(math.atan2(u[1], u[0]))})  # fmt: skip
     log("arrived", f"go_to {r.status} {r.message}")
     face(base, p_odom[:2])
-    refined = [f for f in look() if f[0] == prim]
-    if refined:
-        p_odom = refined[0][1]
+    # final approach: a slow straight step until it is at arm's length (people walk right
+    # up to a counter; the planner keeps a robot-radius margin from it)
+    for _ in range(15):
+        refined = [f for f in look() if f[0] == prim]
+        if refined:
+            p_odom = refined[0][1]
+        gap_xy = float(np.linalg.norm(p_odom[:2] - base.odometry()[:2]))
+        if gap_xy <= STAND_OFF[want] + 0.02:
+            break
+        base.walk(min(0.15, gap_xy - STAND_OFF[want] + 0.05), 0.0, 0.0, 0.4)
+    base.walk(0.0, 0.0, 0.0, 0.5)
+    face(base, p_odom[:2])
     pose = base.odometry()
     d = p_odom[:2] - pose[:2]
     u = d / max(np.linalg.norm(d), 1e-6)
