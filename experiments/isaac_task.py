@@ -57,8 +57,8 @@ class ChaseCamera:
         if self.heading is None:
             self.heading = yaw
         self.heading += 0.1 * math.atan2(math.sin(yaw - self.heading), math.cos(yaw - self.heading))
-        a = self.heading + 0.6  # behind and to the right: arm and target stay visible
-        eye = Gf.Vec3d(px - 2.0 * math.cos(a), py - 2.0 * math.sin(a), 1.75)
+        a = self.heading + 0.7  # behind and to the right: arm and target stay visible
+        eye = Gf.Vec3d(px - 1.6 * math.cos(a), py - 1.6 * math.sin(a), 2.3)
         view = Gf.Matrix4d().SetLookAt(eye, Gf.Vec3d(px, py, 0.7), Gf.Vec3d(0, 0, 1))
         self.op.Set(view.GetInverse())
         self.world.render()
@@ -178,6 +178,59 @@ def world_to_odom(start, p):
     return np.array([c * dx + s * dy, -s * dx + c * dy, p[2]])
 
 
+def stand_point(tb, target_xy, robot_xy, reach: float) -> np.ndarray:
+    """The walkable cell nearest the target, no closer than 0.25 m and within ``reach``
+    + 0.25 m of it, preferring the robot's side (never a point inside furniture)."""
+    from dream.navigation.planning import traversable
+
+    grid = tb.memory.grid
+    ok = traversable(grid)
+    i, j = np.nonzero(ok)
+    pts = grid.centre(i, j)
+    dist = np.linalg.norm(pts - target_xy, axis=1)
+    near = (dist >= 0.25) & (dist <= reach + 0.25)
+    if not near.any():
+        u = (target_xy - robot_xy) / max(np.linalg.norm(target_xy - robot_xy), 1e-6)
+        return target_xy - u * reach
+    cost = np.abs(dist - reach) + 0.2 * np.linalg.norm(pts - robot_xy, axis=1) / 5.0
+    cost[~near] = np.inf
+    return pts[int(np.argmin(cost))]
+
+
+def face(base, target_xy, tol: float = 0.06) -> None:
+    """Short in-place turn so the target is straight ahead (the only on-the-spot turn)."""
+    for _ in range(40):
+        x, y, yaw = base.odometry()
+        err = math.atan2(target_xy[1] - y, target_xy[0] - x) - yaw
+        err = (err + math.pi) % (2 * math.pi) - math.pi
+        if abs(err) < tol:
+            break
+        base.walk(0.0, 0.0, float(np.clip(1.5 * err, -0.5, 0.5)), 0.2)
+    base.walk(0.0, 0.0, 0.0, 0.4)
+
+
+def make_dynamic(stage, label: str) -> list[str]:
+    """Scene setup: make the labelled food items rigid bodies (in the asset they are static
+    props), with convex colliders and a light mass, so they can be picked up."""
+    from pxr import Usd, UsdPhysics
+
+    from dream.eval.isaac_scene import labelled_objects
+
+    done = []
+    for o in labelled_objects(stage):
+        if o.label != label:
+            continue
+        prim = stage.GetPrimAtPath(o.path)
+        UsdPhysics.RigidBodyAPI.Apply(prim)
+        UsdPhysics.MassAPI.Apply(prim).CreateMassAttr(0.15)
+        for child in Usd.PrimRange(prim):
+            if child.GetTypeName() == "Mesh":
+                UsdPhysics.CollisionAPI.Apply(child)
+                UsdPhysics.MeshCollisionAPI.Apply(child).CreateApproximationAttr("convexHull")
+        done.append(o.path)
+    return done
+
+
 def run_task(world, env, base, cfg, ev, start, task: str) -> dict:
     from dream.perception.spatial import SpatialMemory
     from dream.tools.mobile import MobileToolbox
@@ -231,17 +284,27 @@ def run_task(world, env, base, cfg, ev, start, task: str) -> dict:
     pose = base.odometry()
     d = p_odom[:2] - pose[:2]
     u = d / max(np.linalg.norm(d), 1e-6)
-    stand = p_odom[:2] - u * STAND_OFF[want]
+    stand = stand_point(tb, p_odom[:2], pose[:2], STAND_OFF[want])
     log("go", f"walk to {np.round(stand, 2).tolist()} facing the {want}")
     r = tb.call("go_to", {"x": float(stand[0]), "y": float(stand[1]),
                           "heading": float(math.atan2(u[1], u[0]))})  # fmt: skip
     log("arrived", f"go_to {r.status} {r.message}")
+    face(base, p_odom[:2])
     refined = [f for f in look() if f[0] == prim]
     if refined:
         p_odom = refined[0][1]
+    pose = base.odometry()
+    d = p_odom[:2] - pose[:2]
+    u = d / max(np.linalg.norm(d), 1e-6)
+    log("face", f"{want} {np.linalg.norm(d):.2f} m ahead, bearing "
+        f"{math.degrees(math.atan2(d[1], d[0]) - pose[2]):.0f} deg")  # fmt: skip
     target = odom_to_world(start, p_odom)
     # 3. reach
     ik = ArmIK(env, base.controller)
+    ik.mirror()
+    mj_tip = ik.data.xpos[ik.arm.hand].copy()
+    log("ik_check", f"MuJoCo mirror vs Isaac fingertip: "
+        f"{np.linalg.norm(mj_tip - env.link_pose(HAND_LINK)[0]) * 100:.1f} cm")  # fmt: skip
     pre = target - np.array([*u, 0.0]) * 0.08  # 8 cm in front of it first
     for goal, label in ((pre, "pre-grasp"), (target, "contact")):
         q_goal = ik.solve(goal)

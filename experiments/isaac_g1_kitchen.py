@@ -294,6 +294,10 @@ def _run(app, args, cfg, ev: Evidence) -> dict:
     app.update()
     world = World(physics_dt=0.005, rendering_dt=0.005, stage_units_in_meters=1.0)
     stage = world.stage
+    if args.mode == "task" and args.task == "fetch_banana":
+        from experiments.isaac_task import make_dynamic
+
+        ev.stage("made_dynamic", prims=make_dynamic(stage, "banana"))
     objects = labelled_objects(stage)
     scene = {"kitchen": args.kitchen, "url": url, "root_layer_sha256": layer_sha256(url),
              "physics": physics_audit(stage), "labels": {}}  # fmt: skip
