@@ -75,12 +75,16 @@ def tilt(quat: np.ndarray) -> float:
 
 
 def build_observation(
-    prop: Proprioception, command: np.ndarray, last_action: np.ndarray
+    prop: Proprioception,
+    command: np.ndarray,
+    last_action: np.ndarray,
+    height: float = HEIGHT_CMD,
+    rpy=(0.0, 0.0, 0.0),
 ) -> np.ndarray:
     o = np.zeros(13 + 2 * N_BODY + N_ACTION, np.float32)
     o[0:3] = np.asarray(command, np.float32) * CMD_SCALE
-    o[3] = HEIGHT_CMD
-    o[4:7] = 0.0  # torso roll, pitch, yaw command
+    o[3] = height
+    o[4:7] = np.asarray(rpy, np.float32)  # torso roll, pitch, yaw command (default zero)
     o[7:10] = np.asarray(prop.gyro) * ANG_VEL_SCALE
     o[10:13] = gravity_in_body(np.asarray(prop.quat))
     defaults = np.zeros(N_BODY, np.float32)
@@ -118,6 +122,10 @@ class WBCLocomotion:
         )
         self.stopped: str | None = None
         self.active = "balance"
+        # Posture commands the released policy observes (g1_gear_wbc.yaml height_cmd/rpy_cmd);
+        # the defaults reproduce the validated behaviour. Used to lean over a counter.
+        self.height_cmd = HEIGHT_CMD
+        self.rpy_cmd = np.zeros(3)
 
     @classmethod
     def from_cache(cls) -> WBCLocomotion:
@@ -137,7 +145,9 @@ class WBCLocomotion:
             self.stopped = f"fall: pelvis tilt {np.degrees(tilt(prop.quat)):.0f} deg"
         if self.stopped:
             return self.target
-        self.history.append(build_observation(prop, self.command, self.action))
+        self.history.append(
+            build_observation(prop, self.command, self.action, self.height_cmd, self.rpy_cmd)
+        )
         x = np.concatenate(self.history)[None]
         walking = np.linalg.norm(self.command) >= 0.05
         session = self._walk if walking else self._balance

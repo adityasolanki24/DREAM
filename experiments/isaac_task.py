@@ -248,6 +248,46 @@ def place_on_counter_edge(stage, label: str, start_xy) -> dict:
     return {"item": item.path, "placed_at": [px, py, top + 0.03]}
 
 
+def torso_forward(env) -> float:
+    """How far the torso is ahead of the pelvis along the heading (m), from link poses."""
+    p_t, _ = env.link_pose("torso_link")
+    p_p, _ = env._root()
+    yaw = env.true_pose()[2]
+    return float((p_t[0] - p_p[0]) * math.cos(yaw) + (p_t[1] - p_p[1]) * math.sin(yaw))
+
+
+def lean_forward(env, base, log, pitch: float, height: float) -> dict:
+    """Lean over the counter with the policy's own torso-pitch/height commands, ramped over
+    1 s. The sign convention is checked from the measured torso position and flipped once."""
+    ctrl = base.controller
+    before = torso_forward(env)
+    for sign in (1.0, -1.0):
+        for k in range(1, 26):
+            ctrl.rpy_cmd = np.array([0.0, sign * pitch * k / 25, 0.0])
+            ctrl.height_cmd = 0.74 + (height - 0.74) * k / 25
+            base.walk(0, 0, 0, 0.04)
+        base.walk(0, 0, 0, 0.6)
+        gained = torso_forward(env) - before
+        log("lean", f"torso pitch command {sign * pitch:+.2f} rad, height {height:.2f} m: "
+            f"torso moved {gained * 100:+.0f} cm forward")  # fmt: skip
+        if gained > 0.03:
+            return {"pitch_cmd": sign * pitch, "height_cmd": height, "torso_forward_m": gained}
+        ctrl.rpy_cmd = np.zeros(3)
+        base.walk(0, 0, 0, 0.8)
+    return {"pitch_cmd": 0.0, "height_cmd": height, "torso_forward_m": 0.0}
+
+
+def upright(base) -> None:
+    """Ramp the posture commands back to the validated defaults (before walking far)."""
+    ctrl = base.controller
+    r0, h0 = ctrl.rpy_cmd.copy(), ctrl.height_cmd
+    for k in range(1, 26):
+        ctrl.rpy_cmd = r0 * (1 - k / 25)
+        ctrl.height_cmd = h0 + (0.74 - h0) * k / 25
+        base.walk(0, 0, 0, 0.04)
+    base.walk(0, 0, 0, 0.4)
+
+
 def make_dynamic(stage, label: str) -> list[str]:
     """Scene setup: make the labelled food items rigid bodies (in the asset they are static
     props), with convex colliders and a light mass, so they can be picked up."""
@@ -366,6 +406,8 @@ def run_task(world, env, base, cfg, ev, start, task: str) -> dict:
     mj_tip = ik.data.xpos[ik.arm.hand].copy()
     log("ik_check", f"MuJoCo mirror vs Isaac fingertip: "
         f"{np.linalg.norm(mj_tip - env.link_pose(HAND_LINK)[0]) * 100:.1f} cm")  # fmt: skip
+    lean = lean_forward(env, base, log, pitch=0.35, height=0.70 if target[2] < 0.85 else 0.74)
+    out["lean"] = lean
     root, _ = env._root()
     yaw = env.true_pose()[2]
     fwd = np.array([math.cos(yaw), math.sin(yaw), 0.0])
@@ -407,6 +449,7 @@ def run_task(world, env, base, cfg, ev, start, task: str) -> dict:
         release(stage)
         base.walk(0, 0, 0, 0.3)
         ik.arm.set_targets(np.zeros(7))
+        upright(base)
         base.walk(-0.1, 0, 0, 1.0)
         moved = float(np.linalg.norm(body_pos() - before))
         out.update(success=moved > 0.08, door_moved_m=moved)
@@ -419,6 +462,7 @@ def run_task(world, env, base, cfg, ev, start, task: str) -> dict:
             base.walk(0, 0, 0, 0.04)
         lifted = float(body_pos()[2] - before[2])
         log("lift", f"banana lifted {lifted * 100:.0f} cm")
+        upright(base)
         log("go", "carry it back to where I started")
         r = tb.call("go_to", {"x": 0.0, "y": 0.0, "heading": None})
         log("arrived", f"go_to {r.status} {r.message}")
