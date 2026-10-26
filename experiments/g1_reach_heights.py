@@ -250,26 +250,32 @@ def run_episode(args: tuple) -> dict:
 
 def attach_video(env, root: str, name: str):
     """Spectator-camera MP4 from true simulator state (evidence only); outside Git."""
-    import imageio.v2 as imageio
-
-    r = mujoco.Renderer(env.model, 360, 640)
+    width, height = 640, 360
+    r = mujoco.Renderer(env.model, height, width)
     pathlib.Path(root).mkdir(parents=True, exist_ok=True)
-    writer = imageio.get_writer(str(pathlib.Path(root) / f"{name}.mp4"), fps=25)
+    path = pathlib.Path(root) / f"{name}.mp4"
+    proc = subprocess.Popen(
+        ["ffmpeg", "-loglevel", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24",
+         "-s", f"{width}x{height}", "-r", "25", "-i", "-", "-pix_fmt", "yuv420p",
+         "-vcodec", "libx264", str(path)],
+        stdin=subprocess.PIPE,
+    )  # fmt: skip
     step = env.step
     n = [0]
 
     def stepped(controller):
         step(controller)
         n[0] += 1
-        if n[0] % 2 == 0:  # 25 fps of 50 Hz policy steps
+        if n[0] % 2 == 0:  # 25 fps of the 50 Hz policy steps
             r.update_scene(env.data, camera="spectator")
-            writer.append_data(r.render())
+            proc.stdin.write(r.render().tobytes())
 
     env.step = stepped
 
     class Rec:
         def close(self):
-            writer.close()
+            proc.stdin.close()
+            proc.wait()
             r.close()
 
     return Rec()
@@ -328,28 +334,28 @@ def summarise(rows: list[dict], gates: dict) -> dict:
         "median_wall_s": float(np.median([r["timing"]["wall_s"] for r in ok])) if ok else None,
     }  # fmt: skip
     g = gates
-    lower = lambda d: d["wilson95"][0]  # noqa: E731
+
+    def at_least(name: str, value: dict, threshold: float) -> dict:
+        """A rate gate; with no cases (n = 0) it cannot be evaluated and is reported as such."""
+        if value["n"] == 0:
+            return {"threshold": threshold, "pass": None, "applicable": False, "value": value}
+        return {"threshold": threshold, "pass": value["rate"] >= threshold, "applicable": True,
+                "value": value}  # fmt: skip
+
     out["gates"] = {
-        "zero_collapses": {"pass": out["collapses"]["k"] == 0, "value": out["collapses"]},
+        "zero_collapses": {"pass": out["collapses"]["k"] == 0, "applicable": True,
+                           "value": out["collapses"]},  # fmt: skip
         "zero_false_success_claims": {
-            "pass": out["false_success_claims"]["k"] == 0, "value": out["false_success_claims"]},
-        "success_on_reference_feasible_ge": {
-            "threshold": g["success_feasible_min"],
-            "pass": bool(feas)
-            and out["success_reference_feasible"]["rate"] >= g["success_feasible_min"],
-            "value": out["success_reference_feasible"]},
-        "success_off_band_feasible_ge": {
-            "threshold": g["success_feasible_off_band_min"],
-            "pass": bool(edge) and out["success_reference_feasible_off_band"]["rate"]
-            >= g["success_feasible_off_band_min"],
-            "value": out["success_reference_feasible_off_band"]},
-        "correct_refusal_on_infeasible_ge": {
-            "threshold": g["correct_refusal_min"],
-            "pass": bool(infeas) and out["correct_refusals_on_infeasible"]["rate"]
-            >= g["correct_refusal_min"],
-            "value": out["correct_refusals_on_infeasible"]},
+            "pass": out["false_success_claims"]["k"] == 0, "applicable": True,
+            "value": out["false_success_claims"]},  # fmt: skip
+        "success_on_reference_feasible_ge": at_least(
+            "success", out["success_reference_feasible"], g["success_feasible_min"]),
+        "success_off_band_feasible_ge": at_least(
+            "off_band", out["success_reference_feasible_off_band"],
+            g["success_feasible_off_band_min"]),
+        "correct_refusal_on_infeasible_ge": at_least(
+            "refusal", out["correct_refusals_on_infeasible"], g["correct_refusal_min"]),
     }  # fmt: skip
-    del lower
     return out
 
 
@@ -364,7 +370,16 @@ def summarize_set(cfg: dict, which: str, out: pathlib.Path) -> None:
             continue
         print(f"== {system}: {s['n_episodes']} episodes, {s['n_errors']} errors")
         for name, gate in s["gates"].items():
-            print(f"   {'PASS' if gate['pass'] else 'FAIL'} {name} {gate['value']}")
+            tag = "n/a " if gate["pass"] is None else "PASS" if gate["pass"] else "FAIL"
+            print(f"   {tag} {name} {gate['value']}")
+
+
+def is_finished(path: pathlib.Path) -> bool:
+    """A checkpoint counts only if the episode ran to the end: a crashed one is rerun."""
+    try:
+        return path.exists() and json.loads(path.read_text()).get("error") is None
+    except (OSError, ValueError):
+        return False
 
 
 def git(*a) -> str:
@@ -395,6 +410,13 @@ def main() -> None:
     dirty = git("status", "--porcelain", "dream", "experiments", "tests")
     out.mkdir(parents=True, exist_ok=True)
     meta_path = out / "meta.json"
+    resumes = out / "resumes.jsonl"
+    launch = {
+        "git_sha": sha, "dirty": dirty.splitlines(), "set": args.set, "system": args.system,
+        "time": time.strftime("%Y-%m-%d %H:%M:%S"),
+    }  # fmt: skip
+    with resumes.open("a") as f:  # every launch is recorded: the first run and each resume
+        f.write(json.dumps(launch) + "\n")
     if not meta_path.exists():
         meta_path.write_text(json.dumps({
             "git_sha_at_start": sha, "dirty_paths_at_start": dirty.splitlines(),
@@ -412,13 +434,16 @@ def main() -> None:
         if args.only and spec["id"] not in args.only:
             continue
         for system in systems:
-            if (out / system / f"{spec['id']}.json").exists():
+            if is_finished(out / system / f"{spec['id']}.json"):
                 continue
             video = args.video_dir if spec["id"] in args.video_ids else None
             jobs.append((spec, system, cfg, str(out), sha, video))
     print(f"{len(jobs)} episodes to run -> {out}", flush=True)
     t0 = time.perf_counter()
-    with ProcessPoolExecutor(args.workers) as pool:
+    # One episode per worker process: each builds MuJoCo models and renderers, and memory on the
+    # laptop is the limit (a long-lived worker grew to 3 GB and an allocation failed).
+    kw = {"max_tasks_per_child": 1} if sys.version_info >= (3, 11) else {}
+    with ProcessPoolExecutor(args.workers, **kw) as pool:
         for i, r in enumerate(pool.map(run_episode, jobs), 1):
             e = r.get("evaluator")
             line = (f"[{i}/{len(jobs)} {time.perf_counter() - t0:.0f}s] {r['system']} "
