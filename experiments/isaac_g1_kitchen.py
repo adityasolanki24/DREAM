@@ -363,6 +363,10 @@ def _run(app, args, cfg, ev: Evidence) -> dict:
             result["hinge_test"] = hinge_test(world, env, stage, ev)
         except Exception as error:
             result["hinge_test"] = {"tested": False, "error": repr(error)}
+    elif args.mode == "task":
+        from experiments.isaac_task import run_task
+
+        result = run_task(world, env, base, cfg, ev, (x, y, yaw), args.task)
     elif args.mode == "commands":
         result = commands(env, base, cfg, ev, handles, (x, y))
     else:
@@ -489,8 +493,9 @@ def explore(env, base, cfg, ev, handles) -> dict:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", type=pathlib.Path, required=True)
-    ap.add_argument("--mode", choices=["bringup", "explore", "commands"], required=True)
+    ap.add_argument("--mode", choices=["bringup", "explore", "commands", "task"], required=True)
     ap.add_argument("--kitchen", required=True)
+    ap.add_argument("--task", choices=["open_cabinet", "fetch_banana"], default="open_cabinet")
     ap.add_argument("--start", type=int, default=0)
     ap.add_argument("--robot-dir", type=pathlib.Path, required=True)
     ap.add_argument("--out", type=pathlib.Path, required=True)
@@ -501,7 +506,7 @@ def main() -> None:
     allowed = cfg["development_kitchens"] + cfg["evaluation_kitchens"]
     if args.kitchen not in allowed:
         raise SystemExit(f"kitchen {args.kitchen} is not in the frozen config")
-    if args.mode == "commands" and args.kitchen not in cfg["development_kitchens"]:
+    if args.mode in ("commands", "task") and args.kitchen not in cfg["development_kitchens"]:
         raise SystemExit("the command demo runs only in development kitchens")
     if args.prepare_with:  # separate converter environment (its USD must not mix with Isaac's)
         subprocess.run([args.prepare_with, str(ROOT / "experiments/prepare_g1_usd.py"),

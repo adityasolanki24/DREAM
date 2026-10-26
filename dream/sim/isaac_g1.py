@@ -225,6 +225,7 @@ class IsaacG1Env:
         self._annotators = None
         self.physics_steps = 0
         self.empty_capture_retries = 0  # reported per episode
+        self.last_segmentation = None
         self.contacts: list[ContactEvent] = []
         self.contact_steps = 0
         self._sim_time = 0.0
@@ -281,6 +282,14 @@ class IsaacG1Env:
         """(x, y, yaw) in the odometry frame. ORACLE-ASSISTED, as ``G1MobileEnv``."""
         return self._odom.copy()
 
+    def link_pose(self, name: str) -> tuple[np.ndarray, np.ndarray]:
+        """World position and rotation matrix of a robot link (forward kinematics)."""
+        view = self.art._articulation_view._physics_view
+        names = list(self.art._articulation_view.body_names)
+        t = np.asarray(view.get_link_transforms())[0, names.index(name)]
+        x, y, z, w = t[3:7]  # PhysX tensors are xyzw
+        return t[:3].astype(float), quat_matrix([w, x, y, z])
+
     def _torso_pose(self) -> tuple[np.ndarray, np.ndarray]:
         """Torso link world pose from the articulation's link state (forward kinematics)."""
         view = self.art._articulation_view._physics_view
@@ -327,6 +336,7 @@ class IsaacG1Env:
         dist = np.asarray(annotators["distance_to_image_plane"].get_data())
         seg = annotators["instance_id_segmentation_fast"].get_data()
         ids, info = np.asarray(seg["data"]), seg["info"].get("idToLabels", {})
+        self.last_segmentation = (ids, info)  # instance id -> prim path, for task perception
         shape = (self.head.height, self.head.width)
         if rgb.shape[:2] != shape or dist.shape != shape or ids.shape != shape:
             raise RuntimeError(f"camera returned {rgb.shape}/{dist.shape}/{ids.shape}")
