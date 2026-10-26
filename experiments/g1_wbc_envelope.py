@@ -1,17 +1,26 @@
-"""Measure what the pretrained Decoupled WBC can actually track when its posture inputs move.
+"""Measure what the pretrained Decoupled WBC can track and survive when its posture inputs move.
 
-    python experiments/g1_wbc_envelope.py experiments/configs/g1_wbc_envelope.json [--shard i/n]
-    python experiments/g1_wbc_envelope.py experiments/configs/g1_wbc_envelope.json --summarize
+    python experiments/g1_wbc_envelope.py experiments/configs/g1_wbc_envelope_v2.json [--shard i/n]
+    python experiments/g1_wbc_envelope.py experiments/configs/g1_wbc_envelope_v2.json --summarize
 
-The free-standing G1 (dream/sim/g1_mobile.py) stands at zero velocity while the base-height and
-torso roll/pitch/yaw commands (WBCLocomotion.set_posture, upstream contract in g1_wbc.py) are
-ramped from nominal at a fixed rate, held, and returned. Optional condition: both arms held
-forward (arm_target) to load the centre of mass. Ground truth (pelvis and torso pose, contacts,
-CoM, actuator commands) is read here only, as the evaluator. The summary applies the gates
-pre-registered in the config and writes ``envelope.json``, the measured feasible region the
-posture planner reads as its frozen calibration bound. Commands outside the safety bound
-(g1_wbc.HEIGHT_RANGE / RPY_RANGE) are rejected by the controller; such conditions are recorded
-as rejections, not run.
+Protocol (frozen in the config before the run): the free-standing G1 (dream/sim/g1_mobile.py)
+stands at zero velocity while the base-height and torso rpy commands (WBCLocomotion.set_posture)
+move at a fixed rate. Cell kinds: ``joint`` (height x pitch x arm pose, ramp-hold-return, repeated
+cycles), ``probe`` (roll, yaw, negative pitch), ``transition`` (multi-segment sequences, e.g.
+0.74 -> low -> mid -> 0.74, pitch changes while crouched) and ``push`` (lateral and fore-aft
+pelvis pushes at the low postures, recovery measured). Every cell runs the same seeds.
+
+Collapse versus an intended crouch is NOT decided from pelvis height. Each trial records,
+separately: tilt latch, undesired ground contact (any non-foot robot geom on the floor), loss of
+foot support, tracking error against the command, joint-limit contact, CoM margin to the support
+polygon, and the torque ratio. Tracking of the torso rpy command uses the upstream waist-chain
+definition (torso_link relative to the pelvis, g1_wbc.py docstring) on commanded axes only; the
+world-frame torso attitude is recorded but is not a gate. Ground truth (poses, contacts, CoM,
+actuator commands) is read here only, as the evaluator.
+
+``envelope.json`` is a set of measured cells with counts and Wilson 95% intervals, not a safety
+claim. Commands outside g1_wbc.HEIGHT_RANGE / RPY_RANGE are rejected by the controller and are
+recorded as rejections, not run.
 """
 
 from __future__ import annotations
@@ -24,8 +33,8 @@ import subprocess
 import sys
 import time
 
-import mujoco  # noqa: E402
-import numpy as np  # noqa: E402
+import mujoco
+import numpy as np
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -36,33 +45,59 @@ from dream.sim.g1_mobile import G1MobileEnv, build_mobile_g1  # noqa: E402
 
 TICK = g1_wbc.DT_PHYSICS * g1_wbc.DECIMATION  # 0.02 s
 GROUPS = {"legs": slice(0, 12), "waist": slice(12, 15), "arms": slice(15, 29)}
+DIRS = {"fwd": (1, 0), "back": (-1, 0), "left": (0, 1), "right": (0, -1)}
 
 
+# -- protocol ----------------------------------------------------------------------------------
 def conditions(cfg: dict) -> list[dict]:
-    """Every (name, height, rpy, arms) condition of the sweep, in a fixed order."""
-    nom = cfg["nominal_height"]
-    out = []
+    """Every cell of the frozen protocol, in a fixed order."""
+    nom, out = cfg["nominal_height"], []
 
-    def add(h, rpy, arms):
-        tag = f"h{h:.2f}_r{rpy[0]:+.2f}_p{rpy[1]:+.2f}_y{rpy[2]:+.2f}" + ("_arms" if arms else "")
-        out.append({"name": tag, "height": h, "rpy": list(rpy), "arms": arms})
+    def add(kind, name, arms, segments, cycles, push=None):
+        out.append(
+            {
+                "name": name,
+                "kind": kind,
+                "arms": arms,
+                "segments": [{"height": h, "rpy": list(r)} for h, r in segments],
+                "cycles": cycles,
+                "push": push,
+            }
+        )
 
-    for h in cfg["heights"]:
-        add(h, (0, 0, 0), False)
-    for p in cfg["pitches"]:
-        if p != 0:
-            add(nom, (0, p, 0), False)
-    for r in cfg["rolls"]:
-        add(nom, (r, 0, 0), False)
-    for y in cfg["yaws"]:
-        add(nom, (0, 0, y), False)
-    for h in cfg["arms_heights"]:
-        add(h, (0, 0, 0), True)
-    for p in cfg["arms_pitches"]:
-        add(nom, (0, p, 0), True)
+    for arms in cfg["arm_poses"]:
+        for h in cfg["joint_heights"]:
+            for p in cfg["joint_pitches"]:
+                name = f"joint_{arms}_h{h:.2f}_p{p:+.1f}"
+                add("joint", name, arms, [(h, (0, p, 0))], cfg["cycles"])
+    for r in cfg["probe_rolls"]:
+        add("probe", f"probe_roll{r:+.1f}", "neutral", [(nom, (r, 0, 0))], cfg["cycles"])
+    for y in cfg["probe_yaws"]:
+        add("probe", f"probe_yaw{y:+.1f}", "neutral", [(nom, (0, 0, y))], cfg["cycles"])
+    for p in cfg["probe_pitches"]:
+        add("probe", f"probe_pitch{p:+.1f}", "neutral", [(nom, (0, p, 0))], cfg["cycles"])
+    for t in cfg["transitions"]:
+        add("transition", "trans_" + t["name"], t["arms"], [(s[0], s[1]) for s in t["segments"]], 1)
+    for h in cfg["push_heights"]:
+        for d in DIRS:
+            for n in cfg["push_newtons"]:
+                push = {"dir": d, "newtons": n}
+                add("push", f"push_h{h:.2f}_{d}_{n:g}N", "neutral", [(h, (0, 0, 0))], 1, push)
     return out
 
 
+def wilson(k: int, n: int, z: float = 1.959964) -> list[float]:
+    """Wilson 95% score interval for k successes in n trials."""
+    if n == 0:
+        return [0.0, 1.0]
+    p = k / n
+    den = 1 + z * z / n
+    centre = (p + z * z / (2 * n)) / den
+    half = z * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / den
+    return [float(max(0.0, centre - half)), float(min(1.0, centre + half))]
+
+
+# -- evaluator-side measurement ----------------------------------------------------------------
 def rpy_of(R: np.ndarray) -> np.ndarray:
     """Roll, pitch, yaw with R = Rz(yaw) Ry(pitch) Rx(roll) (Pinocchio matrixToRpy)."""
     pitch = np.arcsin(np.clip(-R[2, 0], -1, 1))
@@ -76,28 +111,38 @@ def yaw_matrix(R: np.ndarray) -> np.ndarray:
 
 
 class Probe:
-    """Evaluator-side measurements, sampled once per policy tick."""
+    """Samples every criterion once per policy tick."""
 
-    def __init__(self, env: G1MobileEnv):
+    def __init__(self, env: G1MobileEnv, cfg: dict):
         m = env.model
-        self.env = env
+        self.env, self.cfg = env, cfg
         self.pelvis, self.torso = m.body("pelvis").id, m.body("torso_link").id
         self.feet = [m.body("left_ankle_roll_link").id, m.body("right_ankle_roll_link").id]
         self.floor = m.geom("floor").id
-        self.limit = np.abs(m.jnt_actfrcrange[env.model.actuator_trnid[:, 0]]).max(axis=1)
+        joints = m.actuator_trnid[:, 0]
+        self.limit = np.abs(m.jnt_actfrcrange[joints]).max(axis=1)
+        self.jlo, self.jhi = m.jnt_range[joints, 0], m.jnt_range[joints, 1]
+        self.jnames = [m.joint(j).name for j in joints]
         self.rows: list[dict] = []
 
-    def support_margin(self) -> float | None:
-        """Signed horizontal distance (m) from the CoM to the support polygon (convex hull of
-        floor contacts); positive inside, None with fewer than 3 contact points."""
+    def contacts(self) -> tuple[list[bool], list[str], list[np.ndarray]]:
         d, m = self.env.data, self.env.model
-        pts = []
+        foot, bad, pts = [False, False], set(), []
         for c in d.contact[: d.ncon]:
             g = (c.geom1, c.geom2)
-            if self.floor in g:
-                other = g[1] if g[0] == self.floor else g[0]
-                if m.geom_bodyid[other] in self.feet:
-                    pts.append(c.pos[:2].copy())
+            if self.floor not in g:
+                continue
+            body = int(m.geom_bodyid[g[1] if g[0] == self.floor else g[0]])
+            if body in self.feet:
+                foot[self.feet.index(body)] = True
+                pts.append(c.pos[:2].copy())
+            else:
+                bad.add(m.body(body).name)
+        return foot, sorted(bad), pts
+
+    def margin(self, pts: list[np.ndarray]) -> float | None:
+        """Signed horizontal distance (m) from the CoM to the support polygon (convex hull of
+        foot-floor contacts); positive inside, None with fewer than 3 contact points."""
         if len(pts) < 3:
             return None
         from scipy.spatial import ConvexHull, QhullError
@@ -106,29 +151,47 @@ class Probe:
             hull = ConvexHull(np.array(pts))
         except QhullError:
             return None
-        com = d.subtree_com[1][:2]
-        # hull.equations: n . x + b <= 0 inside; margin = min over facets of -(n . x + b)
+        com = self.env.data.subtree_com[1][:2]
         return float(np.min(-(hull.equations[:, :2] @ com + hull.equations[:, 2])))
 
-    def sample(self, t: float, phase: str) -> None:
-        d = self.env.data
+    def sample(self, t: float, seg: str, push_on: bool) -> None:
+        env, d = self.env, self.env.data
+        foot, bad, pts = self.contacts()
         Rp, Rt = d.xmat[self.pelvis].reshape(3, 3), d.xmat[self.torso].reshape(3, 3)
+        q = d.qpos[env.qadr]
+        m = self.cfg["joint_limit_margin_rad"]
+        near = (q - self.jlo < m) | (self.jhi - q < m)
         ratio = np.abs(d.ctrl) / self.limit
         self.rows.append(
             {
                 "t": t,
-                "phase": phase,
+                "seg": seg,
+                "push": push_on,
                 "z": float(d.xpos[self.pelvis][2]),
-                "torso_z": float(d.xpos[self.torso][2]),
-                "rpy_world": rpy_of(yaw_matrix(Rp).T @ Rt).tolist(),  # gravity-aligned heading
-                "rpy_waist": rpy_of(Rp.T @ Rt).tolist(),  # upstream FK definition (waist chain)
+                "rpy_world": rpy_of(yaw_matrix(Rp).T @ Rt).tolist(),  # recorded, not a gate
+                "rpy_waist": rpy_of(Rp.T @ Rt).tolist(),  # upstream definition: the gate
                 "ratio": {k: float(ratio[s].max()) for k, s in GROUPS.items()},
-                "margin": self.support_margin(),
+                "margin": self.margin(pts),
+                "feet": foot,
+                "bad": bad,
+                "limit": [self.jnames[i] for i in np.flatnonzero(near)],
                 "feet_xy": [d.xpos[b][:2].tolist() for b in self.feet],
-                "hand_x": [float(d.xpos[self.env.model.body(n).id][0] - d.xpos[self.pelvis][0])
-                           for n in ("left_wrist_yaw_link", "right_wrist_yaw_link")],
             }
-        )  # fmt: skip
+        )
+
+
+def longest(flags: list[bool]) -> float:
+    best = cur = 0
+    for f in flags:
+        cur = cur + 1 if f else 0
+        best = max(best, cur)
+    return best * TICK
+
+
+# -- one trial ---------------------------------------------------------------------------------
+def ramp_time(cfg: dict, h0: float, r0, h1: float, r1) -> float:
+    dr = np.max(np.abs(np.asarray(r1, float) - np.asarray(r0, float)))
+    return max(abs(h1 - h0) / cfg["rate_height"], float(dr) / cfg["rate_rpy"])
 
 
 def run_trial(cfg: dict, cond: dict, seed: int) -> dict:
@@ -138,103 +201,209 @@ def run_trial(cfg: dict, cond: dict, seed: int) -> dict:
     env.data.qpos[env.qadr] += rng.normal(scale=cfg["joint_noise"], size=len(env.qadr))
     mujoco.mj_forward(env.model, env.data)
     ctrl = WBCLocomotion.from_cache()
-    probe = Probe(env)
-    nom_h, nom_rpy = cfg["nominal_height"], np.zeros(3)
-    rate_h, rate_r = cfg["rate_height"], cfg["rate_rpy"]
-    ctrl.set_posture(nom_h, nom_rpy, max_height_rate=rate_h, max_rpy_rate=rate_r)
-    fell = None
-    t0 = [0.0]
+    probe = Probe(env, cfg)
+    nom_h = cfg["nominal_height"]
+    ctrl.set_posture(
+        nom_h, (0, 0, 0), max_height_rate=cfg["rate_height"], max_rpy_rate=cfg["rate_rpy"]
+    )
+    collapse: dict = {"stopped": None, "contact": None}
+    window: list[float] = []  # push window [start, end] in trial time
+    t_start = env.time
 
-    def run(seconds: float, phase: str) -> bool:
-        nonlocal fell
-        for _ in range(round(seconds / TICK)):
+    def run(seconds: float, seg: str, push=None) -> bool:
+        for i in range(round(seconds / TICK)):
+            on = push is not None and push["t0"] <= i * TICK < push["t0"] + cfg["push_s"]
+            if on:
+                vx, vy = DIRS[push["dir"]]
+                env.data.xfrc_applied[probe.pelvis, :3] = [
+                    vx * push["newtons"],
+                    vy * push["newtons"],
+                    0,
+                ]
             env.step(ctrl)
-            probe.sample(env.time - t0[0], phase)
-            low = probe.rows[-1]["torso_z"] < cfg["fall_torso_z"]
-            if ctrl.stopped or low:
-                fell = ctrl.stopped or f"torso z {probe.rows[-1]['torso_z']:.2f} m"
+            env.data.xfrc_applied[probe.pelvis, :3] = 0
+            probe.sample(env.time - t_start, seg, on)
+            if on:
+                window[:] = [window[0] if window else probe.rows[-1]["t"], probe.rows[-1]["t"]]
+            if ctrl.stopped:
+                collapse["stopped"] = ctrl.stopped
+                return False
+            n = round(cfg["abort_contact_s"] / TICK)
+            recent = probe.rows[-n:]
+            if len(recent) == n and all(r["bad"] for r in recent):
+                collapse["contact"] = recent[-1]["bad"]
                 return False
         return True
 
     ok = run(cfg["settle_s"], "settle")
-    if ok and cond["arms"]:
-        ctrl.arm_target = np.array(cfg["arms_forward"], float)
+    if ok:
+        ctrl.arm_target = np.array(cfg["arm_poses"][cond["arms"]], float)
         ok = run(cfg["arms_s"], "arms")
-    base = [r for r in probe.rows if r["phase"] in ("settle", "arms")][-25:]
+    base = [r for r in probe.rows if r["seg"] in ("settle", "arms")][-25:]
     nominal = {
         "z": float(np.mean([r["z"] for r in base])),
+        "rpy_waist": np.mean([r["rpy_waist"] for r in base], axis=0).tolist(),
         "rpy_world": np.mean([r["rpy_world"] for r in base], axis=0).tolist(),
+        "feet_xy": base[-1]["feet_xy"],
     }
-    ramp_out = max(
-        abs(cond["height"] - nom_h) / rate_h, float(np.max(np.abs(cond["rpy"]))) / rate_r
-    )
-    if ok:
-        ctrl.set_posture(cond["height"], cond["rpy"])
-        ok = run(ramp_out + cfg["hold_s"], "out")
-    if ok:
-        ctrl.set_posture(nom_h, nom_rpy)
-        ok = run(ramp_out + cfg["return_s"], "back")
+    prev_h, prev_r = nom_h, [0.0, 0.0, 0.0]
+    plan = []  # (tag, command, ramp_s, hold_s, push)
+    for cyc in range(cond["cycles"]):
+        for i, s in enumerate(cond["segments"]):
+            ramp = ramp_time(cfg, prev_h, prev_r, s["height"], s["rpy"])
+            push = None
+            if cond["push"]:
+                push = {**cond["push"], "t0": ramp + cfg["push_after_s"]}
+            plan.append((f"{cyc}:{i}", s, ramp, cfg["hold_s"], push))
+            prev_h, prev_r = s["height"], s["rpy"]
+        back = {"height": nom_h, "rpy": [0.0, 0.0, 0.0]}
+        ramp = ramp_time(cfg, prev_h, prev_r, nom_h, back["rpy"])
+        plan.append((f"{cyc}:back", back, ramp, cfg["return_s"], None))
+        prev_h, prev_r = nom_h, back["rpy"]
+    for tag, s, ramp, hold, push in plan:
+        if not ok:
+            break
+        ctrl.set_posture(s["height"], s["rpy"])
+        ok = run(ramp + hold, tag, push)
     return {
         "condition": cond,
         "seed": seed,
-        "fell": fell,
-        "ramp_s": ramp_out,
+        "collapse_stop": collapse,
         "nominal": nominal,
-        "metrics": metrics(cfg, cond, probe.rows, nominal, ramp_out) if not fell else None,
-        "rows_fall": probe.rows[-5:] if fell else None,
+        "plan": [{"seg": t, "ramp_s": r, "hold_s": h, "cmd": s} for t, s, r, h, _ in plan],
+        "push_window": window,
+        "criteria": criteria(cfg, cond, probe.rows, nominal, plan, window, collapse),
     }
 
 
-def metrics(cfg: dict, cond: dict, rows: list[dict], nominal: dict, ramp_s: float) -> dict:
-    out = [r for r in rows if r["phase"] == "out"]
-    hold = [r for r in out if r["t"] >= out[0]["t"] + ramp_s]  # after the commanded ramp ends
-    last = hold[-int(1.0 / TICK) :]  # last 1 s of the hold: steady state
-    back = [r for r in rows if r["phase"] == "back"]
-    tail = back[-int(1.0 / TICK) :]
-    cmd_rpy = np.array(cond["rpy"])
-    z = np.mean([r["z"] for r in last])
-    rw = np.mean([r["rpy_world"] for r in last], axis=0)
-    rt = np.mean([r["rpy_waist"] for r in last], axis=0)
-    z_final = z
-    settle = None
-    for i in range(len(hold)):  # first time the height stays within 0.02 m of its final value
-        if all(abs(q["z"] - z_final) < 0.02 for q in hold[i:]):
-            settle = hold[i]["t"] - hold[0]["t"]
-            break
-    margins = [r["margin"] for r in out if r["margin"] is not None]
-    f0 = np.array(hold[0]["feet_xy"])
-    slip = max(float(np.linalg.norm(np.array(r["feet_xy"]) - f0, axis=1).max()) for r in hold)
-    z_back = np.mean([r["z"] for r in tail])
-    rb = np.mean([r["rpy_world"] for r in tail], axis=0)
-    return {
-        "height_cmd": cond["height"],
-        "height_achieved": float(z),
-        "height_error": float(z - cond["height"]),
-        "height_error_vs_nominal_offset": float(
-            z - cond["height"] - (nominal["z"] - cfg["nominal_height"])
-        ),
-        "rpy_cmd": cmd_rpy.tolist(),
-        "rpy_world_achieved": rw.tolist(),
-        "rpy_world_error": (rw - cmd_rpy).tolist(),
-        "rpy_world_max_abs_error": float(np.max(np.abs(rw - cmd_rpy))),
-        "rpy_waist_achieved": rt.tolist(),
-        "rpy_waist_max_abs_error": float(np.max(np.abs(rt - cmd_rpy))),
-        "torque_ratio_max": {k: float(max(r["ratio"][k] for r in out)) for k in GROUPS},
-        "com_margin_min": float(min(margins)) if margins else None,
-        "com_margin_mean_hold": float(
-            np.mean([r["margin"] for r in hold if r["margin"] is not None])
+def criteria(cfg, cond, rows, nominal, plan, window, collapse) -> dict:
+    """Each criterion recorded separately; ``fails`` lists those outside the gates."""
+    g = cfg["gates"]
+    rows = [r for r in rows if r["seg"] != "settle"]  # the initial drop is scene setup
+    zone = (window[0], window[1] + cfg["push_recover_s"]) if window else None
+    calm = [r for r in rows if zone is None or not zone[0] <= r["t"] <= zone[1]]
+    tilt = collapse["stopped"]
+    bad = [bool(r["bad"]) for r in rows]
+    contact = {
+        "max_continuous_s": longest(bad),
+        "total_s": sum(bad) * TICK,
+        "bodies": sorted({n for r in rows for n in r["bad"]}),
+    }
+    lost = [not (r["feet"][0] and r["feet"][1]) for r in calm]
+    support = {"max_continuous_s": longest(lost), "total_s": sum(lost) * TICK}
+    lim = [bool(r["limit"]) for r in rows]
+    limit = {"total_s": sum(lim) * TICK, "joints": sorted({j for r in rows for j in r["limit"]})}
+    margins = [r["margin"] for r in calm if r["margin"] is not None]
+    com = {"min_m": float(min(margins)) if margins else None}
+    torque = {k: float(max((r["ratio"][k] for r in rows), default=0)) for k in GROUPS}
+
+    by_seg: dict[str, list[dict]] = {}
+    for r in rows:
+        by_seg.setdefault(r["seg"], []).append(r)
+    segs = []
+    for tag, s, ramp, hold, _ in plan:
+        rs = by_seg.get(tag, [])
+        if len(rs) * TICK < ramp + hold - 1e-6:
+            continue  # collapse before the segment ended
+        last = rs[-round(1.0 / TICK) :]
+        z = float(np.mean([r["z"] for r in last]))
+        wa = np.mean([r["rpy_waist"] for r in last], axis=0)
+        cmd = np.array(s["rpy"], float)
+        used = np.abs(cmd) > 1e-9
+        segs.append(
+            {
+                "seg": tag,
+                "back": tag.endswith("back"),
+                "height_cmd": s["height"],
+                "height_achieved": z,
+                "height_error": z - s["height"],
+                "rpy_cmd": cmd.tolist(),
+                "rpy_waist_achieved": wa.tolist(),
+                "rpy_waist_error": (wa - cmd).tolist(),
+                "rpy_waist_error_commanded_max": float(np.max(np.abs((wa - cmd)[used])))
+                if used.any()
+                else 0.0,
+                "rpy_world_achieved": np.mean([r["rpy_world"] for r in last], axis=0).tolist(),
+            }
         )
-        if any(r["margin"] is not None for r in hold)
-        else None,
-        "feet_slip_max": slip,
-        "settle_s": settle,
-        "return_height_error": float(z_back - nominal["z"]),
-        "return_rpy_error": float(np.max(np.abs(rb - np.array(nominal["rpy_world"])))),
-        "min_torso_z": float(min(r["torso_z"] for r in rows)),
-        "max_hand_forward_x": float(max(max(r["hand_x"]) for r in rows)),
+    out_segs = [s for s in segs if not s["back"]]
+    n_out = sum(not p[0].endswith("back") for p in plan)
+    n_back = len(plan) - n_out
+    back_segs = [s for s in segs if s["back"]]
+    complete = len(out_segs) == n_out
+    height_err = max((abs(s["height_error"]) for s in out_segs), default=None)
+    rpy_err = max((s["rpy_waist_error_commanded_max"] for s in out_segs), default=None)
+    ret = None
+    if len(back_segs) == n_back and back_segs:
+        b = back_segs[-1]
+        ret = {
+            "height_error": b["height_achieved"] - nominal["z"],
+            "rpy_waist_error": float(
+                np.max(np.abs(np.array(b["rpy_waist_achieved"]) - nominal["rpy_waist"]))
+            ),
+        }
+    f0 = np.array(nominal["feet_xy"])
+    slip = max(
+        (
+            float(np.linalg.norm(np.array(r["feet_xy"]) - f0, axis=1).max())
+            for r in calm
+            if r["seg"] not in ("settle", "arms")
+        ),
+        default=0.0,
+    )
+    recovery = None
+    if window:  # first time after the push the height stays within 0.02 m of its final value
+        post = [r for r in rows if r["t"] > window[1]]
+        for i in range(len(post)):
+            if all(abs(q["z"] - post[-1]["z"]) < 0.02 for q in post[i:]):
+                recovery = post[i]["t"] - window[1]
+                break
+    fails = []
+    if tilt:
+        fails.append("tilt_latch")
+    if contact["max_continuous_s"] > g["undesired_contact_max_s"]:
+        fails.append("undesired_ground_contact")
+    if support["max_continuous_s"] > g["foot_loss_max_s"]:
+        fails.append("foot_support_loss")
+    if not complete or height_err is None or height_err > g["height_tol_m"]:
+        fails.append("height_tracking")
+    if not complete or rpy_err is None or rpy_err > g["rpy_tol_rad"]:
+        fails.append("rpy_tracking")
+    if limit["total_s"] > g["joint_limit_max_s"]:
+        fails.append("joint_limit_contact")
+    if com["min_m"] is None or com["min_m"] < g["com_margin_min_m"]:
+        fails.append("com_margin")
+    if max(torque.values()) >= g["torque_ratio_max"]:
+        fails.append("torque_ratio")
+    if not cond["push"] and slip > g["feet_slip_max_m"]:
+        fails.append("feet_slip")
+    if (
+        ret is None
+        or abs(ret["height_error"]) > g["return_height_tol_m"]
+        or ret["rpy_waist_error"] > g["return_rpy_tol_rad"]
+    ):
+        fails.append("return_to_nominal")
+    if cond["push"] and recovery is None:
+        fails.append("push_recovery")
+    return {
+        "tilt_latch": tilt,
+        "undesired_ground_contact": contact,
+        "foot_support": support,
+        "joint_limit": limit,
+        "com_margin": com,
+        "torque_ratio": torque,
+        "height_error_max": height_err,
+        "rpy_waist_error_commanded_max": rpy_err,
+        "feet_slip_max_m": slip,
+        "push_recovery_s": recovery,
+        "return": ret,
+        "segments": segs,
+        "fails": fails,
+        "stable": not fails,
     }
 
 
+# -- summary -----------------------------------------------------------------------------------
 def git_sha() -> str:
     return subprocess.run(
         ["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True
@@ -245,77 +414,57 @@ def trial_path(out: pathlib.Path, cond: dict, seed: int) -> pathlib.Path:
     return out / "trials" / f"{cond['name']}_s{seed}.json"
 
 
-def passes(cfg: dict, trials: list[dict]) -> dict:
-    """Pre-registered gates on all seeds of one condition."""
-    g = cfg["gates"]
-    ms = [t["metrics"] for t in trials if t["metrics"]]
-    falls = sum(t["fell"] is not None for t in trials)
-    res = {"n": len(trials), "falls": falls}
-    if falls or len(ms) != len(trials):
-        res["feasible"] = res["feasible_any_attitude"] = False
-        return res
-    res["height_error_max"] = max(abs(m["height_error"]) for m in ms)
-    res["rpy_error_max"] = max(m["rpy_world_max_abs_error"] for m in ms)
-    res["torque_ratio_max"] = max(max(m["torque_ratio_max"].values()) for m in ms)
-    res["torque_ratio_by_group"] = {k: max(m["torque_ratio_max"][k] for m in ms) for k in GROUPS}
-    margins = [m["com_margin_min"] for m in ms if m["com_margin_min"] is not None]
-    res["com_margin_min"] = min(margins) if margins else None
-    res["feet_slip_max"] = max(m["feet_slip_max"] for m in ms)
-    res["return_ok"] = all(
-        abs(m["return_height_error"]) < g["return_height_tol_m"]
-        and m["return_rpy_error"] < g["return_rpy_tol_rad"]
-        for m in ms
-    )
-    res["gate_failures"] = [
-        name
-        for name, bad in (
-            ("height_error", res["height_error_max"] > g["height_tol_m"]),
-            ("rpy_error", res["rpy_error_max"] > g["rpy_tol_rad"]),
-            ("torque_ratio", res["torque_ratio_max"] >= g["torque_ratio_max"]),
-            (
-                "com_margin",
-                res["com_margin_min"] is None or res["com_margin_min"] < g["com_margin_min_m"],
-            ),
-            ("feet_slip", res["feet_slip_max"] > g["feet_slip_max_m"]),
-            ("return", not res["return_ok"]),
-        )
-        if bad
-    ]
-    res["feasible"] = not res["gate_failures"]
-    # Same gates without the torso-attitude one: the policy may squat correctly (height gate)
-    # while its torso leans; a planner that tolerates the lean can use the wider region.
-    res["feasible_any_attitude"] = res["gate_failures"] in ([], ["rpy_error"])
-    return res
-
-
-def contiguous(vals: list[float], ok: dict[float, bool], nominal: float) -> list[float]:
-    """Feasible interval around the nominal value: walk outward until the first infeasible."""
-    lo = hi = nominal
-    for v in sorted(x for x in vals if x < nominal)[::-1]:
-        if not ok.get(v, False):
-            break
-        lo = v
-    for v in sorted(x for x in vals if x > nominal):
-        if not ok.get(v, False):
-            break
-        hi = v
-    return [lo, hi]
-
-
 def summarize(cfg: dict, out: pathlib.Path) -> None:
-    conds = conditions(cfg)
-    summary, by_name = {}, {}
-    for c in conds:
-        ts = [
-            json.loads(trial_path(out, c, s).read_text())
-            for s in cfg["seeds"]
-            if trial_path(out, c, s).exists()
-        ]
-        if len(ts) != len(cfg["seeds"]):
-            summary[c["name"]] = {"condition": c, "incomplete": True, "n": len(ts)}
-            continue
-        summary[c["name"]] = {"condition": c, **passes(cfg, ts)}
-        by_name[c["name"]] = summary[c["name"]]
+    cells = []
+    for c in conditions(cfg):
+        paths = [trial_path(out, c, s) for s in cfg["seeds"]]
+        crit = [json.loads(p.read_text())["criteria"] for p in paths if p.exists()]
+        n, k = len(crit), sum(x["stable"] for x in crit)
+        fail_counts: dict[str, int] = {}
+        for x in crit:
+            for f in x["fails"]:
+                fail_counts[f] = fail_counts.get(f, 0) + 1
+
+        def worst(f, crit=crit):
+            v = [f(x) for x in crit]
+            v = [t for t in v if t is not None]
+            return max(v) if v else None
+
+        margins = [x["com_margin"]["min_m"] for x in crit if x["com_margin"]["min_m"] is not None]
+        s0 = c["segments"][0]
+        cells.append(
+            {
+                "name": c["name"],
+                "kind": c["kind"],
+                "arms": c["arms"],
+                "segments": c["segments"],
+                "push": c["push"],
+                "height": s0["height"],
+                "pitch": s0["rpy"][1],
+                "complete": n == len(cfg["seeds"]),
+                "n_trials": n,
+                "n_stable": k,
+                "wilson95": wilson(k, n),
+                "fail_counts": fail_counts,
+                "worst": {
+                    "height_error_m": worst(lambda x: x["height_error_max"]),
+                    "rpy_waist_error_rad": worst(lambda x: x["rpy_waist_error_commanded_max"]),
+                    "torque_ratio": worst(lambda x: max(x["torque_ratio"].values())),
+                    "torque_ratio_by_group": {
+                        g: worst(lambda x, g=g: x["torque_ratio"][g]) for g in GROUPS
+                    },
+                    "com_margin_min_m": min(margins, default=None),
+                    "foot_loss_s": worst(lambda x: x["foot_support"]["max_continuous_s"]),
+                    "undesired_contact_s": worst(
+                        lambda x: x["undesired_ground_contact"]["max_continuous_s"]
+                    ),
+                    "joint_limit_s": worst(lambda x: x["joint_limit"]["total_s"]),
+                    "feet_slip_m": worst(lambda x: x["feet_slip_max_m"]),
+                    "push_recovery_s": worst(lambda x: x["push_recovery_s"]),
+                    "tilt_latches": sum(x["tilt_latch"] is not None for x in crit),
+                },
+            }
+        )
     rejected = []
     for p in cfg["rejected_probe_pitches"]:
         try:
@@ -324,52 +473,70 @@ def summarize(cfg: dict, out: pathlib.Path) -> None:
         except ValueError as e:
             rejected.append({"pitch": p, "rejected": True, "reason": str(e)})
     (out / "summary.json").write_text(
-        json.dumps({"conditions": summary, "rejected_commands": rejected}, indent=1)
+        json.dumps({"cells": cells, "rejected_commands": rejected}, indent=1)
     )
-
-    def feas(arms: bool, key: str, idx=None, flag: str = "feasible"):
-        d = {}
-        for c in conds:
-            s = by_name.get(c["name"])
-            if s is None or c["arms"] != arms:
-                continue
-            others = [v for j, v in enumerate(c["rpy"]) if j != idx]
-            if key == "height":
-                if all(v == 0 for v in c["rpy"]):
-                    d[c["height"]] = s[flag]
-            elif c["height"] == cfg["nominal_height"] and not any(others):
-                d[c["rpy"][idx]] = s["feasible"]
-        return d
-
-    env = {"gates": cfg["gates"], "arms_forward": cfg["arms_forward"], "seeds": cfg["seeds"]}
-    for arms, tag in ((False, "standing"), (True, "arms_extended")):
-        fh = feas(arms, "height")
-        fa = feas(arms, "height", flag="feasible_any_attitude")
-        region = {
-            "height_m": contiguous(list(fh), fh, cfg["nominal_height"]) if fh else None,
-            "height_m_any_torso_attitude": contiguous(list(fa), fa, cfg["nominal_height"])
-            if fa
-            else None,
-            "height_tested": {f"{k:.2f}": v for k, v in sorted(fh.items())},
+    grid = {}
+    for arms in cfg["arm_poses"]:
+        grid[arms] = {
+            "axes": {"height_m": cfg["joint_heights"], "pitch_rad": cfg["joint_pitches"]},
+            "cells": {
+                f"h{c['height']:.2f}_p{c['pitch']:+.1f}": {
+                    "n_trials": c["n_trials"],
+                    "n_stable": c["n_stable"],
+                    "wilson95": c["wilson95"],
+                    "fail_counts": c["fail_counts"],
+                    "passes": c["complete"] and c["n_stable"] == c["n_trials"],
+                }
+                for c in cells
+                if c["kind"] == "joint" and c["arms"] == arms
+            },
         }
-        for i, nm in enumerate(("roll", "pitch", "yaw")):
-            fr = feas(arms, "rpy", i)
-            fr[0.0] = fr.get(0.0, fh.get(cfg["nominal_height"], False))
-            region[nm + "_rad"] = contiguous(list(fr), fr, 0.0)
-            region[nm + "_tested"] = {f"{k:+.2f}": v for k, v in sorted(fr.items())}
-        env[tag] = region
-    env["rejected_by_safety_bound"] = rejected
-    env["note"] = (
-        "Intervals are the contiguous feasible range around nominal. Height and rpy are "
-        "swept independently (no joint height x pitch sweep): a planner must not assume the "
-        "product of the intervals is feasible."
-    )
-    (out / "envelope.json").write_text(json.dumps(env, indent=1))
-    print(
-        json.dumps({k: v for k, v in env.items() if k in ("standing", "arms_extended")}, indent=1)
-    )
-    for n, s in summary.items():
-        print(n, "feasible" if s.get("feasible") else s.get("gate_failures", s.get("falls", "n/a")))
+    envelope = {
+        "protocol": {
+            "config": cfg["name"],
+            "seeds": cfg["seeds"],
+            "cycles_per_trial": cfg["cycles"],
+            "gates": cfg["gates"],
+            "rates": {"height_m_s": cfg["rate_height"], "rpy_rad_s": cfg["rate_rpy"]},
+            "push_s": cfg["push_s"],
+            "arm_poses_rad": cfg["arm_poses"],
+        },
+        "meaning": (
+            "Measured cells only. A cell passes when every trial of it met every pre-registered "
+            "gate (no tilt latch, no sustained undesired ground contact, foot support kept, "
+            "height and commanded-rpy tracking, joint-limit contact, CoM margin, torque ratio, "
+            "slip, return to nominal; push cells also recover). The counts and Wilson 95% "
+            "intervals are the evidence; with 5 trials a perfect cell has a lower bound of about "
+            "0.57. Nothing here is labelled safe."
+        ),
+        "input_bound_m": list(g1_wbc.HEIGHT_RANGE),
+        "interpolation_rule": (
+            "A requested (height, pitch) with a given arm pose may be treated as inside the "
+            "envelope only if it lies within the convex region spanned by passing cells of that "
+            "arm pose AND every grid cell neighbouring the request (the corners of the grid "
+            "rectangle that contains it) passes. Otherwise it is unmeasured and not executable "
+            "autonomously. Other arm poses, roll, yaw and combinations not in the grid are "
+            "unmeasured."
+        ),
+        "roll": (
+            "Excluded from the executable region: roll is weakly tracked (see probe cells); "
+            "executable roll is fixed at 0."
+        ),
+        "world_frame_torso_attitude": (
+            "recorded per segment in the trial files (rpy_world_achieved); not a gate"
+        ),
+        "grid": grid,
+        "other_cells": [c for c in cells if c["kind"] != "joint"],
+        "rejected_by_input_bound": rejected,
+    }
+    (out / "envelope.json").write_text(json.dumps(envelope, indent=1))
+    for c in cells:
+        print(
+            c["name"],
+            f"{c['n_stable']}/{c['n_trials']}",
+            round(c["wilson95"][0], 2),
+            c["fail_counts"],
+        )
 
 
 def main() -> None:
@@ -377,18 +544,15 @@ def main() -> None:
     ap.add_argument("config")
     ap.add_argument("--shard", default="0/1")
     ap.add_argument("--summarize", action="store_true")
-    ap.add_argument("--smoke", action="store_true", help="1 seed, 2 heights, standing only")
+    ap.add_argument("--smoke", action="store_true", help="1 seed, a few cells; writes *_smoke")
     a = ap.parse_args()
     cfg = json.loads(pathlib.Path(a.config).read_text())
+    if a.smoke:
+        cfg = {**cfg, **cfg["smoke"], "name": cfg["name"] + "_smoke"}
     out = ROOT / "results" / cfg["name"]
     if a.summarize:
         summarize(cfg, out)
         return
-    if a.smoke:
-        small = {"pitches": [0], "rolls": [], "yaws": [], "arms_heights": [], "arms_pitches": []}
-        h = cfg["heights"]
-        cfg = {**cfg, **small, "seeds": cfg["seeds"][:1], "heights": h[:1] + h[5:6]}
-        out = ROOT / "results" / (cfg["name"] + "_smoke")
     (out / "trials").mkdir(parents=True, exist_ok=True)
     i, n = map(int, a.shard.split("/"))
     jobs = [(c, s) for c in conditions(cfg) for s in cfg["seeds"]][i::n]
@@ -418,11 +582,9 @@ def main() -> None:
         r = run_trial(cfg, c, s)
         r["wall_s"] = time.time() - t
         p.write_text(json.dumps(r, indent=1))
-        m = r["metrics"]
-        print(c["name"], s, "FELL " + r["fell"] if r["fell"] else
-              f"dz={m['height_error']:+.3f} rpy_err={m['rpy_world_max_abs_error']:.3f} "
-              f"tau={max(m['torque_ratio_max'].values()):.2f} margin={m['com_margin_min']}",
-              f"{r['wall_s']:.0f}s", flush=True)  # fmt: skip
+        k = r["criteria"]
+        status = "stable" if k["stable"] else "FAIL " + ",".join(k["fails"])
+        print(c["name"], s, status, f"{r['wall_s']:.0f}s", flush=True)
 
 
 if __name__ == "__main__":
