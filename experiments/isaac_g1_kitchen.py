@@ -294,10 +294,6 @@ def _run(app, args, cfg, ev: Evidence) -> dict:
     app.update()
     world = World(physics_dt=0.005, rendering_dt=0.005, stage_units_in_meters=1.0)
     stage = world.stage
-    if args.mode == "task" and args.task == "fetch_banana":
-        from experiments.isaac_task import make_dynamic
-
-        ev.stage("made_dynamic", prims=make_dynamic(stage, "banana"))
     objects = labelled_objects(stage)
     scene = {"kitchen": args.kitchen, "url": url, "root_layer_sha256": layer_sha256(url),
              "physics": physics_audit(stage), "labels": {}}  # fmt: skip
@@ -306,6 +302,11 @@ def _run(app, args, cfg, ev: Evidence) -> dict:
     handles = handle_truth(objects)
     cells, boxes, lo, hi = free_space(stage, cfg)
     x, y, yaw, run_m = choose_start(cells, boxes, args.mode, args.start)
+    if args.mode == "task" and args.task == "fetch_banana":
+        from experiments.isaac_task import make_dynamic, place_on_counter_edge
+
+        ev.stage("placed", **place_on_counter_edge(stage, "banana", (x, y)))
+        ev.stage("made_dynamic", prims=make_dynamic(stage, "banana"))
     scene.update(floor_lo=lo, floor_hi=hi, free_cells=len(cells), start=[x, y, yaw],
                  start_clear_run_m=run_m)  # fmt: skip
     ev.write("scene_truth.json", {**scene, "handles": handles})  # evaluator-only file

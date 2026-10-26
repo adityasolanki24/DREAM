@@ -209,6 +209,45 @@ def face(base, target_xy, tol: float = 0.06) -> None:
     base.walk(0.0, 0.0, 0.0, 0.4)
 
 
+def place_on_counter_edge(stage, label: str, start_xy) -> dict:
+    """Scene setup: put one ``label`` item 12 cm in from the front edge of the countertop
+    nearest the robot's start (where a person leaves something), avoiding sinks."""
+    from pxr import Gf, UsdGeom
+
+    from dream.eval.isaac_scene import labelled_objects
+
+    objs = labelled_objects(stage)
+    item = next(o for o in objs if o.label == label)
+    sinks = [o for o in objs if o.label in ("sink", "sink_basin", "sink_rim")]
+    centre = np.mean([[o.centre[0], o.centre[1]] for o in objs if o.label == "countertop"], 0)
+    best = None
+    for c in (o for o in objs if o.label == "countertop"):
+        long_x = (c.hi[0] - c.lo[0]) >= (c.hi[1] - c.lo[1])
+        if long_x:  # front edge: the long side facing the kitchen's centre
+            ey = c.lo[1] if abs(c.lo[1] - centre[1]) < abs(c.hi[1] - centre[1]) else c.hi[1]
+            inward = 0.12 if ey == c.lo[1] else -0.12
+            xs = np.linspace(c.lo[0] + 0.15, c.hi[0] - 0.15, 9)
+            pts = [(x, ey + inward) for x in xs]
+        else:
+            ex = c.lo[0] if abs(c.lo[0] - centre[0]) < abs(c.hi[0] - centre[0]) else c.hi[0]
+            inward = 0.12 if ex == c.lo[0] else -0.12
+            ys = np.linspace(c.lo[1] + 0.15, c.hi[1] - 0.15, 9)
+            pts = [(ex + inward, y) for y in ys]
+        for p in pts:
+            if any(s.lo[0] - 0.1 < p[0] < s.hi[0] + 0.1 and s.lo[1] - 0.1 < p[1] < s.hi[1] + 0.1
+                   for s in sinks):  # fmt: skip
+                continue
+            d = float(np.hypot(p[0] - start_xy[0], p[1] - start_xy[1]))
+            if best is None or d < best[0]:
+                best = (d, p, float(c.hi[2]))
+    _, (px, py), top = best
+    xf = UsdGeom.XformCommonAPI(stage.GetPrimAtPath(item.path))
+    offset = np.array([px, py, top + 0.03]) - item.centre
+    t, *_ = xf.GetXformVectors(0)
+    xf.SetTranslate(Gf.Vec3d(*(np.array(t) + offset)))
+    return {"item": item.path, "placed_at": [px, py, top + 0.03]}
+
+
 def make_dynamic(stage, label: str) -> list[str]:
     """Scene setup: make the labelled food items rigid bodies (in the asset they are static
     props), with convex colliders and a light mass, so they can be picked up."""
@@ -300,9 +339,21 @@ def run_task(world, env, base, cfg, ev, start, task: str) -> dict:
         gap_xy = float(np.linalg.norm(p_odom[:2] - base.odometry()[:2]))
         if gap_xy <= STAND_OFF[want] + 0.02:
             break
+        touching = env.contact_steps
         base.walk(min(0.15, gap_xy - STAND_OFF[want] + 0.05), 0.0, 0.0, 0.4)
+        if env.contact_steps > touching:  # touched the furniture: back off 3 cm and stop
+            base.walk(-0.08, 0.0, 0.0, 0.4)
+            log("approach", "touched the furniture; stopped at its edge")
+            break
     base.walk(0.0, 0.0, 0.0, 0.5)
     face(base, p_odom[:2])
+    x, y, yaw = base.odometry()
+    left = -math.sin(yaw) * (p_odom[0] - x) + math.cos(yaw) * (p_odom[1] - y)
+    shift = left + 0.12  # put it in front of the right shoulder (12 cm right of centre)
+    if abs(shift) > 0.03:
+        base.walk(0.0, math.copysign(0.1, shift), 0.0, abs(shift) / 0.1)
+        base.walk(0.0, 0.0, 0.0, 0.4)
+        log("align", f"side-stepped {shift * 100:.0f} cm so it is in front of the right hand")
     pose = base.odometry()
     d = p_odom[:2] - pose[:2]
     u = d / max(np.linalg.norm(d), 1e-6)
@@ -315,8 +366,14 @@ def run_task(world, env, base, cfg, ev, start, task: str) -> dict:
     mj_tip = ik.data.xpos[ik.arm.hand].copy()
     log("ik_check", f"MuJoCo mirror vs Isaac fingertip: "
         f"{np.linalg.norm(mj_tip - env.link_pose(HAND_LINK)[0]) * 100:.1f} cm")  # fmt: skip
-    pre = target - np.array([*u, 0.0]) * 0.08  # 8 cm in front of it first
-    for goal, label in ((pre, "pre-grasp"), (target, "contact")):
+    root, _ = env._root()
+    yaw = env.true_pose()[2]
+    fwd = np.array([math.cos(yaw), math.sin(yaw), 0.0])
+    right = np.array([math.sin(yaw), -math.cos(yaw), 0.0])
+    side = np.array([*root[:2], target[2]]) + fwd * 0.15 + right * 0.22  # beside the body
+    tw = np.array([*u, 0.0])
+    pre = target - tw * 0.08  # 8 cm in front of it
+    for goal, label in ((side, "lower beside body"), (pre, "pre-grasp"), (target, "contact")):
         q_goal = ik.solve(goal)
         q0 = ik.arm.current_targets()
         for k in range(1, 26):  # 1 s: small steps the balance policy can absorb
