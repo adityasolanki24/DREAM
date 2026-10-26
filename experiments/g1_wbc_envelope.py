@@ -53,9 +53,10 @@ def conditions(cfg: dict) -> list[dict]:
     """Every cell of the frozen protocol, in a fixed order."""
     nom, out = cfg["nominal_height"], []
 
-    def add(kind, name, arms, segments, cycles, push=None):
+    def add(kind, name, arms, segments, cycles, push=None, arm_rate=None):
         out.append(
             {
+                "arm_rate": arm_rate,
                 "name": name,
                 "kind": kind,
                 "arms": arms,
@@ -83,6 +84,19 @@ def conditions(cfg: dict) -> list[dict]:
             for n in cfg["push_newtons"]:
                 push = {"dir": d, "newtons": n}
                 add("push", f"push_h{h:.2f}_{d}_{n:g}N", "neutral", [(h, (0, 0, 0))], 1, push)
+    ar = cfg.get("arm_rate")
+    if ar:  # appended last so earlier cells keep their trial files
+        for h in ar["heights"]:
+            for rate in ar["rates"]:
+                add(
+                    "arm_rate",
+                    f"armrate_h{h:.2f}_r{rate:.1f}",
+                    "neutral",
+                    [(h, (0, 0, 0))],
+                    1,
+                    None,
+                    rate,
+                )
     return out
 
 
@@ -124,6 +138,7 @@ class Probe:
         self.jlo, self.jhi = m.jnt_range[joints, 0], m.jnt_range[joints, 1]
         self.jnames = [m.joint(j).name for j in joints]
         self.rows: list[dict] = []
+        self.ctrl = None  # set by run_trial: the controller whose arm reference is tracked
 
     def contacts(self) -> tuple[list[bool], list[str], list[np.ndarray]]:
         d, m = self.env.data, self.env.model
@@ -162,8 +177,10 @@ class Probe:
         m = self.cfg["joint_limit_margin_rad"]
         near = (q - self.jlo < m) | (self.jhi - q < m)
         ratio = np.abs(d.ctrl) / self.limit
+        arm_err = float(np.max(np.abs(q[15:] - self.ctrl.arm_target)))
         self.rows.append(
             {
+                "arm_err": arm_err,
                 "t": t,
                 "seg": seg,
                 "push": push_on,
@@ -202,6 +219,7 @@ def run_trial(cfg: dict, cond: dict, seed: int) -> dict:
     mujoco.mj_forward(env.model, env.data)
     ctrl = WBCLocomotion.from_cache()
     probe = Probe(env, cfg)
+    probe.ctrl = ctrl
     nom_h = cfg["nominal_height"]
     ctrl.set_posture(
         nom_h, (0, 0, 0), max_height_rate=cfg["rate_height"], max_rpy_rate=cfg["rate_rpy"]
@@ -265,6 +283,8 @@ def run_trial(cfg: dict, cond: dict, seed: int) -> dict:
             break
         ctrl.set_posture(s["height"], s["rpy"])
         ok = run(ramp + hold, tag, push)
+        if ok and cond["arm_rate"] and tag == "0:0":
+            ok = arm_motion(cfg, cond["arm_rate"], ctrl, run)
     return {
         "condition": cond,
         "seed": seed,
@@ -274,6 +294,24 @@ def run_trial(cfg: dict, cond: dict, seed: int) -> dict:
         "push_window": window,
         "criteria": criteria(cfg, cond, probe.rows, nominal, plan, window, collapse),
     }
+
+
+def arm_motion(cfg: dict, rate: float, ctrl, run) -> bool:
+    """Both arms neutral -> pose -> neutral, each joint reference moving at most ``rate`` rad/s.
+    Plain WBCLocomotion arm PD (no gravity feed-forward): the validated controller as it is."""
+    ar = cfg["arm_rate"]
+    pose = np.array(cfg["arm_poses"][ar["pose"]], float)
+    span = float(np.max(np.abs(pose)))
+    for tag, a, b in (("armout", 0.0, 1.0), ("armback", 1.0, 0.0)):
+        n = max(1, round(span / rate / TICK))
+        for i in range(n):
+            ctrl.arm_target = pose * (a + (b - a) * (i + 1) / n)
+            if not run(TICK, tag):
+                return False
+        ctrl.arm_target = pose * b
+        if not run(ar["hold_s"], "armhold" if b == 1.0 else "armend"):
+            return False
+    return True
 
 
 def criteria(cfg, cond, rows, nominal, plan, window, collapse) -> dict:
@@ -358,7 +396,27 @@ def criteria(cfg, cond, rows, nominal, plan, window, collapse) -> dict:
             if all(abs(q["z"] - post[-1]["z"]) < 0.02 for q in post[i:]):
                 recovery = post[i]["t"] - window[1]
                 break
+    arm = None
+    if cond["arm_rate"]:
+        moving = [r["arm_err"] for r in rows if r["seg"] in ("armout", "armback")]
+        settle = []
+        for tag in ("armhold", "armend"):
+            rs = [r["arm_err"] for r in rows if r["seg"] == tag]
+            if len(rs) * TICK >= cfg["arm_rate"]["hold_s"] - 1e-6:
+                settle.append(float(np.mean(rs[-round(1.0 / TICK) :])))
+        z0 = by_seg["0:0"][-1]["z"] if by_seg.get("0:0") else None
+        zs = [r["z"] for r in rows if r["seg"].startswith("arm")]
+        arm = {
+            "lag_max_rad": float(max(moving)) if moving else None,
+            "settle_err_rad": settle,
+            "complete": len(settle) == 2,
+            "height_drift_max_m": float(max(abs(z - z0) for z in zs)) if zs and z0 else None,
+        }
     fails = []
+    if arm and (not arm["complete"] or max(arm["settle_err_rad"]) > g["arm_settle_tol_rad"]):
+        fails.append("arm_settle")
+    if arm and (arm["height_drift_max_m"] is None or arm["height_drift_max_m"] > g["height_tol_m"]):
+        fails.append("arm_height_drift")
     if tilt:
         fails.append("tilt_latch")
     if contact["max_continuous_s"] > g["undesired_contact_max_s"]:
@@ -398,6 +456,7 @@ def criteria(cfg, cond, rows, nominal, plan, window, collapse) -> dict:
         "push_recovery_s": recovery,
         "return": ret,
         "segments": segs,
+        "arm_motion": arm,
         "fails": fails,
         "stable": not fails,
     }
@@ -412,6 +471,47 @@ def git_sha() -> str:
 
 def trial_path(out: pathlib.Path, cond: dict, seed: int) -> pathlib.Path:
     return out / "trials" / f"{cond['name']}_s{seed}.json"
+
+
+def arm_rate_max(cfg: dict, cells: list[dict]) -> dict | None:
+    """Highest arm speed (rad/s) at which every trial passes, at each height and at all heights
+    (the rates below it must pass too). Plain arm PD, no gravity feed-forward."""
+    ar = cfg.get("arm_rate")
+    if not ar:
+        return None
+    rates, res = sorted(ar["rates"]), {"by_height": {}}
+    for h in ar["heights"]:
+        best = None
+        for r in rates:
+            c = next(x for x in cells if x["name"] == f"armrate_h{h:.2f}_r{r:.1f}")
+            if not (c["complete"] and c["n_stable"] == c["n_trials"]):
+                break
+            best = r
+        res["by_height"][f"{h:.2f}"] = best
+    vals = list(res["by_height"].values())
+    res["all_heights_rad_s"] = None if None in vals else min(vals)
+    # Post-hoc diagnostic (added after a one-trial smoke showed a static gravity sag of about
+    # 0.1 rad in the held reach): same test with the arm_settle gate waived.
+    res["by_height_ignoring_arm_settle"] = {}
+    for h in ar["heights"]:
+        best = None
+        for r in rates:
+            c = next(x for x in cells if x["name"] == f"armrate_h{h:.2f}_r{r:.1f}")
+            others = set(c["fail_counts"]) - {"arm_settle"}
+            if not c["complete"] or others:
+                break
+            best = r
+        res["by_height_ignoring_arm_settle"][f"{h:.2f}"] = best
+    v2 = list(res["by_height_ignoring_arm_settle"].values())
+    res["all_heights_ignoring_arm_settle_rad_s"] = None if None in v2 else min(v2)
+    res["pose"] = ar["pose"]
+    res["controller"] = "plain WBCLocomotion arm PD, no gravity feed-forward"
+    res["cells"] = {
+        c["name"]: {"n_trials": c["n_trials"], "n_stable": c["n_stable"], "wilson95": c["wilson95"]}
+        for c in cells
+        if c["kind"] == "arm_rate"
+    }
+    return res
 
 
 def summarize(cfg: dict, out: pathlib.Path) -> None:
@@ -461,6 +561,9 @@ def summarize(cfg: dict, out: pathlib.Path) -> None:
                     "joint_limit_s": worst(lambda x: x["joint_limit"]["total_s"]),
                     "feet_slip_m": worst(lambda x: x["feet_slip_max_m"]),
                     "push_recovery_s": worst(lambda x: x["push_recovery_s"]),
+                    "arm_lag_max_rad": worst(
+                        lambda x: x["arm_motion"]["lag_max_rad"] if x["arm_motion"] else None
+                    ),
                     "tilt_latches": sum(x["tilt_latch"] is not None for x in crit),
                 },
             }
@@ -525,6 +628,7 @@ def summarize(cfg: dict, out: pathlib.Path) -> None:
         "world_frame_torso_attitude": (
             "recorded per segment in the trial files (rpy_world_achieved); not a gate"
         ),
+        "arm_rate_max": arm_rate_max(cfg, cells),
         "grid": grid,
         "other_cells": [c for c in cells if c["kind"] != "joint"],
         "rejected_by_input_bound": rejected,
