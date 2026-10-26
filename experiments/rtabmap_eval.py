@@ -43,18 +43,24 @@ setsid ros2 run tf2_ros static_transform_publisher --x {x} --y {y} --z {z} \
   --qx {qx} --qy {qy} --qz {qz} --qw {qw} \
   --frame-id base_link --child-frame-id camera_color_optical_frame > /data/tf.log 2>&1 &
 TF=$!
+# orientation for the gyro/accelerometer-only IMU; used only when imu_topic:=/imu/filtered
+setsid ros2 run imu_filter_madgwick imu_filter_madgwick_node --ros-args -p use_mag:=false \
+  -p publish_tf:=false -p world_frame:=enu -p use_sim_time:=true \
+  -r imu/data_raw:=/imu/data -r imu/data:=/imu/filtered > /data/imu_filter.log 2>&1 &
+IMUF=$!
 setsid ros2 launch rtabmap_launch rtabmap.launch.py rtabmap_viz:=false use_sim_time:=true \
   frame_id:=base_link rgb_topic:=/camera/color/image_raw \
   depth_topic:=/camera/depth/image_raw camera_info_topic:=/camera/color/camera_info \
   approx_sync:=false visual_odometry:=true database_path:=/data/rtabmap.db \
-  rtabmap_args:="--delete_db_on_start {params}" odom_args:="{params}" > /data/launch.log 2>&1 &
+  rtabmap_args:="--delete_db_on_start {params}" odom_args:="{params}" \
+  {launch_args} > /data/launch.log 2>&1 &
 LAUNCH=$!
 sleep 15
 timeout 300 ros2 bag play /data/bag --clock 100 > /data/play.log 2>&1 || true
 sleep 10
-kill -INT -- -$LAUNCH -$TF 2>/dev/null || true
+kill -INT -- -$LAUNCH -$TF -$IMUF 2>/dev/null || true
 sleep 10
-kill -KILL -- -$LAUNCH -$TF 2>/dev/null || true
+kill -KILL -- -$LAUNCH -$TF -$IMUF 2>/dev/null || true
 export QT_QPA_PLATFORM=offscreen  # rtabmap-report is a Qt tool; no display in the container
 rtabmap-report --poses_raw /data/rtabmap.db > /data/report.log 2>&1 || true
 ls -la /data > /data/listing.txt
@@ -89,9 +95,11 @@ def ate(est: dict, gt: dict, offset: float = 0.0) -> dict | None:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--seed", type=int, default=3)
+    ap.add_argument("--hz", type=float, default=5.0, help="camera rate of a new recording")
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--sequence", type=Path, help="replay this saved sequence (not re-recorded)")
     ap.add_argument("--engine", default="docker", help="container CLI: docker or podman")
+    ap.add_argument("--launch-args", default="", help="extra rtabmap.launch.py arguments")
     ap.add_argument("--params", default="", help='RTAB-Map parameters, e.g. "--Reg/Strategy 1"')
     args = ap.parse_args()
     out = args.out.resolve()
@@ -101,7 +109,8 @@ def main() -> None:
     t0 = time.time()
     if not args.sequence:
         subprocess.run([py, str(ROOT / "experiments/record_rgbd_sequence.py"), "--seed",
-                        str(args.seed), "--out", str(seq)], check=True)  # fmt: skip
+                        str(args.seed), "--out", str(seq), "--hz", str(args.hz)],
+                       check=True)  # fmt: skip
     try:
         import rosbags  # noqa: F401
     except ImportError:  # sessions started before it joined the DREAM environment
@@ -121,7 +130,8 @@ def main() -> None:
 
     q = quat_xyzw(np.asarray(ext["rotation"]))
     x, y, z = ext["translation"]
-    script = RUN.format(x=x, y=y, z=z, qx=q[0], qy=q[1], qz=q[2], qw=q[3], params=args.params)
+    script = RUN.format(x=x, y=y, z=z, qx=q[0], qy=q[1], qz=q[2], qw=q[3], params=args.params,
+                        launch_args=args.launch_args)  # fmt: skip
     (data / "run.sh").write_text(script, newline="\n")  # CRLF on Windows broke the script
     t1 = time.time()
     command = [engine, "run", "--rm", "-v", f"{data}:/data", IMAGE, "bash", "/data/run.sh"]
@@ -129,7 +139,7 @@ def main() -> None:
     (data / "docker.log").write_text(proc.stdout + proc.stderr)
     gt = load_tum(seq / "groundtruth_base.txt")
     result = {"seed": args.seed, "sequence": str(seq), "engine": args.engine, "image": digest,
-              "params": args.params,
+              "params": args.params, "launch_args": args.launch_args,
               "bag_counts": counts,
               "docker_exit": proc.returncode, "rtabmap_wall_s": time.time() - t1,
               "total_wall_s": time.time() - t0}  # fmt: skip

@@ -75,6 +75,42 @@ def _json(o):
     return str(o)
 
 
+def commands(env, base, cfg, ev, handles, start_xy) -> dict:
+    """The end-to-end phone-command scenario (experiments/command_scenario.py) in a kitchen.
+    A demonstration: run it only in development kitchens."""
+    import tempfile
+
+    import numpy as np
+
+    from dream.memory.home import HomeMemory
+    from dream.perception.spatial import SpatialMemory
+    from dream.tools.mobile import MobileToolbox
+    from experiments.command_scenario import run_commands
+
+    e = cfg["explore"]
+
+    def log(kind, text, **data):
+        ev.line("events.jsonl", {"time_s": env.time, "kind": kind, "text": text, **data})
+
+    tb = MobileToolbox(base, SpatialMemory(np.random.default_rng([e["memory_seed"]])),
+                       navigator="rpp", on_event=lambda k, t, **_: log(k, t))  # fmt: skip
+
+    def scorer(task, claimed):
+        if task == "goto entrance":
+            x, y, _ = env.true_pose()
+            err = float(np.hypot(x - start_xy[0], y - start_xy[1]))
+            return {"success": claimed and err <= 0.3, "entrance_error_m": err}
+        return score(env, tb, claimed, handles)
+
+    with tempfile.TemporaryDirectory() as store:
+        home = HomeMemory(pathlib.Path(store) / "home.sqlite")
+        out = run_commands(env, base, tb, home, "odom:kitchen", e, scorer, log,
+                           pathlib.Path(store))  # fmt: skip
+        home.close()
+    ev.write("memory.json", [vars(c) for c in tb.memory.candidates])
+    return {"mode": "commands", **out}
+
+
 def save_frame(folder: pathlib.Path, index: int, frame) -> dict:
     import numpy as np
 
@@ -327,6 +363,8 @@ def _run(app, args, cfg, ev: Evidence) -> dict:
             result["hinge_test"] = hinge_test(world, env, stage, ev)
         except Exception as error:
             result["hinge_test"] = {"tested": False, "error": repr(error)}
+    elif args.mode == "commands":
+        result = commands(env, base, cfg, ev, handles, (x, y))
     else:
         result = explore(env, base, cfg, ev, handles)
     wall = time.perf_counter() - tick["wall"]
@@ -450,7 +488,7 @@ def explore(env, base, cfg, ev, handles) -> dict:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", type=pathlib.Path, required=True)
-    ap.add_argument("--mode", choices=["bringup", "explore"], required=True)
+    ap.add_argument("--mode", choices=["bringup", "explore", "commands"], required=True)
     ap.add_argument("--kitchen", required=True)
     ap.add_argument("--start", type=int, default=0)
     ap.add_argument("--robot-dir", type=pathlib.Path, required=True)
@@ -462,6 +500,8 @@ def main() -> None:
     allowed = cfg["development_kitchens"] + cfg["evaluation_kitchens"]
     if args.kitchen not in allowed:
         raise SystemExit(f"kitchen {args.kitchen} is not in the frozen config")
+    if args.mode == "commands" and args.kitchen not in cfg["development_kitchens"]:
+        raise SystemExit("the command demo runs only in development kitchens")
     if args.prepare_with:  # separate converter environment (its USD must not mix with Isaac's)
         subprocess.run([args.prepare_with, str(ROOT / "experiments/prepare_g1_usd.py"),
                         "--out", str(args.robot_dir)], check=True)  # fmt: skip

@@ -91,6 +91,7 @@ class SpatialMemory:
         self.candidates: list[Candidate] = []
         self.rng = rng
         self.frames = 0
+        self.last_frame: RGBDFrame | None = None  # for visibility checks of remembered places
         self._next = 1
 
     def update(self, frame: RGBDFrame) -> list[Detection]:
@@ -110,6 +111,7 @@ class SpatialMemory:
         for h in (d for d in dets if d.kind == "handle"):
             self._add_handle(h)
         self.frames += 1
+        self.last_frame = frame
         return dets
 
     def _count_misses(self, frame: RGBDFrame, seen: set[int]) -> None:

@@ -31,6 +31,42 @@ def project(cal: CameraCalibration, points: np.ndarray) -> np.ndarray:
     return np.stack([u, v], axis=-1)
 
 
+OCCLUSION_MARGIN = 0.15  # m: a return this much nearer than the point means something blocks it
+
+
+def visibility(frame: RGBDFrame, point: np.ndarray, margin_px: int = 8,
+               max_range: float = 2.5) -> str:  # fmt: skip
+    """Could this camera frame have seen ``point``? From the frame's own depth, not geometry.
+
+    ``visible``: in the image (``margin_px`` from the border), off the robot's own body, with
+    a depth return no more than OCCLUSION_MARGIN nearer than the point (median of a 5x5
+    window) and the point within ``max_range``. Otherwise the reason: ``behind``,
+    ``out_of_image``, ``self_occluded``, ``too_far``, ``no_return`` or ``occluded``. Only a
+    ``visible`` look can support "it is not there"; anything else says nothing.
+    """
+    cal = frame.calibration
+    cam = (np.asarray(point, float) - cal.position) @ cal.rotation
+    expected = -cam[2]
+    if expected <= 0.05:
+        return "behind"
+    u, v = project(cal, np.asarray(point, float))
+    h, w = frame.depth.shape
+    if not (margin_px <= u < w - margin_px and margin_px <= v < h - margin_px):
+        return "out_of_image"
+    i, j = int(v), int(u)
+    if frame.self_mask[max(i - 2, 0) : i + 3, max(j - 2, 0) : j + 3].any():
+        return "self_occluded"
+    if expected > max_range:
+        return "too_far"
+    window = frame.depth[max(i - 2, 0) : i + 3, max(j - 2, 0) : j + 3]
+    window = window[np.isfinite(window)]
+    if window.size < 5:
+        return "no_return"
+    if float(np.median(window)) < expected - OCCLUSION_MARGIN:
+        return "occluded"
+    return "visible"
+
+
 def fit_plane(
     points: np.ndarray, rng: np.random.Generator, iters: int = 200, tol: float = 0.004
 ) -> tuple[np.ndarray, float]:

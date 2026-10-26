@@ -106,7 +106,11 @@ def run(
         on_event=(lambda k, t, **_: rec.event(k, t)) if rec else None,
     )
     inner = Budgeted(RoomSearchPlanner("gain"), base, cfg["time_budget_s"])
-    planner = MemoryGuidedPlanner(inner, memory, map_id, now) if memory else inner
+    planner = (
+        MemoryGuidedPlanner(inner, memory, map_id, now, last_frame=lambda: tb.memory.last_frame)
+        if memory
+        else inner
+    )
     t0 = time.perf_counter()
     log = (lambda k, d: rec.event(k, str(d)[:60])) if rec else None
     ep = TaskAgent(tb, planner, max_steps=cfg["max_steps"]).run(GOAL, log)
