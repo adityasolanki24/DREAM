@@ -41,10 +41,13 @@ def correct_reach(
     tolerance: float = CORRECTION_TOLERANCE,
     max_iterations: int = MAX_ITERATIONS,
     executed: WholeBodyTarget | None = None,
+    approach_axis=None,
 ) -> ExecutionReport:
     """Correct the hand toward ``target_provider()`` (odometry frame) after ``plan`` was executed.
 
-    ``executed`` is the target last sent to the backend (default ``plan.target``)."""
+    ``executed`` is the target last sent to the backend (default ``plan.target``). The report's
+    ``final_target`` is the last target this call sent (None if it sent nothing), so that a
+    following stage can pass it as ``executed``."""
     arm = plan.arm
     prev = executed or plan.target
     report = ExecutionReport(True, {"point": None})
@@ -74,13 +77,14 @@ def correct_reach(
                 report.stops += undo.stops
                 it["action"] = "no_improvement_rolled_back"
                 it["rollback_ok"] = undo.completed
+                report.final_target = before_last
             break
         if i == max_iterations:
             it["action"] = "iteration_limit"
             break
         last_error = error
         q0 = planner.measured_qpos(obs.prop, obs.pose, row["ach_height"])
-        q_new = planner.refine(q0, plan.stance, arm, point, obstacles)
+        q_new = planner.refine(q0, plan.stance, arm, point, obstacles, approach_axis)
         if q_new is None:
             it["action"] = "ik_failed"
             break
@@ -115,4 +119,5 @@ def correct_reach(
             report.refused = run.refused
             break
         before_last, prev = prev, nxt
+        report.final_target = nxt
     return report

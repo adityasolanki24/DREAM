@@ -98,7 +98,11 @@ IK_STEP_TOL = 2e-4
 N_OBSTACLE_SLOTS = 16
 FAR = 1.0e3  # parking position of unused obstacle slots
 ARMS = ("left", "right")
-GRIP_BODIES = ("index_1", "middle_1")  # grip point = mean of these finger-tip link origins
+# Reach point = the tip of the index finger: the point of the hand that touches. (It was the mean
+# of the index and middle distal-link ORIGINS; the finger geometry extends about 5 cm beyond
+# those origins, so no surface could ever be touched with that point within 3 cm.)
+GRIP_BODIES = ("index_1",)
+TIP_VERTICES = 20  # the reach point averages the farthest this many mesh vertices
 
 
 def wrap(a: float) -> float:
@@ -262,6 +266,27 @@ def _nominal_qpos(model: mujoco.MjModel, height: float, x=0.0, y=0.0, yaw=0.0) -
     return q
 
 
+def _fingertip(model: mujoco.MjModel, data: mujoco.MjData, side: str, name: str) -> np.ndarray:
+    """World point at the tip of a distal finger link at the current pose: the mean of the mesh
+    vertices of its collision geoms farthest from the proximal link, along the finger axis."""
+    body = model.body(f"{side}_hand_{name}_link").id
+    proximal = model.body(f"{side}_hand_{name.replace('_1', '_0')}_link").id
+    axis = data.xpos[body] - data.xpos[proximal]
+    axis = axis / np.linalg.norm(axis)
+    pts = []
+    for g in np.flatnonzero(model.geom_bodyid == body):
+        if model.geom_type[g] != mujoco.mjtGeom.mjGEOM_MESH or not model.geom_contype[g]:
+            continue
+        mid = model.geom_dataid[g]
+        v = model.mesh_vert[
+            model.mesh_vertadr[mid] : model.mesh_vertadr[mid] + model.mesh_vertnum[mid]
+        ]
+        pts.append(v @ data.geom_xmat[g].reshape(3, 3).T + data.geom_xpos[g])
+    pts = np.concatenate(pts)
+    far = np.argsort((pts - data.xpos[body]) @ axis)[-TIP_VERTICES:]
+    return pts[far].mean(axis=0)
+
+
 def _read_anatomy() -> _Anatomy:
     model = _load_spec().compile()
     data = mujoco.MjData(model)
@@ -270,7 +295,7 @@ def _read_anatomy() -> _Anatomy:
     grip = {}
     for side in ARMS:
         wrist = model.body(f"{side}_wrist_yaw_link").id
-        tips = [data.xpos[model.body(f"{side}_hand_{n}_link").id] for n in GRIP_BODIES]
+        tips = [_fingertip(model, data, side, n) for n in GRIP_BODIES]
         grip[side] = data.xmat[wrist].reshape(3, 3).T @ (np.mean(tips, axis=0) - data.xpos[wrist])
     foot = model.body("left_ankle_roll_link").id
     spheres = [
@@ -632,6 +657,7 @@ class PosturePlanner:
         iterations: int = IK_ITERATIONS,
         feet=None,
         hold_body=False,
+        hold_waist=False,
     ) -> np.ndarray | None:
         pm, m = self.pm, self.pm.model
         feet = feet or self._feet_targets(stance)
@@ -670,6 +696,8 @@ class PosturePlanner:
         ):  # closed-loop update: legs stay measured; the waist (torso rpy command) and arm may move
             cost[pm.vadr[:12]] = COST_HOLD_BODY  # legs: the stance and height stay as measured
             cost[pm.vadr[i0 : i0 + 7]] = COST_HOLD_ARM  # min-norm step: no redundancy drift
+            if hold_waist:  # the torso rpy command stays as it is: only the arm moves
+                cost[pm.vadr[12:15]] = COST_HOLD_BODY
         posture = mink.PostureTask(m, cost)
         posture.set_target(q0 if hold_body else pm.q_nominal)
         tasks.append(posture)
@@ -773,7 +801,15 @@ class PosturePlanner:
         return q
 
     def refine(
-        self, q_measured, stance, arm, point, obstacles=(), approach_axis=None, iterations=30
+        self,
+        q_measured,
+        stance,
+        arm,
+        point,
+        obstacles=(),
+        approach_axis=None,
+        iterations=30,
+        hold_waist=False,
     ) -> np.ndarray | None:
         """Small closed-loop IK update from a MEASURED configuration (``q_measured``: full qpos
         built from IMU, encoders and odometry). Stance stays fixed (feet pinned there), limits
@@ -791,7 +827,54 @@ class PosturePlanner:
             rot = mink.SO3.from_matrix(d.site_xmat[sid].reshape(3, 3))
             feet[side] = mink.SE3.from_rotation_and_translation(rot, d.site_xpos[sid].copy())
         return self._ik(
-            q_measured, stance, arm, pt, approach_axis, limits, iterations, feet, hold_body=True
+            q_measured,
+            stance,
+            arm,
+            pt,
+            approach_axis,
+            limits,
+            iterations,
+            feet,
+            hold_body=True,
+            hold_waist=hold_waist,
+        )
+
+    def retarget(
+        self, plan: PosturePlan, point, obstacles=(), iterations=60, approach_axis=None
+    ) -> PosturePlan | None:
+        """The same stance, arm, legs, pelvis height and torso rpy as ``plan``, with only the arm
+        moved so the hand is at ``point``. Used for a pre-contact pose a few centimetres in
+        front of the plan's target: one body posture for both stages, so the approach is a small
+        arm motion. None if the result fails the same checks a plan passes."""
+        boxes = list(obstacles)
+        ids = self.pm.load_obstacles(boxes)
+        regular = [g for g, b in zip(ids, boxes, strict=True) if not b.hand_may_touch]
+        touch = [g for g, b in zip(ids, boxes, strict=True) if b.hand_may_touch]
+        pt = np.asarray(point, float)
+        q = self.refine(
+            plan.target.q,
+            plan.stance,
+            plan.arm,
+            pt,
+            boxes,
+            approach_axis,
+            iterations=iterations,
+            hold_waist=True,
+        )
+        if q is None:
+            return None
+        metrics, rpy, reasons = self.evaluate(q, plan.stance, plan.arm, pt, regular, touch)
+        if reasons:
+            return None
+        metrics["walk"] = plan.metrics.get("walk", 0.0)
+        metrics["target_sigma"] = plan.metrics.get("target_sigma", 0.0)
+        arms14 = q[self.pm.qadr[N_ACTION : N_ACTION + 14]].copy()
+        goal = HandGoal(plan.arm, tuple(float(v) for v in pt))
+        whole = WholeBodyTarget(
+            q, plan.stance, (goal,), metrics["pelvis_height"], tuple(float(v) for v in rpy), arms14
+        )
+        return PosturePlan(
+            plan.stance, plan.arm, whole, self._score(metrics, metrics["walk"]), metrics
         )
 
     def measured_qpos(self, prop, pose, stance_height) -> np.ndarray:
@@ -812,10 +895,15 @@ class PosturePlanner:
         robot_pose=(0.0, 0.0, 0.0),
         obstacles=(),
         approach_axis=None,
+        stances=None,
+        arms=None,
     ) -> PlanResult:
         """Rank feasible (stance, arm) postures reaching ``target`` (odometry/world frame).
 
-        ``obstacles`` are PERCEIVED boxes only. The result lists failures with reasons."""
+        ``obstacles`` are PERCEIVED boxes only. The result lists failures with reasons.
+        ``stances``: explicit (x, y, yaw) candidates (for example the robot's measured pose,
+        where it already stands); default: sample rings around the target. ``arms``: restrict the
+        candidate arms (default: ``config.arms``)."""
         target = np.asarray(target, float)
         if target.shape != (3,) or not np.isfinite(target).all():
             raise ValueError("target must be a finite 3-vector")
@@ -825,12 +913,15 @@ class PosturePlanner:
         ids = self.pm.load_obstacles(boxes)
         regular = [g for g, b in zip(ids, boxes, strict=True) if not b.hand_may_touch]
         touch = [g for g, b in zip(ids, boxes, strict=True) if b.hand_may_touch]
-        stances, blocked = self.stances(target, robot_pose, boxes)
+        if stances is None:
+            stances, blocked = self.stances(target, robot_pose, boxes)
+        else:
+            stances, blocked = [tuple(float(v) for v in st) for st in stances], 0
         result = PlanResult(n_stances_blocked=blocked, executable=self.caps.executable)
         self.last_timings = []
         limits = self._limits(regular, touch, sigma)
         for stance in stances:
-            for arm in self.config.arms:
+            for arm in arms or self.config.arms:
                 t0 = time.perf_counter()
                 q = self._ik(self._q_start(stance), stance, arm, target, approach_axis, limits)
                 if q is None:

@@ -14,7 +14,16 @@ DREAM = pathlib.Path(__file__).resolve().parents[1] / "dream"
 DECISION_PACKAGES = ("agent", "skills", "tools", "runtime", "perception", "navigation", "memory")
 FORBIDDEN_FOR_DECISIONS = ("mujoco", "dream.sim", "dream.eval", "dream.robot")
 FORBIDDEN_FOR_ROBOT = ("dream.sim", "dream.eval", "dream.agent", "dream.skills")
-FORBIDDEN_NAMES = ("privileged", "MechanismSpec", "TabletopSpec", "CompartmentSpec", "_spec")
+FORBIDDEN_NAMES = (
+    "privileged",
+    "MechanismSpec",
+    "TabletopSpec",
+    "CompartmentSpec",
+    "_spec",
+    "ReachScene",
+    "RoomSpec",
+    "reach_scenes",
+)
 
 
 def _files(package: str) -> list[pathlib.Path]:
@@ -59,3 +68,15 @@ def test_robot_adapter_does_not_import_scene_or_evaluation():
     for path in _files("robot"):
         for name in _imports(path):
             assert not name.startswith(FORBIDDEN_FOR_ROBOT), f"robot/{path.name} imports {name}"
+
+
+def test_robot_package_does_not_touch_scene_ground_truth_types():
+    """The reach scene is ground truth; the robot adapters (including the reach ports) work from
+    sensors and perceived obstacles only."""
+    for path in _files("robot"):
+        for node in ast.walk(ast.parse(path.read_text())):
+            ident = getattr(node, "attr", None) or getattr(node, "id", None)
+            if ident:
+                assert "ReachScene" not in ident and "reach_scenes" not in ident, (
+                    f"robot/{path.name} uses {ident}"
+                )

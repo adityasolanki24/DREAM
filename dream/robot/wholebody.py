@@ -36,6 +36,7 @@ from dream.robot.g1_wbc import DECIMATION, DT_PHYSICS, N_ACTION, N_BODY, Proprio
 TICK = DT_PHYSICS * DECIMATION  # 0.02 s, the 50 Hz policy step
 N_ARM = N_BODY - N_ACTION  # 14: left 7 then right 7
 ENVELOPE_JSON = Path(__file__).resolve().parents[2] / "results/g1_wbc_envelope/envelope.json"
+ENVELOPE_V2_JSON = Path(__file__).resolve().parents[2] / "results/g1_wbc_envelope_v2/envelope.json"
 # Region of the measured envelope used for reaching: both arms forward, the loaded case.
 ENVELOPE_REGION = "arms_extended"
 # Command rates. Height 0.1 m/s and rpy 0.3 rad/s are the rates W1's envelope runs were measured
@@ -107,6 +108,9 @@ class ControllerCapabilities:
     measured: bool = False
     source: str = "unmeasured: not executable"
     note: str = ""
+    # Torso pitch range (rad) measured for LOOKING: arms at the sides, nominal height. The head
+    # camera rides on the torso, so a negative pitch tilts it up. (0, 0): not measured.
+    gaze_pitch: tuple[float, float] = (0.0, 0.0)
 
     @property
     def executable(self) -> bool:
@@ -114,6 +118,17 @@ class ControllerCapabilities:
 
     def supports(self, *kinds: str) -> bool:
         return set(kinds) <= self.request_kinds
+
+    def gaze(self) -> ControllerCapabilities:
+        """The capabilities for LOOKING: the nominal height and the torso pitch range measured
+        with the arms down (``gaze_pitch``). Used for posture requests that only tilt the head
+        camera; reaching postures use the executable box."""
+        top = self.height_range[1]
+        return ControllerCapabilities(
+            self.name, self.request_kinds, (top, top), (0.0, self.gaze_pitch[0], 0.0),
+            (0.0, self.gaze_pitch[1], 0.0), self.height_rate, self.rpy_rate, self.arm_rate,
+            self.max_pelvis_tilt, self.measured, self.source, "gaze: " + self.note, self.gaze_pitch,
+        )  # fmt: skip
 
     def violations(self, height: float, rpy) -> list[str]:
         out = []
@@ -150,6 +165,55 @@ class ControllerCapabilities:
             tuple(a[0] for a in axes), tuple(a[1] for a in axes),
             measured=True, source=str(p),
             note=f"region {region}; per-axis intervals, product not validated",
+        )  # fmt: skip
+
+    @classmethod
+    def from_envelope_v2(cls, path: str | Path = ENVELOPE_V2_JSON):
+        """Measured limits from the frozen v2 envelope (results/g1_wbc_envelope_v2).
+
+        The executable box is the largest height x pitch rectangle, starting at the nominal
+        posture, in which EVERY measured grid cell passes for EVERY measured arm pose (the
+        reaching arm poses are not among the measured ones, so only what holds for all three
+        is claimed; the rollout gate and the monitored execution still check each plan). Roll
+        and yaw are measured only as single probes at nominal height with the arms down, so
+        they are fixed at 0 here. ``gaze_pitch`` is the pitch range of the probes at the nominal
+        height with the arms down (a look-up posture)."""
+        p = Path(path)
+        raw = json.loads(p.read_text())
+        grid = raw["grid"]
+        heights = sorted(next(iter(grid.values()))["axes"]["height_m"], reverse=True)
+        pitches = sorted(next(iter(grid.values()))["axes"]["pitch_rad"])
+
+        def passes(arm: str, h: float, pitch: float) -> bool:
+            c = grid[arm]["cells"][f"h{h:.2f}_p{pitch:+.1f}"]
+            return c["n_stable"] == c["n_trials"]
+
+        def row_ok(h: float, ps) -> bool:
+            return all(passes(a, h, q) for a in grid for q in ps)
+
+        nominal = float(raw["input_bound_m"][1])
+        ps = [q for q in pitches if q >= 0.0]
+        while ps and not row_ok(nominal, ps):
+            ps = ps[:-1]  # shrink from the largest pitch until the nominal row passes
+        lo = nominal
+        for h in heights:
+            if h > nominal:
+                continue
+            if not row_ok(h, ps):
+                break
+            lo = h
+        looks = [
+            c["pitch"]
+            for c in raw["other_cells"]
+            if c["kind"] == "probe" and c["arms"] == "neutral"
+            and abs(c["height"] - nominal) < 1e-9 and c["height"] and c["pitch"] < 0
+            and c["n_stable"] == c["n_trials"]
+        ]  # fmt: skip
+        gaze = (min(looks) if looks else 0.0, max(ps) if ps else 0.0)
+        return cls(
+            "decoupled_wbc", WBC_KINDS, (lo, nominal), (0.0, min(ps), 0.0), (0.0, max(ps), 0.0),
+            measured=True, source=str(p), gaze_pitch=gaze,
+            note="v2 grid: every arm pose passes in the box; product of axes via rollout",
         )  # fmt: skip
 
 
@@ -189,6 +253,9 @@ class ExecutionReport:
     refused: str | None = None  # why the backend did not start
     # Closed-loop correction iterations (dream/robot/g1_correction.py): one dict per iteration.
     iterations: list[dict[str, object]] = field(default_factory=list)
+    # The last target sent to the backend by a closed-loop correction (the baseline for a
+    # following correction stage); None when nothing was sent.
+    final_target: WholeBodyTarget | None = None
 
 
 class Monitor(Protocol):
@@ -199,7 +266,10 @@ class WholeBodyBackend(Protocol):
     def capabilities(self) -> ControllerCapabilities: ...
 
     def execute(
-        self, target: WholeBodyTarget, monitor: Monitor | None = None
+        self,
+        target: WholeBodyTarget,
+        monitor: Monitor | None = None,
+        capabilities: ControllerCapabilities | None = None,
     ) -> ExecutionReport: ...
 
 
@@ -284,8 +354,14 @@ class WBCBackend:
         self.held = None
 
     # -- execution -----------------------------------------------------------------------
-    def execute(self, target: WholeBodyTarget, monitor: Monitor | None = None) -> ExecutionReport:
-        caps = self._caps
+    def execute(
+        self,
+        target: WholeBodyTarget,
+        monitor: Monitor | None = None,
+        capabilities: ControllerCapabilities | None = None,
+    ) -> ExecutionReport:
+        """``capabilities`` overrides the backend's for this request (for example ``gaze()``)."""
+        caps = capabilities or self._caps
         req = {"height": target.pelvis_height, "rpy": target.torso_rpy, "arm": target.arm_joints}
         if not caps.executable:
             return ExecutionReport(False, req, refused=caps.source)
