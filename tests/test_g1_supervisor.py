@@ -25,7 +25,7 @@ from dream.robot.wholebody import (
 )
 
 CAPS = ControllerCapabilities(
-    "fake", frozenset({"pelvis_height", "torso_rpy", "arm_joint_positions", "hold"}),
+    "fake", frozenset({"posture"}),
     (0.3, 0.74), (-0.3, -0.3, -0.3), (0.3, 0.3, 0.3), measured=True, source="test",
 )  # fmt: skip
 
@@ -261,3 +261,33 @@ def test_controller_fall_is_reported_as_a_stop_without_hold(pm):
 def test_stop_event_is_data():
     e = StopEvent(1.0, "x", {"a": 1.0})
     assert e.reason == "x" and e.detail["a"] == 1.0
+
+
+def test_joint_reference_targets_are_refused_by_the_posture_only_backend(pm):
+    backend, plant, _ = make(pm)
+    assert backend.capabilities().request_kinds == frozenset({"posture"})
+    ref = tuple((0.1 * k, np.zeros(29)) for k in range(5))
+    t = target()
+    t = WholeBodyTarget(
+        t.q, t.stance, t.hands, t.pelvis_height, t.torso_rpy, t.arm_joints, ref, ("j",) * 29
+    )
+    report = backend.execute(t)
+    assert report.refused and "joint_reference unsupported" in report.refused
+    assert plant.ticks == 0
+    both = ControllerCapabilities(
+        "sonic-like", frozenset({"posture", "joint_reference"}), (0.3, 0.74), (-1,) * 3, (1,) * 3,
+        measured=True, source="test",
+    )  # fmt: skip
+    assert both.supports("joint_reference") and not CAPS.supports("joint_reference")
+
+
+def test_arm_feedforward_is_a_backend_option_and_the_controller_is_untouched(pm):
+    backend, _, _ = make(pm)
+    assert backend.arm_feedforward is True
+    t = target()
+    plain = WBCBackend(backend.env, backend.controller, CAPS, arm_feedforward=False)
+    assert np.array_equal(plain._arm_feedforward(t), t.arm_joints)
+    import dream.robot.g1_wbc as w
+
+    src = open(w.__file__).read()
+    assert "feedforward" not in src.lower()  # WBCLocomotion itself has no such term

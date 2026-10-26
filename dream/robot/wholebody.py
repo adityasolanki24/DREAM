@@ -77,6 +77,10 @@ class WholeBodyTarget:
     pelvis_height: float  # derived from q
     torso_rpy: tuple[float, float, float]  # derived from q (torso_rpy_from_matrices)
     arm_joints: np.ndarray  # derived from q: 14 targets, left 7 then right 7
+    # Optional timed joint-position reference for backends that track joint trajectories:
+    # ((t_seconds, q_body), ...) with q_body the 29 body joints in the order ``joint_names``.
+    joint_reference: tuple[tuple[float, np.ndarray], ...] | None = None
+    joint_names: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -149,7 +153,10 @@ class ControllerCapabilities:
         )  # fmt: skip
 
 
-WBC_KINDS = frozenset({"pelvis_height", "torso_rpy", "arm_joint_positions", "hold"})
+# Request kinds: "posture" = pelvis height + torso rpy + arm joints; "joint_reference" = a
+# timed trajectory of full body joint positions (a SONIC-style backend). The Decoupled WBC
+# supports posture only.
+WBC_KINDS = frozenset({"posture"})
 
 
 @dataclass(frozen=True)
@@ -180,6 +187,8 @@ class ExecutionReport:
     stops: list[StopEvent] = field(default_factory=list)
     trace: list[dict[str, object]] = field(default_factory=list)
     refused: str | None = None  # why the backend did not start
+    # Closed-loop correction iterations (dream/robot/g1_correction.py): one dict per iteration.
+    iterations: list[dict[str, object]] = field(default_factory=list)
 
 
 class Monitor(Protocol):
@@ -228,10 +237,15 @@ class WBCBackend:
         capabilities: ControllerCapabilities | None = None,
         contact_force: Callable[[], float] | None = None,
         feet_contact: Callable[[], tuple[bool, bool]] | None = None,
+        arm_feedforward: bool = True,
     ):
         self.env, self.controller = env, controller
         self._caps = capabilities or ControllerCapabilities.from_envelope_json()
         self._contact_force, self._feet_contact = contact_force, feet_contact
+        # Gravity feed-forward on the arm PD hold (Rule 3 class: general algorithmic
+        # correction). It lives here, not in WBCLocomotion: code that builds the controller
+        # directly is unchanged.
+        self.arm_feedforward = arm_feedforward
         self.history: list[PostureCommand] = [self.command()]
         self.held: StopEvent | None = None
 
@@ -275,8 +289,13 @@ class WBCBackend:
         req = {"height": target.pelvis_height, "rpy": target.torso_rpy, "arm": target.arm_joints}
         if not caps.executable:
             return ExecutionReport(False, req, refused=caps.source)
-        if not caps.supports("pelvis_height", "torso_rpy", "arm_joint_positions"):
-            return ExecutionReport(False, req, refused="request kind unsupported")
+        if target.joint_reference is not None:
+            if not caps.supports("joint_reference"):
+                kinds = sorted(caps.request_kinds)
+                why = f"joint_reference unsupported by {caps.name} (supports {kinds})"
+                return ExecutionReport(False, req, refused=why)
+        if not caps.supports("posture"):
+            return ExecutionReport(False, req, refused="posture request unsupported")
         bad = caps.violations(target.pelvis_height, target.torso_rpy)
         if bad:
             return ExecutionReport(False, req, refused="; ".join(bad))
@@ -292,7 +311,9 @@ class WBCBackend:
         are the 29 body joints in actuator order, the planner's contract)."""
         import mujoco
 
-        if not all(hasattr(self.env, a) for a in ("model", "data", "qadr", "vadr")):
+        if not self.arm_feedforward or not all(
+            hasattr(self.env, a) for a in ("model", "data", "qadr", "vadr")
+        ):
             return np.asarray(target.arm_joints, float)  # no physics model to differentiate
         m = self.env.model
         d = mujoco.MjData(m)

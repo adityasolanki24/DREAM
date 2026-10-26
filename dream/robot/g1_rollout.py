@@ -38,6 +38,8 @@ from dream.robot.g1_wbc import DT_PHYSICS, tilt
 from dream.robot.wholebody import Observation, StopEvent, WholeBodyTarget
 
 TOP_K = 3  # plans verified per request; each rollout costs about the motion's simulated time
+# COARSE SCREEN, an assumption: not a success criterion (success is decided by the evaluator;
+# closed-loop correction in g1_correction.py removes the residual).
 HAND_ERROR_MAX = 0.04  # m after settling; looser than the 2 cm IK residual because the
 # controller tracks the posture with a finite error (assumed, to be tightened with data)
 TORQUE_RATIO_MAX = 0.9  # fraction of actuator limit, the gate W1 pre-registered for its envelope

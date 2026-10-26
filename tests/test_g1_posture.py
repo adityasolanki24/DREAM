@@ -139,6 +139,26 @@ def test_static_torque_proxy_is_a_ranking_quantity_in_range(planner):
     assert "proxy" in gp.__doc__ or "RANK" in gp.__doc__
 
 
+def test_correction_stops_inside_tolerance_without_moving():
+    from dream.robot.g1_correction import correct_reach
+
+    class Backend:
+        def observe(self):
+            return object()
+
+        def execute(self, *a, **k):  # pragma: no cover - must not be called
+            raise AssertionError("moved although within tolerance")
+
+    class Sup:
+        def measure(self, obs):
+            return {"ach_hand_left": (0.5, 0.1, 0.8), "ach_height": 0.7}
+
+    plan = type("P", (), {"arm": "left", "stance": (0, 0, 0), "target": None})()
+    rep = correct_reach(Backend(), Sup(), None, plan, lambda: [0.5, 0.1, 0.805])
+    assert [i["action"] for i in rep.iterations] == ["within_tolerance"]
+    assert rep.iterations[0]["error"] == pytest.approx(0.005)
+
+
 def test_ik_timing_is_reported(three_heights, planner):
     assert planner.last_timings and all(t > 0 for t in planner.last_timings)
 
@@ -184,6 +204,9 @@ def test_rollout_gate_then_monitored_real_execution_reaches_a_mid_height_target(
 
     env = G1MobileEnv(build_mobile_g1(head_camera=None), np.random.default_rng(1), head_camera=None)
     env.reset(*chosen.stance)
+    # The odometry frame is the plan frame (a localised robot): its odometry starts at the
+    # stance, not at zero. Test-only initialisation of the private estimate.
+    env._odom = np.array(chosen.stance, float)
     backend = WBCBackend(env, w.WBCLocomotion.from_cache(), caps)
     goal = chosen.target.hands[0]
     sup = WholeBodySupervisor(planner.pm, hand_goal=(goal.arm, goal.position))
@@ -195,3 +218,42 @@ def test_rollout_gate_then_monitored_real_execution_reaches_a_mid_height_target(
     print("real hand error (m):", round(error, 4), summary(sup.trace))
     assert error < 0.05
     assert math.isfinite(summary(sup.trace)["peak_torque_ratio"])
+
+    # Closed-loop correction against the target from the latest (here: the same) perception.
+    from dream.robot.g1_correction import correct_reach
+
+    corrected = correct_reach(
+        backend, sup, planner, chosen, lambda: np.asarray(goal.position), tolerance=0.01
+    )
+    hand = d.xpos[wrist] + d.xmat[wrist].reshape(3, 3) @ planner.pm.anatomy.grip[goal.arm]
+    after = float(np.linalg.norm(hand - np.asarray(goal.position)))
+    print(
+        "iterations:",
+        [(i["iteration"], round(i["error"], 4), i["action"]) for i in corrected.iterations],
+    )
+    print("true hand error after correction (m):", round(after, 4))
+    assert 1 <= len(corrected.iterations) <= 4
+    errs = [i["error"] for i in corrected.iterations]
+    assert not corrected.stops
+    start = errs[0]
+
+    # With the MEASURED capabilities the arm and torso have no room left (pitch is at its
+    # measured maximum), so a harmful correction is rolled back, never kept.
+    assert after <= start + 0.005
+
+    # Mechanism check with wider (test-only, NOT measured) limits: the correction converges.
+    wide = ControllerCapabilities(
+        "test-wide", caps.request_kinds, (0.6, 0.74), (-0.1, -0.1, -0.1), (0.1, 0.4, 0.1),
+        measured=True, source="test-only widened limits",
+    )  # fmt: skip
+    planner.caps, backend._caps = wide, wide
+    again = correct_reach(backend, sup, planner, chosen, lambda: np.asarray(goal.position))
+    hand = d.xpos[wrist] + d.xmat[wrist].reshape(3, 3) @ planner.pm.anatomy.grip[goal.arm]
+    final = float(np.linalg.norm(hand - np.asarray(goal.position)))
+    print(
+        "wide-limit iterations:",
+        [(i["iteration"], round(i["error"], 4), i["action"]) for i in again.iterations],
+        "true final error:", round(final, 4),
+    )  # fmt: skip
+    assert len(again.iterations) <= 4 and not again.stops
+    assert final < start - 0.005

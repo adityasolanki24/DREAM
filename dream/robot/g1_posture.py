@@ -87,6 +87,8 @@ COST_COM = 2.0
 COST_POSTURE = 0.005
 COST_POSTURE_REACHING_ARM = 0.001
 COST_POSTURE_IDLE_ARM = 0.2  # the arm not reaching stays near its rest pose
+COST_HOLD_ARM = 0.05
+COST_HOLD_BODY = 10.0  # closed-loop refinement: legs stay at their measured values
 COST_POSTURE_WAIST = 0.05  # comfort: twisting the torso is costlier than bending knees
 COST_PELVIS_ORIENTATION = 5.0  # the controller commands no pelvis tilt: plan it upright
 IK_GAIN = 0.8
@@ -185,8 +187,9 @@ class _Limit(mink.Limit):
 
 
 class _PelvisHeightLimit(_Limit):
-    def __init__(self, model: mujoco.MjModel, lo: float, hi: float):
-        self.model, self.lo, self.hi = model, lo, hi
+    def __init__(self, model: mujoco.MjModel, lo: float, hi: float, relax: bool = False):
+        # relax: a measured start already outside the bound is not forced back (refinement)
+        self.model, self.lo, self.hi, self.relax = model, lo, hi, relax
         self.pelvis = model.body("pelvis").id
         self._jac = np.zeros((3, model.nv))
 
@@ -195,15 +198,19 @@ class _PelvisHeightLimit(_Limit):
         mujoco.mj_jacBody(self.model, d, self._jac, None, self.pelvis)
         z, row = d.xpos[self.pelvis][2], self._jac[2]
         return mink.Constraint(
-            np.vstack([row, -row]), np.array([self.hi - z, z - self.lo]) * IK_GAIN
+            np.vstack([row, -row]),
+            np.array([self.hi - z, z - self.lo]) * IK_GAIN
+            if not self.relax
+            else np.array([max(self.hi - z, 0.0), max(z - self.lo, 0.0)]) * IK_GAIN,
         )
 
 
 class _TorsoRpyLimit(_Limit):
     """Bounds torso rpy (see torso_rpy_from_matrices); Jacobian by finite differences."""
 
-    def __init__(self, model: mujoco.MjModel, lo, hi):
+    def __init__(self, model: mujoco.MjModel, lo, hi, relax: bool = False):
         self.model, self.lo, self.hi = model, np.asarray(lo), np.asarray(hi)
+        self.relax = relax
         self.pelvis, self.torso = model.body("pelvis").id, model.body("torso_link").id
         self._scratch = mujoco.MjData(model)
 
@@ -225,7 +232,10 @@ class _TorsoRpyLimit(_Limit):
             jac[:, i] = (self.rpy(s) - rpy0) / eps
         return mink.Constraint(
             np.vstack([jac, -jac]),
-            np.concatenate([self.hi - rpy0, rpy0 - self.lo]) * IK_GAIN,
+            np.concatenate([self.hi - rpy0, rpy0 - self.lo]) * IK_GAIN
+            if not self.relax
+            else np.concatenate([np.maximum(self.hi - rpy0, 0.0), np.maximum(rpy0 - self.lo, 0.0)])
+            * IK_GAIN,
         )
 
 
@@ -586,7 +596,7 @@ class PosturePlanner:
         return out
 
     # -- IK -----------------------------------------------------------------------------
-    def _limits(self, boxes_regular, boxes_touch, sigma):
+    def _limits(self, boxes_regular, boxes_touch, sigma, relax=False):
         pm, m, caps = self.pm, self.pm.model, self.caps
         hands = {g for s in ARMS for g in pm.hand_geoms[s]}
         body = [g for g in pm.no_foot if g not in hands]
@@ -595,8 +605,8 @@ class PosturePlanner:
         )
         limits = [
             mink.ConfigurationLimit(m),
-            _PelvisHeightLimit(m, *caps.height_range),
-            _TorsoRpyLimit(m, caps.torso_rpy_min, caps.torso_rpy_max),
+            _PelvisHeightLimit(m, *caps.height_range, relax),
+            _TorsoRpyLimit(m, caps.torso_rpy_min, caps.torso_rpy_max, relax),
         ]
         if self._self_pairs:
             limits.append(mink.CollisionAvoidanceLimit(m, self._self_pairs, **near))
@@ -611,9 +621,20 @@ class PosturePlanner:
             limits.append(mink.CollisionAvoidanceLimit(m, pairs, **hand_near))
         return limits
 
-    def _ik(self, q0, stance, arm, target, approach, limits) -> np.ndarray | None:
+    def _ik(
+        self,
+        q0,
+        stance,
+        arm,
+        target,
+        approach,
+        limits,
+        iterations: int = IK_ITERATIONS,
+        feet=None,
+        hold_body=False,
+    ) -> np.ndarray | None:
         pm, m = self.pm, self.pm.model
-        feet = self._feet_targets(stance)
+        feet = feet or self._feet_targets(stance)
         conf = mink.Configuration(m, q0.copy())
         tasks = []
         for s in ARMS:
@@ -627,12 +648,16 @@ class PosturePlanner:
             axis = mink.AxisAlignTask(f"{arm}_grip", "site", (1.0, 0.0, 0.0), COST_AXIS, IK_GAIN)
             axis.set_target(np.asarray(approach, float) / np.linalg.norm(approach))
             tasks.append(axis)
-        pelvis = mink.FrameTask("pelvis", "body", 0.0, COST_PELVIS_ORIENTATION, gain=IK_GAIN)
+        pelvis = mink.FrameTask(
+            "pelvis", "body", 0.0, 0.0 if hold_body else COST_PELVIS_ORIENTATION, gain=IK_GAIN
+        )
         rot = mink.SO3.from_matrix(yaw_matrix(stance[2]))
         pelvis.set_target(mink.SE3.from_rotation_and_translation(rot, np.zeros(3)))
         tasks.append(pelvis)
         centre = np.mean([f.translation()[:2] for f in feet.values()], axis=0)
-        com = mink.ComTask(np.array([COST_COM, COST_COM, 0.0]), gain=IK_GAIN)
+        com = mink.ComTask(
+            np.array([COST_COM, COST_COM, 0.0]) * (0.0 if hold_body else 1.0), gain=IK_GAIN
+        )
         com.set_target(np.array([*centre, 0.0]))
         tasks.append(com)
         cost = np.full(m.nv, COST_POSTURE)
@@ -640,10 +665,15 @@ class PosturePlanner:
         i0 = N_ACTION + (0 if arm == "left" else 7)
         cost[pm.vadr[i0 : i0 + 7]] = COST_POSTURE_REACHING_ARM
         cost[pm.vadr[12:15]] = COST_POSTURE_WAIST
+        if (
+            hold_body
+        ):  # closed-loop update: legs stay measured; the waist (torso rpy command) and arm may move
+            cost[pm.vadr[:12]] = COST_HOLD_BODY  # legs: the stance and height stay as measured
+            cost[pm.vadr[i0 : i0 + 7]] = COST_HOLD_ARM  # min-norm step: no redundancy drift
         posture = mink.PostureTask(m, cost)
-        posture.set_target(pm.q_nominal)
+        posture.set_target(q0 if hold_body else pm.q_nominal)
         tasks.append(posture)
-        for _ in range(IK_ITERATIONS):
+        for _ in range(iterations):
             try:
                 v = mink.solve_ik(conf, tasks, 1.0, "daqp", damping=IK_DAMPING, limits=limits)
             except mink.NoSolutionFound:
@@ -740,6 +770,38 @@ class PosturePlanner:
         q = self.pm.q_nominal.copy()
         q[0:2] = stance[:2]
         q[3:7] = [math.cos(stance[2] / 2), 0, 0, math.sin(stance[2] / 2)]
+        return q
+
+    def refine(
+        self, q_measured, stance, arm, point, obstacles=(), approach_axis=None, iterations=30
+    ) -> np.ndarray | None:
+        """Small closed-loop IK update from a MEASURED configuration (``q_measured``: full qpos
+        built from IMU, encoders and odometry). Stance stays fixed (feet pinned there), limits
+        are the capabilities' and the perceived obstacles'. Returns the new qpos or None."""
+        boxes = list(obstacles)
+        ids = self.pm.load_obstacles(boxes)
+        regular = [g for g, b in zip(ids, boxes, strict=True) if not b.hand_may_touch]
+        touch = [g for g, b in zip(ids, boxes, strict=True) if b.hand_may_touch]
+        limits = self._limits(regular, touch, 0.0, relax=True)
+        pt = np.asarray(point, float)
+        d = self.pm.data_at(q_measured)  # feet stay where they are: the stance is fixed
+        feet = {}
+        for side in ARMS:
+            sid = self.pm.model.site(f"{side}_sole").id
+            rot = mink.SO3.from_matrix(d.site_xmat[sid].reshape(3, 3))
+            feet[side] = mink.SE3.from_rotation_and_translation(rot, d.site_xpos[sid].copy())
+        return self._ik(
+            q_measured, stance, arm, pt, approach_axis, limits, iterations, feet, hold_body=True
+        )
+
+    def measured_qpos(self, prop, pose, stance_height) -> np.ndarray:
+        """Full qpos from the robot's own sensors: IMU quaternion, joint encoders, odometry
+        xy and the FK pelvis height above the lowest sole (flat feet on the floor)."""
+        q = self.pm.q_nominal.copy()
+        q[3:7] = prop.quat
+        q[self.pm.qadr] = prop.q
+        q[0:2] = pose[:2]
+        q[2] = stance_height
         return q
 
     # -- public -------------------------------------------------------------------------
