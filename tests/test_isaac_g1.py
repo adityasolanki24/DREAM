@@ -282,3 +282,23 @@ def test_ledger_reconciles_with_recorded_lifetime_and_keeps_reserves():
     assert charged({"estimated_usd": full}) == full  # running sessions count in full
     long = {**short, "ended_utc": "2026-10-26T09:00:00Z"}
     assert reconcile(long, cfg) == full  # never above the enforced-lifetime estimate
+
+
+def test_failed_start_without_a_vm_stops_charging_its_estimate(tmp_path, monkeypatch):
+    from cloud import isaac_session as s
+
+    monkeypatch.setattr(s, "ledger_path", lambda: tmp_path / "ledger.json")
+    monkeypatch.setattr(s, "vm_present", lambda p: False)
+    entry = {"name": "dream-qwen-isaac-x", "estimated_usd": 5.71, "started_utc": "t"}
+    (tmp_path / "ledger.json").write_text(json.dumps([entry]))
+    rows = [{"zone": z, "status": "capacity_rejected"} for z in "abc"]
+    (tmp_path / "allocation_attempts.json").write_text(json.dumps(rows))
+    s.settle_failed_start({"name": "dream-qwen-isaac-x"}, tmp_path, errors=["leftover"])
+    assert s.charged(s.read_ledger()[0]) == 5.71  # cleanup incomplete: keep the estimate
+    s.settle_failed_start({"name": "dream-qwen-isaac-x"}, tmp_path, errors=[])
+    assert s.charged(s.read_ledger()[0]) == s.NO_VM_RESERVE_USD
+    rows[0]["status"] = "allocated"
+    (tmp_path / "allocation_attempts.json").write_text(json.dumps(rows))
+    (tmp_path / "ledger.json").write_text(json.dumps([entry]))
+    s.settle_failed_start({"name": "dream-qwen-isaac-x"}, tmp_path, errors=[])
+    assert s.charged(s.read_ledger()[0]) == 5.71  # a VM existed: never settle automatically

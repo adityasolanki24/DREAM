@@ -128,7 +128,32 @@ def archive(directory: Path) -> tuple[Path, str, str]:
     return path, hashlib.sha256(path.read_bytes()).hexdigest(), git("rev-parse", "HEAD")
 
 
+NO_VM_RESERVE_USD = 0.01  # minutes of an empty bucket/network; no VM, NAT traffic or disk
+
+
+def never_allocated(dest: Path) -> bool:
+    """True when every VM request was refused, so no VM ever existed (only then)."""
+    path = dest / "allocation_attempts.json"
+    rows = json.loads(path.read_text()) if path.is_file() else []
+    return all(r.get("status") in ("capacity_rejected", "failed") for r in rows)
+
+
+def settle_failed_start(p: dict, dest: Path, errors: list) -> None:
+    """A start that failed before any VM existed stops counting its full estimate."""
+    if errors or not never_allocated(dest) or vm_present(p):
+        return  # keep the full estimate: something may still be billing
+    ledger = read_ledger()
+    for entry in ledger:
+        if entry["name"] == p["name"]:
+            entry.update(ended_utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                         retrieved=False, cleanup_errors=[], reconciled_usd=NO_VM_RESERVE_USD,
+                         note="start failed before a VM existed; resources removed")  # fmt: skip
+    ledger_path().write_text(json.dumps(ledger, indent=2), encoding="utf-8")
+
+
 def start(p: dict, allowance: float, yes: bool) -> Path:
+    with tempfile.TemporaryDirectory(prefix="dream-isaac-check-") as directory:
+        archive(Path(directory))  # refuse a dirty tree before creating or charging anything
     spent = sum(charged(e) for e in read_ledger())
     if not yes or not math.isfinite(allowance) or allowance < p["estimated_usd"]:
         raise ValueError("--yes and --allowance-usd covering the estimate are required")
@@ -186,6 +211,7 @@ def start(p: dict, allowance: float, yes: bool) -> Path:
     except BaseException:
         errors = cleanup(p, remove_results=True)
         (dest / "start_cleanup_errors.json").write_text(json.dumps(errors, indent=2))
+        settle_failed_start(p, dest, errors)
         raise
     (dest / "manifest.json").write_text(json.dumps(p, indent=2), encoding="utf-8")
     print(f"session started; manifest {dest / 'manifest.json'}", flush=True)

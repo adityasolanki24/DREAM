@@ -47,7 +47,7 @@ setsid ros2 launch rtabmap_launch rtabmap.launch.py rtabmap_viz:=false use_sim_t
   frame_id:=base_link rgb_topic:=/camera/color/image_raw \
   depth_topic:=/camera/depth/image_raw camera_info_topic:=/camera/color/camera_info \
   approx_sync:=false visual_odometry:=true database_path:=/data/rtabmap.db \
-  rtabmap_args:="--delete_db_on_start" > /data/launch.log 2>&1 &
+  rtabmap_args:="--delete_db_on_start {params}" odom_args:="{params}" > /data/launch.log 2>&1 &
 LAUNCH=$!
 sleep 15
 timeout 300 ros2 bag play /data/bag --clock 100 > /data/play.log 2>&1 || true
@@ -55,6 +55,7 @@ sleep 10
 kill -INT -- -$LAUNCH -$TF 2>/dev/null || true
 sleep 10
 kill -KILL -- -$LAUNCH -$TF 2>/dev/null || true
+export QT_QPA_PLATFORM=offscreen  # rtabmap-report is a Qt tool; no display in the container
 rtabmap-report --poses_raw /data/rtabmap.db > /data/report.log 2>&1 || true
 ls -la /data > /data/listing.txt
 """
@@ -91,6 +92,7 @@ def main() -> None:
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--sequence", type=Path, help="replay this saved sequence (not re-recorded)")
     ap.add_argument("--engine", default="docker", help="container CLI: docker or podman")
+    ap.add_argument("--params", default="", help='RTAB-Map parameters, e.g. "--Reg/Strategy 1"')
     args = ap.parse_args()
     out = args.out.resolve()
     seq, data = (args.sequence or out / "sequence").resolve(), out / "rtabmap"
@@ -119,13 +121,15 @@ def main() -> None:
 
     q = quat_xyzw(np.asarray(ext["rotation"]))
     x, y, z = ext["translation"]
-    (data / "run.sh").write_text(RUN.format(x=x, y=y, z=z, qx=q[0], qy=q[1], qz=q[2], qw=q[3]))
+    script = RUN.format(x=x, y=y, z=z, qx=q[0], qy=q[1], qz=q[2], qw=q[3], params=args.params)
+    (data / "run.sh").write_text(script, newline="\n")  # CRLF on Windows broke the script
     t1 = time.time()
     command = [engine, "run", "--rm", "-v", f"{data}:/data", IMAGE, "bash", "/data/run.sh"]
     proc = subprocess.run(command, capture_output=True, text=True, timeout=900)
     (data / "docker.log").write_text(proc.stdout + proc.stderr)
     gt = load_tum(seq / "groundtruth_base.txt")
     result = {"seed": args.seed, "sequence": str(seq), "engine": args.engine, "image": digest,
+              "params": args.params,
               "bag_counts": counts,
               "docker_exit": proc.returncode, "rtabmap_wall_s": time.time() - t1,
               "total_wall_s": time.time() - t0}  # fmt: skip
