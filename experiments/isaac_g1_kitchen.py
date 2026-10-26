@@ -93,7 +93,7 @@ def commands(env, base, cfg, ev, handles, start_xy) -> dict:
         ev.line("events.jsonl", {"time_s": env.time, "kind": kind, "text": text, **data})
 
     tb = MobileToolbox(base, SpatialMemory(np.random.default_rng([e["memory_seed"]])),
-                       navigator="rpp", on_event=lambda k, t, **_: log(k, t))  # fmt: skip
+                       on_event=lambda k, t, **_: log(k, t))  # fmt: skip
 
     def scorer(task, claimed):
         if task == "goto entrance":
@@ -374,7 +374,8 @@ def _run(app, args, cfg, ev: Evidence) -> dict:
                   fell=base.stop_reason is not None, stop_reason=base.stop_reason,
                   contact_steps=env.contact_steps, frames=frames["n"],
                   touched=sorted({c["other"] for c in contacts}),
-                  physics_steps=env.physics_steps)  # fmt: skip
+                  physics_steps=env.physics_steps,
+                  empty_capture_retries=env.empty_capture_retries)  # fmt: skip
     return result
 
 

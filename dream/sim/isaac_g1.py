@@ -117,6 +117,9 @@ class ContactEvent:
     impulse: float  # N s, summed over the step's contact points
 
 
+EMPTY_CAPTURE_RETRIES = 20  # extra renders allowed when an annotator returns no data
+
+
 class IsaacG1Env:
     """Synchronous physics owner with the ``G1MobileEnv`` sensing/stepping interface."""
 
@@ -221,6 +224,7 @@ class IsaacG1Env:
         )
         self._annotators = None
         self.physics_steps = 0
+        self.empty_capture_retries = 0  # reported per episode
         self.contacts: list[ContactEvent] = []
         self.contact_steps = 0
         self._sim_time = 0.0
@@ -309,6 +313,17 @@ class IsaacG1Env:
         if self.physics_steps != steps or np.abs(self._root()[0] - before).max() > 1e-9:
             raise RuntimeError("rendering advanced physics; camera capture is not passive")
         rgb = np.asarray(annotators["rgb"].get_data())
+        retries = 0
+        while rgb.size == 0 and retries < EMPTY_CAPTURE_RETRIES:
+            # The first renders after loading a kitchen can deliver empty buffers while
+            # textures still stream (held-out batch 1 and the first command demo). Render
+            # again; physics is still not advanced (checked below).
+            self.world.render()
+            retries += 1
+            rgb = np.asarray(annotators["rgb"].get_data())
+        self.empty_capture_retries += retries
+        if self.physics_steps != steps or np.abs(self._root()[0] - before).max() > 1e-9:
+            raise RuntimeError("rendering advanced physics; camera capture is not passive")
         dist = np.asarray(annotators["distance_to_image_plane"].get_data())
         seg = annotators["instance_id_segmentation_fast"].get_data()
         ids, info = np.asarray(seg["data"]), seg["info"].get("idToLabels", {})

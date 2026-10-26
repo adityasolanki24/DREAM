@@ -52,7 +52,7 @@ setsid ros2 launch rtabmap_launch rtabmap.launch.py rtabmap_viz:=false use_sim_t
   frame_id:=base_link rgb_topic:=/camera/color/image_raw \
   depth_topic:=/camera/depth/image_raw camera_info_topic:=/camera/color/camera_info \
   approx_sync:=false visual_odometry:=true database_path:=/data/rtabmap.db \
-  rtabmap_args:="--delete_db_on_start {params}" odom_args:="{params}" \
+  rtabmap_args:="--delete_db_on_start {params}" {odom_args} \
   {launch_args} > /data/launch.log 2>&1 &
 LAUNCH=$!
 sleep 15
@@ -131,6 +131,7 @@ def main() -> None:
     q = quat_xyzw(np.asarray(ext["rotation"]))
     x, y, z = ext["translation"]
     script = RUN.format(x=x, y=y, z=z, qx=q[0], qy=q[1], qz=q[2], qw=q[3], params=args.params,
+                        odom_args=f'odom_args:="{args.params}"' if args.params else "",
                         launch_args=args.launch_args)  # fmt: skip
     (data / "run.sh").write_text(script, newline="\n")  # CRLF on Windows broke the script
     t1 = time.time()
