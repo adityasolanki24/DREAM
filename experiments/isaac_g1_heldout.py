@@ -52,6 +52,7 @@ def main() -> None:
     ap.add_argument("--out", type=pathlib.Path, required=True)
     ap.add_argument("--workers", type=int, default=3)
     ap.add_argument("--episode-timeout-s", type=float, default=3600)
+    ap.add_argument("--only", help="comma-separated kitchen:start episodes to (re)run, in order")
     args = ap.parse_args()
     cfg = json.loads(args.config.read_text())
     args.out.mkdir(parents=True, exist_ok=True)
@@ -59,6 +60,11 @@ def main() -> None:
         subprocess.run([args.prepare_with, str(ROOT / "experiments/prepare_g1_usd.py"),
                         "--out", str(args.robot_dir)], check=True)  # fmt: skip
     jobs = [(k, s) for s in cfg["evaluation_starts"] for k in cfg["evaluation_kitchens"]]
+    if args.only:  # reruns of infrastructure failures; still only frozen evaluation episodes
+        wanted = [(k, int(s)) for k, s in (e.split(":") for e in args.only.split(","))]
+        if not set(wanted) <= set(jobs):
+            raise SystemExit("--only names an episode outside the frozen evaluation set")
+        jobs = wanted
     with ThreadPoolExecutor(args.workers) as pool:
         rows = list(pool.map(lambda j: episode(args, *j), jobs))
     (args.out / "episodes.json").write_text(json.dumps(rows, indent=2))
