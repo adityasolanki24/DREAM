@@ -1,0 +1,20 @@
+{
+ "spec": {
+  "id": "dev_h0.35_L1_s105",
+  "set": "dev",
+  "seed": 105,
+  "height": 0.35,
+  "layout": 1,
+  "distance": 2.0,
+  "lateral": 0.3,
+  "yaw_jitter": 0.2617993877991494,
+  "n_crates": 2,
+  "second_fixture": true
+ },
+ "system": "agent",
+ "git_sha": "126f87c925bb76e82d37c5216f3ed888f581afe6",
+ "error": "Traceback (most recent call last):\n  File \"C:\\Users\\24adi\\DREAM-wholebody\\experiments\\g1_reach_heights.py\", line 209, in run_episode\n    report = skill.run(instruction)\n  File \"C:\\Users\\24adi\\DREAM-wholebody\\dream\\tools\\reach.py\", line 288, in run\n    if not self._observe(est, rep, search=True):\n           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\24adi\\DREAM-wholebody\\dream\\tools\\reach.py\", line 222, in _observe\n    last = self.body.look(g)\n  File \"C:\\Users\\24adi\\DREAM-wholebody\\dream\\robot\\g1_reach_ports.py\", line 116, in look\n    dets = self.tb.memory.update(frame)\n  File \"C:\\Users\\24adi\\DREAM-wholebody\\dream\\perception\\spatial.py\", line 99, in update\n    dets, _ = detect(frame, self.rng, FLOOR_PLANE, DEPTH_NOISE)\n              ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\24adi\\DREAM-wholebody\\dream\\perception\\detect.py\", line 194, in detect\n    _describe(m, ctx) if d.kind in (\"box\", \"container\") else d\n    ~~~~~~~~~^^^^^^^^\n  File \"C:\\Users\\24adi\\DREAM-wholebody\\dream\\perception\\detect.py\", line 321, in _describe\n    return _box(mask, ctx, top, occluded, bbox)\n  File \"C:\\Users\\24adi\\DREAM-wholebody\\dream\\perception\\detect.py\", line 410, in _box\n    opening = _opening(ctx, centre, sides, angle, float(np.median(height[mask])))\n  File \"C:\\Users\\24adi\\DREAM-wholebody\\dream\\perception\\detect.py\", line 438, in _opening\n    local = (pts[..., :2] - centre) @ np.array([[c, -s], [s, c]])\n            ~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nnumpy._core._exceptions._ArrayMemoryError: Unable to allocate 1.17 MiB for an array with shape (240, 320, 2) and data type float64\n",
+ "timing": {
+  "wall_s": 8.44879039999796
+ }
+}

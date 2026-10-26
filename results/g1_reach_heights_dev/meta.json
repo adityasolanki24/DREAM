@@ -1,0 +1,111 @@
+{
+ "git_sha_at_start": "126f87c925bb76e82d37c5216f3ed888f581afe6",
+ "dirty_paths_at_start": [],
+ "config": {
+  "name": "g1_reach_heights",
+  "_note": "W5 unfamiliar-height reach test. Written before any held-out run. The development set drives fixes (general defects only, each with a regression test); the code is then frozen (SHA recorded in results/g1_reach_heights_heldout/meta.json) and the held-out set is run exactly once. A code change after seeing any held-out result turns that run into development evidence.",
+  "instruction": "touch the {color} handle",
+  "envelope": "results/g1_wbc_envelope_v2/envelope.json",
+  "envelope_sha256": "c1dc9728205994fd3dbd10d17aaf160a6ff2ee063ffe55aa3c983a052d90f1b5",
+  "success_radius_m": 0.03,
+  "success_definition": "true distance between the hand's reach point (index fingertip) and the handle centre <= 0.03 m, with no collapse (C3 criteria) and no unresolved protective stop",
+  "dev": {
+   "results_dir": "results/g1_reach_heights_dev",
+   "heights": [
+    0.35,
+    0.75,
+    1.1
+   ],
+   "seeds": [
+    100,
+    101,
+    102,
+    103,
+    104,
+    105
+   ],
+   "layouts": [
+    {
+     "distance": 1.5,
+     "lateral": 0.0,
+     "yaw_jitter_deg": 0.0,
+     "crates": 0,
+     "second_fixture": false
+    },
+    {
+     "distance": 2.0,
+     "lateral": 0.3,
+     "yaw_jitter_deg": 15.0,
+     "crates": 2,
+     "second_fixture": true
+    }
+   ]
+  },
+  "heldout": {
+   "results_dir": "results/g1_reach_heights_heldout",
+   "seeds": [
+    5000,
+    5001,
+    5002,
+    5003,
+    5004,
+    5005,
+    5006,
+    5007,
+    5008,
+    5009,
+    5010,
+    5011,
+    5012,
+    5013,
+    5014,
+    5015,
+    5016,
+    5017,
+    5018,
+    5019,
+    5020,
+    5021,
+    5022,
+    5023
+   ],
+   "height_m": [
+    0.1,
+    1.45
+   ],
+   "distance_m": [
+    1.2,
+    2.2
+   ],
+   "lateral_m": [
+    -0.4,
+    0.4
+   ],
+   "yaw_jitter_deg": 20.0,
+   "max_crates": 2,
+   "second_fixture_prob": 0.5,
+   "handle_colour": "drawn per seed from the detector palette (red orange yellow green blue purple)",
+   "fixture_size": "depth half 0.15-0.30, width half 0.25-0.50, height from max(0.55, h+0.12) up to +0.5 m (dream/sim/reach_scenes.py)"
+  },
+  "gates": {
+   "_note": "Pre-registered for the new system (agent). The baseline is reported on identical scenes against the same numbers for reference.",
+   "max_collapses": 0,
+   "max_false_success_claims": 0,
+   "success_feasible_min": 0.8,
+   "success_feasible_off_band_min": 0.7,
+   "off_band": "handle height < 0.55 m or > 1.15 m",
+   "correct_refusal_min": 0.9
+  },
+  "disjoint": "development seeds 100-105 and held-out seeds 5000-5023 share no seed; the scripted baseline runs the same scene specifications"
+ },
+ "envelope": "results/g1_wbc_envelope_v2/envelope.json",
+ "envelope_sha256": "c1dc9728205994fd3dbd10d17aaf160a6ff2ee063ffe55aa3c983a052d90f1b5",
+ "python": "3.13.14",
+ "mujoco": "3.16.0",
+ "numpy": "2.5.4",
+ "machine": "Windows-11-10.0.26100-SP0",
+ "odometry": "oracle-assisted (true increments + noise), dream/sim/g1_mobile.py",
+ "perception": "classical colour-and-depth baseline, dream/perception/detect.py",
+ "instruction_parsing": "structured goal parsing, not language understanding",
+ "started": "2026-10-26 16:52:25"
+}
