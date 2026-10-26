@@ -1,6 +1,7 @@
 """RTAB-Map on the walking G1's own sensors, scored against ground truth it never sees.
 
     python experiments/rtabmap_eval.py --seed 3 --out <dir>      # needs Docker (cloud VM)
+    python experiments/rtabmap_eval.py --sequence <saved sequence> --engine podman --out <dir>
 
 1. Record the G1 search-and-return sequence (experiments/record_rgbd_sequence.py) in MuJoCo.
 2. Convert it to a ROS 2 bag (experiments/tum_to_rosbag.py): RGB-D, camera info, IMU, TF.
@@ -88,14 +89,17 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--seed", type=int, default=3)
     ap.add_argument("--out", type=Path, required=True)
+    ap.add_argument("--sequence", type=Path, help="replay this saved sequence (not re-recorded)")
+    ap.add_argument("--engine", default="docker", help="container CLI: docker or podman")
     args = ap.parse_args()
     out = args.out.resolve()
-    seq, data = out / "sequence", out / "rtabmap"
+    seq, data = (args.sequence or out / "sequence").resolve(), out / "rtabmap"
     data.mkdir(parents=True, exist_ok=True)
     py = sys.executable
     t0 = time.time()
-    subprocess.run([py, str(ROOT / "experiments/record_rgbd_sequence.py"), "--seed",
-                    str(args.seed), "--out", str(seq)], check=True)  # fmt: skip
+    if not args.sequence:
+        subprocess.run([py, str(ROOT / "experiments/record_rgbd_sequence.py"), "--seed",
+                        str(args.seed), "--out", str(seq)], check=True)  # fmt: skip
     try:
         import rosbags  # noqa: F401
     except ImportError:  # sessions started before it joined the DREAM environment
@@ -103,11 +107,12 @@ def main() -> None:
     from experiments.tum_to_rosbag import STAMP_OFFSET, convert
 
     counts = convert(seq, data / "bag")
-    if shutil.which("docker") is None:  # the GCP image has none (session 4); ephemeral root VM
+    engine = shutil.which(args.engine) or args.engine
+    if args.engine == "docker" and shutil.which("docker") is None:  # GCP image has none
         subprocess.run(["apt-get", "install", "-y", "-q", "docker.io"], check=True)
         subprocess.run(["systemctl", "start", "docker"], check=True)
-    subprocess.run(["docker", "pull", IMAGE], check=True)
-    digest = subprocess.run(["docker", "inspect", "--format", "{{index .RepoDigests 0}}", IMAGE],
+    subprocess.run([engine, "pull", IMAGE], check=True)
+    digest = subprocess.run([engine, "inspect", "--format", "{{index .RepoDigests 0}}", IMAGE],
                             capture_output=True, text=True).stdout.strip()  # fmt: skip
     ext = json.loads((seq / "calibration.json").read_text())["camera_in_pelvis_at_reset"]
     from experiments.record_rgbd_sequence import quat_xyzw
@@ -116,11 +121,12 @@ def main() -> None:
     x, y, z = ext["translation"]
     (data / "run.sh").write_text(RUN.format(x=x, y=y, z=z, qx=q[0], qy=q[1], qz=q[2], qw=q[3]))
     t1 = time.time()
-    command = ["docker", "run", "--rm", "-v", f"{data}:/data", IMAGE, "bash", "/data/run.sh"]
+    command = [engine, "run", "--rm", "-v", f"{data}:/data", IMAGE, "bash", "/data/run.sh"]
     proc = subprocess.run(command, capture_output=True, text=True, timeout=900)
     (data / "docker.log").write_text(proc.stdout + proc.stderr)
     gt = load_tum(seq / "groundtruth_base.txt")
-    result = {"seed": args.seed, "image": digest, "bag_counts": counts,
+    result = {"seed": args.seed, "sequence": str(seq), "engine": args.engine, "image": digest,
+              "bag_counts": counts,
               "docker_exit": proc.returncode, "rtabmap_wall_s": time.time() - t1,
               "total_wall_s": time.time() - t0}  # fmt: skip
     for name in ("odom", "slam"):
