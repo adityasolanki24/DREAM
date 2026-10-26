@@ -1,0 +1,31 @@
+{
+  "name": "g1_wbc_envelope",
+  "seeds": [0, 1, 2],
+  "joint_noise": 0.02,
+  "nominal_height": 0.74,
+  "heights": [0.74, 0.70, 0.65, 0.60, 0.55, 0.50, 0.45, 0.40, 0.35, 0.30],
+  "pitches": [-0.3, 0.0, 0.2, 0.4],
+  "rolls": [-0.2, 0.2],
+  "yaws": [-0.4, 0.4],
+  "arms_heights": [0.74, 0.65, 0.55, 0.45, 0.35],
+  "arms_pitches": [0.2],
+  "rejected_probe_pitches": [0.6],
+  "arms_forward": [-1.4, 0, 0, 0, 0, 0, 0, -1.4, 0, 0, 0, 0, 0, 0],
+  "rate_height": 0.1,
+  "rate_rpy": 0.3,
+  "settle_s": 2.0,
+  "arms_s": 2.0,
+  "hold_s": 4.0,
+  "return_s": 3.0,
+  "fall_torso_z": 0.12,
+  "gates": {
+    "height_tol_m": 0.04,
+    "rpy_tol_rad": 0.1,
+    "torque_ratio_max": 0.9,
+    "com_margin_min_m": 0.0,
+    "feet_slip_max_m": 0.1,
+    "return_height_tol_m": 0.04,
+    "return_rpy_tol_rad": 0.1
+  },
+  "notes": "Gates pre-registered before the full run. Pitch 0.6 rad exceeds the waist range (+-0.52) and is recorded as a rejection. Torque ratio = |commanded motor torque| / actuatorfrcrange of the MJCF (the sim motors are not force-limited, so a ratio above 1 is a torque the real joint could not deliver). rpy error is the torso in the gravity-aligned heading frame (yaw-only pelvis); the waist-chain (upstream FK) value is also stored. Arms-forward pose: both shoulder pitch -1.4 rad, rest 0."
+}
