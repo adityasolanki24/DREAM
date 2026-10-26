@@ -1,0 +1,129 @@
+{
+ "gates": {
+  "height_tol_m": 0.04,
+  "rpy_tol_rad": 0.1,
+  "torque_ratio_max": 0.9,
+  "com_margin_min_m": 0.0,
+  "feet_slip_max_m": 0.1,
+  "return_height_tol_m": 0.04,
+  "return_rpy_tol_rad": 0.1
+ },
+ "arms_forward": [
+  -1.4,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  -1.4,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0
+ ],
+ "seeds": [
+  0,
+  1,
+  2
+ ],
+ "standing": {
+  "height_m": [
+   0.6,
+   0.74
+  ],
+  "height_m_any_torso_attitude": [
+   0.3,
+   0.74
+  ],
+  "height_tested": {
+   "0.30": false,
+   "0.35": false,
+   "0.40": false,
+   "0.45": false,
+   "0.50": false,
+   "0.55": false,
+   "0.60": true,
+   "0.65": true,
+   "0.70": true,
+   "0.74": true
+  },
+  "roll_rad": [
+   0.0,
+   0.0
+  ],
+  "roll_tested": {
+   "-0.20": false,
+   "+0.00": true,
+   "+0.20": false
+  },
+  "pitch_rad": [
+   0.0,
+   0.4
+  ],
+  "pitch_tested": {
+   "-0.30": false,
+   "+0.00": true,
+   "+0.20": true,
+   "+0.40": true
+  },
+  "yaw_rad": [
+   -0.4,
+   0.4
+  ],
+  "yaw_tested": {
+   "-0.40": true,
+   "+0.00": true,
+   "+0.40": true
+  }
+ },
+ "arms_extended": {
+  "height_m": [
+   0.65,
+   0.74
+  ],
+  "height_m_any_torso_attitude": [
+   0.35,
+   0.74
+  ],
+  "height_tested": {
+   "0.35": false,
+   "0.45": false,
+   "0.55": false,
+   "0.65": true,
+   "0.74": true
+  },
+  "roll_rad": [
+   0.0,
+   0.0
+  ],
+  "roll_tested": {
+   "+0.00": true
+  },
+  "pitch_rad": [
+   0.0,
+   0.2
+  ],
+  "pitch_tested": {
+   "+0.00": true,
+   "+0.20": true
+  },
+  "yaw_rad": [
+   0.0,
+   0.0
+  ],
+  "yaw_tested": {
+   "+0.00": true
+  }
+ },
+ "rejected_by_safety_bound": [
+  {
+   "pitch": 0.6,
+   "rejected": true,
+   "reason": "torso rpy command [0.0, 0.6, 0.0] outside [[-0.52, 0.52], [-0.52, 0.52], [-1.0, 1.0]]"
+  }
+ ],
+ "note": "Intervals are the contiguous feasible range around nominal. Height and rpy are swept independently (no joint height x pitch sweep): a planner must not assume the product of the intervals is feasible."
+}
