@@ -277,6 +277,19 @@ def lean_forward(env, base, log, pitch: float, height: float) -> dict:
     return {"pitch_cmd": 0.0, "height_cmd": height, "torso_forward_m": 0.0}
 
 
+ARMS_DOWN = np.array([0.1, 0.1, 0.0, 1.5, 0.0, 0.0, 0.0,  # left arm
+                      0.1, -0.1, 0.0, 1.5, 0.0, 0.0, 0.0])  # right arm  # fmt: skip
+
+
+def tuck_arms(base) -> None:
+    """Hands beside the hips (FK on the G1 MJCF: 0.6 m high, 0.2 m out), ramped over 1 s."""
+    ctrl = base.controller
+    a0 = ctrl.arm_target.copy()
+    for k in range(1, 26):
+        ctrl.arm_target[:] = a0 + (ARMS_DOWN - a0) * k / 25
+        base.walk(0, 0, 0, 0.04)
+
+
 def upright(base) -> None:
     """Ramp the posture commands back to the validated defaults (before walking far)."""
     ctrl = base.controller
@@ -370,6 +383,8 @@ def run_task(world, env, base, cfg, ev, start, task: str) -> dict:
                           "heading": float(math.atan2(u[1], u[0]))})  # fmt: skip
     log("arrived", f"go_to {r.status} {r.message}")
     face(base, p_odom[:2])
+    tuck_arms(base)  # hands down by the hips, so the body (not the hands) meets the counter
+    log("tuck", "arms down by the sides for the last steps")
     # final approach: a slow straight step until it is at arm's length (people walk right
     # up to a counter; the planner keeps a robot-radius margin from it)
     for _ in range(15):
@@ -406,8 +421,6 @@ def run_task(world, env, base, cfg, ev, start, task: str) -> dict:
     mj_tip = ik.data.xpos[ik.arm.hand].copy()
     log("ik_check", f"MuJoCo mirror vs Isaac fingertip: "
         f"{np.linalg.norm(mj_tip - env.link_pose(HAND_LINK)[0]) * 100:.1f} cm")  # fmt: skip
-    lean = lean_forward(env, base, log, pitch=0.35, height=0.70 if target[2] < 0.85 else 0.74)
-    out["lean"] = lean
     root, _ = env._root()
     yaw = env.true_pose()[2]
     fwd = np.array([math.cos(yaw), math.sin(yaw), 0.0])
