@@ -80,7 +80,7 @@ def main() -> None:
             return {"success": claimed and err <= 0.3, "entrance_error_m": err}
         return score(env, room, tb, claimed)
 
-    with tempfile.TemporaryDirectory() as store:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as store:
         home = HomeMemory(pathlib.Path(store) / "home.sqlite")
         result = run_commands(env, base, tb, home, f"odom:room{args.seed}", cfg, scorer, log,
                               pathlib.Path(store))  # fmt: skip

@@ -135,6 +135,8 @@ def run_commands(env, base, tb, home, map_id: str, cfg: dict, scorer, log, store
         sched.run_until_idle()
     finally:
         server.shutdown()
-    return {"tasks": sched.tasks(), "phone": state["phone"], "verdicts": state["verdicts"],
+    tasks = sched.tasks()
+    sched.db.close()  # Windows cannot remove an open SQLite file
+    return {"tasks": tasks, "phone": state["phone"], "verdicts": state["verdicts"],
             "stored_handles": stored if "stored" in locals() else [],
             "wall_s": time.perf_counter() - t0}  # fmt: skip

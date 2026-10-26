@@ -102,7 +102,7 @@ def commands(env, base, cfg, ev, handles, start_xy) -> dict:
             return {"success": claimed and err <= 0.3, "entrance_error_m": err}
         return score(env, tb, claimed, handles)
 
-    with tempfile.TemporaryDirectory() as store:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as store:
         home = HomeMemory(pathlib.Path(store) / "home.sqlite")
         out = run_commands(env, base, tb, home, "odom:kitchen", e, scorer, log,
                            pathlib.Path(store))  # fmt: skip
