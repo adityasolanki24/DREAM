@@ -255,8 +255,13 @@ def run_trial(cfg: dict, cond: dict, seed: int) -> dict:
 
     ok = run(cfg["settle_s"], "settle")
     if ok:
-        ctrl.arm_target = np.array(cfg["arm_poses"][cond["arms"]], float)
-        ok = run(cfg["arms_s"], "arms")
+        pose = np.array(cfg["arm_poses"][cond["arms"]], float)
+        n = int(np.ceil(float(np.max(np.abs(pose))) / (cfg["arm_setup_rate"] * TICK)))
+        for i in range(n):  # a reference step would load the arms with a PD transient
+            ctrl.arm_target = pose * (i + 1) / n
+            ok = ok and run(TICK, "arms")
+        ctrl.arm_target = pose
+        ok = ok and run(cfg["arms_s"], "arms")
     base = [r for r in probe.rows if r["seg"] in ("settle", "arms")][-25:]
     nominal = {
         "z": float(np.mean([r["z"] for r in base])),
@@ -341,7 +346,7 @@ def criteria(cfg, cond, rows, nominal, plan, window, collapse) -> dict:
     segs = []
     for tag, s, ramp, hold, _ in plan:
         rs = by_seg.get(tag, [])
-        if len(rs) * TICK < ramp + hold - 1e-6:
+        if len(rs) < round((ramp + hold) / TICK):
             continue  # collapse before the segment ended
         last = rs[-round(1.0 / TICK) :]
         z = float(np.mean([r["z"] for r in last]))
@@ -391,7 +396,7 @@ def criteria(cfg, cond, rows, nominal, plan, window, collapse) -> dict:
     )
     recovery = None
     if window:  # first time after the push the height stays within 0.02 m of its final value
-        post = [r for r in rows if r["t"] > window[1]]
+        post = [r for r in rows if r["t"] > window[1] and r["seg"] == "0:0"]
         for i in range(len(post)):
             if all(abs(q["z"] - post[-1]["z"]) < 0.02 for q in post[i:]):
                 recovery = post[i]["t"] - window[1]
@@ -562,7 +567,7 @@ def summarize(cfg: dict, out: pathlib.Path) -> None:
                     "feet_slip_m": worst(lambda x: x["feet_slip_max_m"]),
                     "push_recovery_s": worst(lambda x: x["push_recovery_s"]),
                     "arm_lag_max_rad": worst(
-                        lambda x: x["arm_motion"]["lag_max_rad"] if x["arm_motion"] else None
+                        lambda x: x["arm_motion"]["lag_max_rad"] if x.get("arm_motion") else None
                     ),
                     "tilt_latches": sum(x["tilt_latch"] is not None for x in crit),
                 },

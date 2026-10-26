@@ -308,9 +308,10 @@
       ],
       "pose": "forward_down",
       "hold_s": 2.0
-    }
+    },
+    "arm_setup_rate": 0.4
   },
-  "notes": "Protocol frozen before the run; development seeds of the 3-seed run were 0-2, this run uses 10-14. No pelvis-height fall criterion: collapse is judged by tilt latch, undesired ground contact (non-foot robot geom on the floor), foot support, tracking, joint-limit contact, CoM margin (all recorded separately). Torso rpy tracking uses the upstream waist-chain definition on commanded axes only; world-frame attitude is recorded, not gated. Repeat trials = 2 cycles per joint cell. Grid density was not reduced: 5 seeds x 77 cells, run with 2 workers. Foot support and CoM margin are not scored inside a push window (+1 s recovery). Arm poses: forward_down = both shoulder pitch -1.0 rad; lateral = shoulder roll +1.2 (left) / -1.2 (right) rad. Arm-rate cells (added while the main run was in progress, run afterwards with the same seeds): both arms neutral -> forward_down -> neutral at 0.4/0.8/1.2 rad/s joint reference speed at heights 0.74 and 0.45, plain WBCLocomotion arm PD without gravity feed-forward; extra gates: arm settle error <= arm_settle_tol_rad after each 2 s hold and pelvis height drift <= height_tol_m during the motion; arm_rate_max is the highest rate passing every trial.",
+  "notes": "Protocol frozen before the run; development seeds of the 3-seed run were 0-2, this run uses 10-14. No pelvis-height fall criterion: collapse is judged by tilt latch, undesired ground contact (non-foot robot geom on the floor), foot support, tracking, joint-limit contact, CoM margin (all recorded separately). Torso rpy tracking uses the upstream waist-chain definition on commanded axes only; world-frame attitude is recorded, not gated. Repeat trials = 2 cycles per joint cell. Grid density was not reduced: 5 seeds x 77 cells, run with 2 workers. Foot support and CoM margin are not scored inside a push window (+1 s recovery). Arm poses: forward_down = both shoulder pitch -1.0 rad; lateral = shoulder roll +1.2 (left) / -1.2 (right) rad. Arm-rate cells (added while the main run was in progress, run afterwards with the same seeds): both arms neutral -> forward_down -> neutral at 0.4/0.8/1.2 rad/s joint reference speed at heights 0.74 and 0.45, plain WBCLocomotion arm PD without gravity feed-forward; extra gates: arm settle error <= arm_settle_tol_rad after each 2 s hold and pelvis height drift <= height_tol_m during the motion; arm_rate_max is the highest rate passing every trial. Evaluator fixes after the first complete pass (kept as results/g1_wbc_envelope_v2a_superseded): (1) segment completeness compared float seconds with a tick count, so segments whose ramp is not a multiple of 0.02 s were wrongly 'incomplete' (height/rpy tracking and return failures at pitch 0.2 and roll cells); (2) the held arm pose was applied as a reference step, which produced PD torque spikes counted as torque ratio (now ramped at arm_setup_rate 0.4 rad/s); (3) push recovery was measured across the following return segment (now only the push segment). Gates were not changed.",
   "arm_rate": {
     "rates": [
       0.4,
@@ -323,5 +324,6 @@
     ],
     "pose": "forward_down",
     "hold_s": 2.0
-  }
+  },
+  "arm_setup_rate": 0.4
 }
