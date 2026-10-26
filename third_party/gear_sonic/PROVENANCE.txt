@@ -1,0 +1,24 @@
+Source: https://github.com/NVlabs/GR00T-WholeBodyControl
+Commit: 45c03facbf848e0c743091b7d9c17952096ff908 (the same commit as third_party/gr00t_wbc_g1)
+Downloaded: 2026-10-26. Bytes unmodified; each file's git blob SHA-1 was compared with the GitHub
+  contents API at that commit, SHA-256 in SHA256SUMS.
+Files (upstream path -> here):
+  gear_sonic_deploy/src/g1/g1_deploy_onnx_ref/include/policy_parameters.hpp -> policy_parameters.hpp
+    (joint permutations PP:100-105, armatures, kp/kd, action scale, default angles)
+  gear_sonic_deploy/src/g1/g1_deploy_onnx_ref/include/localmotion_kplanner.hpp -> localmotion_kplanner.hpp
+    (LocomotionMode enum, static-mode set, planner version/token constants)
+  gear_sonic_deploy/policy/release/observation_config.yaml -> observation_config.yaml
+    (encoder and decoder observation layout; also the file shipped next to the weights on Hugging Face)
+  gear_sonic/utils/mujoco_sim/wbc_configs/g1_29dof_sonic_model12.yaml -> g1_29dof_sonic_model12.yaml
+    (motor_effort_limit_list, the sim torque clip)
+  docs/source/references/planner_onnx.md -> planner_onnx.md (planner mode and height ranges)
+  LICENSE (dual-licence notice: source Apache-2.0, model weights NVIDIA Open Model License)
+    -> LICENSE, copied from third_party/gr00t_wbc_g1/LICENSE (same repository and commit)
+Purpose: constants and tables for dream/robot/sonic.py, an UNOFFICIAL Python/onnxruntime port of
+  gear_sonic_deploy that is NOT verified against the reference C++ binary. tests/test_sonic.py checks
+  the port's constants against these files.
+Weights are NOT vendored: experiments/fetch_sonic_policy.py downloads nvidia/GEAR-SONIC at the
+  revision pinned in experiments/configs/sonic_policy.json into a local cache and verifies the
+  SHA-256 (the .onnx hashes are the Hugging Face LFS oids). Weights are licensed by NVIDIA
+  Corporation under the NVIDIA Open Model License.
+Runtime changes: none to these files.
