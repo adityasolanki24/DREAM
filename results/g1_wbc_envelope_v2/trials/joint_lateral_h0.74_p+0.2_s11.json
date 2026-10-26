@@ -1,0 +1,140 @@
+{
+ "condition": {
+  "name": "joint_lateral_h0.74_p+0.2",
+  "kind": "joint",
+  "arms": "lateral",
+  "segments": [
+   {
+    "height": 0.74,
+    "rpy": [
+     0,
+     0.2,
+     0
+    ]
+   }
+  ],
+  "cycles": 2,
+  "push": null
+ },
+ "seed": 11,
+ "collapse_stop": {
+  "stopped": null,
+  "contact": null
+ },
+ "nominal": {
+  "z": 0.7515453047573427,
+  "rpy_waist": [
+   -0.010034743942260697,
+   0.0941131363564978,
+   0.0017783714941482628
+  ],
+  "rpy_world": [
+   -0.009545815466979832,
+   0.07445024511158338,
+   0.0018246940955426684
+  ],
+  "feet_xy": [
+   [
+    -0.057398824892465214,
+    0.1355413445541817
+   ],
+   [
+    -0.04569791210862928,
+    -0.11065801614094989
+   ]
+  ]
+ },
+ "plan": [
+  {
+   "seg": "0:0",
+   "ramp_s": 0.6666666666666667,
+   "hold_s": 4.0,
+   "cmd": {
+    "height": 0.74,
+    "rpy": [
+     0,
+     0.2,
+     0
+    ]
+   }
+  },
+  {
+   "seg": "0:back",
+   "ramp_s": 0.6666666666666667,
+   "hold_s": 3.0,
+   "cmd": {
+    "height": 0.74,
+    "rpy": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  {
+   "seg": "1:0",
+   "ramp_s": 0.6666666666666667,
+   "hold_s": 4.0,
+   "cmd": {
+    "height": 0.74,
+    "rpy": [
+     0,
+     0.2,
+     0
+    ]
+   }
+  },
+  {
+   "seg": "1:back",
+   "ramp_s": 0.6666666666666667,
+   "hold_s": 3.0,
+   "cmd": {
+    "height": 0.74,
+    "rpy": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  }
+ ],
+ "push_window": [],
+ "criteria": {
+  "tilt_latch": null,
+  "undesired_ground_contact": {
+   "max_continuous_s": 0.0,
+   "total_s": 0.0,
+   "bodies": []
+  },
+  "foot_support": {
+   "max_continuous_s": 0.0,
+   "total_s": 0.0
+  },
+  "joint_limit": {
+   "total_s": 0.0,
+   "joints": []
+  },
+  "com_margin": {
+   "min_m": 0.033282891725430086
+  },
+  "torque_ratio": {
+   "legs": 0.21660876637850698,
+   "waist": 0.6396482477365513,
+   "arms": 23.13863561979491
+  },
+  "height_error_max": null,
+  "rpy_waist_error_commanded_max": null,
+  "feet_slip_max_m": 0.002518368114618737,
+  "push_recovery_s": null,
+  "return": null,
+  "segments": [],
+  "fails": [
+   "height_tracking",
+   "rpy_tracking",
+   "torque_ratio",
+   "return_to_nominal"
+  ],
+  "stable": false
+ },
+ "wall_s": 6.422529935836792
+}

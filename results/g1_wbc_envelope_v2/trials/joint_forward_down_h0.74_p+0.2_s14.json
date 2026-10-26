@@ -1,0 +1,140 @@
+{
+ "condition": {
+  "name": "joint_forward_down_h0.74_p+0.2",
+  "kind": "joint",
+  "arms": "forward_down",
+  "segments": [
+   {
+    "height": 0.74,
+    "rpy": [
+     0,
+     0.2,
+     0
+    ]
+   }
+  ],
+  "cycles": 2,
+  "push": null
+ },
+ "seed": 14,
+ "collapse_stop": {
+  "stopped": null,
+  "contact": null
+ },
+ "nominal": {
+  "z": 0.7479604196345591,
+  "rpy_waist": [
+   -0.010279886315677073,
+   0.11206112707253175,
+   -0.002927001711618267
+  ],
+  "rpy_world": [
+   -0.007576809660263746,
+   0.0674235238372115,
+   -0.0026271632605064945
+  ],
+  "feet_xy": [
+   [
+    -0.028725039952463054,
+    0.12213860631743256
+   ],
+   [
+    -0.059298104761940175,
+    -0.10460374454963282
+   ]
+  ]
+ },
+ "plan": [
+  {
+   "seg": "0:0",
+   "ramp_s": 0.6666666666666667,
+   "hold_s": 4.0,
+   "cmd": {
+    "height": 0.74,
+    "rpy": [
+     0,
+     0.2,
+     0
+    ]
+   }
+  },
+  {
+   "seg": "0:back",
+   "ramp_s": 0.6666666666666667,
+   "hold_s": 3.0,
+   "cmd": {
+    "height": 0.74,
+    "rpy": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  {
+   "seg": "1:0",
+   "ramp_s": 0.6666666666666667,
+   "hold_s": 4.0,
+   "cmd": {
+    "height": 0.74,
+    "rpy": [
+     0,
+     0.2,
+     0
+    ]
+   }
+  },
+  {
+   "seg": "1:back",
+   "ramp_s": 0.6666666666666667,
+   "hold_s": 3.0,
+   "cmd": {
+    "height": 0.74,
+    "rpy": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  }
+ ],
+ "push_window": [],
+ "criteria": {
+  "tilt_latch": null,
+  "undesired_ground_contact": {
+   "max_continuous_s": 0.0,
+   "total_s": 0.0,
+   "bodies": []
+  },
+  "foot_support": {
+   "max_continuous_s": 0.0,
+   "total_s": 0.0
+  },
+  "joint_limit": {
+   "total_s": 0.0,
+   "joints": []
+  },
+  "com_margin": {
+   "min_m": 0.02434339138227879
+  },
+  "torque_ratio": {
+   "legs": 0.3545271181478333,
+   "waist": 1.2465567286274268,
+   "arms": 11.39317617535777
+  },
+  "height_error_max": null,
+  "rpy_waist_error_commanded_max": null,
+  "feet_slip_max_m": 0.006408954936756151,
+  "push_recovery_s": null,
+  "return": null,
+  "segments": [],
+  "fails": [
+   "height_tracking",
+   "rpy_tracking",
+   "torque_ratio",
+   "return_to_nominal"
+  ],
+  "stable": false
+ },
+ "wall_s": 6.522670745849609
+}

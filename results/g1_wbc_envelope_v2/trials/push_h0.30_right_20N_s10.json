@@ -1,0 +1,180 @@
+{
+ "condition": {
+  "name": "push_h0.30_right_20N",
+  "kind": "push",
+  "arms": "neutral",
+  "segments": [
+   {
+    "height": 0.3,
+    "rpy": [
+     0,
+     0,
+     0
+    ]
+   }
+  ],
+  "cycles": 1,
+  "push": {
+   "dir": "right",
+   "newtons": 20
+  }
+ },
+ "seed": 10,
+ "collapse_stop": {
+  "stopped": null,
+  "contact": null
+ },
+ "nominal": {
+  "z": 0.7473347885361342,
+  "rpy_waist": [
+   -0.009428130600197681,
+   0.05969715905492316,
+   0.0003211203554165643
+  ],
+  "rpy_world": [
+   -0.0052391705126288626,
+   0.0608499210637817,
+   0.000571041926521695
+  ],
+  "feet_xy": [
+   [
+    -0.031390908114091495,
+    0.11987186015704472
+   ],
+   [
+    -0.048959210444131734,
+    -0.113151317768251
+   ]
+  ]
+ },
+ "plan": [
+  {
+   "seg": "0:0",
+   "ramp_s": 4.3999999999999995,
+   "hold_s": 4.0,
+   "cmd": {
+    "height": 0.3,
+    "rpy": [
+     0,
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "seg": "0:back",
+   "ramp_s": 4.3999999999999995,
+   "hold_s": 3.0,
+   "cmd": {
+    "height": 0.74,
+    "rpy": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  }
+ ],
+ "push_window": [
+  9.420000000000073,
+  9.600000000000101
+ ],
+ "criteria": {
+  "tilt_latch": null,
+  "undesired_ground_contact": {
+   "max_continuous_s": 0.0,
+   "total_s": 0.0,
+   "bodies": []
+  },
+  "foot_support": {
+   "max_continuous_s": 0.0,
+   "total_s": 0.0
+  },
+  "joint_limit": {
+   "total_s": 9.120000000000001,
+   "joints": [
+    "left_ankle_pitch_joint",
+    "right_ankle_pitch_joint"
+   ]
+  },
+  "com_margin": {
+   "min_m": 0.06501246305410267
+  },
+  "torque_ratio": {
+   "legs": 0.23708010507265984,
+   "waist": 0.23496465741148312,
+   "arms": 0.2432715942620678
+  },
+  "height_error_max": 0.005840416260579739,
+  "rpy_waist_error_commanded_max": 0.0,
+  "feet_slip_max_m": 0.011189771432333379,
+  "push_recovery_s": 7.200000000000841,
+  "return": {
+   "height_error": 8.446850103738246e-05,
+   "rpy_waist_error": 0.0014795731841917709
+  },
+  "segments": [
+   {
+    "seg": "0:0",
+    "back": false,
+    "height_cmd": 0.3,
+    "height_achieved": 0.29415958373942025,
+    "height_error": -0.005840416260579739,
+    "rpy_cmd": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "rpy_waist_achieved": [
+     -0.00020327536299409176,
+     -0.2661480590576707,
+     -0.0684312685754723
+    ],
+    "rpy_waist_error": [
+     -0.00020327536299409176,
+     -0.2661480590576707,
+     -0.0684312685754723
+    ],
+    "rpy_waist_error_commanded_max": 0.0,
+    "rpy_world_achieved": [
+     -0.01854392214383154,
+     0.14844319877276152,
+     -0.06950107041134004
+    ]
+   },
+   {
+    "seg": "0:back",
+    "back": true,
+    "height_cmd": 0.74,
+    "height_achieved": 0.7474192570371716,
+    "height_error": 0.0074192570371716116,
+    "rpy_cmd": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "rpy_waist_achieved": [
+     -0.009984237642669145,
+     0.061176732239114934,
+     0.0007899370826389645
+    ],
+    "rpy_waist_error": [
+     -0.009984237642669145,
+     0.061176732239114934,
+     0.0007899370826389645
+    ],
+    "rpy_waist_error_commanded_max": 0.0,
+    "rpy_world_achieved": [
+     -0.007101865439866266,
+     0.062158737847680855,
+     0.0009661560795094914
+    ]
+   }
+  ],
+  "fails": [
+   "joint_limit_contact"
+  ],
+  "stable": false
+ },
+ "wall_s": 4.761247158050537
+}

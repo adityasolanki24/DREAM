@@ -1,0 +1,139 @@
+{
+ "condition": {
+  "name": "probe_roll-0.2",
+  "kind": "probe",
+  "arms": "neutral",
+  "segments": [
+   {
+    "height": 0.74,
+    "rpy": [
+     -0.2,
+     0,
+     0
+    ]
+   }
+  ],
+  "cycles": 2,
+  "push": null
+ },
+ "seed": 11,
+ "collapse_stop": {
+  "stopped": null,
+  "contact": null
+ },
+ "nominal": {
+  "z": 0.7474370129988841,
+  "rpy_waist": [
+   -0.008586340606344806,
+   0.06131287613043604,
+   0.00028874231221781213
+  ],
+  "rpy_world": [
+   -0.0068983533625573265,
+   0.06017375408458356,
+   0.000392169829301654
+  ],
+  "feet_xy": [
+   [
+    -0.05703969650542533,
+    0.13597393889064707
+   ],
+   [
+    -0.04548397612473145,
+    -0.11079112921032208
+   ]
+  ]
+ },
+ "plan": [
+  {
+   "seg": "0:0",
+   "ramp_s": 0.6666666666666667,
+   "hold_s": 4.0,
+   "cmd": {
+    "height": 0.74,
+    "rpy": [
+     -0.2,
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "seg": "0:back",
+   "ramp_s": 0.6666666666666667,
+   "hold_s": 3.0,
+   "cmd": {
+    "height": 0.74,
+    "rpy": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  },
+  {
+   "seg": "1:0",
+   "ramp_s": 0.6666666666666667,
+   "hold_s": 4.0,
+   "cmd": {
+    "height": 0.74,
+    "rpy": [
+     -0.2,
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "seg": "1:back",
+   "ramp_s": 0.6666666666666667,
+   "hold_s": 3.0,
+   "cmd": {
+    "height": 0.74,
+    "rpy": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   }
+  }
+ ],
+ "push_window": [],
+ "criteria": {
+  "tilt_latch": null,
+  "undesired_ground_contact": {
+   "max_continuous_s": 0.0,
+   "total_s": 0.0,
+   "bodies": []
+  },
+  "foot_support": {
+   "max_continuous_s": 0.0,
+   "total_s": 0.0
+  },
+  "joint_limit": {
+   "total_s": 0.0,
+   "joints": []
+  },
+  "com_margin": {
+   "min_m": 0.06312043605132146
+  },
+  "torque_ratio": {
+   "legs": 0.10807128537659967,
+   "waist": 0.19201510106916309,
+   "arms": 0.24268823279589494
+  },
+  "height_error_max": null,
+  "rpy_waist_error_commanded_max": null,
+  "feet_slip_max_m": 0.00597744508425608,
+  "push_recovery_s": null,
+  "return": null,
+  "segments": [],
+  "fails": [
+   "height_tracking",
+   "rpy_tracking",
+   "return_to_nominal"
+  ],
+  "stable": false
+ },
+ "wall_s": 4.633914232254028
+}
