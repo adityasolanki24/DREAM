@@ -1,0 +1,63 @@
+{
+  "name": "g1_hands_regression_smoke",
+  "_note": "W2/D4 regression gate. The locomotion acceptance protocol of experiments/g1_locomotion.py (same functions, seeds and profiles as experiments/configs/g1_locomotion.json) is rerun on the 43-actuator G1 (Dex3 finger hinges added by MjSpec) with fingers held open and with fingers cycling through their full range while the robot walks, and compared with the unchanged 29-actuator model on identical seeds. Gates written before the first run. 'Spread' is the min..max over the seeds of the 29-actuator run.",
+  "locomotion": {
+    "seeds": [
+      100
+    ],
+    "stand_s": 2.0,
+    "profile_s": 6.0,
+    "profiles": [
+      [
+        0.35,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0.3
+      ]
+    ],
+    "standing_s": 4.0,
+    "pushes_n": [
+      40
+    ],
+    "push_duration_s": 0.2,
+    "push_walk_speed": 0.3,
+    "goto_per_seed": 1,
+    "goto_distance_m": [
+      1.5,
+      3.0
+    ],
+    "goto_timeout_s": 30.0,
+    "gates": {
+      "falls_nominal_max": 0,
+      "forward_tracking_ratio_median": [
+        0.75,
+        1.1
+      ],
+      "yaw_tracking_ratio_median": [
+        0.75,
+        1.1
+      ],
+      "standing_drift_m_max": 0.2,
+      "goto_success_min": 0.8,
+      "goto_error_m_max": 0.3,
+      "push_40n_recovery_min": 0.8
+    }
+  },
+  "variants": {
+    "no_hands": {
+      "hands": false
+    },
+    "hands_cycling": {
+      "hands": true,
+      "cycle_hz": 1.0
+    }
+  },
+  "gates": {
+    "_rule": "Against no_hands on the same seeds. tracking: per profile, the median over seeds of the commanded-axis speed (forward, lateral or yaw) lies inside the no_hands per-seed min..max. drift: median standing drift inside the no_hands min..max and max <= locomotion.gates.standing_drift_m_max. push: recovered count per force >= no_hands count. goto: success >= locomotion.gates.goto_success_min and median true error inside the no_hands min..max.",
+    "new_falls_max": 0
+  }
+}

@@ -32,6 +32,7 @@ from dream.types import CameraCalibration, RGBDFrame
 
 ROOT = Path(__file__).resolve().parents[2]
 ASSET = ROOT / "third_party/gr00t_wbc_g1/g1_gear_wbc.xml"
+HAND_ASSET = ROOT / "third_party/unitree_g1/g1_29dof_with_hand_rev_1_0.xml"
 MESHES = ROOT / "third_party/unitree_g1/meshes"  # byte-identical to NVIDIA's (PROVENANCE)
 STAND_HEIGHT = 0.79  # m, pelvis height at reset; the policy settles it near 0.745
 # Head RGB-D camera on torso_link, near the G1's head camera, pitched 35 degrees down so the
@@ -47,6 +48,104 @@ HEAD_CAMERA = CameraSpec(
 )
 
 
+# Dex3-1 finger servos (``hands=True``). The 14 hinges and their limits are read from the
+# Unitree MJCF; the body inertias in g1_gear_wbc.xml are already Unitree's, so nothing
+# about mass is edited. Servo gains are the ones commissioned on the supported-pelvis G1
+# (dream/sim/g1.py). The gains' velocity term is the joint damping (integrated implicitly
+# by MuJoCo's default Euler integrator), because the same term as an explicit actuator
+# bias is unstable at the WBC's 0.005 s step for finger inertias of ~1e-5 kg m^2
+# (dt * kd / inertia ~ 18). The armature (reflected rotor inertia) is 2e-4 kg m^2, the order
+# of the finger links' own inertia (measured 2e-5 to 2e-4 from the compiled mass matrix); the
+# WBC default class's 0.01 would be 50-500 times the link. No vendor figure is published, so
+# the value is an assumption; fingers were measured stable at the default integrator and
+# 0.005 s for armatures from 0 to 1e-3 (tests/test_g1_hands.py runs the full-range sweep).
+FINGER_KP = 2.0  # N m / rad
+FINGER_KD = 0.06  # N m s / rad
+FINGER_ARMATURE = 2.0e-4  # kg m^2, assumed (see above)
+FINGER_FRICTIONLOSS = 0.0  # the WBC default class's 0.1 N m is large against 1.4 N m servos
+HAND_SIDES = ("left", "right")
+HAND_FINGERS = (
+    "thumb_0", "thumb_1", "thumb_2", "middle_0", "middle_1", "index_0", "index_1",
+)  # fmt: skip
+HAND_JOINTS = tuple(f"{side}_hand_{f}_joint" for side in HAND_SIDES for f in HAND_FINGERS)
+N_HAND = len(HAND_JOINTS)  # 14
+
+
+_LEG = ("hip_pitch", "hip_roll", "hip_yaw", "knee", "ankle_pitch", "ankle_roll")
+_ARM = (
+    "shoulder_pitch",
+    "shoulder_roll",
+    "shoulder_yaw",
+    "elbow",
+    "wrist_roll",
+    "wrist_pitch",
+    "wrist_yaw",
+)
+# The 29 joints in the WBC policy's order (legs, waist, arms; g1_wbc.N_BODY). The observation
+# and action contract of the policy is expressed in this order and never changes.
+BODY_JOINTS = (
+    *(f"{s}_{j}_joint" for s in HAND_SIDES for j in _LEG),
+    "waist_yaw_joint", "waist_roll_joint", "waist_pitch_joint",
+    *(f"{s}_{j}_joint" for s in HAND_SIDES for j in _ARM),
+)  # fmt: skip
+assert len(BODY_JOINTS) == N_BODY
+
+
+def _has_actuator(model: mujoco.MjModel, joint: str) -> bool:
+    jid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, joint)
+    return jid >= 0 and bool(np.any(model.actuator_trnid[:, 0] == jid))
+
+
+def _actuators_for(model: mujoco.MjModel, joints: tuple[str, ...]) -> np.ndarray:
+    """Actuator index of each named joint, in the given order; every one must exist once."""
+    out = []
+    for name in joints:
+        jid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, name)
+        found = np.flatnonzero(model.actuator_trnid[:, 0] == jid) if jid >= 0 else []
+        if len(found) != 1:
+            raise ValueError(f"expected exactly one actuator on joint {name!r}, found {len(found)}")
+        out.append(int(found[0]))
+    return np.array(out, int)
+
+
+def _add_hands(spec: mujoco.MjSpec) -> None:
+    """Re-enable the Unitree finger hinges that g1_gear_wbc.xml comments out, plus servos.
+
+    Appended after the 29 body motors, so body actuator indices and the policy order do
+    not change. Joint geometry and limits are copied from the Unitree MJCF, never retyped.
+    """
+    src = mujoco.MjSpec.from_file(str(HAND_ASSET))
+    for name in HAND_JOINTS:
+        ref = src.joint(name)
+        body = spec.body(name.removesuffix("_joint") + "_link")
+        joint = body.add_joint(
+            name=name,
+            type=mujoco.mjtJoint.mjJNT_HINGE,
+            pos=list(ref.pos),
+            axis=list(ref.axis),
+            range=list(ref.range),
+            limited=mujoco.mjtLimited.mjLIMITED_TRUE,
+            actfrcrange=list(ref.actfrcrange),
+            actfrclimited=mujoco.mjtLimited.mjLIMITED_TRUE,
+            armature=FINGER_ARMATURE,
+            damping=FINGER_KD,
+            frictionloss=FINGER_FRICTIONLOSS,
+        )
+        spec.add_actuator(
+            name=name,
+            target=name,
+            trntype=mujoco.mjtTrn.mjTRN_JOINT,
+            gaintype=mujoco.mjtGain.mjGAIN_FIXED,
+            gainprm=[FINGER_KP] + [0.0] * 9,
+            biastype=mujoco.mjtBias.mjBIAS_AFFINE,
+            biasprm=[0.0, -FINGER_KP] + [0.0] * 8,
+            ctrllimited=mujoco.mjtLimited.mjLIMITED_TRUE,
+            ctrlrange=list(joint.range),
+            forcelimited=mujoco.mjtLimited.mjLIMITED_TRUE,
+            forcerange=list(ref.actfrcrange),
+        )
+
+
 def wrap(a: float) -> float:
     return (a + pi) % (2 * pi) - pi
 
@@ -59,10 +158,18 @@ def _yaw(quat: np.ndarray) -> float:
 def build_mobile_g1(
     scene: Callable[[mujoco.MjSpec], None] | None = None,
     head_camera: CameraSpec | None = HEAD_CAMERA,
+    hands: bool = False,
 ) -> mujoco.MjModel:
+    """``hands=True`` adds the 14 Dex3 finger hinges and position servos (actuators 29-42).
+
+    The default model is unchanged. Rule 3 class of the hands: physically justified
+    calibration (Unitree's own joints, limits and servo gains; armature assumed).
+    """
     spec = mujoco.MjSpec.from_file(str(ASSET))
     spec.meshdir = str(MESHES)
     spec.option.timestep = DT_PHYSICS
+    if hands:
+        _add_hands(spec)
     if head_camera is not None:
         for geom in spec.geoms:  # robot geometry renders the camera's self-filter
             if geom.name != "floor":
@@ -110,12 +217,21 @@ class G1MobileEnv:
         self.data = mujoco.MjData(model)
         self.head = head_camera
         self._camera = None if head_camera is None else RGBDCamera(model, head_camera, rng)
-        if model.joint(0).name != "floating_base_joint" or model.nu != N_BODY:
-            raise ValueError("expected the 29-DoF free-base G1 of g1_gear_wbc.xml")
-        # Robot joints in actuator (= policy) order; scene joints (doors) come after them.
-        joints = [model.actuator(i).trnid[0] for i in range(model.nu)]
-        self.qadr = np.array([model.jnt_qposadr[j] for j in joints])
-        self.vadr = np.array([model.jnt_dofadr[j] for j in joints])
+        if model.joint(0).name != "floating_base_joint":
+            raise ValueError("expected the free-base G1 of g1_gear_wbc.xml")
+        # Actuators are found BY JOINT NAME, never by position: the 29 body joints in the
+        # WBC policy order, and the 14 finger joints when the model has hands.
+        self.body_actuators = _actuators_for(model, BODY_JOINTS)
+        self.hands = any(_has_actuator(model, n) for n in HAND_JOINTS)
+        self.finger_actuators = (
+            _actuators_for(model, HAND_JOINTS) if self.hands else np.zeros(0, int)
+        )
+        joints = model.actuator_trnid[self.body_actuators, 0]
+        self.qadr = model.jnt_qposadr[joints]
+        self.vadr = model.jnt_dofadr[joints]
+        self.hand_qadr = model.jnt_qposadr[model.actuator_trnid[self.finger_actuators, 0]]
+        self.hand_range = model.actuator_ctrlrange[self.finger_actuators].copy()
+        self.hand_targets = np.zeros(len(self.finger_actuators))  # open: joint zero
         self.pelvis = model.body("pelvis").id
 
     def reset(self, x: float = 0.0, y: float = 0.0, yaw: float = 0.0) -> None:
@@ -123,6 +239,7 @@ class G1MobileEnv:
         self.data.qpos[0:3] = [x, y, STAND_HEIGHT]
         self.data.qpos[3:7] = [cos(yaw / 2), 0, 0, sin(yaw / 2)]
         self.data.qpos[self.qadr[: len(DEFAULT)]] = DEFAULT
+        self.hand_targets[:] = 0.0
         mujoco.mj_forward(self.model, self.data)
         self._odom = np.zeros(3)
         self._last_true = self.true_pose()
@@ -163,12 +280,28 @@ class G1MobileEnv:
             position=p_est + r_est @ cam_in_pelvis_p,
         )
 
+    # -- hands -------------------------------------------------------------------------
+    def set_hand(self, targets: np.ndarray) -> None:
+        """Finger position targets (rad, the 14 joints of ``HAND_JOINTS``), clipped to the
+        joint ranges. The body keeps its WBC torques. Only on a ``hands=True`` model."""
+        if not self.hands:
+            raise ValueError("model built without hands")
+        t = np.asarray(targets, float)
+        if t.shape != (N_HAND,) or not np.isfinite(t).all():
+            raise ValueError(f"finger targets must be {N_HAND} finite values")
+        self.hand_targets[:] = np.clip(t, self.hand_range[:, 0], self.hand_range[:, 1])
+
+    def hand_positions(self) -> np.ndarray:
+        """Finger joint encoders (rad)."""
+        return self.data.qpos[self.hand_qadr].copy()
+
     # -- stepping ----------------------------------------------------------------------
     def step(self, controller) -> None:
         """One 50 Hz policy tick and DECIMATION physics steps of PD torque."""
         controller.tick(self.proprioception())
         for _ in range(DECIMATION):
-            self.data.ctrl[:] = controller.torques(self.proprioception())
+            self.data.ctrl[self.body_actuators] = controller.torques(self.proprioception())
+            self.data.ctrl[self.finger_actuators] = self.hand_targets
             mujoco.mj_step(self.model, self.data)
         self._integrate_odometry()
 

@@ -1,0 +1,591 @@
+{
+  "meta": {
+    "config": {
+      "name": "g1_hands_regression",
+      "_note": "W2/D4 regression gate. The locomotion acceptance protocol of experiments/g1_locomotion.py (same functions, seeds and profiles as experiments/configs/g1_locomotion.json) is rerun on the 43-actuator G1 (Dex3 finger hinges added by MjSpec) with fingers held open and with fingers cycling through their full range while the robot walks, and compared with the unchanged 29-actuator model on identical seeds. Gates written before the first run. 'Spread' is the min..max over the seeds of the 29-actuator run.",
+      "locomotion": {
+        "seeds": [
+          100,
+          101,
+          102,
+          103,
+          104,
+          105,
+          106,
+          107,
+          108,
+          109
+        ],
+        "stand_s": 2.0,
+        "profile_s": 6.0,
+        "profiles": [
+          [
+            0.2,
+            0,
+            0
+          ],
+          [
+            0.35,
+            0,
+            0
+          ],
+          [
+            0.5,
+            0,
+            0
+          ],
+          [
+            0,
+            0.2,
+            0
+          ],
+          [
+            0,
+            0,
+            0.3
+          ],
+          [
+            0,
+            0,
+            -0.6
+          ],
+          [
+            0.3,
+            0,
+            0.3
+          ]
+        ],
+        "standing_s": 10.0,
+        "pushes_n": [
+          40,
+          80,
+          120
+        ],
+        "push_duration_s": 0.2,
+        "push_walk_speed": 0.3,
+        "goto_per_seed": 3,
+        "goto_distance_m": [
+          1.5,
+          3.0
+        ],
+        "goto_timeout_s": 30.0,
+        "gates": {
+          "falls_nominal_max": 0,
+          "forward_tracking_ratio_median": [
+            0.75,
+            1.1
+          ],
+          "yaw_tracking_ratio_median": [
+            0.75,
+            1.1
+          ],
+          "standing_drift_m_max": 0.2,
+          "goto_success_min": 0.8,
+          "goto_error_m_max": 0.3,
+          "push_40n_recovery_min": 0.8
+        }
+      },
+      "variants": {
+        "no_hands": {
+          "hands": false
+        },
+        "hands_open": {
+          "hands": true,
+          "cycle_hz": 0.0
+        },
+        "hands_cycling": {
+          "hands": true,
+          "cycle_hz": 1.0
+        }
+      },
+      "gates": {
+        "_rule": "Against no_hands on the same seeds. tracking: per profile, the median over seeds of the commanded-axis speed (forward, lateral or yaw) lies inside the no_hands per-seed min..max. drift: median standing drift inside the no_hands min..max and max <= locomotion.gates.standing_drift_m_max. push: recovered count per force >= no_hands count. goto: success >= locomotion.gates.goto_success_min and median true error inside the no_hands min..max.",
+        "new_falls_max": 0
+      }
+    },
+    "git_sha": "9331c9d3dcb3178be63402ba80197ffbf6e5c0d7",
+    "dream_dirty_at_start": true,
+    "mujoco": "3.16.0",
+    "onnxruntime": "1.23.2",
+    "machine": "Windows-11-10.0.26100-SP0",
+    "wall_s": 881.5744985000001,
+    "finger_model": {
+      "kp": 2.0,
+      "kd": 0.06,
+      "armature": 0.0002,
+      "frictionloss": 0.0
+    },
+    "odometry": "oracle-assisted (true increments + noise), dream/sim/g1_mobile.py"
+  },
+  "per_variant": {
+    "no_hands": {
+      "measured": {
+        "falls_nominal": 0,
+        "forward_tracking_ratio_median": 0.8582259477161176,
+        "yaw_tracking_ratio_median": 0.9825174955692431,
+        "standing_drift_m_max": 0.047097033882575516,
+        "goto_success": 1.0,
+        "goto_true_error_m_median": 0.16155370217747514,
+        "push_recovery": {
+          "40": 1.0,
+          "80": 1.0,
+          "120": 1.0
+        }
+      },
+      "per_profile": {
+        "[0.2, 0, 0]": {
+          "falls": 0,
+          "forward_m_s_median": 0.17186473723857698,
+          "lateral_m_s_median": -0.01710628076789627,
+          "yaw_rad_s_median": -0.020178919582180564
+        },
+        "[0.35, 0, 0]": {
+          "falls": 0,
+          "forward_m_s_median": 0.3002010647566782,
+          "lateral_m_s_median": -0.01740873437473804,
+          "yaw_rad_s_median": -0.011943659196620044
+        },
+        "[0.5, 0, 0]": {
+          "falls": 0,
+          "forward_m_s_median": 0.4525959745077952,
+          "lateral_m_s_median": -0.010672429859571458,
+          "yaw_rad_s_median": -0.014314461827890715
+        },
+        "[0, 0.2, 0]": {
+          "falls": 0,
+          "forward_m_s_median": 0.01322302099481669,
+          "lateral_m_s_median": 0.12572420686255473,
+          "yaw_rad_s_median": -0.0031388336914794667
+        },
+        "[0, 0, 0.3]": {
+          "falls": 0,
+          "forward_m_s_median": 0.014906596740413508,
+          "lateral_m_s_median": 0.009251108646047106,
+          "yaw_rad_s_median": 0.2774783850139032
+        },
+        "[0, 0, -0.6]": {
+          "falls": 0,
+          "forward_m_s_median": -0.010617898531686473,
+          "lateral_m_s_median": -0.006726301615879185,
+          "yaw_rad_s_median": -0.6179530085885894
+        },
+        "[0.3, 0, 0.3]": {
+          "falls": 0,
+          "forward_m_s_median": 0.14587711405177806,
+          "lateral_m_s_median": 0.17997492316489327,
+          "yaw_rad_s_median": 0.2947552486707729
+        }
+      },
+      "gates": {
+        "falls_nominal": true,
+        "forward_tracking": true,
+        "yaw_tracking": true,
+        "standing_drift": true,
+        "goto_success": true,
+        "push_40n": true
+      }
+    },
+    "hands_open": {
+      "measured": {
+        "falls_nominal": 0,
+        "forward_tracking_ratio_median": 0.8578525966592586,
+        "yaw_tracking_ratio_median": 0.982476356199063,
+        "standing_drift_m_max": 0.0471002120141478,
+        "goto_success": 1.0,
+        "goto_true_error_m_median": 0.164379939719395,
+        "push_recovery": {
+          "40": 1.0,
+          "80": 1.0,
+          "120": 1.0
+        }
+      },
+      "per_profile": {
+        "[0.2, 0, 0]": {
+          "falls": 0,
+          "forward_m_s_median": 0.1720879918406683,
+          "lateral_m_s_median": -0.017114068165424327,
+          "yaw_rad_s_median": -0.02018395778439062
+        },
+        "[0.35, 0, 0]": {
+          "falls": 0,
+          "forward_m_s_median": 0.300031898377207,
+          "lateral_m_s_median": -0.016775403550730896,
+          "yaw_rad_s_median": -0.011294006556417676
+        },
+        "[0.5, 0, 0]": {
+          "falls": 0,
+          "forward_m_s_median": 0.45267713654393343,
+          "lateral_m_s_median": -0.010667853480907714,
+          "yaw_rad_s_median": -0.014315639267610328
+        },
+        "[0, 0.2, 0]": {
+          "falls": 0,
+          "forward_m_s_median": 0.013315357667493566,
+          "lateral_m_s_median": 0.12571355198594952,
+          "yaw_rad_s_median": -0.0031183592580851355
+        },
+        "[0, 0, 0.3]": {
+          "falls": 0,
+          "forward_m_s_median": 0.014914685912314402,
+          "lateral_m_s_median": 0.009253776727606435,
+          "yaw_rad_s_median": 0.277488305250542
+        },
+        "[0, 0, -0.6]": {
+          "falls": 0,
+          "forward_m_s_median": -0.01061612740572471,
+          "lateral_m_s_median": -0.006712860234668532,
+          "yaw_rad_s_median": -0.6179496688661503
+        },
+        "[0.3, 0, 0.3]": {
+          "falls": 0,
+          "forward_m_s_median": 0.145875018103119,
+          "lateral_m_s_median": 0.18001486291738691,
+          "yaw_rad_s_median": 0.2947429068597189
+        }
+      },
+      "gates": {
+        "falls_nominal": true,
+        "forward_tracking": true,
+        "yaw_tracking": true,
+        "standing_drift": true,
+        "goto_success": true,
+        "push_40n": true
+      }
+    },
+    "hands_cycling": {
+      "measured": {
+        "falls_nominal": 0,
+        "forward_tracking_ratio_median": 0.8575746311209909,
+        "yaw_tracking_ratio_median": 0.9821028683592534,
+        "standing_drift_m_max": 0.04738655843145404,
+        "goto_success": 1.0,
+        "goto_true_error_m_median": 0.1632869604130789,
+        "push_recovery": {
+          "40": 1.0,
+          "80": 1.0,
+          "120": 1.0
+        }
+      },
+      "per_profile": {
+        "[0.2, 0, 0]": {
+          "falls": 0,
+          "forward_m_s_median": 0.17200048285348177,
+          "lateral_m_s_median": -0.017161548843984617,
+          "yaw_rad_s_median": -0.020141039366629497
+        },
+        "[0.35, 0, 0]": {
+          "falls": 0,
+          "forward_m_s_median": 0.298539111632331,
+          "lateral_m_s_median": -0.016956919813586345,
+          "yaw_rad_s_median": -0.011076448501313417
+        },
+        "[0.5, 0, 0]": {
+          "falls": 0,
+          "forward_m_s_median": 0.4507742420496861,
+          "lateral_m_s_median": -0.010910614692476166,
+          "yaw_rad_s_median": -0.014698888844901475
+        },
+        "[0, 0.2, 0]": {
+          "falls": 0,
+          "forward_m_s_median": 0.012429897026425765,
+          "lateral_m_s_median": 0.12578778677714553,
+          "yaw_rad_s_median": -0.0026788970466701777
+        },
+        "[0, 0, 0.3]": {
+          "falls": 0,
+          "forward_m_s_median": 0.014410467503860998,
+          "lateral_m_s_median": 0.009141369004378414,
+          "yaw_rad_s_median": 0.27785738559663403
+        },
+        "[0, 0, -0.6]": {
+          "falls": 0,
+          "forward_m_s_median": -0.010284788049717818,
+          "lateral_m_s_median": -0.006547853254768251,
+          "yaw_rad_s_median": -0.6179562774493265
+        },
+        "[0.3, 0, 0.3]": {
+          "falls": 0,
+          "forward_m_s_median": 0.14566764347861627,
+          "lateral_m_s_median": 0.1788960688323596,
+          "yaw_rad_s_median": 0.294630860507776
+        }
+      },
+      "gates": {
+        "falls_nominal": true,
+        "forward_tracking": true,
+        "yaw_tracking": true,
+        "standing_drift": true,
+        "goto_success": true,
+        "push_40n": true
+      }
+    }
+  },
+  "comparison": {
+    "hands_open": {
+      "tracking": {
+        "[0, 0, -0.6] yaw_rad_s": {
+          "base_median": -0.6179530085885894,
+          "base_min": -0.6190539575915138,
+          "base_max": -0.6168399170683213,
+          "median": -0.6179496688661503,
+          "inside_spread": true
+        },
+        "[0, 0, 0.3] yaw_rad_s": {
+          "base_median": 0.2774783850139032,
+          "base_min": 0.27683148690425663,
+          "base_max": 0.27941269866393026,
+          "median": 0.277488305250542,
+          "inside_spread": true
+        },
+        "[0, 0.2, 0] lateral_m_s": {
+          "base_median": 0.12572420686255473,
+          "base_min": 0.12479393944541417,
+          "base_max": 0.12609742964078796,
+          "median": 0.12571355198594952,
+          "inside_spread": true
+        },
+        "[0.2, 0, 0] forward_m_s": {
+          "base_median": 0.17186473723857698,
+          "base_min": 0.1703793932820126,
+          "base_max": 0.17296935483311404,
+          "median": 0.1720879918406683,
+          "inside_spread": true
+        },
+        "[0.3, 0, 0.3] forward_m_s": {
+          "base_median": 0.14587711405177806,
+          "base_min": 0.14453943758656354,
+          "base_max": 0.14926458109954144,
+          "median": 0.145875018103119,
+          "inside_spread": true
+        },
+        "[0.3, 0, 0.3] yaw_rad_s": {
+          "base_median": 0.2947552486707729,
+          "base_min": 0.28654760747310754,
+          "base_max": 0.2978349480285764,
+          "median": 0.2947429068597189,
+          "inside_spread": true
+        },
+        "[0.35, 0, 0] forward_m_s": {
+          "base_median": 0.3002010647566782,
+          "base_min": 0.2986140574196948,
+          "base_max": 0.30088074592978636,
+          "median": 0.300031898377207,
+          "inside_spread": true
+        },
+        "[0.5, 0, 0] forward_m_s": {
+          "base_median": 0.4525959745077952,
+          "base_min": 0.450476742264363,
+          "base_max": 0.4541691455874002,
+          "median": 0.45267713654393343,
+          "inside_spread": true
+        }
+      },
+      "gates": {
+        "no_new_falls": true,
+        "tracking_inside_no_hands_spread": true,
+        "standing_drift": true,
+        "no_new_undesired_floor_contact": true,
+        "push_recovery_not_lower": true,
+        "goto": true
+      },
+      "standing": {
+        "base": [
+          0.038164911258135835,
+          0.04260129261899304,
+          0.03139943800642941,
+          0.027423074005114005,
+          0.033803871947655786,
+          0.044802871647434565,
+          0.03351972018939633,
+          0.034864023880855195,
+          0.047097033882575516,
+          0.03643549273914711
+        ],
+        "variant": [
+          0.03816398586968504,
+          0.04260395512611023,
+          0.031257436430692974,
+          0.027422328183235877,
+          0.03380263161248553,
+          0.04480873415778984,
+          0.033519881152972546,
+          0.03486254220058274,
+          0.0471002120141478,
+          0.03643491948701913
+        ]
+      },
+      "undesired_contact": {
+        "base": {
+          "environments": 120,
+          "environments_with_contact": 0,
+          "ticks": 63611,
+          "undesired_ticks": 0
+        },
+        "variant": {
+          "environments": 120,
+          "environments_with_contact": 0,
+          "ticks": 63239,
+          "undesired_ticks": 0
+        }
+      },
+      "falls": {
+        "base": 0,
+        "variant": 0
+      },
+      "push": {
+        "40": {
+          "base": 10,
+          "variant": 10
+        },
+        "80": {
+          "base": 10,
+          "variant": 10
+        },
+        "120": {
+          "base": 10,
+          "variant": 10
+        }
+      },
+      "goto": {
+        "success": 1.0,
+        "error_median": 0.164379939719395,
+        "base_error_min": 0.14404433690227497,
+        "base_error_max": 0.17693934238016787
+      },
+      "pass": true
+    },
+    "hands_cycling": {
+      "tracking": {
+        "[0, 0, -0.6] yaw_rad_s": {
+          "base_median": -0.6179530085885894,
+          "base_min": -0.6190539575915138,
+          "base_max": -0.6168399170683213,
+          "median": -0.6179562774493265,
+          "inside_spread": true
+        },
+        "[0, 0, 0.3] yaw_rad_s": {
+          "base_median": 0.2774783850139032,
+          "base_min": 0.27683148690425663,
+          "base_max": 0.27941269866393026,
+          "median": 0.27785738559663403,
+          "inside_spread": true
+        },
+        "[0, 0.2, 0] lateral_m_s": {
+          "base_median": 0.12572420686255473,
+          "base_min": 0.12479393944541417,
+          "base_max": 0.12609742964078796,
+          "median": 0.12578778677714553,
+          "inside_spread": true
+        },
+        "[0.2, 0, 0] forward_m_s": {
+          "base_median": 0.17186473723857698,
+          "base_min": 0.1703793932820126,
+          "base_max": 0.17296935483311404,
+          "median": 0.17200048285348177,
+          "inside_spread": true
+        },
+        "[0.3, 0, 0.3] forward_m_s": {
+          "base_median": 0.14587711405177806,
+          "base_min": 0.14453943758656354,
+          "base_max": 0.14926458109954144,
+          "median": 0.14566764347861627,
+          "inside_spread": true
+        },
+        "[0.3, 0, 0.3] yaw_rad_s": {
+          "base_median": 0.2947552486707729,
+          "base_min": 0.28654760747310754,
+          "base_max": 0.2978349480285764,
+          "median": 0.294630860507776,
+          "inside_spread": true
+        },
+        "[0.35, 0, 0] forward_m_s": {
+          "base_median": 0.3002010647566782,
+          "base_min": 0.2986140574196948,
+          "base_max": 0.30088074592978636,
+          "median": 0.298539111632331,
+          "inside_spread": false
+        },
+        "[0.5, 0, 0] forward_m_s": {
+          "base_median": 0.4525959745077952,
+          "base_min": 0.450476742264363,
+          "base_max": 0.4541691455874002,
+          "median": 0.4507742420496861,
+          "inside_spread": true
+        }
+      },
+      "gates": {
+        "no_new_falls": true,
+        "tracking_inside_no_hands_spread": false,
+        "standing_drift": true,
+        "no_new_undesired_floor_contact": true,
+        "push_recovery_not_lower": true,
+        "goto": true
+      },
+      "standing": {
+        "base": [
+          0.038164911258135835,
+          0.04260129261899304,
+          0.03139943800642941,
+          0.027423074005114005,
+          0.033803871947655786,
+          0.044802871647434565,
+          0.03351972018939633,
+          0.034864023880855195,
+          0.047097033882575516,
+          0.03643549273914711
+        ],
+        "variant": [
+          0.038353947039308375,
+          0.04279292325050839,
+          0.03130990928895555,
+          0.027703929813468923,
+          0.033935234271291546,
+          0.04508234124656833,
+          0.03357525006703265,
+          0.0350855060124994,
+          0.04738655843145404,
+          0.036611827276082524
+        ]
+      },
+      "undesired_contact": {
+        "base": {
+          "environments": 120,
+          "environments_with_contact": 0,
+          "ticks": 63611,
+          "undesired_ticks": 0
+        },
+        "variant": {
+          "environments": 120,
+          "environments_with_contact": 0,
+          "ticks": 63988,
+          "undesired_ticks": 0
+        }
+      },
+      "falls": {
+        "base": 0,
+        "variant": 0
+      },
+      "push": {
+        "40": {
+          "base": 10,
+          "variant": 10
+        },
+        "80": {
+          "base": 10,
+          "variant": 10
+        },
+        "120": {
+          "base": 10,
+          "variant": 10
+        }
+      },
+      "goto": {
+        "success": 1.0,
+        "error_median": 0.1632869604130789,
+        "base_error_min": 0.14404433690227497,
+        "base_error_max": 0.17693934238016787
+      },
+      "pass": false
+    }
+  }
+}
