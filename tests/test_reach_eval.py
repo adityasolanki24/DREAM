@@ -151,6 +151,20 @@ def test_retarget_moves_only_the_arm_and_keeps_legs_height_and_torso(planner):
     assert np.allclose(pre.torso_rpy, rpy)
 
 
+def test_plans_keep_every_joint_clear_of_the_limits_the_supervisor_stops_at(planner):
+    """Regression (dev_h1.10_L1_s101/_s102): plans ended AT a joint limit and the supervisor
+    (stops 0.02 rad from a limit) stopped them on the way."""
+    from dream.robot.g1_supervisor import JOINT_MARGIN
+
+    assert gp.JOINT_PLAN_MARGIN > JOINT_MARGIN
+    for z in (0.8, 1.1, 1.3):
+        for p in planner.plan([0.6, 0.0, z], stances=[(0.2, 0.0, 0.0)]).plans:
+            assert p.metrics["joint_clearance"] >= gp.JOINT_PLAN_MARGIN - 1e-3
+            q = p.target.q[planner.pm.qadr]
+            lo, hi = planner.pm.joint_range[:, 0], planner.pm.joint_range[:, 1]
+            assert np.all(q - lo >= JOINT_MARGIN) and np.all(hi - q >= JOINT_MARGIN)
+
+
 def test_reach_point_is_the_fingertip_not_a_link_origin(planner):
     """The point that touches must be at the end of the finger: the old mean of two link origins
     lay about 5 cm short of the fingertips, so no surface could be touched within 3 cm."""

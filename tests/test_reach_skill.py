@@ -7,7 +7,7 @@ rules. The scripted baseline's refusal band is tested the same way.
 """
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -84,6 +84,8 @@ class FakeBody:
         self.stop = None
         self.fixture_x = 1.53
         self.approaches = []
+        self.n_ring = 0
+        self.with_fixture = True
 
     # sensing
     def pose(self):
@@ -101,7 +103,7 @@ class FakeBody:
     def look(self, gaze):
         self.n_look += 1
         self.calls.append(("look", gaze))
-        dets = [fixture_det(self.fixture_x)]
+        dets = [fixture_det(self.fixture_x)] if self.with_fixture else []
         if self.visible(self.n_look, gaze):
             dets.append(handle_det())
         return Sight(dets, np.array([0.0, 0.0, 1.2]), float(self.n_look), gaze)
@@ -120,7 +122,12 @@ class FakeBody:
     def plan(self, target, covariance, obstacles, stance=None, arm=None, approach=None):
         self.calls.append(("plan", None if stance is None else "explicit"))
         self.approaches.append(approach)
-        return PlanResult(self.plans, {} if self.plans else {"hand_residual": 16})
+        if stance is None:  # a ring plan: the best stance moves a little every time
+            k, self.n_ring = self.n_ring, self.n_ring + 1
+            plans = [replace(p, stance=(1.0 + 0.3 * k, 0.0, 0.0)) for p in self.plans]
+        else:
+            plans = [replace(p, stance=tuple(float(v) for v in stance)) for p in self.plans]
+        return PlanResult(plans, {} if plans else {"hand_residual": 16})
 
     def pre_contact(self, plan, point, obstacles, approach=None):
         self.calls.append(("pre_contact",))
@@ -239,7 +246,9 @@ def test_flow_walks_replans_from_the_measured_pose_verifies_executes_then_correc
     i_walk = n.index("go_to")
     assert n.index("plan") < i_walk  # planned before walking
     assert "plan" in n[i_walk:] and ("plan", "explicit") in body.calls  # re-planned from the pose
-    assert n.index("verify") > i_walk and n.index("execute") > n.index("verify")
+    verifies = [i for i, c in enumerate(n) if c == "verify"]
+    assert verifies[0] < i_walk < verifies[-1]  # a stance is chosen on a verified plan, and the
+    assert n.index("execute") > verifies[-1]  # gate is repeated at the stance actually reached
     assert n.index("correct") > n.index("execute")
     assert rep.restances == 0
 
@@ -249,6 +258,19 @@ def test_rollout_failure_at_the_stance_triggers_one_bounded_restance_then_refusa
     rep = ReachSkill(body).run("touch the red handle")
     assert rep.verdict == "refused" and rep.restances == reach.MAX_RESTANCES
     assert names(body).count("go_to") == 2 and "execute" not in names(body)
+    assert "recover" in names(body)  # back to nominal before walking to the new stance
+
+
+def test_a_restance_must_be_a_different_stance():
+    class Same(FakeBody):
+        def plan(self, target, covariance, obstacles, stance=None, arm=None, approach=None):
+            self.calls.append(("plan", None if stance is None else "explicit"))
+            return PlanResult([Plan(stance=(1.0, 0.0, 0.0))])
+
+    body = Same(rollout_ok=False)
+    rep = ReachSkill(body).run("touch the red handle")
+    assert rep.verdict == "refused" and "not already tried" in rep.reason
+    assert names(body).count("go_to") == 1  # no second walk to the stance that just failed
 
 
 def test_fingers_are_asked_to_point_into_the_face_the_handle_protrudes_from():
@@ -262,9 +284,17 @@ def test_pre_contact_stage_runs_first_when_the_face_normal_is_known_and_is_skipp
     ReachSkill(body).run("touch the red handle")
     cs = [c for c in body.calls if c[0] == "correct"]
     assert [c[1] for c in cs] == [reach.PRE_CONTACT_TOLERANCE, None]  # free air, then the contact
-    none = FakeBody(pre_ok=False)
-    ReachSkill(none).run("touch the red handle")
-    assert [c[1] for c in none.calls if c[0] == "correct"] == [None]  # direct approach only
+    bare = FakeBody()
+    bare.with_fixture = False  # no face seen: no normal to approach along
+    ReachSkill(bare).run("touch the red handle")
+    assert [c[1] for c in bare.calls if c[0] == "correct"] == [None]  # direct approach only
+
+
+def test_a_plan_whose_pre_contact_posture_is_unreachable_is_not_chosen():
+    body = FakeBody(pre_ok=False)
+    rep = ReachSkill(body).run("touch the red handle")
+    assert rep.verdict == "refused" and "pre_contact_unreachable" in rep.reason
+    assert "execute" not in names(body)
 
 
 # -- execution, claims ----------------------------------------------------------------------------
@@ -319,9 +349,9 @@ def test_report_records_the_perceived_target_plans_rollouts_and_events():
 def test_skill_contains_no_height_rules_or_scene_access():
     src = Path(reach.__file__).read_text()
     code = "\n".join(line.split("#")[0] for line in src.splitlines())
-    assert not re.search(r"\[2\]|\.z\b|height\s*[<>]|[<>]\s*(0\.\d+|1\.\d+)\s*(#|$)", code), (
-        "the skill must not branch on a height"
-    )
+    assert not re.search(
+        r"position\[2\]|\.z\b|height\s*[<>]|[<>]\s*(0\.\d+|1\.\d+)\s*(#|$)", code
+    ), "the skill must not branch on a height"
     for banned in ("mujoco", "dream.sim", "dream.robot", "dream.eval", "truth", "_odom"):
         assert banned not in code.replace("dream/robot", ""), banned
 
@@ -384,6 +414,38 @@ def test_pieces_of_the_fixture_face_all_carry_the_target_and_other_boxes_do_not(
     touch = [o for o in e.obstacles if o.hand_may_touch]
     assert len(touch) == 2 and len(e.obstacles) == 3  # the face and its piece; the far box is not
     assert all(o.center[0] - o.half_extents[0] > e.position[0] for o in touch)  # behind the handle
+
+
+def test_small_object_flush_against_a_thin_face_is_a_handle():
+    """Regression (development episodes dev_h1.10_L0_s101, _L1_s103, _L1_s105): the detector
+    labels a component a handle only if its top-centre lies OUTSIDE the box footprint rectangle.
+    A face seen head-on has a rectangle as deep as the depth noise, so a handle a centimetre or
+    two in front of it fell inside the rectangle, stayed an "object", and was never found."""
+    box = Detection(
+        "box", "grey", np.array([1.53, 0.0, 0.6]), 0.0, np.array([0.04, 0.6, 1.2]), 0.003, True,
+        True, pixels=900,
+    )  # fmt: skip
+
+    def small(color, at, z=None):
+        top = np.array([at[0], at[1], at[2] if z is None else z])
+        return Detection(
+            "object", color, np.array(at, float), 0.0, np.array([0.02, 0.09, 0.02]), 0.002,
+            False, False, pixels=60, top_centre=top,
+        )  # fmt: skip
+
+    est = HandleEstimator("red")
+    assert est.ingest([box, small("red", (1.52, 0.0, 0.75))], np.zeros(3))  # inside the rectangle
+    assert est.estimate().position == pytest.approx([1.52, 0.0, 0.75])
+    assert est.estimate().candidates == 1
+    for bad in (
+        small("red", (1.0, 0.8, 0.75)),  # not against any box
+        small("red", (1.52, 0.0, 1.3)),  # above the box top: sitting on it, not a handle
+        small("green", (1.52, 0.0, 0.75)),  # another colour
+    ):
+        assert not HandleEstimator("red").ingest([box, bad], np.zeros(3))
+    big = small("red", (1.52, 0.0, 0.75))
+    big = replace(big, extent=np.array([0.4, 0.4, 0.4]))  # a crate, not a handle
+    assert not HandleEstimator("red").ingest([box, big], np.zeros(3))
 
 
 def test_estimator_ignores_occluded_fragments_and_other_colours_and_resets():

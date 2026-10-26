@@ -68,6 +68,11 @@ PERCEPTION_MARGIN = 0.02  # m, boxes are inflated by this for IK and stance test
 HAND_COVARIANCE_SIGMAS = 2.0  # hand clearance grows by this many target std devs
 COM_COMFORT = 0.03  # m, CoM margin below which the score starts to penalise
 JOINT_COMFORT = 0.10  # fraction of joint range kept from limits before the score penalises
+# A plan keeps every body joint this far (rad) inside its range: the supervisor stops execution
+# at 0.02 rad from a limit (dream/robot/g1_supervisor.py JOINT_MARGIN), and the controller tracks
+# the plan with an error, so a plan AT the limit is stopped on the way (development evidence:
+# "joint position limit" stops in dev_h1.10_L1_s101/s102).
+JOINT_PLAN_MARGIN = 0.05
 
 # Score weights (lower total cost is better). Design choices of the planner, not calibrated
 # quantities; they rank feasible candidates and never gate feasibility.
@@ -629,7 +634,7 @@ class PosturePlanner:
             minimum_distance_from_collisions=MIN_CLEARANCE, collision_detection_distance=0.1
         )
         limits = [
-            mink.ConfigurationLimit(m),
+            mink.ConfigurationLimit(m, min_distance_from_limits=JOINT_PLAN_MARGIN),
             _PelvisHeightLimit(m, *caps.height_range, relax),
             _TorsoRpyLimit(m, caps.torso_rpy_min, caps.torso_rpy_max, relax),
         ]
@@ -750,6 +755,7 @@ class PosturePlanner:
         qj = q[pm.qadr]
         lo, hi = pm.joint_range[:, 0], pm.joint_range[:, 1]
         joint_margin = float(np.min(np.minimum(qj - lo, hi - qj) / (hi - lo)))
+        joint_clearance = float(np.min(np.minimum(qj - lo, hi - qj)))  # rad
         ratio = static_torque_ratio(pm, q)
         clearance = self._min_clearance(d, list(boxes_regular), list(boxes_touch))
         nominal = pm.q_nominal[pm.qadr][:N_ACTION]
@@ -760,6 +766,7 @@ class PosturePlanner:
             "foot_error": foot_err,
             "com_margin": float(com_margin),
             "joint_margin": joint_margin,
+            "joint_clearance": joint_clearance,
             "torque_ratio": ratio,
             "clearance": float(clearance),
             "deviation": deviation,
@@ -777,7 +784,7 @@ class PosturePlanner:
             reasons.append("collision")
         if com_margin < 0:
             reasons.append("com_outside_support")
-        if joint_margin < -1e-3:
+        if joint_clearance < JOINT_PLAN_MARGIN - 1e-3:
             reasons.append("joint_limit")
         if caps.violations(height, rpy):
             reasons.append("outside_capabilities")

@@ -93,5 +93,17 @@
   "off_band": "handle height < 0.55 m or > 1.15 m",
   "correct_refusal_min": 0.9
  },
- "disjoint": "development seeds 100-105 and held-out seeds 5000-5023 share no seed; the scripted baseline runs the same scene specifications"
+ "disjoint": "development seeds 100-105 and held-out seeds 5000-5023 share no seed; the scripted baseline runs the same scene specifications",
+ "planner": {
+  "_note": "Stance sampling of the agent's posture planner (dream.robot.g1_posture.PlannerConfig). Changed during development from the W3 default radii (0.45, 0.6, 0.75) after dev run 1: a 0.45 m stance leaves the arm nearly straight at the contact point (no room for a pre-contact pose, torque stops).",
+  "radii": [
+   0.35,
+   0.4,
+   0.45,
+   0.5,
+   0.6
+  ],
+  "n_angles": 8,
+  "max_stances": 40
+ }
 }

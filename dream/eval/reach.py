@@ -256,10 +256,10 @@ def reference_feasibility(scene, planner, backend_factory, k: int = 60) -> dict:
     from dream.robot.g1_rollout import verify_top_k
 
     boxes = true_boxes(scene)
-    planner = type(planner)(
-        planner.caps,
-        replace(planner.config, radii=(0.4, 0.5, 0.6, 0.7), n_angles=16, max_stances=10_000),
-    )  # fmt: skip
+    dense = replace(
+        planner.config, radii=(0.35, 0.4, 0.45, 0.5, 0.6, 0.7), n_angles=16, max_stances=10_000
+    )
+    planner = type(planner)(planner.caps, dense)
     # The robot's start is irrelevant to feasibility; stances are ranked by distance from the
     # origin.
     result = planner.plan(np.asarray(scene.handle_center), None, (0.0, 0.0, 0.0), boxes)

@@ -19,7 +19,7 @@ of the moment).
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 
@@ -115,6 +115,32 @@ def _seat_behind(box: ObstacleBox, handle, normal, depth: float) -> ObstacleBox:
     )  # fmt: skip
 
 
+HANDLE_REACH = 0.07  # m, how far from a box's footprint a handle may lie (as in detect.py)
+HANDLE_MAX_SIZE = 0.2  # m, a handle is smaller than this in every dimension
+
+
+def as_handle(d: Detection, detections: list[Detection]) -> Detection | None:
+    """``d`` as a handle, or None. The detector labels a small component "handle" only when its
+    top-centre lies OUTSIDE a box's footprint rectangle; a thin face (a slab seen face-on, a
+    few centimetres deep) has a footprint rectangle as deep as the depth noise, and a handle
+    protruding a centimetre or two can fall inside it and stay an "object". So a small, flush
+    object is also a handle: its top-centre within HANDLE_REACH of a box footprint (inside
+    counts) and no higher than the box top. Handles the detector labelled are kept as they are."""
+    if d.kind == "handle":
+        return d
+    if d.kind != "object" or d.top_centre is None or float(max(d.extent)) > HANDLE_MAX_SIZE:
+        return None
+    for b in detections:
+        if b.kind != "box":
+            continue
+        c, s = np.cos(b.yaw), np.sin(b.yaw)
+        local = (d.top_centre[:2] - b.position[:2]) @ np.array([[c, -s], [s, c]])
+        outside = np.abs(local) - np.asarray(b.extent[:2]) / 2
+        if outside.max() < HANDLE_REACH and d.top_centre[2] <= b.extent[2] + 0.01:
+            return replace(d, kind="handle", position=d.top_centre.copy())
+    return None
+
+
 def _rect_points(d: Detection, n: int = 12) -> np.ndarray:
     """A grid of points over a detection's footprint rectangle (odometry xy)."""
     c, s = np.cos(d.yaw), np.sin(d.yaw)
@@ -154,7 +180,9 @@ class HandleEstimator:
         cam = np.asarray(camera_position, float)
         self._cam, self._time, self._last = cam, time, list(detections)
         mine = [
-            d for d in detections if d.kind == "handle" and d.color == self.color and not d.occluded
+            d
+            for d in (as_handle(x, detections) for x in detections)
+            if d is not None and d.color == self.color and not d.occluded
         ]
         self._candidates = max(self._candidates, len(mine))
         if not mine:
@@ -180,8 +208,9 @@ class HandleEstimator:
         fixture, normal = self._fixture(pos)
         obstacles = []
         for d in self._last:
-            if d.kind == "handle" and d.color == self.color:
-                continue  # the target itself
+            h = as_handle(d, self._last)
+            if h is not None and h.color == self.color:
+                continue  # the target itself (or another handle of its colour)
             if d is self._fixture_det:
                 obstacles.append(fixture)
             elif self._fixture_det is not None and _fragment_of(d, self._fixture_det):

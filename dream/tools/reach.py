@@ -57,6 +57,9 @@ FUSE_VIEWS = 3  # frames fused while standing still
 MAX_STANCE_TRIES = 2  # distinct planned stances tried when the walk fails
 PRE_CONTACT_OFFSET = 0.06  # m in front of the handle along the face normal (assumption)
 PRE_CONTACT_TOLERANCE = 0.015  # m, free-air tolerance of the pre-contact pose
+MAX_PLAN_CHECKS = 4  # ranked plans whose rollouts are checked at a stance before giving up on it
+RESTANCE_SHIFT = 0.12  # m: a re-stance must lie at least this far from every stance already tried
+RESTANCE_TURN = 0.3  # rad: ... or turned this far
 MAX_RESTANCES = 1  # bounded re-stance (PLAN section 2: correction limited -> one new stance)
 
 
@@ -270,6 +273,56 @@ class ReachSkill:
         p = d.position[:2] - u * APPROACH_RANGE
         return float(p[0]), float(p[1]), float(math.atan2(u[1], u[0]))
 
+    def _select(self, rep, plans, target, label: str):
+        """The first ranked plan whose contact posture passes the rollout gate AND, when the face
+        the handle protrudes from is known, whose pre-contact posture (same body, arm only) is
+        reachable and passes it too. Returns (plan, pre-contact plan or None, [reasons])."""
+        normal, why = target.face_normal, []
+        for plan in plans[:MAX_PLAN_CHECKS]:
+            picked, tried = self.body.verify([plan], target.obstacles)
+            rep.rollouts += [{"stage": label, **_rollout_record(p, r)} for p, r in tried]
+            if picked is None:
+                why.append(list(tried[0][1].reasons))
+                continue
+            if normal is None:
+                return plan, None, why
+            pre_point = target.position + PRE_CONTACT_OFFSET * np.array([normal[0], normal[1], 0.0])
+            pre = self.body.pre_contact(
+                plan, pre_point, target.obstacles, approach=approach_axis(target)
+            )
+            if pre is None:
+                why.append(["pre_contact_unreachable"])
+                continue
+            ok, tried_pre = self.body.verify([pre], target.obstacles)
+            rep.rollouts += [
+                {"stage": label + "_pre", **_rollout_record(p, r)} for p, r in tried_pre
+            ]
+            if ok is None:
+                why.append(["pre_contact:" + ",".join(tried_pre[0][1].reasons)])
+                continue
+            return plan, pre, why
+        return None, None, why
+
+    def _verified_first(self, rep, plans, target, label: str):
+        """Walk to a stance whose postures already pass the physical gate: the best ranked plan
+        that does goes first (the rest keep their order, as fall-backs). The gate is repeated at
+        the stance actually reached."""
+        plan, _, _ = self._select(rep, plans, target, label)
+        return plans if plan is None else [plan] + [p for p in plans if p is not plan]
+
+    def _new_stances(self, plans):
+        """Plans at stances not already tried (a re-stance must be a different stance)."""
+        out = []
+        for p in plans:
+            near = any(
+                math.hypot(p.stance[0] - t[0], p.stance[1] - t[1]) < RESTANCE_SHIFT
+                and abs((p.stance[2] - t[2] + math.pi) % (2 * math.pi) - math.pi) < RESTANCE_TURN
+                for t in self._tried
+            )
+            if not near:
+                out.append(p)
+        return out
+
     def _reobserve(self, est: HandleEstimator, rep: ReachReport) -> TargetEstimate | None:
         est.reset()
         return est.estimate() if self._observe(est, rep, search=True) else None
@@ -281,6 +334,7 @@ class ReachSkill:
         except ValueError as e:
             return ReachReport("refused", f"unsupported instruction: {e}", ReachGoal("", "", ""))
         rep = ReachReport("failed", "", goal)
+        self._tried: list = []  # measured poses at which a posture was judged limited
         est = self.estimator_factory(goal.color)
         self._log(
             rep, "goal", f"{goal.verb} the {goal.color} {goal.noun} (structured goal parsing)"
@@ -306,7 +360,7 @@ class ReachSkill:
             rep.reason = f"no feasible plan within the measured envelope: {result.reasons()}"
             self._log(rep, "result", rep.reason)
             return rep
-        plans = result.plans
+        plans = self._verified_first(rep, result.plans, target, "ring")
         for attempt in range(MAX_RESTANCES + 1):
             if attempt:
                 rep.restances += 1
@@ -335,7 +389,13 @@ class ReachSkill:
                     )
                     self._log(rep, "result", rep.reason)
                     return rep
-                plans = result.plans
+                plans = self._new_stances(result.plans)
+                if not plans:
+                    rep.verdict = "refused"
+                    rep.reason = "no feasible plan at a stance not already tried"
+                    self._log(rep, "result", rep.reason)
+                    return rep
+                plans = self._verified_first(rep, plans, target, "ring")
             done = self._walk_then_reach(rep, est, goal, plans, attempt)
             if done in ("reached", "refused", "failed_final"):
                 break
@@ -373,36 +433,28 @@ class ReachSkill:
             approach=approach_axis(target),
         )
         rep.plans.append(_plan_record("at_stance", here))
-        chosen = None
+        chosen = stage1 = None
+        why: list = []
         if here.feasible:
-            chosen, tried = self.body.verify(here.plans, target.obstacles)
-            rep.rollouts += [_rollout_record(p, r) for p, r in tried]
+            chosen, pre, why = self._select(rep, here.plans, target, "at_stance")
+            stage1 = pre or chosen
         if chosen is None:
+            self._tried.append(tuple(float(v) for v in pose))
             if attempt < MAX_RESTANCES:
                 return "limited"
             rep.verdict = "refused"
-            why = here.reasons() if not here.feasible else {
-                "rollout": [r.reasons for _, r in tried]}  # fmt: skip
-            rep.reason = f"no feasible plan within the measured envelope: {why}"
+            reason = here.reasons() if not here.feasible else {"rollout": why}
+            rep.reason = f"no feasible plan within the measured envelope: {reason}"
             self._log(rep, "result", rep.reason)
             return "refused"
         rep.posture = _posture(chosen)
+        rep.posture["pre_contact"] = None if pre is None else _posture(pre)
         self._log(rep, "posture", f"chosen {rep.posture}")
         # Stage 1 is a pre-contact pose a few cm in front of the handle along the face normal,
         # corrected in free air; stage 2 advances onto the handle. Contact is only made with a
         # closed-loop approach, never by the open-loop execution (the pretrained controller
         # yaws and sags under an extended arm, by several cm).
-        stage1, normal = chosen, target.face_normal
-        if normal is not None:
-            pre_point = target.position + PRE_CONTACT_OFFSET * np.array([normal[0], normal[1], 0.0])
-            pre = self.body.pre_contact(
-                chosen, pre_point, target.obstacles, approach=approach_axis(target)
-            )
-            rep.plans.append({"stage": "pre_contact", "feasible": int(pre is not None)})
-            if pre is not None:
-                picked, tried_pre = self.body.verify([pre], target.obstacles)
-                rep.rollouts += [_rollout_record(p, r) for p, r in tried_pre]
-                stage1 = picked or chosen
+        normal = target.face_normal
         staged = stage1 is not chosen
         run = self.body.execute(stage1)
         rep.execution = {
@@ -491,6 +543,7 @@ class ReachSkill:
             rep.reason += "; within the tolerance but not certain enough to claim"
             self._log(rep, "result", rep.reason)
             return "failed_final"
+        self._tried.append(tuple(float(v) for v in pose))
         if attempt < MAX_RESTANCES:
             return "limited"
         rep.verdict = "failed"

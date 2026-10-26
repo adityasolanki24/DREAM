@@ -191,7 +191,13 @@ def run_episode(args: tuple) -> dict:
         base = G1MobileBase(env, ctrl)
         tb = MobileToolbox(base, SpatialMemory(np.random.default_rng([spec["seed"], 2])),
                            navigator="rpp")  # fmt: skip
-        planner = PosturePlanner(caps, PlannerConfig())
+        pc = cfg["planner"]
+        planner = PosturePlanner(
+            caps,
+            PlannerConfig(
+                radii=tuple(pc["radii"]), n_angles=pc["n_angles"], max_stances=pc["max_stances"]
+            ),
+        )
         body = G1ReachBody(env, ctrl, tb, planner)
         probe = ReachProbe(env, ctrl, planner.pm.anatomy.grip, scene_geom_categories(scene))
         probe.attach(scene.handle_center)
