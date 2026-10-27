@@ -77,6 +77,9 @@ class WholeBodySupervisor:
         hand_goal: tuple[str, tuple[float, float, float]] | None = None,
     ):
         self.pm = planning_model
+        m = planning_model.model
+        # body joint names in actuator order, to say WHICH joint triggered a stop (logging only)
+        self.joint_names = [m.joint(int(m.actuator(i).trnid[0])).name for i in range(29)]
         self.limits = limits or SafetyLimits()
         self.hand_goal = hand_goal  # (arm, point) to report the hand error against
         self.latched: StopEvent | None = None
@@ -104,6 +107,7 @@ class WholeBodySupervisor:
             "ach_hand_right": tuple(float(v) for v in hands["right"]),
             "com_margin": state["com_margin"],
             "torque_ratio": ratio,
+            "torque_joint": int(np.argmax(np.abs(obs.tau) / self.pm.torque_limit)),
             "tilt": float(tilt(p.quat)),
             "tilt_rate": float(np.linalg.norm(p.gyro[:2])),
         }
@@ -123,14 +127,16 @@ class WholeBodySupervisor:
         lo, hi = pm.joint_range[:, 0] + lim.joint_margin, pm.joint_range[:, 1] - lim.joint_margin
         bad = np.flatnonzero((q < lo) | (q > hi))
         if bad.size:
-            return self._stop(obs, "joint position limit", {"joint": float(bad[0])})
+            return self._stop(obs, "joint position limit", self._joint(bad[0], q=q))
         fast = np.flatnonzero(np.abs(p.dq) > lim.joint_velocity)
         if fast.size:
-            return self._stop(obs, "joint velocity limit", {"joint": float(fast[0])})
+            return self._stop(obs, "joint velocity limit", self._joint(fast[0], dq=p.dq))
         ratio = np.abs(obs.tau) / pm.torque_limit
         self._over = self._over + 1 if ratio.max() > lim.torque_fraction else 0
         if self._over >= lim.torque_ticks:
-            return self._stop(obs, "torque limit", {"ratio": float(ratio.max())})
+            return self._stop(
+                obs, "torque limit", {"ratio": float(ratio.max()), **self._joint(ratio.argmax())}
+            )
         a, rate = tilt(p.quat), float(np.linalg.norm(p.gyro[:2]))
         if a > lim.tilt:
             return self._stop(obs, "pelvis tilt", {"tilt": a})
@@ -143,6 +149,16 @@ class WholeBodySupervisor:
             if self._no_support >= lim.support_ticks:
                 return self._stop(obs, "foot support lost", {})
         return None
+
+    def _joint(self, i, q=None, dq=None) -> dict[str, object]:
+        """Which joint triggered a stop (index and name), with its value when given."""
+        i = int(i)
+        out: dict[str, object] = {"joint": float(i), "joint_name": self.joint_names[i]}
+        if q is not None:
+            out["q"], out["range"] = float(q[i]), self.pm.joint_range[i].tolist()
+        if dq is not None:
+            out["dq"] = float(dq[i])
+        return out
 
     def _stop(self, obs: Observation, reason: str, detail: dict[str, float]) -> StopEvent:
         self.latched = StopEvent(obs.t, reason, detail)
