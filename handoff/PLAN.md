@@ -205,3 +205,15 @@ sharing the reference cache. Do not change imported code during any batch. Check
 each batch and stop below 2 GB; use bounded progress logs without looped array output. Complete
 all 60 development scenes and review evidence before any freeze decision. Do not run fresh
 held-out seeds 6000–6023 before a separate freeze and explicit go.
+
+
+**D18 - strict height capability validation.** A development incident reached the WBC setter with
+height `0.7400000107504702`, outside its strict 0.74 m upper bound. Capability validation had
+a 1e-6 m tolerance, admitting that value before the setter rejected it. The minimal correction
+uses strict measured height bounds in capability validation; the setter and physical limits stay
+unchanged, and no planner interior margin is introduced without evidence it is needed. Class:
+General algorithmic correction. Candidate selection can change, so the earlier continuation remains
+development diagnostic evidence. Rerun all 60 development agent and baseline episodes and the
+truth-input diagnostics for agent physical failures in `results/g1_reach_heights_v2_dev_strict_height`,
+without copying pre-fix episode or reference caches. Review the results before freeze; D17's
+sequential execution and held-out gate remain binding.

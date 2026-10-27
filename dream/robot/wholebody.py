@@ -132,7 +132,7 @@ class ControllerCapabilities:
 
     def violations(self, height: float, rpy) -> list[str]:
         out = []
-        if not self.height_range[0] - 1e-6 <= height <= self.height_range[1] + 1e-6:
+        if not self.height_range[0] <= height <= self.height_range[1]:
             out.append(f"height {height:.3f} outside {self.height_range}")
         r = np.asarray(rpy, float)
         if np.any(r < np.array(self.torso_rpy_min) - 1e-6) or np.any(
