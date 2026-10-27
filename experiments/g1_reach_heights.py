@@ -56,7 +56,8 @@ from dream.sim.reach_scenes import add_reach_scene, sample_reach_scene  # noqa: 
 from dream.tools.mobile import MobileToolbox  # noqa: E402
 from dream.tools.reach import ReachSkill  # noqa: E402
 
-SYSTEMS = ("agent", "scripted_baseline")
+SYSTEMS = ("agent", "scripted_baseline", "agent_truth_inputs")
+DEFAULT_SYSTEMS = ("agent", "scripted_baseline")  # truth-input runs are asked for explicitly
 
 
 def sha256(path: pathlib.Path) -> str:
@@ -102,8 +103,20 @@ def heldout_specs(cfg: dict) -> list[dict]:
     return out
 
 
+def extra_dev_specs(cfg: dict) -> list[dict]:
+    """v2 development also uses the v1 held-out scenes (their results have been seen)."""
+    d = cfg["dev"].get("v1_heldout_as_dev")
+    if not d:
+        return []
+    out = heldout_specs({"heldout": d})
+    for s in out:
+        s["id"] = "dev_v1ho_" + s["id"].removeprefix("heldout_")
+        s["set"] = "dev"
+    return out
+
+
 def specs(cfg: dict, which: str) -> list[dict]:
-    return dev_specs(cfg) if which == "dev" else heldout_specs(cfg)
+    return dev_specs(cfg) + extra_dev_specs(cfg) if which == "dev" else heldout_specs(cfg)
 
 
 # -- one episode ----------------------------------------------------------------------------------
@@ -127,17 +140,22 @@ def make_rollout_factory(caps):
     def factory(model, stance):
         env = G1MobileEnv(model, np.random.default_rng(0), head_camera=None)
         env.reset(*stance)
+        env.localise(stance)
         return WBCBackend(env, WBCLocomotion.from_cache(), caps)
 
     return factory
 
 
-def reference_for(spec: dict, scene, caps, out: pathlib.Path) -> dict:
-    """Reference feasibility belongs to the scene: cached per episode id, shared by both systems."""
+def reference_for(spec: dict, scene, caps, out: pathlib.Path, cfg: dict) -> dict:
+    """Reference label (i) belongs to the scene: cached per episode id, shared by all systems."""
     path = out / "reference" / f"{spec['id']}.json"
     if path.exists():
         return json.loads(path.read_text())
-    ref = reference_feasibility(scene, PosturePlanner(caps), make_rollout_factory(caps))
+    r = cfg.get("reference", {})
+    ref = reference_feasibility(
+        scene, PosturePlanner(caps), make_rollout_factory(caps), k=r.get("k", 60),
+        closed_loop=r.get("closed_loop", False),
+    )  # fmt: skip
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(to_jsonable(ref), indent=1))
     return ref
@@ -165,6 +183,51 @@ def trace_summary(body, probe) -> dict:
     }  # fmt: skip
 
 
+class TruthEstimator:
+    """Reference (ii): the skill's own procedure fed TRUTH inputs. Implements the estimator
+    interface the skill uses, returning the true handle, fixture, distractors and face normal in the
+    robot's CURRENT odometry frame (true pose to odometry pose). Evaluator-side oracle, labelled;
+    the agent never sees scene truth in its real runs."""
+
+    sigma = 0.002  # m: a nominal sensor-level covariance
+
+    def __init__(self, scene, env):
+        self.scene, self.env = scene, env
+
+    def reset(self) -> None:
+        pass
+
+    def ingest(self, detections, camera, time: float = 0.0) -> bool:
+        self._time = time
+        return True
+
+    def _to_odom(self, p):
+        tx, ty, tyaw = self.env.true_pose()
+        ox, oy, oyaw = self.env.odometry()
+        d = oyaw - tyaw
+        c, s = math.cos(d), math.sin(d)
+        x, y = p[0] - tx, p[1] - ty
+        return (ox + c * x - s * y, oy + s * x + c * y, p[2]), d
+
+    def estimate(self):
+        from dream.perception.reach_target import ObstacleBox, TargetEstimate
+
+        sc = self.scene
+        pos, d = self._to_odom(sc.handle_center)
+        boxes = []
+        for i, s in enumerate((sc.fixture, *sc.distractors)):
+            if s.name.startswith("distractor_handle"):
+                continue
+            c, _ = self._to_odom(s.center)
+            boxes.append(ObstacleBox(c, tuple(s.half), s.yaw + d, i == 0, "grey", "box"))
+        nx, ny = sc.face_normal
+        n = (math.cos(d) * nx - math.sin(d) * ny, math.sin(d) * nx + math.cos(d) * ny)
+        return TargetEstimate(
+            np.array(pos), self.sigma**2 * np.eye(3), sc.handle_color, 1, 1, tuple(boxes),
+            boxes[0], n, getattr(self, "_time", 0.0),
+        )  # fmt: skip
+
+
 def run_episode(args: tuple) -> dict:
     spec, system, cfg, out_dir, sha, video = args
     out = pathlib.Path(out_dir)
@@ -178,7 +241,10 @@ def run_episode(args: tuple) -> dict:
         )  # fmt: skip
         caps = ControllerCapabilities.from_envelope_v2(ROOT / cfg["envelope"])
         env = G1MobileEnv(
-            build_mobile_g1(scene=lambda s: add_reach_scene(s, scene), hands=True),
+            build_mobile_g1(
+                scene=lambda s: add_reach_scene(s, scene), hands=True,
+                touch=cfg.get("touch_sensors", False),
+            ),
             np.random.default_rng([spec["seed"], 1]),
         )
         env.reset(*scene.start)
@@ -207,6 +273,8 @@ def run_episode(args: tuple) -> dict:
         instruction = cfg["instruction"].format(color=scene.handle_color)
         if system == "agent":
             skill = ReachSkill(body)
+        elif system == "agent_truth_inputs":
+            skill = ReachSkill(body, estimator_factory=lambda color: TruthEstimator(scene, env))
         else:
             from experiments.g1_scripted_baseline import ScriptedBaselineReach
 
@@ -217,8 +285,11 @@ def run_episode(args: tuple) -> dict:
         if recorder:
             recorder.close()
         stops = [(s.t, s.reason) for sup in body.supervisors for s in sup.stops]
-        verdict = judge(probe, scene, report.verdict, body.backend.held, stops)
-        ref = reference_for(spec, scene, caps, out)
+        verdict = judge(
+            probe, scene, report.verdict, body.backend.held, stops,
+            cfg.get("success", {}).get("mode", "distance"),
+        )  # fmt: skip
+        ref = reference_for(spec, scene, caps, out, cfg)
         refused = report.verdict == "refused"
         verdict["reference_feasible"] = ref["feasible"]
         verdict["refusal_correct"] = bool(refused and not ref["feasible"])
@@ -230,6 +301,10 @@ def run_episode(args: tuple) -> dict:
             instruction=instruction,
             agent=to_jsonable(report),
             evaluator=to_jsonable(verdict),
+            stop_details=to_jsonable(
+                [{"t": s.t, "reason": s.reason, **s.detail}
+                 for sup in body.supervisors for s in sup.stops]
+            ),  # WHICH joint triggered each stop (W6 instrumentation)
             reference=to_jsonable(ref),
             execution_trace=to_jsonable(trace_summary(body, probe)),
             truth={  # evaluator only
@@ -365,14 +440,41 @@ def summarise(rows: list[dict], gates: dict) -> dict:
     return out
 
 
+def label_ii(out: pathlib.Path) -> dict | None:
+    """Reference label (ii): the agent's own procedure fed truth inputs. An episode is feasible
+    under (ii) if the agent succeeded on its own inputs or the truth-input run succeeded. Reports
+    the agent's success among them and how many (i)-feasible episodes (ii) also covers."""
+
+    def load(system):
+        return {p.stem: json.loads(p.read_text()) for p in (out / system).glob("*.json")}
+
+    agent, truth = load("agent"), load("agent_truth_inputs")
+    if not agent:
+        return None
+    ok = lambda r: bool(r.get("evaluator") and r["evaluator"]["physical_success"])  # noqa: E731
+    feas = {k for k, r in agent.items() if ok(r)} | {k for k, r in truth.items() if ok(r)}
+    both = [k for k, r in agent.items() if r.get("evaluator") and
+            r["evaluator"]["reference_feasible"]]  # fmt: skip
+    return {
+        "n_truth_runs": len(truth), "n_feasible_ii": len(feas),
+        "agent_success_on_ii_feasible": rate(sum(ok(agent[k]) for k in feas if k in agent),
+                                             len([k for k in feas if k in agent])),
+        "feasible_i_and_ii": len([k for k in both if k in feas]),
+        "feasible_i_not_ii": sorted(k for k in both if k not in feas),
+        "feasible_ii_not_i": sorted(k for k in feas if k in agent and k not in both),
+    }  # fmt: skip
+
+
 def summarize_set(cfg: dict, which: str, out: pathlib.Path) -> None:
     summary = {}
     for system in SYSTEMS:
         rows = [json.loads(p.read_text()) for p in sorted((out / system).glob("*.json"))]
+        rows = [r for r in rows if r.get("evaluator") or r.get("error")]
         summary[system] = summarise(rows, cfg["gates"]) if rows else None
+    summary["reference_label_ii"] = label_ii(out)
     (out / "summary.json").write_text(json.dumps(to_jsonable(summary), indent=1))
     for system, s in summary.items():
-        if s is None:
+        if s is None or system == "reference_label_ii":
             continue
         print(f"== {system}: {s['n_episodes']} episodes, {s['n_errors']} errors")
         for name, gate in s["gates"].items():
@@ -396,7 +498,9 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("config")
     ap.add_argument("--set", choices=("dev", "heldout"), required=True)
-    ap.add_argument("--system", choices=("agent", "scripted_baseline", "both"), default="both")
+    ap.add_argument("--system", choices=(*SYSTEMS, "both"), default="both")
+    ap.add_argument("--where-agent-failed", action="store_true",
+                    help="only episodes the agent did not physically succeed in (truth-input runs)")
     ap.add_argument("--workers", type=int, default=2)
     ap.add_argument("--summarize", action="store_true")
     ap.add_argument("--only", nargs="*", help="episode ids")
@@ -434,11 +538,15 @@ def main() -> None:
             "instruction_parsing": "structured goal parsing, not language understanding",
             "started": time.strftime("%Y-%m-%d %H:%M:%S"),
         }, indent=1))  # fmt: skip
-    systems = SYSTEMS if args.system == "both" else (args.system,)
+    systems = DEFAULT_SYSTEMS if args.system == "both" else (args.system,)
     jobs = []
     for spec in specs(cfg, args.set):
         if args.only and spec["id"] not in args.only:
             continue
+        if args.where_agent_failed:
+            ap_ = out / "agent" / f"{spec['id']}.json"
+            if not ap_.exists() or json.loads(ap_.read_text())["evaluator"]["physical_success"]:
+                continue
         for system in systems:
             if is_finished(out / system / f"{spec['id']}.json"):
                 continue

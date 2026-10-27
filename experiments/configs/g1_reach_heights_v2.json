@@ -1,0 +1,174 @@
+{
+ "name": "g1_reach_heights_v2",
+ "_note": "W6 protocol v2. Written before any v2 run. STATUS: DRAFT, NOT FROZEN: the code is frozen (SHA recorded in the held-out meta.json) only after the development evidence is reviewed. v1 stays scored under v1 (results/g1_reach_heights_heldout, config g1_reach_heights.json). The v1 held-out seeds 5000-5023 have been seen and are now DEVELOPMENT evidence; the v2 held-out seeds 6000-6023 are fresh and must be run exactly once after the freeze. Backend 'wbc' (NVIDIA Decoupled WBC); 'sonic' is added later.",
+ "instruction": "touch the {color} handle",
+ "envelope": "results/g1_wbc_envelope_v2/envelope.json",
+ "envelope_sha256": "c1dc9728205994fd3dbd10d17aaf160a6ff2ee063ffe55aa3c983a052d90f1b5",
+ "success_radius_m": 0.03,
+ "success_definition": "true distance between the hand's reach point (index fingertip) and the handle centre <= 0.03 m, with no collapse (C3 criteria) and no unresolved protective stop",
+ "dev": {
+  "results_dir": "results/g1_reach_heights_v2_dev",
+  "heights": [
+   0.35,
+   0.75,
+   1.1
+  ],
+  "seeds": [
+   100,
+   101,
+   102,
+   103,
+   104,
+   105
+  ],
+  "layouts": [
+   {
+    "distance": 1.5,
+    "lateral": 0.0,
+    "yaw_jitter_deg": 0.0,
+    "crates": 0,
+    "second_fixture": false
+   },
+   {
+    "distance": 2.0,
+    "lateral": 0.3,
+    "yaw_jitter_deg": 15.0,
+    "crates": 2,
+    "second_fixture": true
+   }
+  ],
+  "v1_heldout_as_dev": {
+   "seeds": [
+    5000,
+    5001,
+    5002,
+    5003,
+    5004,
+    5005,
+    5006,
+    5007,
+    5008,
+    5009,
+    5010,
+    5011,
+    5012,
+    5013,
+    5014,
+    5015,
+    5016,
+    5017,
+    5018,
+    5019,
+    5020,
+    5021,
+    5022,
+    5023
+   ],
+   "height_m": [
+    0.1,
+    1.45
+   ],
+   "distance_m": [
+    1.2,
+    2.2
+   ],
+   "lateral_m": [
+    -0.4,
+    0.4
+   ],
+   "yaw_jitter_deg": 20.0,
+   "max_crates": 2,
+   "second_fixture_prob": 0.5
+  }
+ },
+ "heldout": {
+  "results_dir": "results/g1_reach_heights_v2_heldout",
+  "seeds": [
+   6000,
+   6001,
+   6002,
+   6003,
+   6004,
+   6005,
+   6006,
+   6007,
+   6008,
+   6009,
+   6010,
+   6011,
+   6012,
+   6013,
+   6014,
+   6015,
+   6016,
+   6017,
+   6018,
+   6019,
+   6020,
+   6021,
+   6022,
+   6023
+  ],
+  "height_m": [
+   0.1,
+   1.45
+  ],
+  "distance_m": [
+   1.2,
+   2.2
+  ],
+  "lateral_m": [
+   -0.4,
+   0.4
+  ],
+  "yaw_jitter_deg": 20.0,
+  "max_crates": 2,
+  "second_fixture_prob": 0.5,
+  "handle_colour": "drawn per seed from the detector palette (red orange yellow green blue purple)",
+  "fixture_size": "depth half 0.15-0.30, width half 0.25-0.50, height from max(0.55, h+0.12) up to +0.5 m (dream/sim/reach_scenes.py)"
+ },
+ "gates": {
+  "_note": "Pre-registered for the new system (agent). The baseline is reported on identical scenes against the same numbers for reference.",
+  "max_collapses": 0,
+  "max_false_success_claims": 0,
+  "success_feasible_min": 0.8,
+  "success_feasible_off_band_min": 0.7,
+  "off_band": "handle height < 0.55 m or > 1.15 m",
+  "correct_refusal_min": 0.9
+ },
+ "disjoint": "v2 held-out seeds 6000-6023 share no seed with dev 100-105 or v1 held-out 5000-5023 (now development).",
+ "planner": {
+  "_note": "Stance sampling of the agent's posture planner (dream.robot.g1_posture.PlannerConfig). Changed during development from the W3 default radii (0.45, 0.6, 0.75) after dev run 1: a 0.45 m stance leaves the arm nearly straight at the contact point (no room for a pre-contact pose, torque stops).",
+  "radii": [
+   0.35,
+   0.4,
+   0.45,
+   0.5,
+   0.6
+  ],
+  "n_angles": 8,
+  "max_stances": 40
+ },
+ "backend": "wbc",
+ "changes_from_v1": {
+  "success": "v1: true distance reach-point-to-handle-CENTRE <= 0.03 m. v2: the evaluator detects hand-geom / handle-geom contact sustained >= 0.3 s with no collapse, no unresolved protective stop and peak hand-handle contact force <= 25 N (the top of the Dex3-1 tactile range). Reason: the fingertip contact floor is 13-25 mm from the centre, and a probe 30 mm away can touch nothing.",
+  "agent_claim": "v1: FK distance to the perceived target <= tolerance - 1.645 sigma. v2: the hand's own simulated touch sensors report contact >= 0.3 s AND forward kinematics puts the reach point within 3 Mahalanobis units of the perceived handle (covariance widened by the 5 cm handle half-width).",
+  "reference": "v1: one label, the planner+open-loop rollout under dense truth inputs. v2: TWO labels, both reported: (i) dense truth-input capability search with the closed-loop rollout (pre-contact, corrections, advance), k = 12 ranked plans; (ii) the agent's own procedure fed truth inputs (system agent_truth_inputs).",
+  "gate_values": "unchanged from v1 (max_collapses 0, max_false_success_claims 0, success_feasible_min 0.8, success_feasible_off_band_min 0.7, correct_refusal_min 0.9); they are applied with the new success definition and, for 'feasible', with reference label (i) (label (ii) reported beside it).",
+  "seeds": "held-out 6000-6023, same distributions as v1. Development = v1 dev (36) + v1 held-out (24, seeds 5000-5023).",
+  "agent_code": "closed-loop rollout gate, torque-aware correction, measured-torque ranking, canonical planning boxes, shoulder-torso limit, axis relaxation, anisotropic dev-fitted target covariance, unseen box tops (W6 commits)."
+ },
+ "success": {
+  "mode": "contact",
+  "contact_min_s": 0.3,
+  "peak_contact_force_max_n": 25.0,
+  "definition": "evaluator: hand-geom/handle-geom contact sustained >= 0.3 s (unbroken), no collapse (C3 criteria), no unresolved protective stop, peak hand-handle force <= 25 N"
+ },
+ "touch_sensors": true,
+ "touch_sensor_note": "Dex3-1 carries 33 tactile sensors per hand over palm, finger pads and fingertips (Unitree, https://unitree.com/Dex3-1; retailer listings give ~10 g - 2.5 kg at 1 kHz). Simulated by one MuJoCo touch sensor per hand link (sites only, dream/sim/g1_mobile.py _add_touch_sensors), threshold 0.1 N. Idealised stand-in; not a model of the real sensor.",
+ "reference": {
+  "closed_loop": true,
+  "k": 12
+ },
+ "status": "draft"
+}

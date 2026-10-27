@@ -29,7 +29,12 @@ from dataclasses import dataclass, field
 import mujoco
 import numpy as np
 
-SUCCESS_RADIUS = 0.03  # m, pre-registered
+SUCCESS_RADIUS = 0.03  # m, pre-registered (v1: distance to the handle CENTRE)
+# v2 success is contact-based (experiments/configs/g1_reach_heights_v2.json): v1's centre distance
+# could not be met by a fingertip that touches the bar (the contact floor is 13-25 mm from the
+# centre, and a probe 30 mm from it can be touching nothing).
+CONTACT_MIN_S = 0.3  # s of unbroken hand-geom / handle-geom contact
+CONTACT_FORCE_MAX = 25.0  # N peak: the top of the Dex3-1 tactile range (about 2.5 kg)
 TICK = 0.02  # s, one policy step
 # Collapse gates are the ones the W1 envelope experiment froze (experiments/configs/
 # g1_wbc_envelope_v2.json); the joint margin is its joint_limit_margin_rad.
@@ -79,6 +84,7 @@ class ReachProbe:
         joints = m.actuator_trnid[self.env.body_actuators, 0]
         self.jlo, self.jhi = m.jnt_range[joints, 0], m.jnt_range[joints, 1]
         self.peak = {k: 0.0 for k in ("handle_hand", "fixture_hand", "fixture_other", "distractor")}
+        self.handle_contact: list[bool] = []  # per tick: a hand geom touches the handle geom
         self.touched = {k: 0 for k in self.peak}
         self.min_dist = {"left": math.inf, "right": math.inf}
         self._handle = None
@@ -129,10 +135,15 @@ class ReachProbe:
                         else "fixture_other" if cat in ("fixture", "handle")
                         else "distractor"
                     )  # fmt: skip
-                    step_peak[key] = max(step_peak[key], float(f6[0]))
+                    f = max(float(f6[0]), 0.0)
+                    # a hand on the handle may touch with several contacts at once: their sum
+                    step_peak[key] = step_peak[key] + f if key == "handle_hand" else max(
+                        step_peak[key], f
+                    )
                     self.touched[key] += 1
         for k, v in step_peak.items():
             self.peak[k] = max(self.peak[k], v)
+        self.handle_contact.append(step_peak["handle_hand"] > 0.0)
         q = d.qpos[env.qadr]
         near = bool(
             np.any((q - self.jlo < JOINT_LIMIT_MARGIN) | (self.jhi - q < JOINT_LIMIT_MARGIN))
@@ -189,8 +200,15 @@ def scene_geom_categories(scene) -> dict:
     return out
 
 
-def judge(probe: ReachProbe, scene, verdict: str, held, stops: list) -> dict:
-    """The evaluator's verdict for one finished episode (see the module docstring)."""
+def judge(
+    probe: ReachProbe, scene, verdict: str, held, stops: list, success_mode: str = "distance"
+) -> dict:
+    """The evaluator's verdict for one finished episode (see the module docstring).
+
+    ``success_mode``: "distance" (v1: reach point within SUCCESS_RADIUS of the handle centre) or
+    "contact" (v2: a hand geom in unbroken contact with the handle geom for CONTACT_MIN_S, the
+    peak hand-handle force at most CONTACT_FORCE_MAX). Both are always reported; the mode picks
+    which one is ``physical_success``."""
     target = np.asarray(scene.handle_center, float)
     pts = probe.hand_points()
     dist = {a: float(np.linalg.norm(p - target)) for a, p in pts.items()}
@@ -198,13 +216,28 @@ def judge(probe: ReachProbe, scene, verdict: str, held, stops: list) -> dict:
     collapse = probe.collapse()
     unresolved = held is not None
     reached = true_distance <= SUCCESS_RADIUS
-    ok = reached and not collapse["collapsed"] and not unresolved
+    contact_s = longest(getattr(probe, "handle_contact", []))
+    peak_force = probe.peak["handle_hand"]
+    touched = contact_s >= CONTACT_MIN_S and peak_force <= CONTACT_FORCE_MAX
+    clean = not collapse["collapsed"] and not unresolved
+    ok_distance, ok_contact = reached and clean, touched and clean
+    if success_mode not in ("distance", "contact"):
+        raise ValueError(f"unknown success mode {success_mode!r}")
+    ok = ok_contact if success_mode == "contact" else ok_distance
+    # what a "reached" claim is checked against: v2, any sustained contact (a hard press is a
+    # force-limit failure of the SUCCESS, not a false claim)
+    reached = contact_s >= CONTACT_MIN_S if success_mode == "contact" else reached
     unintended = probe.touched["fixture_other"] + probe.touched["distractor"] > 0
     return {
         "true_distance_m": true_distance,
         "true_distance_by_arm": dist,
         "min_distance_during_m": dict(probe.min_dist),
         "physical_success": bool(ok),
+        "success_mode": success_mode,
+        "success_distance_v1": bool(ok_distance),
+        "success_contact_v2": bool(ok_contact),
+        "handle_contact_s": contact_s,
+        "handle_contact_peak_force_n": peak_force,
         "claimed": verdict == "reached",
         "claimed_success": bool(ok and verdict == "reached"),
         "false_success_claim": bool(verdict == "reached" and not reached),
@@ -246,11 +279,18 @@ def true_boxes(scene) -> list:
     return out
 
 
-def reference_feasibility(scene, planner, backend_factory, k: int = 60) -> dict:
-    """Feasible with the TRUE target and obstacles, exhaustive stance sampling, same envelope.
+def reference_feasibility(
+    scene, planner, backend_factory, k: int = 60, closed_loop: bool = False
+) -> dict:
+    """Reference label (i): feasible with the TRUE target and obstacles, exhaustive stance sampling,
+    same envelope.
 
     The planner here is a denser sampler (more rings and angles) than the agent's; plans are
-    rolled out on a planning copy in rank order, up to ``k``, until one passes."""
+    rolled out on a planning copy in rank order, up to ``k``, until one passes. With
+    ``closed_loop`` the rollout runs the real procedure (pre-contact pose, corrections, advance)
+    with the TRUE handle and face normal, under the same gates as the agent's own rollouts: a
+    capability search, not an agent run. Reference (ii) is the agent itself fed truth inputs
+    (experiments/g1_reach_heights.py, system ``agent_truth_inputs``)."""
     from dataclasses import replace
 
     from dream.robot.g1_rollout import verify_top_k
@@ -262,10 +302,16 @@ def reference_feasibility(scene, planner, backend_factory, k: int = 60) -> dict:
     planner = type(planner)(planner.caps, dense)
     # The robot's start is irrelevant to feasibility; stances are ranked by distance from the
     # origin.
-    result = planner.plan(np.asarray(scene.handle_center), None, (0.0, 0.0, 0.0), boxes)
-    chosen, tried = verify_top_k(
-        result.plans, backend_factory, boxes, k=k, planning_model=planner.pm
+    axis = (-scene.face_normal[0], -scene.face_normal[1], 0.0) if closed_loop else None
+    result = planner.plan(
+        np.asarray(scene.handle_center), None, (0.0, 0.0, 0.0), boxes, approach_axis=axis
     )
+    if closed_loop:
+        chosen, tried = _closed_loop_search(scene, planner, backend_factory, boxes, result.plans, k)
+    else:
+        chosen, tried = verify_top_k(
+            result.plans, backend_factory, boxes, k=k, planning_model=planner.pm
+        )
     best = chosen
     return {
         "feasible": chosen is not None,
@@ -291,3 +337,30 @@ def reference_feasibility(scene, planner, backend_factory, k: int = 60) -> dict:
             "torso_rpy": [round(float(v), 3) for v in best.torso_rpy],
         },  # fmt: skip
     }
+
+
+def _closed_loop_search(scene, planner, backend_factory, boxes, plans, k):
+    """Roll out ranked plans with the real procedure and TRUE inputs until one passes."""
+    from dream.robot.g1_correction import CORRECTION_TOLERANCE
+    from dream.robot.g1_rollout import Procedure, verify_by_rollout
+    from dream.tools.reach import PRE_CONTACT_OFFSET, PRE_CONTACT_TOLERANCE
+
+    normal = np.array([scene.face_normal[0], scene.face_normal[1], 0.0])
+    axis = (-float(normal[0]), -float(normal[1]), 0.0)
+    handle = np.asarray(scene.handle_center, float)
+    tried = []
+    for plan in plans[:k]:
+        pre_point = handle + PRE_CONTACT_OFFSET * normal
+        pre = planner.retarget(plan, pre_point, boxes, approach_axis=axis)
+        if pre is None:
+            continue
+        stages = [(pre, pre.target.hands[0].position, PRE_CONTACT_TOLERANCE),
+                  (plan, plan.target.hands[0].position, CORRECTION_TOLERANCE)]  # fmt: skip
+        r = verify_by_rollout(
+            pre.target, backend_factory, boxes, planner.pm, None,
+            Procedure(planner, stages, axis), plan,
+        )  # fmt: skip
+        tried.append((plan, r))
+        if r.passed:
+            return plan, tried
+    return None, tried
