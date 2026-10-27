@@ -46,8 +46,17 @@ TOUCH_TOLERANCE = (
     0.03  # m, the task's definition of "touched": reach point within this of the handle
 )
 CLAIM_SIGMAS = (
-    1.645  # one-sided 95%: the claim threshold is the tolerance less this many target std devs
+    1.645  # v1 claim: the tolerance less this many target std devs (kept for ``claim_threshold``)
 )
+# v2 claim: the hand's own tactile sensors report a sustained contact AND forward kinematics puts
+# the touching reach point where the handle was perceived (within CLAIM_MAHALANOBIS standard
+# deviations of the perceived position, whose covariance is widened by the handle's size).
+TOUCH_SUSTAIN_S = 0.3  # s of unbroken tactile contact (the evaluator's contact time)
+TOUCH_HOLD_S = 0.5  # s the hand holds still while the tactile sensors are read
+SEEK_STEP = 0.01  # m, how much deeper into the face the contact target moves per attempt
+MAX_SEEK = 2  # attempts to find contact after the corrections converged without it
+CLAIM_MAHALANOBIS = 3.0
+HANDLE_EXTENT = 0.05  # m, half the handle's width: the touched point can be anywhere on the bar
 TURN_STEP = math.pi / 4  # look-around step
 MAX_TURNS = 8
 MAX_APPROACHES = 2  # moves toward an unresolved box-like object before turning on
@@ -58,6 +67,7 @@ MAX_STANCE_TRIES = 2  # distinct planned stances tried when the walk fails
 PRE_CONTACT_OFFSET = 0.06  # m in front of the handle along the face normal (assumption)
 PRE_CONTACT_TOLERANCE = 0.015  # m, free-air tolerance of the pre-contact pose
 MAX_PLAN_CHECKS = 4  # ranked plans whose rollouts are checked at a stance before giving up on it
+MAX_CANDIDATES = 3  # passing plans compared by their MEASURED rollout ranking (W6)
 RESTANCE_SHIFT = 0.12  # m: a re-stance must lie at least this far from every stance already tried
 RESTANCE_TURN = 0.3  # rad: ... or turned this far
 MAX_RESTANCES = 1  # bounded re-stance (PLAN section 2: correction limited -> one new stance)
@@ -96,6 +106,15 @@ def approach_axis(target: TargetEstimate):
     return None if n is None else (-float(n[0]), -float(n[1]), 0.0)
 
 
+def claim_consistent(point: np.ndarray, estimate: TargetEstimate) -> tuple[bool, float]:
+    """Is ``point`` (the reach point from forward kinematics) where the handle was perceived?
+    Mahalanobis distance under the target covariance plus the handle's own extent."""
+    cov = estimate.covariance + HANDLE_EXTENT**2 * np.eye(3)
+    delta = np.asarray(point, float) - estimate.position
+    dist = float(np.sqrt(delta @ np.linalg.solve(cov, delta)))
+    return dist <= CLAIM_MAHALANOBIS, dist
+
+
 def claim_threshold(goal: ReachGoal, estimate: TargetEstimate) -> float:
     """Largest measured error (reach point to the perceived handle) at which "reached" may be
     claimed: the task tolerance less ``CLAIM_SIGMAS`` standard deviations of the perception."""
@@ -122,12 +141,13 @@ class ReachBody(Protocol):
     def go_to(self, x: float, y: float, heading: float) -> tuple[bool, str]: ...
     def plan(self, target, covariance, obstacles, stance=None, arm=None, approach=None): ...
     def pre_contact(self, plan, point, obstacles, approach=None): ...
-    def verify(self, plans, obstacles): ...
+    def verify(self, plans, obstacles, pre=None, approach=None): ...
     def execute(self, plan): ...
     def correct(
         self, plan, target_provider, obstacles, executed=None, tolerance=None, approach=None
     ): ...
     def hand_position(self, arm: str) -> np.ndarray: ...
+    def touch(self, arm: str, seconds: float) -> tuple[float, float]: ...
     def recover(self) -> bool: ...
     def stopped(self) -> str | None: ...
     def now(self) -> float: ...
@@ -274,34 +294,42 @@ class ReachSkill:
         return float(p[0]), float(p[1]), float(math.atan2(u[1], u[0]))
 
     def _select(self, rep, plans, target, label: str):
-        """The first ranked plan whose contact posture passes the rollout gate AND, when the face
-        the handle protrudes from is known, whose pre-contact posture (same body, arm only) is
-        reachable and passes it too. Returns (plan, pre-contact plan or None, [reasons])."""
-        normal, why = target.face_normal, []
+        """The best plan whose CLOSED-LOOP rollout passes. The rollout runs the procedure the real
+        robot runs (execute the pre-contact posture, correct, advance to the contact posture,
+        correct) under the supervisor's limits and is judged on the final predicted hand error
+        and the peak torque and support measured over all of it. When the face the handle
+        protrudes from is known, the pre-contact posture (same body, arm only) must be reachable.
+        Up to ``MAX_CANDIDATES`` passing plans are compared by their measured ranking (the plan's
+        score with the measured peak torque in place of the static estimate); returns
+        (plan, pre-contact plan or None, [reasons])."""
+        normal, why, passed = target.face_normal, [], []
         for plan in plans[:MAX_PLAN_CHECKS]:
-            picked, tried = self.body.verify([plan], target.obstacles)
+            pre = None
+            if normal is not None:
+                pre_point = target.position + PRE_CONTACT_OFFSET * np.array(
+                    [normal[0], normal[1], 0.0]
+                )
+                pre = self.body.pre_contact(
+                    plan, pre_point, target.obstacles, approach=approach_axis(target)
+                )
+                if pre is None:
+                    why.append(["pre_contact_unreachable"])
+                    continue
+            picked, tried = self.body.verify(
+                [plan], target.obstacles, pre=pre, approach=approach_axis(target)
+            )
             rep.rollouts += [{"stage": label, **_rollout_record(p, r)} for p, r in tried]
             if picked is None:
                 why.append(list(tried[0][1].reasons))
                 continue
-            if normal is None:
-                return plan, None, why
-            pre_point = target.position + PRE_CONTACT_OFFSET * np.array([normal[0], normal[1], 0.0])
-            pre = self.body.pre_contact(
-                plan, pre_point, target.obstacles, approach=approach_axis(target)
-            )
-            if pre is None:
-                why.append(["pre_contact_unreachable"])
-                continue
-            ok, tried_pre = self.body.verify([pre], target.obstacles)
-            rep.rollouts += [
-                {"stage": label + "_pre", **_rollout_record(p, r)} for p, r in tried_pre
-            ]
-            if ok is None:
-                why.append(["pre_contact:" + ",".join(tried_pre[0][1].reasons)])
-                continue
-            return plan, pre, why
-        return None, None, why
+            rank = getattr(tried[0][1], "ranking", math.nan)
+            passed.append((plan.score if math.isnan(rank) else rank, len(passed), plan, pre))
+            if len(passed) >= MAX_CANDIDATES:
+                break
+        if not passed:
+            return None, None, why
+        _, _, plan, pre = min(passed, key=lambda c: c[:2])
+        return plan, pre, why
 
     def _verified_first(self, rep, plans, target, label: str):
         """Walk to a stance whose postures already pass the physical gate: the best ranked plan
@@ -519,28 +547,57 @@ class ReachSkill:
             self._log(rep, "result", rep.reason)
             return "failed_final"
         corr = corrections[-1][1]
-        # Verify by the robot's OWN measurement: FK hand against the latest perceived target.
+        # Verify by the robot's OWN sensing: tactile contact held, and FK where the handle was seen.
         final = latest["target"]
-        err = float(np.linalg.norm(self.body.hand_position(chosen.arm) - final.position))
-        thr = claim_threshold(goal, final)
-        rep.measured_error, rep.claim_threshold = err, thr
+        sustained, peak = self.body.touch(chosen.arm, TOUCH_HOLD_S)
+        seeks = 0
+        while sustained < TOUCH_SUSTAIN_S and seeks < MAX_SEEK and normal is not None:
+            seeks += 1  # converged without contact: press a little deeper into the face
+            deeper = latest["target"].position - SEEK_STEP * seeks * np.array(
+                [latest["normal"][0], latest["normal"][1], 0.0]
+            )
+            last_sent = next(
+                (c.final_target for _, c in reversed(corrections) if c.final_target), None
+            )
+            seek = self.body.correct(
+                chosen, lambda deeper=deeper: deeper, target.obstacles, executed=last_sent,
+                approach=approach_axis(latest["target"]),
+            )  # fmt: skip
+            corrections.append(("seek", seek))
+            rep.execution["correction"] += [
+                {"stage": "seek", **{k: v for k, v in it.items() if k != "hand"}}
+                for it in seek.iterations
+            ]
+            if seek.stops or seek.refused:
+                break
+            sustained, peak = self.body.touch(chosen.arm, TOUCH_HOLD_S)
+        fk = self.body.hand_position(chosen.arm)
+        err = float(np.linalg.norm(fk - final.position))
+        consistent, mahal = claim_consistent(fk, final)
+        rep.measured_error = err
+        rep.execution["touch"] = {
+            "sustained_s": sustained, "peak_force_n": peak, "seek_attempts": seeks,
+            "mahalanobis": mahal, "consistent": consistent,
+        }  # fmt: skip
         rep.target = _describe(final)
-        if err <= thr:
+        if sustained >= TOUCH_SUSTAIN_S and consistent:
             rep.verdict = "reached"
-            rep.reason = f"reach point {err * 1000:.1f} mm from the perceived handle"
+            rep.reason = (
+                f"tactile contact held {sustained:.2f} s ({peak:.1f} N); reach point "
+                f"{err * 1000:.0f} mm from the perceived handle ({mahal:.1f} sigma)"
+            )  # fmt: skip
             self._log(rep, "result", rep.reason)
             return "reached"
         last = corr.iterations[-1]["action"] if corr.iterations else None
         rep.reason = (
-            f"hand {err * 1000:.1f} mm from the perceived handle, above the claim threshold "
-            f"{thr * 1000:.1f} mm (correction ended: {last})"
+            f"no claim: tactile contact {sustained:.2f} s, reach point {err * 1000:.0f} mm from "
+            f"the perceived handle ({mahal:.1f} sigma; correction ended: {last})"
         )
         self._log(rep, "limited", rep.reason)
-        if err <= goal.tolerance:
-            # Probably touching (inside the task tolerance) but not certain enough to claim: a
-            # new stance cannot make the perception better, so this is reported, not retried.
+        if sustained >= TOUCH_SUSTAIN_S or err <= goal.tolerance:
+            # Touching something, or inside the task tolerance, but not where the handle was
+            # perceived: a new stance cannot improve the perception, so this is reported.
             rep.verdict = "failed"
-            rep.reason += "; within the tolerance but not certain enough to claim"
             self._log(rep, "result", rep.reason)
             return "failed_final"
         self._tried.append(tuple(float(v) for v in pose))

@@ -10,6 +10,16 @@ margin to the support polygon of the feet that carry load, pelvis tilt and tilt 
 error after settling, and undesired contacts (any non-foot robot geom touching the floor or a
 perceived box, except the hand on a box marked ``hand_may_touch``).
 
+CLOSED LOOP (W6). The real robot does not stop after the open-loop execution: it corrects the hand
+against fresh observations (dream/robot/g1_correction.py) and then advances to the contact pose.
+The rollout therefore runs the SAME procedure on the planning copy (execute the first stage,
+correct, advance, correct) under the same supervisor limits, with the perceived point as the
+target the copy "observes" (the copy has no scene, so the point is the plan's own). The gate
+is on the FINAL predicted hand error after the corrections, not on the open-loop error (a 4 cm
+open-loop screen refused 21 of 35 rollouts that the real correction later brought to about 3
+cm), and on the peak torque and support measured over the whole procedure. The measured peak
+torque replaces the static estimate in the ranking (``RolloutResult.ranking``).
+
 Passing a rollout makes a plan eligible for real execution; it does not count as success.
 Only the monitored real execution does. Rollouts cost roughly the simulated duration of the
 motion, so only the best ``TOP_K`` ranked plans are verified and wall-clock timings are reported.
@@ -24,8 +34,11 @@ from dataclasses import dataclass, field, replace
 import mujoco
 import numpy as np
 
+from dream.robot.g1_correction import correct_reach
 from dream.robot.g1_posture import (
     ARMS,
+    HAND_TOLERANCE,
+    W_TORQUE,
     PerceivedBox,
     PlanningModel,
     PosturePlan,
@@ -40,8 +53,12 @@ from dream.robot.wholebody import TICK, Observation, StopEvent, WholeBodyTarget
 TOP_K = 3  # plans verified per request; each rollout costs about the motion's simulated time
 # COARSE SCREEN, an assumption: not a success criterion (success is decided by the evaluator;
 # closed-loop correction in g1_correction.py removes the residual).
-HAND_ERROR_MAX = 0.04  # m after settling; looser than the 2 cm IK residual because the
-# controller tracks the posture with a finite error (assumed, to be tightened with data)
+HAND_ERROR_MAX = 0.04  # m after settling, OPEN-LOOP (v1 screen; used when no planner is given)
+# Closed-loop gate (v2): the predicted hand error after the corrections must be inside the task
+# tolerance, the same 3 cm the evaluator allows (an assumption: it is the claim the real
+# procedure must be able to meet, not a calibrated quantity).
+FINAL_HAND_ERROR_MAX = 0.03  # m
+W_FINAL_ERROR = 0.5  # ranking: per hand-tolerance of predicted final error
 TORQUE_RATIO_MAX = 0.9  # fraction of actuator limit, the gate W1 pre-registered for its envelope
 SLIP_MAX = 0.10  # m of foot travel, W1's feet_slip_max
 COM_MARGIN_MIN = 0.0  # m, W1's com_margin_min
@@ -63,6 +80,9 @@ class RolloutResult:
     seconds: float = 0.0  # wall clock
     simulated: float = 0.0  # simulated seconds
     stops: list[StopEvent] = field(default_factory=list)
+    metrics_text: dict[str, str] = field(default_factory=dict)
+    # the plan's score with the MEASURED peak torque in place of the static proxy
+    ranking: float = math.nan
 
 
 def longest_violation(margins, minimum: float = COM_MARGIN_MIN) -> int:
@@ -72,6 +92,22 @@ def longest_violation(margins, minimum: float = COM_MARGIN_MIN) -> int:
         run = run + 1 if m < minimum else 0
         best = max(best, run)
     return best
+
+
+SETTLE_TICKS = 75  # 1.5 s of standing after the planning copy is reset
+
+
+def settle(backend, ticks: int = SETTLE_TICKS) -> None:
+    """Stand at the current command for ``ticks`` policy steps. ``backend.follow([command])`` was
+    meant to do this but a path from the command to itself is empty, so nothing ran and the first
+    ticks of the motion saw feet not yet loaded: 38 W5 rollouts stopped with "foot support lost"
+    at 0.1-0.2 s simulated, before the plan had moved."""
+    c, cmd = backend.controller, backend.command()
+    for _ in range(ticks):
+        c.set_command(0.0, 0.0, 0.0)
+        c.set_posture(cmd.height, cmd.rpy)
+        c.arm_target = np.array(cmd.arm, float)
+        backend.env.step(c)
 
 
 def build_rollout_model(boxes: list[PerceivedBox]) -> mujoco.MjModel:
@@ -111,6 +147,7 @@ class _Meter:
         wrist = m.body(f"{self.arm}_wrist_yaw_link").id
         self.wrist, self.grip = wrist, pm.anatomy.grip[self.arm]
         self.foot0 = {s: self.data.xpos[b].copy() for s, b in self.foot_bodies.items()}
+        self.peak_joint = 0
         self.peak = dict.fromkeys(
             ("torque_ratio", "tilt", "tilt_rate", "slip", "foot_force", "undesired"), 0.0
         )
@@ -162,9 +199,9 @@ class _Meter:
         feet = tuple(force[s] > FOOT_FORCE_MIN for s in ARMS)
         self.peak["slip"] = max(self.peak["slip"], slip)
         self.peak["foot_force"] = max(self.peak["foot_force"], sum(force.values()))
-        self.peak["torque_ratio"] = max(
-            self.peak["torque_ratio"], float(np.max(np.abs(obs.tau) / self.pm.torque_limit))
-        )
+        ratio = np.abs(obs.tau) / self.pm.torque_limit
+        if float(ratio.max()) > self.peak["torque_ratio"]:
+            self.peak["torque_ratio"], self.peak_joint = float(ratio.max()), int(ratio.argmax())
         self.peak["tilt"] = max(self.peak["tilt"], tilt(p.quat))
         self.peak["tilt_rate"] = max(self.peak["tilt_rate"], float(np.linalg.norm(p.gyro[:2])))
         self.peak["undesired"] += undesired
@@ -172,7 +209,8 @@ class _Meter:
         return self.supervisor(replace(obs, feet_contact=feet))
 
     def measure(self, obs: Observation) -> dict[str, object]:
-        return {"hand_error": self.hand_errors[-1] if self.hand_errors else math.nan}
+        """The supervisor's row (so the correction can read the measured hand and torque)."""
+        return self.supervisor.measure(obs)
 
 
 def verify_by_rollout(
@@ -181,34 +219,72 @@ def verify_by_rollout(
     perceived_obstacles=(),
     planning_model: PlanningModel | None = None,
     safety: SafetyLimits | None = None,
+    procedure: Procedure | None = None,
+    plan: PosturePlan | None = None,
 ) -> RolloutResult:
     """Execute ``target`` with the real controller on a planning copy and judge the measurements.
 
     ``backend_factory(model, stance)`` returns a backend whose robot stands at ``stance`` on
     ``model`` (robot + floor + perceived boxes). The backend must be executable (measured
-    capabilities); an unmeasured backend fails the rollout with its refusal reason."""
+    capabilities); an unmeasured backend fails the rollout with its refusal reason.
+
+    Without ``procedure`` the rollout is the open-loop v1 screen. With one, the copy runs the real
+    robot's procedure after the first execution: ``procedure.stages`` is a list of
+    ``(plan, point, tolerance)``; each stage is corrected with ``correct_reach`` toward ``point``
+    (the first stage is the one executed; later stages advance from the previous one). The gate
+    then uses the FINAL predicted hand error (against the last stage's point)."""
     t0 = time.perf_counter()
     boxes = list(perceived_obstacles)
     pm = planning_model or PlanningModel()
     backend = backend_factory(build_rollout_model(boxes), target.stance)
     result = RolloutResult(False)
-    backend.follow([backend.command()])  # settle at nominal before the motion
+    settle(backend)  # stand still at the nominal command before the motion
     goal = target.hands[0]
-    sup = WholeBodySupervisor(pm, safety, (goal.arm, goal.position))
+    last_point = goal.position
+    if procedure is not None:
+        last_point = tuple(float(v) for v in procedure.stages[-1][1])
+    sup = WholeBodySupervisor(pm, safety, (goal.arm, last_point))
     meter = _Meter(backend, pm, target, boxes, sup)
+    if procedure is not None:
+        meter.point = np.asarray(last_point, float)
     start = backend.env.time
     report = backend.execute(target, monitor=meter)
+    stops, completed, refused = list(report.stops), report.completed, report.refused
+    final = None
+    if procedure is not None and completed and not stops:
+        executed = None
+        for stage_plan, point, tol in procedure.stages:
+            pt = np.asarray(point, float)
+            corr = correct_reach(
+                backend, meter, procedure.planner, stage_plan, lambda pt=pt: pt, boxes,
+                tolerance=tol, executed=executed, approach_axis=procedure.approach,
+            )  # fmt: skip
+            stops += corr.stops
+            executed = corr.final_target or executed or stage_plan.target
+            if corr.stops or corr.refused or not corr.completed:
+                completed = False
+                refused = refused or corr.refused
+                break
+            final = corr.iterations[-1]["error"] if corr.iterations else None
     result.simulated = backend.env.time - start
-    result.stops = report.stops
-    if report.refused:
-        result.reasons.append(f"refused: {report.refused}")
-    if report.stops:
-        result.reasons.append(f"stop: {report.stops[0].reason}")
+    result.stops = stops
+    if refused:
+        result.reasons.append(f"refused: {refused}")
+    if stops:
+        result.reasons.append(f"stop: {stops[0].reason}")
+        detail = stops[0].detail
+        if "joint_name" in detail:
+            result.reasons[-1] += f" ({detail['joint_name']})"
     errs = meter.hand_errors
-    hand = float(np.mean(errs[-FINAL_TICKS:])) if errs else math.nan
+    open_loop = float(np.mean(errs[-FINAL_TICKS:])) if errs else math.nan
+    hand = open_loop if final is None else float(final)
+    limit = HAND_ERROR_MAX if procedure is None else FINAL_HAND_ERROR_MAX
+    peak_name = sup.joint_names[meter.peak_joint]
     result.metrics = {
         "hand_error": hand,
+        "hand_error_open_loop": open_loop,
         "peak_torque_ratio": meter.peak["torque_ratio"],
+        "peak_torque_joint": float(meter.peak_joint),
         "peak_tilt": meter.peak["tilt"],
         "peak_tilt_rate": meter.peak["tilt_rate"],
         "max_foot_slip": meter.peak["slip"],
@@ -216,17 +292,33 @@ def verify_by_rollout(
         "com_margin_violation_s": longest_violation(meter.margins) * TICK,
         "undesired_contact_ticks": meter.peak["undesired"],
     }
+    result.metrics_text = {"peak_torque_joint_name": peak_name}
     checks = (
-        (not hand <= HAND_ERROR_MAX, "hand_error"),
+        (not hand <= limit, "hand_error"),
         (meter.peak["torque_ratio"] > TORQUE_RATIO_MAX, "torque_ratio"),
         (meter.peak["slip"] > SLIP_MAX, "foot_slip"),
         (longest_violation(meter.margins) * TICK > COM_MARGIN_MAX_VIOLATION_S, "com_margin"),
         (meter.peak["undesired"] > 0, "undesired_contact"),
     )
-    result.reasons += [name for bad, name in checks if bad and report.completed]
-    result.passed = report.completed and not result.reasons
+    result.reasons += [name for bad, name in checks if bad and completed]
+    result.passed = completed and not result.reasons
+    if plan is not None:
+        static = float(plan.metrics.get("torque_ratio", 0.0))
+        result.ranking = (
+            plan.score + W_TORQUE * (meter.peak["torque_ratio"] - static)
+            + W_FINAL_ERROR * (0.0 if math.isnan(hand) else hand) / HAND_TOLERANCE
+        )  # fmt: skip
     result.seconds = time.perf_counter() - t0
     return result
+
+
+@dataclass
+class Procedure:
+    """What the real robot does after the first execution (see the module docstring)."""
+
+    planner: object  # PosturePlanner (for the correction's IK)
+    stages: list  # [(plan, point, tolerance)]
+    approach: object = None  # preferred finger direction for the corrections
 
 
 def verify_top_k(
@@ -236,13 +328,13 @@ def verify_top_k(
     k: int = TOP_K,
     planning_model: PlanningModel | None = None,
 ):
-    """Roll out the best ``k`` ranked plans in order until one passes.
+    """Roll out the best ``k`` ranked plans in order until one passes (open-loop v1 screen).
 
     Returns (chosen plan or None, [(plan, RolloutResult)]). Timings are in each result."""
     pm = planning_model or PlanningModel()
     tried = []
     for plan in plans[:k]:
-        r = verify_by_rollout(plan.target, backend_factory, perceived_obstacles, pm)
+        r = verify_by_rollout(plan.target, backend_factory, perceived_obstacles, pm, plan=plan)
         tried.append((plan, r))
         if r.passed:
             return plan, tried

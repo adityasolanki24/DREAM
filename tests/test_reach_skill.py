@@ -74,6 +74,7 @@ class FakeBody:
         stop_in_execute=False,
         correct_actions=("within_tolerance",),
         pre_ok=True,
+        touch_s=0.5,
     ):
         self.visible, self.n_look = visible, 0
         self.plans = [Plan()] if plans is None else plans
@@ -86,6 +87,8 @@ class FakeBody:
         self.approaches = []
         self.n_ring = 0
         self.with_fixture = True
+        # seconds of sustained tactile contact the hand reports (or an iterator of them)
+        self.touch_s = touch_s
 
     # sensing
     def pose(self):
@@ -133,7 +136,7 @@ class FakeBody:
         self.calls.append(("pre_contact",))
         return Plan(arm=plan.arm) if self.pre_ok else None
 
-    def verify(self, plans, obstacles):
+    def verify(self, plans, obstacles, pre=None, approach=None):
         self.calls.append(("verify", len(plans)))
         r = SimpleNamespace(passed=self.rollout_ok, reasons=[] if self.rollout_ok else ["com"],
                             metrics={"hand_error": 0.01}, seconds=0.1, simulated=2.0)  # fmt: skip
@@ -154,6 +157,11 @@ class FakeBody:
 
     def hand_position(self, arm):
         return HANDLE + np.array([self.hand_error, 0.0, 0.0])
+
+    def touch(self, arm, seconds):
+        self.calls.append(("touch",))
+        s = next(self.touch_s) if hasattr(self.touch_s, "__next__") else self.touch_s
+        return s, (2.0 if s else 0.0)
 
     def recover(self):
         self.calls.append(("recover",))
@@ -305,22 +313,32 @@ def test_protective_stop_during_execution_is_a_failure_that_recovers_and_never_c
     assert "recover" in names(body) and "correct" not in names(body)
 
 
-def test_claim_requires_the_measured_error_below_tolerance_less_the_target_uncertainty():
+def test_claim_requires_sustained_tactile_contact_where_the_handle_was_perceived():
     ok = ReachSkill(FakeBody(hand_error=0.010)).run("touch the red handle")
-    bad = ReachSkill(FakeBody(hand_error=0.045, correct_actions=("no_improvement",))).run(
-        "touch the red handle"
-    )
-    assert ok.verdict == "reached" and ok.measured_error == pytest.approx(0.010)
-    assert ok.claim_threshold < 0.03  # the uncertainty is subtracted
-    assert bad.verdict == "failed" and bad.restances == reach.MAX_RESTANCES
-    assert bad.measured_error > bad.claim_threshold
+    no_touch = ReachSkill(
+        FakeBody(hand_error=0.045, touch_s=0.0, correct_actions=("no_improvement",))
+    ).run("touch the red handle")
+    brief = ReachSkill(FakeBody(hand_error=0.010, touch_s=0.1)).run("touch the red handle")
+    # touching something, but not the handle that was perceived
+    elsewhere = ReachSkill(FakeBody(hand_error=0.4)).run("touch the red handle")
+    assert ok.verdict == "reached" and ok.execution["touch"]["sustained_s"] >= reach.TOUCH_SUSTAIN_S
+    assert no_touch.verdict == "failed" and no_touch.restances == reach.MAX_RESTANCES
+    assert brief.verdict == "failed" and "no claim" in brief.reason
+    assert elsewhere.verdict == "failed" and elsewhere.execution["touch"]["consistent"] is False
 
 
-def test_inside_the_tolerance_but_uncertain_is_reported_without_a_pointless_restance():
-    body = FakeBody(hand_error=0.026, correct_actions=("no_improvement",))
+def test_without_contact_the_hand_presses_a_little_deeper_before_giving_up():
+    body = FakeBody(hand_error=0.010, touch_s=iter([0.0, 0.0, 0.5]))
+    rep = ReachSkill(body).run("touch the red handle")
+    assert rep.verdict == "reached" and rep.execution["touch"]["seek_attempts"] == 2
+    assert [c["stage"] for c in rep.execution["correction"]].count("seek") >= 2
+
+
+def test_inside_the_tolerance_without_contact_is_reported_without_a_pointless_restance():
+    body = FakeBody(hand_error=0.026, touch_s=0.0, correct_actions=("no_improvement",))
     rep = ReachSkill(body).run("touch the red handle")
     assert rep.verdict == "failed" and rep.restances == 0
-    assert "not certain enough to claim" in rep.reason
+    assert "no claim" in rep.reason
     assert names(body).count("go_to") == 1
 
 
@@ -331,7 +349,7 @@ def test_limited_correction_restances_once_and_the_second_attempt_can_succeed():
         def hand_position(self, arm):
             return HANDLE + np.array([next(errs), 0.0, 0.0])
 
-    body = Body(correct_actions=("no_improvement",))
+    body = Body(correct_actions=("no_improvement",), touch_s=iter([0.0, 0.0, 0.0, 0.5]))
     rep = ReachSkill(body).run("touch the red handle")
     assert rep.verdict == "reached" and rep.restances == 1
     assert "recover" in names(body)  # back to the nominal posture before walking again

@@ -146,6 +146,54 @@ def _add_hands(spec: mujoco.MjSpec) -> None:
         )
 
 
+# Touch sensing of the Dex3 hands. Unitree's Dex3-1 carries 33 tactile (pressure) sensors per hand
+# over the palm, finger pads and fingertips (https://unitree.com/Dex3-1; retailers list a sensing
+# range of about 10 g to 2.5 kg at 1 kHz). The simulation is an IDEALISED stand-in (an assumption,
+# not a model of that sensor): one MuJoCo touch sensor per hand link, summing the normal contact
+# force on any geom inside a box site that bounds the link's collision meshes. Sites only: no
+# geometry, no mass and no collision are added.
+TOUCH_LINKS = ("wrist_yaw", "hand_thumb_2", "hand_middle_0", "hand_middle_1", "hand_index_0",
+               "hand_index_1")  # the links with mesh collision geoms; fmt: skip
+TOUCH_SITE_MARGIN = 0.003  # m of the site box beyond the link's collision meshes
+TOUCH_THRESHOLD = 0.1  # N, about 10 g: a contact the hand reports (assumed, from the range above)
+
+
+def touch_sensor_name(side: str, link: str) -> str:
+    return f"touch_{side}_{link}"
+
+
+def _add_touch_sensors(spec: mujoco.MjSpec) -> None:
+    """Touch-sensor sites on the hand links (see TOUCH_LINKS); sensors only."""
+    model = spec.compile()
+    data = mujoco.MjData(model)
+    mujoco.mj_forward(model, data)
+    for side in ("left", "right"):
+        for link in TOUCH_LINKS:
+            body = model.body(f"{side}_{link}_link")
+            pts = []
+            for g in np.flatnonzero((model.geom_bodyid == body.id) & (model.geom_contype > 0)):
+                if model.geom_type[g] != mujoco.mjtGeom.mjGEOM_MESH:
+                    continue
+                mid = model.geom_dataid[g]
+                v = model.mesh_vert[
+                    model.mesh_vertadr[mid] : model.mesh_vertadr[mid] + model.mesh_vertnum[mid]
+                ]
+                pts.append(v @ data.geom_xmat[g].reshape(3, 3).T + data.geom_xpos[g])
+            if not pts:
+                continue
+            local = (np.concatenate(pts) - data.xpos[body.id]) @ data.xmat[body.id].reshape(3, 3)
+            lo, hi = local.min(axis=0), local.max(axis=0)
+            name = touch_sensor_name(side, link)
+            spec.body(f"{side}_{link}_link").add_site(
+                name=name, type=mujoco.mjtGeom.mjGEOM_BOX, pos=list((lo + hi) / 2),
+                size=list((hi - lo) / 2 + TOUCH_SITE_MARGIN), group=5,
+            )  # fmt: skip
+            spec.add_sensor(
+                name=name, type=mujoco.mjtSensor.mjSENS_TOUCH,
+                objtype=mujoco.mjtObj.mjOBJ_SITE, objname=name,
+            )  # fmt: skip
+
+
 def wrap(a: float) -> float:
     return (a + pi) % (2 * pi) - pi
 
@@ -159,8 +207,11 @@ def build_mobile_g1(
     scene: Callable[[mujoco.MjSpec], None] | None = None,
     head_camera: CameraSpec | None = HEAD_CAMERA,
     hands: bool = False,
+    touch: bool = False,
 ) -> mujoco.MjModel:
-    """``hands=True`` adds the 14 Dex3 finger hinges and position servos (actuators 29-42).
+    """``touch=True`` (with hands) adds the touch-sensor sites of ``_add_touch_sensors``.
+
+    ``hands=True`` adds the 14 Dex3 finger hinges and position servos (actuators 29-42).
 
     The default model is unchanged. Rule 3 class of the hands: physically justified
     calibration (Unitree's own joints, limits and servo gains; armature assumed).
@@ -170,6 +221,8 @@ def build_mobile_g1(
     spec.option.timestep = DT_PHYSICS
     if hands:
         _add_hands(spec)
+        if touch:
+            _add_touch_sensors(spec)
     if head_camera is not None:
         for geom in spec.geoms:  # robot geometry renders the camera's self-filter
             if geom.name != "floor":
@@ -244,6 +297,26 @@ class G1MobileEnv:
         self._odom = np.zeros(3)
         self._last_true = self.true_pose()
         self._bias = float(self.rng.normal(scale=self.noise.gyro_bias_std))
+
+    def touch(self, side: str) -> dict[str, float]:
+        """Normal contact force (N) on each touch-sensing link of one hand; {} if the model has
+        none. The robot's own tactile sensing: no contacted-object identity."""
+        out = {}
+        for link in TOUCH_LINKS:
+            sid = mujoco.mj_name2id(
+                self.model, mujoco.mjtObj.mjOBJ_SENSOR, touch_sensor_name(side, link)
+            )
+            if sid >= 0:
+                out[link] = float(self.data.sensordata[self.model.sensor_adr[sid]])
+        return out
+
+    def localise(self, pose) -> None:
+        """Tell the robot where it is in the plan frame (odometry = ``pose``). A planning copy is
+        reset AT its stance but its odometry starts at zero; the correction measures the hand in
+        the odometry frame, so without this its error was the stance offset (1.1 m) and the first
+        correction step commanded 2.6 rad (W6)."""
+        self._odom = np.asarray(pose, float).copy()
+        self._last_true = self.true_pose()
 
     # -- robot sensing -----------------------------------------------------------------
     def proprioception(self) -> Proprioception:

@@ -20,14 +20,16 @@ import mujoco
 import numpy as np
 
 from dream.robot import g1_wbc
-from dream.robot.g1_correction import correct_reach
+from dream.robot.g1_correction import CORRECTION_TOLERANCE, correct_reach
 from dream.robot.g1_posture import PerceivedBox, PosturePlanner
-from dream.robot.g1_rollout import verify_top_k
+from dream.robot.g1_rollout import Procedure, verify_by_rollout
 from dream.robot.g1_supervisor import SafetyLimits, WholeBodySupervisor
 from dream.robot.wholebody import StopEvent, WBCBackend, WholeBodyTarget
-from dream.tools.reach import Sight
+from dream.tools.reach import PRE_CONTACT_TOLERANCE, Sight
 
 FOOT_FORCE_MIN = 1.0  # N of normal force for a foot to count as in contact
+TOUCH_THRESHOLD = 0.1  # N on the hand's tactile sensors that counts as contact (== g1_mobile's)
+TICK = 0.02  # s, one policy step
 ALIGN_STEPS = 60  # closed-loop alignment steps of ALIGN_DT
 ALIGN_DT = 0.2  # s
 ALIGN_POS, ALIGN_YAW, ALIGN_GAIN = 0.03, 0.05, 0.8
@@ -183,15 +185,35 @@ class G1ReachBody:
         """``plan``'s posture with the hand at ``point`` (a pre-contact pose), or None."""
         return self.planner.retarget(plan, point, perceived(obstacles), approach_axis=approach)
 
-    def verify(self, plans, obstacles):
+    def verify(self, plans, obstacles, pre=None, approach=None):
+        """Closed-loop rollouts of ``plans`` on planning copies (see dream/robot/g1_rollout.py).
+        With ``pre`` (a pre-contact plan of the same body) the copy runs the real procedure:
+        execute ``pre``, correct it in free air, advance to the plan, correct; without it, the
+        plan is executed and corrected. Returns (first passing plan or None, [(plan, result)])."""
         caps, boxes = self.caps, perceived(obstacles)
 
         def factory(model, stance):
             env = self._env_cls(model, np.random.default_rng(0), head_camera=None)
             env.reset(*stance)
+            env.localise(stance)  # odometry frame = plan frame, as on the real robot
             return WBCBackend(env, self.controller_factory(), caps)
 
-        chosen, tried = verify_top_k(plans, factory, boxes, planning_model=self.planner.pm)
+        chosen, tried = None, []
+        for plan in plans:
+            first = pre or plan
+            stages = [(first, first.target.hands[0].position, PRE_CONTACT_TOLERANCE)]
+            if pre is not None:
+                stages.append((plan, plan.target.hands[0].position, CORRECTION_TOLERANCE))
+            else:
+                stages[0] = (plan, plan.target.hands[0].position, CORRECTION_TOLERANCE)
+            procedure = Procedure(self.planner, stages, approach)
+            r = verify_by_rollout(
+                first.target, factory, boxes, self.planner.pm, self.safety, procedure, plan
+            )
+            tried.append((plan, r))
+            if r.passed:
+                chosen = plan
+                break
         self.last_rollouts = tried
         return chosen, tried
 
@@ -213,6 +235,28 @@ class G1ReachBody:
     def hand_position(self, arm: str) -> np.ndarray:
         row = self.supervisor.measure(self.backend.observe())
         return np.asarray(row[f"ach_hand_{arm}"], float)
+
+    def touch(self, arm: str, seconds: float) -> tuple[float, float]:
+        """Hold the present command still for ``seconds`` while reading the hand's own tactile
+        sensors (simulated Dex3 touch sensors, ``G1MobileEnv.touch``). Returns the longest
+        unbroken contact in seconds and the peak total force in N. The supervisor keeps
+        monitoring: a stop ends the hold (and is held, as everywhere)."""
+        c, cmd = self.controller, self.backend.command()
+        run = best = 0
+        peak = 0.0
+        for _ in range(round(seconds / TICK)):
+            c.set_command(0.0, 0.0, 0.0)
+            c.set_posture(cmd.height, cmd.rpy)
+            c.arm_target = np.array(cmd.arm, float)
+            self.env.step(c)
+            force = float(sum(self.env.touch(arm).values()))
+            run = run + 1 if force >= TOUCH_THRESHOLD else 0
+            best, peak = max(best, run), max(peak, force)
+            event = self.supervisor(self.backend.observe())
+            if event is not None:
+                self.backend.hold(event)
+                break
+        return best * TICK, peak
 
     def recover(self) -> bool:
         """Return to the nominal posture. After a protective stop: the supervisor's validated

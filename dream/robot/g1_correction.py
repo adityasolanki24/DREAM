@@ -11,6 +11,16 @@ backend under the supervisor. At most ``MAX_ITERATIONS`` corrections; it stops w
 does not reduce the error, when the IK or the capabilities refuse, or on a protective stop.
 Every iteration is recorded in ``ExecutionReport.iterations``.
 
+TORQUE-AWARE STEPS (W6). In W5 most protective stops were torque stops DURING correction (peaks
+1.0-1.32 of the actuator limit against a static estimate of 0.27-0.45): each correction moved the
+arm by the IK step without regard to the load the arm already carried. Now the measured ratio
+(the largest requested-torque / actuator-limit over the joints, at this tick) is used: the
+predicted ratio after a step is the measured one plus the change of the static gravity-torque
+ratio between the measured and the new posture, and the step is scaled by the largest
+``alpha`` in (0, 1] that keeps the prediction at or below ``TORQUE_SOFT``. If even the smallest
+step would exceed it, the correction ends with action ``torque_limited`` (reported, not
+executed) instead of running into the supervisor's stop.
+
 Success is not decided here: the evaluator pre-registers its own threshold.
 """
 
@@ -20,7 +30,7 @@ from dataclasses import replace
 
 import numpy as np
 
-from dream.robot.g1_posture import PosturePlan, PosturePlanner
+from dream.robot.g1_posture import PosturePlan, PosturePlanner, static_torque_ratio
 from dream.robot.g1_supervisor import WholeBodySupervisor
 from dream.robot.wholebody import ExecutionReport, WholeBodyTarget
 
@@ -29,6 +39,9 @@ from dream.robot.wholebody import ExecutionReport, WholeBodyTarget
 CORRECTION_TOLERANCE = 0.01  # m
 MAX_ITERATIONS = 3
 MIN_IMPROVEMENT = 0.001  # m
+TORQUE_SOFT = 0.8  # fraction of the actuator limit a correction step may be predicted to reach
+# (below the supervisor's stop at 1.0 and the rollout gate's 0.9; an assumption, not calibrated)
+ALPHAS = (1.0, 0.7, 0.5, 0.3, 0.15)  # step scalings tried, largest first
 
 
 def correct_reach(
@@ -90,6 +103,25 @@ def correct_reach(
             break
         qadr = planner.pm.qadr
         arm_meas = np.asarray(obs.prop.q)[15:29]
+        measured_ratio = float(row.get("torque_ratio", 0.0))
+        base_static = static_torque_ratio(planner.pm, q0)
+        alpha = None
+        for a in ALPHAS:
+            q_a = q0.copy()
+            q_a[qadr] = q0[qadr] + a * (q_new[qadr] - q0[qadr])
+            predicted = measured_ratio + static_torque_ratio(planner.pm, q_a) - base_static
+            if predicted <= TORQUE_SOFT or predicted <= measured_ratio:
+                alpha = a
+                break
+        it["torque_measured"], it["torque_joint"] = measured_ratio, int(row.get("torque_joint", 0))
+        if alpha is None:
+            it["action"] = "torque_limited"
+            break
+        if alpha < 1.0:
+            it["step_scale"] = alpha
+            q_new = q0.copy()
+            q_new[qadr] = q_a
+            q_new[0:7] = q0[0:7]
         s0 = planner.pm.kinematic_state(obs.prop.quat, obs.prop.q)
         s1 = planner.pm.kinematic_state(q_new[3:7], q_new[7:36])
         # Legs are held at their measured values, so the pelvis height command stays as
