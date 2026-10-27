@@ -1,0 +1,26 @@
+{
+ "incidents": [
+  {
+   "when": "2026-10-26 about 22:00-22:10 local",
+   "what": "C: drive 100% full (unrelated runaway logs, cleaned by the coordinator). The sonic_envelope driver got OSError 28 (No space left on device) while writing a trial.",
+   "checked": "all 121 trial files present at 22:15 parsed as JSON with every required key (condition, seed, criteria, criteria_kneel_support, extras, plan, reports, nominal, latency_ms); no 'error' (exception) trials.",
+   "affected_trials": [
+    "push_h0.50_left_40N_s20 (0-byte file, quarantined to results/sonic_envelope/quarantine/)"
+   ],
+   "driver": "the driver process was no longer running at 22:15 (it died with or after the incident); restarted with the same frozen config, it skips the existing valid trials and reruns the missing one and the rest. No config or code change.",
+   "driver_log_before_restart": "results/sonic_envelope/quarantine/driver_before_restart.log"
+  },
+  {
+   "when": "2026-10-26 about 22:26",
+   "what": "Coordinator reported two sonic_envelope.py processes (relative-path pair 2088/18792 and absolute-path pair 3724/4384).",
+   "finding": "Only one driver exists (launcher 2088 -> python 18792, started 22:15:26 after the disk incident). The absolute-path processes are that driver's own per-trial subprocess (--one <cell> <seed>, launched with sys.executable and __file__), a launcher+child pair per trial that exits when the trial ends (at 22:26 it was 12864/29140 for push_h0.40_left_20N s24). No second driver was running, nothing was killed, no trial was written by two writers; trial files are unique per (cell, seed) and are written once.",
+   "action": "none; duplicates check: trial file names unique, all parse."
+  },
+  {
+   "when": "2026-10-27 12:11",
+   "what": "Coordinator asked for a re-check after an API rate-limit stop and a restart of exactly one driver.",
+   "finding": "The post-incident driver had already finished all 205 trials and written summary.json/envelope.json before the stop; no sonic_envelope.py process was alive (0 found), so nothing was restarted. Final check: 205 trial files, 205 unique (cell, seed) keys, all valid JSON with all keys, file name equals content, no 'error' trials, no duplicates. The only damaged file of the whole run was the 0-byte push_h0.50_left_40N_s20 from the disk-full window (quarantined, rerun under the same frozen config). Two 'No space left on device' lines remain in driver.log from that window.",
+   "action": "none"
+  }
+ ]
+}

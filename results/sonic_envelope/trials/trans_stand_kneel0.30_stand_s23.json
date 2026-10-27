@@ -1,0 +1,277 @@
+{
+ "condition": {
+  "arm_rate": null,
+  "name": "trans_stand_kneel0.30_stand",
+  "kind": "transition",
+  "arms": "planner",
+  "segments": [
+   {
+    "height": 0.3,
+    "rpy": [
+     0,
+     0,
+     0
+    ]
+   }
+  ],
+  "cycles": 1,
+  "push": null
+ },
+ "seed": 23,
+ "collapse_stop": {
+  "stopped": null,
+  "contact": null
+ },
+ "nominal": {
+  "z": 0.7872419541037563,
+  "rpy_waist": [
+   0.01763042081642457,
+   0.0039718807913805805,
+   0.013886039002315165
+  ],
+  "rpy_world": [
+   0.011370638898169442,
+   0.01895866438809619,
+   0.013862451939610493
+  ],
+  "feet_xy": [
+   [
+    -0.050111992343158995,
+    0.12361421801450688
+   ],
+   [
+    -0.04506956498831699,
+    -0.09366410009659142
+   ]
+  ]
+ },
+ "plan": [
+  {
+   "seg": "0:0",
+   "ramp_s": 2.54,
+   "hold_s": 4.0,
+   "cmd": {
+    "height": 0.3,
+    "rpy": [
+     0,
+     0,
+     0
+    ]
+   },
+   "done": true
+  },
+  {
+   "seg": "0:back",
+   "ramp_s": 2.4800000000000004,
+   "hold_s": 3.0,
+   "cmd": {
+    "height": 0.74,
+    "rpy": [
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "done": true
+  }
+ ],
+ "push_window": [],
+ "criteria": {
+  "tilt_latch": null,
+  "undesired_ground_contact": {
+   "max_continuous_s": 0.0,
+   "total_s": 0.0,
+   "bodies": []
+  },
+  "foot_support": {
+   "max_continuous_s": 0.32,
+   "total_s": 0.68
+  },
+  "joint_limit": {
+   "total_s": 0.24,
+   "joints": [
+    "left_ankle_pitch_joint",
+    "right_ankle_pitch_joint"
+   ]
+  },
+  "com_margin": {
+   "min_m": -0.10997225045193981
+  },
+  "torque_ratio": {
+   "legs": 1.0,
+   "waist": 0.4181488020728636,
+   "arms": 0.4198940539156783
+  },
+  "height_error_max": 0.11190164200322167,
+  "rpy_waist_error_commanded_max": 0.0,
+  "feet_slip_max_m": 0.34566625411769686,
+  "push_recovery_s": null,
+  "return": {
+   "height_error": -8.427437124236548e-05,
+   "rpy_waist_error": 0.00921189002099759
+  },
+  "segments": [
+   {
+    "seg": "0:0",
+    "back": false,
+    "height_cmd": 0.3,
+    "height_achieved": 0.41190164200322166,
+    "height_error": 0.11190164200322167,
+    "rpy_cmd": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "rpy_waist_achieved": [
+     -0.008057808500129588,
+     0.026791458296924076,
+     -0.14764110013423024
+    ],
+    "rpy_waist_error": [
+     -0.008057808500129588,
+     0.026791458296924076,
+     -0.14764110013423024
+    ],
+    "rpy_waist_error_commanded_max": 0.0,
+    "rpy_world_achieved": [
+     -0.0642274535649919,
+     0.03130257370738856,
+     -0.14892278393814792
+    ]
+   },
+   {
+    "seg": "0:back",
+    "back": true,
+    "height_cmd": 0.74,
+    "height_achieved": 0.7871576797325139,
+    "height_error": 0.047157679732513946,
+    "rpy_cmd": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "rpy_waist_achieved": [
+     0.008961555655017965,
+     0.006800563941246265,
+     0.004674148981317575
+    ],
+    "rpy_waist_error": [
+     0.008961555655017965,
+     0.006800563941246265,
+     0.004674148981317575
+    ],
+    "rpy_waist_error_commanded_max": 0.0,
+    "rpy_world_achieved": [
+     0.008272355609816935,
+     0.021555265037275215,
+     0.004669969553894376
+    ]
+   }
+  ],
+  "arm_motion": null,
+  "fails": [
+   "foot_support_loss",
+   "height_tracking",
+   "joint_limit_contact",
+   "com_margin",
+   "torque_ratio",
+   "feet_slip"
+  ],
+  "stable": false
+ },
+ "criteria_kneel_support": {
+  "fails": [
+   "foot_support_loss",
+   "height_tracking",
+   "joint_limit_contact",
+   "com_margin",
+   "torque_ratio",
+   "feet_slip"
+  ],
+  "stable": false
+ },
+ "extras": {
+  "intended_knee_contact": {
+   "max_continuous_s": 5.8,
+   "total_s": 5.8,
+   "bodies_note": "knee links, recorded only while a kneel segment is active"
+  },
+  "tilt_max_rad": 0.21126236467383935,
+  "pelvis_z_final": 0.7871729955874611,
+  "reference": {}
+ },
+ "reports": [
+  {
+   "requested": {
+    "height": 0.74,
+    "rpy": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "kind": "posture",
+    "mode": "idle",
+    "planner_height": -1.0
+   },
+   "completed": true,
+   "refused": null,
+   "stops": [],
+   "ticks": 124
+  },
+  {
+   "requested": {
+    "height": 0.3,
+    "rpy": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "kind": "posture",
+    "mode": "kneelTwoLeg",
+    "planner_height": 0.3
+   },
+   "completed": true,
+   "refused": null,
+   "stops": [],
+   "ticks": 127
+  },
+  {
+   "requested": {
+    "height": 0.74,
+    "rpy": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "kind": "posture",
+    "mode": "idle",
+    "planner_height": -1.0
+   },
+   "completed": true,
+   "refused": null,
+   "stops": [],
+   "ticks": 124
+  }
+ ],
+ "latency_ms": {
+  "encoder": {
+   "n": 824,
+   "mean_ms": 3.51000885933617,
+   "p95_ms": 4.619269999966488,
+   "max_ms": 32.773399994766805
+  },
+  "decoder": {
+   "n": 824,
+   "mean_ms": 2.6411919902740424,
+   "p95_ms": 3.42208999536524,
+   "max_ms": 16.415099998994265
+  },
+  "planner": {
+   "n": 3,
+   "mean_ms": 135.90123332930185,
+   "p95_ms": 148.95286999744712,
+   "max_ms": 150.94549999776063
+  }
+ },
+ "wall_s": 18.831157684326172
+}
