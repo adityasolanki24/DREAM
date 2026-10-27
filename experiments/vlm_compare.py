@@ -67,7 +67,7 @@ def make_backend(args):
         return OpenAICompatibleBackend(args.base_url, timeout_s=120.0)
     from dream.runtime.qwen import QwenTransformersBackend
 
-    return QwenTransformersBackend()
+    return QwenTransformersBackend(device=args.device, timeout_s=180.0)
 
 
 def classify(action, scene):
@@ -96,6 +96,8 @@ def main():
     ap.add_argument("--model", default="gpt-6.1-sol")
     ap.add_argument("--base-url")
     ap.add_argument("--tag")
+    ap.add_argument("--device", default="cuda")
+    ap.add_argument("--out", type=pathlib.Path, default=OUT)
     args = ap.parse_args()
     cfg = json.loads((OUT / "decisions.json").read_text())
     backend = make_backend(args)
@@ -141,9 +143,10 @@ def main():
         "by_category": {c: {"n": sum(r["category"] == c for r in rows),
                             "correct": sum(r["correct"] for r in rows if r["category"] == c)}
                         for c in sorted({r["category"] for r in rows})}}
-    tag = args.tag or args.backend + ("-" + args.model if args.backend == "gpt" else "")
-    (OUT / f"run_{tag}.json").write_text(json.dumps({"summary": summary, "rows": rows}, indent=1,
-                                                    default=str))
+    tag = args.tag or (args.backend if args.backend != "gpt" else "gpt-" + args.model)
+    args.out.mkdir(parents=True, exist_ok=True)
+    payload = json.dumps({"summary": summary, "rows": rows}, indent=1, default=str)
+    (args.out / f"run_{tag}.json").write_text(payload)
     print(json.dumps(summary, indent=1, default=str))
 
 

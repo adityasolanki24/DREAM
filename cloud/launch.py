@@ -37,12 +37,13 @@ WORKLOAD_CONFIGS = {
     "molmo-closedloop": ROOT / "experiments/configs/cloud_molmo_closedloop.json",
     "isaac-t1-walk": ROOT / "experiments/configs/cloud_isaac_t1_walk.json",
     "isaac-t1-stand": ROOT / "experiments/configs/cloud_isaac_t1_stand.json",
+    "vlm-compare": ROOT / "experiments/configs/cloud_vlm_compare.json",
 }
 
 
 def run_destination(workload: str, name: str) -> Path:
     """Retrieve recorded jobs outside Git/OneDrive; retain old recovery locations."""
-    if workload in ("g1-autonomy", "g1-qwen"):
+    if workload in ("g1-autonomy", "g1-qwen", "vlm-compare"):
         root = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "DREAM/cloud_runs"
         destination = (root / name).resolve()
         if destination.is_relative_to(ROOT.resolve()) or any(
@@ -469,6 +470,14 @@ def check_pilot(out: Path, workload: str = "qwen-pilot") -> None:
         if actions.shape != (15, 8) or not np.isfinite(actions).all():
             raise RuntimeError("saved action tensor is invalid")
         return
+    if workload == "vlm-compare":
+        path = out / "vlm/run_qwen-local.json"
+        if not path.is_file():
+            raise RuntimeError("VLM comparison run JSON missing")
+        summary = json.loads(path.read_text())["summary"]
+        if summary.get("n_attempted") != summary.get("n_planned"):
+            raise RuntimeError("VLM comparison did not attempt every planned decision")
+        return
     if workload != "qwen-pilot":
         raise ValueError("unsupported workload")
     path = out / "pilot/summary.json"
@@ -857,9 +866,11 @@ def _launch(p: dict, allowance: float) -> None:
                     "README.md",
                     "AGENTS.md",
                 ]
-                if p.get("workload") in ("g1-qwen", "g1-autonomy", "groot-openloop")
+                if p.get("workload") in ("g1-qwen", "g1-autonomy", "groot-openloop", "vlm-compare")
                 else []
             )
+            if p.get("workload") == "vlm-compare":
+                paths.append("results/phase1_vlm_compare")  # fixed frames + pre-registered set
             git("archive", "--format=tar.gz", "-o", str(archive), "HEAD", *paths)
             checksum = hashlib.sha256(archive.read_bytes()).hexdigest()
             gcloud("storage", "cp", str(archive), f"gs://{p['bucket']}/code.tar.gz")

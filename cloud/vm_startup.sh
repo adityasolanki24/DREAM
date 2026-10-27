@@ -103,6 +103,8 @@ case "$WORKLOAD" in
   g1-autonomy)
     timeout --signal=TERM --kill-after=30s "${LEFT}s" \
       python -m experiments.cloud_g1_qwen --config experiments/configs/g1_autonomy_frozen.json --out /work/out/g1 ;;
+  vlm-compare)
+    timeout --signal=TERM --kill-after=30s "${LEFT}s" \n      python experiments/vlm_compare.py qwen-local --device cuda --out /work/out/vlm ;;
   qwen-pilot)
     timeout --signal=TERM --kill-after=30s "${LEFT}s" \
       python experiments/cloud_qwen_pilot.py --out /work/out/pilot ;;
