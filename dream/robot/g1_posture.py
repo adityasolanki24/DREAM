@@ -82,6 +82,7 @@ W_COM = 1.0
 W_JOINT = 1.0
 W_TORQUE = 1.0  # per unit of static gravity-torque ratio
 W_RESIDUAL = 0.5  # per hand-tolerance of residual
+W_AXIS = 0.5  # per rad between the finger direction and the preferred approach axis
 TURN_TO_METRES = 0.3
 
 # IK task costs (mink convention: residual weight), documented in the module docstring.
@@ -437,6 +438,22 @@ class PlanningModel:
                 out.append((a_ok, b_ok))
         return out
 
+    def shoulder_pairs(self) -> list[tuple[list[int], list[int]]]:
+        """Shoulder links against the torso. At the nominal pose they sit 8-10 mm from it (within
+        ``MIN_CLEARANCE``), so ``self_pairs`` drops them as "adjacent by construction"; but the IK
+        was then free to adduct the arm INTO the torso and the controller's PD pressed the
+        shoulder-yaw link on it with about 70 N (W6: rollouts stopped on shoulder-roll torque of
+        1.1-1.5 of the limit against a static estimate of 0.25). They are limited at zero
+        distance instead."""
+        torso = self._geoms("torso_link")
+        links = [
+            g
+            for s in ARMS
+            for b in ("shoulder_pitch", "shoulder_roll", "shoulder_yaw")
+            for g in self._geoms(f"{s}_{b}_link")
+        ]
+        return [(links, torso)]
+
     def kinematic_state(self, quat, q_body, feet_contact=(True, True)) -> dict:
         """Robot-frame state from the robot's own sensors (IMU quaternion, 29 joint encoders):
         pelvis height above the lowest sole, torso rpy, hand grip points and CoM relative to the
@@ -481,17 +498,38 @@ class PlanningModel:
             raise ValueError(f"at most {N_OBSTACLE_SLOTS} perceived boxes are supported")
         m = self.model
         m.geom_pos[self.slot_geoms] = FAR
+        m.geom_size[self.slot_geoms] = 0.1
+        m.geom_rbound[self.slot_geoms] = math.sqrt(3) * 0.1
+        m.geom_aabb[self.slot_geoms] = [0.0, 0.0, 0.0, 0.1, 0.1, 0.1]
         used = []
         for gid, b in zip(self.slot_geoms, boxes, strict=False):
+            half, yaw = canonical_box(b.half_extents, b.yaw)
             m.geom_pos[gid] = b.center
-            m.geom_size[gid] = np.asarray(b.half_extents) + PERCEPTION_MARGIN
-            m.geom_quat[gid] = [math.cos(b.yaw / 2), 0, 0, math.sin(b.yaw / 2)]
+            m.geom_size[gid] = np.asarray(half) + PERCEPTION_MARGIN
+            m.geom_quat[gid] = [math.cos(yaw / 2), 0, 0, math.sin(yaw / 2)]
+            # MuJoCo does not refresh the bounding volumes when a size is edited at run time
+            m.geom_rbound[gid] = float(np.linalg.norm(m.geom_size[gid]))
+            m.geom_aabb[gid] = [0.0, 0.0, 0.0, *m.geom_size[gid]]
             used.append(gid)
         return used
 
 
 # ---------------------------------------------------------------------------------------------
 # Geometry helpers
+
+
+def canonical_box(half, yaw: float) -> tuple[tuple[float, float, float], float]:
+    """The same box with its shorter horizontal half extent along local x.
+
+    mj_geomDistance between the robot's convex meshes and a box returned DIFFERENT clearances for
+    the same box described with x and y swapped (and the yaw turned a quarter circle): measured on
+    W5 held-out s5008/5009/5010/5020, where the perceived fixture (width first) produced
+    zero-candidate plans and the identical box depth-first (the scene's convention) produced 13-17
+    (H3 diagnosis, experiments/g1_reach_h3_diagnosis.py). One convention removes the dependence."""
+    hx, hy, hz = (float(v) for v in half)
+    if hx <= hy:
+        return (hx, hy, hz), float(yaw)
+    return (hy, hx, hz), float(wrap(yaw + math.pi / 2))
 
 
 def _cross2(o, a, b) -> float:
@@ -588,6 +626,7 @@ class PosturePlanner:
         self.config = config or PlannerConfig()
         self.pm = PlanningModel()
         self._self_pairs = self.pm.self_pairs()
+        self._shoulder_pairs = self.pm.shoulder_pairs()
         self.last_timings: list[float] = []  # seconds per evaluated (stance, arm) candidate
 
     # -- candidate generation -----------------------------------------------------------
@@ -640,6 +679,12 @@ class PosturePlanner:
         ]
         if self._self_pairs:
             limits.append(mink.CollisionAvoidanceLimit(m, self._self_pairs, **near))
+        limits.append(
+            mink.CollisionAvoidanceLimit(
+                m, self._shoulder_pairs,
+                minimum_distance_from_collisions=0.0, collision_detection_distance=0.1,
+            )
+        )  # fmt: skip
         limits.append(mink.CollisionAvoidanceLimit(m, [(pm.no_foot, [pm.floor_geom])], **near))
         if boxes_regular or boxes_touch:
             pairs = [(body, boxes_regular + boxes_touch)]
@@ -727,6 +772,8 @@ class PosturePlanner:
 
         for a_set, b_set in self._self_pairs:
             best = min(best, min(dist(a, b) for a in a_set for b in b_set))
+        for a_set, b_set in self._shoulder_pairs:
+            best = min(best, min(dist(a, b) for a in a_set for b in b_set))
         for g in pm.no_foot:
             best = min(best, dist(g, pm.floor_geom))
             for b in boxes_regular:
@@ -736,7 +783,9 @@ class PosturePlanner:
                     best = min(best, dist(g, b))
         return best
 
-    def evaluate(self, q, stance, arm, target, boxes_regular=(), boxes_touch=()):
+    def evaluate(
+        self, q, stance, arm, target, boxes_regular=(), boxes_touch=(), approach_axis=None
+    ):
         """Metrics, torso rpy and failure reasons of a configuration (verifies IK output)."""
         pm, m, caps = self.pm, self.pm.model, self.caps
         d = pm.data_at(q)
@@ -772,7 +821,13 @@ class PosturePlanner:
             "deviation": deviation,
             "pelvis_height": height,
             "pelvis_tilt": float(math.acos(np.clip(z_pelvis, -1, 1))),
+            "axis_error": 0.0,
         }
+        if approach_axis is not None:
+            want = np.asarray(approach_axis, float)
+            finger = d.site_xmat[m.site(f"{arm}_grip").id].reshape(3, 3)[:, 0]
+            cosine = float(finger @ want / np.linalg.norm(want))
+            metrics["axis_error"] = float(math.acos(np.clip(cosine, -1, 1)))
         reasons = []
         if metrics["hand_residual"] > HAND_TOLERANCE:
             reasons.append("hand_residual")
@@ -799,6 +854,7 @@ class PosturePlanner:
             + W_JOINT * max(0.0, JOINT_COMFORT - m["joint_margin"]) / JOINT_COMFORT
             + W_TORQUE * m["torque_ratio"]
             + W_RESIDUAL * m["hand_residual"] / HAND_TOLERANCE
+            + W_AXIS * m.get("axis_error", 0.0)
         )
 
     def _q_start(self, stance) -> np.ndarray:
@@ -870,7 +926,19 @@ class PosturePlanner:
         )
         if q is None:
             return None
-        metrics, rpy, reasons = self.evaluate(q, plan.stance, plan.arm, pt, regular, touch)
+        metrics, rpy, reasons = self.evaluate(
+            q, plan.stance, plan.arm, pt, regular, touch, approach_axis
+        )
+        if reasons and approach_axis is not None:
+            q = self.refine(
+                plan.target.q, plan.stance, plan.arm, pt, boxes, None, iterations=iterations,
+                hold_waist=True,
+            )
+            if q is None:
+                return None
+            metrics, rpy, reasons = self.evaluate(
+                q, plan.stance, plan.arm, pt, regular, touch, approach_axis
+            )
         if reasons:
             return None
         metrics["walk"] = plan.metrics.get("walk", 0.0)
@@ -935,7 +1003,21 @@ class PosturePlanner:
                     result.failures.append(PlanFailure(stance, arm, ("solver",), {}))
                     self.last_timings.append(time.perf_counter() - t0)
                     continue
-                metrics, rpy, reasons = self.evaluate(q, stance, arm, target, regular, touch)
+                metrics, rpy, reasons = self.evaluate(
+                    q, stance, arm, target, regular, touch, approach_axis
+                )
+                metrics["axis_relaxed"] = 0.0
+                if reasons and approach_axis is not None:
+                    # The approach axis is a preference, not a requirement: a candidate that
+                    # only fails because of it is tried again without it (H3: low targets).
+                    q2 = self._ik(self._q_start(stance), stance, arm, target, None, limits)
+                    if q2 is not None:
+                        m2, rpy2, reasons2 = self.evaluate(
+                            q2, stance, arm, target, regular, touch, approach_axis
+                        )
+                        if not reasons2:
+                            q, metrics, rpy, reasons = q2, m2, rpy2, reasons2
+                            metrics["axis_relaxed"] = 1.0
                 walk = self._walk(robot_pose, stance)
                 metrics["walk"] = walk
                 metrics["target_sigma"] = sigma
