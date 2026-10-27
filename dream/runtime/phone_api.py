@@ -87,7 +87,21 @@ def ag_ui_events(events: list[dict], after: int) -> dict:
                 }
             ]
         elif kind in ("succeeded", "failed", "cancelled", "suspended") and tid in runs:
-            translated = [{"type": "RUN_FINISHED", "threadId": tid, "runId": runs.pop(tid)}]
+            run = runs.pop(tid)
+            reason = event.get("reason")
+            if kind == "failed":
+                translated = [
+                    {"type": "RUN_ERROR", "message": str(reason), "code": "failed", "runId": run}
+                ]
+            else:  # "succeeded" is the runtime's claim, not an independent verification
+                translated = [
+                    {
+                        "type": "RUN_FINISHED",
+                        "threadId": tid,
+                        "runId": run,
+                        "result": {"state": kind, "reason": reason},
+                    }
+                ]
         else:
             translated = [{"type": "CUSTOM", "name": "dream.scheduler", "value": event}]
         if n > after:

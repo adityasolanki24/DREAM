@@ -116,3 +116,14 @@ def test_ag_ui_maps_real_events_and_keeps_cursor(api):
     tail = call(api, "GET", "/ag-ui/events?after=2")[1]
     assert tail["cursor"] == 4 and tail["events"][0]["type"] == "TOOL_CALL_RESULT"
     assert call(api, "GET", "/ag-ui/events", token=None)[0] == 401
+
+
+def test_ag_ui_run_end_keeps_the_real_outcome(api):
+    for tid, state in (("a", "cancelled"), ("b", "failed"), ("c", "succeeded")):
+        api.notify("started", {"id": tid})
+        api.notify(state, {"id": tid, "reason": f"{state} reason"})
+    events = call(api, "GET", "/ag-ui/events?after=0")[1]["events"]
+    ends = [e for e in events if e["type"] in ("RUN_FINISHED", "RUN_ERROR")]
+    assert [e["type"] for e in ends] == ["RUN_FINISHED", "RUN_ERROR", "RUN_FINISHED"]
+    assert ends[0]["result"] == {"state": "cancelled", "reason": "cancelled reason"}
+    assert ends[1]["message"] == "failed reason" and ends[2]["result"]["state"] == "succeeded"
