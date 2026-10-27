@@ -172,9 +172,8 @@ C9 Integration gating. Parallel work builds interfaces; integration (W5) starts 
 W1-W4: initial command-channel/envelope, unified embodiment, planner/supervisor and SONIC work
 are recorded in `handoff/CODEX_HANDOFF.md`; its claims remain subject to independent verification.
 W5: the v1 unfamiliar-height reach evaluation ran; preserve its frozen record and do not rescore it.
-W6: general corrections and protocol v2 are in progress. Follow D15: independent read-only audit,
-resolve the scoring/provenance and low-height reference questions, then complete development evidence
-before freeze review. The v2 protocol is not yet frozen.
+W6: step 5 development runs are complete; development review and diagnostics continue under D19.
+Protocol v2 is not frozen. Decisions D15-D18 and their historical evidence remain recorded below.
 W7: contact-only Dex3 grasp on the unified hand (D12), after the required reach work.
 W8: retire `experiments/isaac_task.py` to a labelled scripted baseline (D9); update README status
 with owner approval as specified in the handoff.
@@ -217,3 +216,20 @@ development diagnostic evidence. Rerun all 60 development agent and baseline epi
 truth-input diagnostics for agent physical failures in `results/g1_reach_heights_v2_dev_strict_height`,
 without copying pre-fix episode or reference caches. Review the results before freeze; D17's
 sequential execution and held-out gate remain binding.
+
+
+**D19 - development review decision.** W6 step 5 completed at `5f9add2` with 60 agent,
+60 baseline and 29 truth-input diagnostic episodes, and full truth-input union coverage. Preserve
+`results/g1_reach_heights_v2_dev_strict_height/summary.json`, `attribution.json`, and
+`development_review.json` with the underlying results. The off-band success and correct-refusal
+gates failed, and the slow correction test remains unresolved; there is no freeze or held-out go.
+
+First diagnose the measured rollback/error contract: the slow test reports 24.2 mm before and
+38.1 mm after an undo reported complete, which does not establish restoration of measured state.
+Its pre-existing status is not proven. Then investigate finite-reference disagreements for
+`dev_v1ho_s5012`, `dev_h1.10_L1_s101`, and `dev_v1ho_s5023`, and refusal failures; then investigate
+the tactile/evaluator claim mismatch. Treat these as diagnostics until evidence supports a testable
+hypothesis and regression before any correction. Do not advance to W7 before this review. Source
+changes require a later rerun policy decided case by case. W5 and W6 use different success definitions;
+do not claim same-metric improvement from their comparison. Preserve fresh held-out seeds 6000-6023
+untouched until a separate freeze and explicit go.
