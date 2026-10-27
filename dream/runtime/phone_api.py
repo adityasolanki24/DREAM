@@ -148,6 +148,7 @@ class PhoneAPI:
         self.web_root = web_root
         self.provider = provider
         self.events: list[dict] = []
+        self._stream_id = secrets.token_hex(16)
         self._event_number = 0
         self._lock = threading.Lock()
 
@@ -200,7 +201,7 @@ class PhoneAPI:
             if method == "GET" and path == ["ag-ui", "events"]:
                 after = int(parse_qs(parts.query).get("after", ["0"])[0])
                 with self._lock:
-                    return 200, ag_ui_events(self.events, after)
+                    return 200, {**ag_ui_events(self.events, after), "stream_id": self._stream_id}
             if method == "GET" and path == ["memory"] and self.memory_query:
                 label = parse_qs(parts.query).get("label", [""])[0]
                 return 200, self.memory_query(label)

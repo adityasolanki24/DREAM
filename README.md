@@ -1245,6 +1245,7 @@ generalisation claim beyond the stated evaluation.
 | Explore only when needed (Tests E/F) | **Held-out: all gates pass, 20/20 scenes** | `results/compartment_experience` |
 | Hydra scene graph (Spark-DSG) | Hydra's own data structure integrated; Hydra's online pipeline not run | `dream/memory/scene_graph.py` |
 | Task scheduler + phone API | **Test D passes 3/3 on fresh rooms** (after a validator fix and an evaluator fix, both disclosed) | `results/g1_interruption_demo*` |
+| Agent interface | Local development interface tested with the simulated G1 and structured goals; no held-out usability evaluation | `web/`, `results/phase1_interface` |
 | RTAB-Map | G1 sensor stream to ROS 2 bag to official rtabmap_ros on the VM; first replay received no frames (TF QoS); fixed, not rerun | `experiments/rtabmap_eval.py` |
 | nvblox, HOV-SG, ConceptGraphs, BT.ROS2 | Audited (pins, licences, runtime needs); not run | `experiments/configs/integration_sources.json` |
 | SuperMap | **No code published** upstream ("released after RSS"), no licence | same |
@@ -1337,7 +1338,42 @@ suspended one resumes from its checkpoint after observing afresh. Cancellation i
 immediately and takes effect at a safe boundary; a task left "running" by a crash restarts as
 suspended. `phone_api.py` serves a token-authenticated HTTP API and phone page on localhost
 (`experiments/phone_session.py` runs it live with the simulated G1); control goes only through
-the scheduler. Voice and BehaviorTree.CPP trees inside a task are not implemented.
+the scheduler. BehaviorTree.CPP trees inside a task are not implemented.
+
+**Agent interface (local development).** The responsive interface in `web/` uses the existing
+scheduler and authenticated phone API; it does not send motor commands. The default structured
+planner accepts the supported goal forms `inspect cabinet` and `goto <place>`, not arbitrary
+natural language. From the repository root, after installing the project and its `demo` extra, run:
+
+```powershell
+Set-Location web
+npm ci
+npm run build:export
+Set-Location ..
+.venv/Scripts/python.exe -m experiments.phase1_interface --seed 4100
+```
+
+Open `http://127.0.0.1:8765/` on the same machine and enter the token in
+`%LOCALAPPDATA%/DREAM/phone_token`. The token is held in session storage and the service binds
+to localhost; phone access needs a separately secured connection. The camera and map update
+when tools observe, and map odometry is oracle-assisted. Home memory is read-only and requires
+`--memory` pointing to an existing database. Browser speech input depends on Web Speech API
+availability and permissions; typing remains available. Notifications require browser permission.
+The execution graph is observed tool order, and task success is the runtime report rather than
+an independent physical verification. Configured model providers are separate from the default
+structured parser and require their own credentials or server. Its styling follows Orbit frontend
+revision `f73adf3ea64182d1df86935db0760f110cee381e`. Next.js, React, AG-UI, Radix UI
+and React Flow are MIT licensed; lucide-react is ISC licensed. The interface uses the existing
+AG-UI adapter; CopilotKit is not integrated because its supported open-source route requires
+a separate Node runtime bridge.
+
+Local checks: nine frontend unit tests, TypeScript and static export pass. A headless Edge run
+against the CPU simulation (seed 4100) verified authentication, an executed tool step followed by
+pause, resume and cancellation of the submitted task, graph and navigation, phone layout and
+draft retention, and offline recovery. Viewports were 1440×900 and 390×844. The focused backend
+suite passed 26 tests before a formatting-only change to its phone test; all ten phone tests passed
+afterward. See `results/phase1_interface/review/` and `v2-e2e-final.log` for the receipts.
+Notifications and speech remain browser-dependent and OS notification delivery was not tested.
 
 **Isaac Sim 6.2 (Milestone 4).** NVIDIA's `replicator_kitchen` scenes (five kitchens with real
 hinge/drawer joints, colliders and semantic labels; `l_shape` development, four held out) and

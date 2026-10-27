@@ -1,0 +1,69 @@
+/** Shapes returned by DREAM's authenticated phone API (dream/runtime/phone_api.py). */
+export type Task = {
+  id: string;
+  text: string;
+  state: string;
+  priority: number;
+  created: number;
+  updated: number;
+  result?: string | null;
+  steps: number;
+  suspensions: number;
+};
+
+export type MapData = {
+  cells: number[][];
+  resolution_m: number;
+  origin_m: number[];
+  axes: string;
+  odometry: string;
+};
+
+export type Candidate = {
+  id: number;
+  color?: string;
+  position: number[];
+  extent: number[];
+  views: number;
+};
+
+export type HomeMemory = {
+  available: boolean;
+  source?: string;
+  error?: string;
+  objects?: {
+    id: string;
+    label: string;
+    map_id: string;
+    last_seen: number;
+    position: number[];
+    confidence_at_observation: number;
+    observation_source: string;
+  }[];
+};
+
+export type Snapshot = {
+  provider: string;
+  provider_label: string;
+  provider_choices: { id: string; label: string }[];
+  environment?: string;
+  robot_time_s: number;
+  odometry: number[];
+  stop_reason: string | null;
+  camera: { data_url: string; time_s: number } | null;
+  map: MapData | null;
+  objects: Candidate[];
+  persistent_memory: HomeMemory | null;
+  task_graph: {
+    kind: string;
+    task_id: string;
+    nodes: { id: string; label: string; args: Record<string, unknown> }[];
+    edges: { source: string; target: string }[];
+  } | null;
+  outcome: { state: string; reason: string | null } | null;
+  history: Task[];
+};
+
+export type Status = { running: string | null; robot_time_s?: number; stop_reason?: string | null };
+
+export type Link = 'idle' | 'connecting' | 'online' | 'offline' | 'unauthorised';

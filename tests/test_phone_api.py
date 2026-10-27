@@ -127,3 +127,10 @@ def test_ag_ui_run_end_keeps_the_real_outcome(api):
     assert [e["type"] for e in ends] == ["RUN_FINISHED", "RUN_ERROR", "RUN_FINISHED"]
     assert ends[0]["result"] == {"state": "cancelled", "reason": "cancelled reason"}
     assert ends[1]["message"] == "failed reason" and ends[2]["result"]["state"] == "succeeded"
+
+
+def test_ag_ui_stream_id_is_stable_per_api_and_changes_on_restart(api):
+    first = call(api, "GET", "/ag-ui/events?after=0")[1]["stream_id"]
+    assert first == call(api, "GET", "/ag-ui/events?after=0")[1]["stream_id"]
+    restarted = PhoneAPI(api.scheduler, TOKEN)
+    assert first != call(restarted, "GET", "/ag-ui/events?after=0")[1]["stream_id"]
