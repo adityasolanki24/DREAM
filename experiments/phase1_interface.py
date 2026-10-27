@@ -125,6 +125,7 @@ def make_snapshot(api, scheduler, base, memory, home_path=None):
         else None
     )
     return {
+        "environment": "MuJoCo simulation (Unitree G1)",
         "provider": api.provider,
         "provider_label": api.provider_label,
         "provider_choices": [{"id": api.provider, "label": api.provider_label}],
