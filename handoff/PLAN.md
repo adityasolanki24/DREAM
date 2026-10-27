@@ -118,6 +118,15 @@ D14 Cloud: within the standing authorisation and the US$100 config cap, US$6/ses
    DREAM session at a time while the other session's VM is live; any new spend >US$6 or cap change is
    proposed to the owner first.
 
+D15 W6 continuation decision (overseer, 27 Oct): First perform an independent read-only audit of
+   W6 and its partial outputs. Verify and fix the metadata/scorer semantic and provenance mismatch
+   before trusting or resuming protocol v2; the handoff reports a v1 success definition in v2 metadata,
+   but its cause and scoring implications remain unverified. Preserve existing partial outputs and
+   never silently overwrite them. Resolve the reported reference (i) low-height infeasibility before
+   trusting its labels. Complete the development agent, scripted baseline and truth-input diagnostic
+   labels before freeze review. Do not run fresh held-out seeds 6000-6023 without the overseer's explicit
+   freeze and go. These are decision gates, not findings from the pending audit.
+
 ## 2b. Owner review corrections (binding; supersede anything above that conflicts)
 
 C1 Input bound vs execution envelope. [0.20, 0.74] m is only the controller's INPUT bound (reject
@@ -160,12 +169,17 @@ C9 Integration gating. Parallel work builds interfaces; integration (W5) starts 
 
 ## 3. Execution order (vertical slices)
 
-Now (parallel, disjoint files):
-  W1 WBC command channels + envelope experiment      g1_wbc.py, experiments/g1_wbc_envelope.py
-  W2 Unified 43-DoF embodiment + regression          g1_mobile.py (hands option), tests
-  W3 Mink posture planner + supervisor               dream/robot/g1_posture.py, g1_supervisor.py
-  W4 SONIC / Arena reproduction feasibility + cloud proposal (read-only research)
-Then:
-  W5 Unfamiliar-height reach slice and frozen evaluation (D7, D8), after W1+W3.
-  W6 Contact grasp on the unified hand (D12), after W2+W5.
-  W7 Retire isaac_task.py path to labelled baseline (D9); README status update.
+W1-W4: initial command-channel/envelope, unified embodiment, planner/supervisor and SONIC work
+are recorded in `handoff/CODEX_HANDOFF.md`; its claims remain subject to independent verification.
+W5: the v1 unfamiliar-height reach evaluation ran; preserve its frozen record and do not rescore it.
+W6: general corrections and protocol v2 are in progress. Follow D15: independent read-only audit,
+resolve the scoring/provenance and low-height reference questions, then complete development evidence
+before freeze review. The v2 protocol is not yet frozen.
+W7: contact-only Dex3 grasp on the unified hand (D12), after the required reach work.
+W8: retire `experiments/isaac_task.py` to a labelled scripted baseline (D9); update README status
+with owner approval as specified in the handoff.
+
+Operational constraints for continuation: local free space was observed at about 14 GB; check before
+each batch and pause below 2 GB. Run at most two MuJoCo processes concurrently. Redirect background
+output to bounded logs, print progress lines only and never print arrays in loops. No cloud allocation
+has been made for this continuation; apply D14 and the repository's cloud safeguards before any launch.
