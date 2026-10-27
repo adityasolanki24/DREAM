@@ -107,7 +107,8 @@ class ChatGPTPlanBackend:
             if not resp.ok:
                 self.last_error_body = resp.text[:600]
                 raise RuntimeError(f"Responses HTTP {resp.status_code}: {self.last_error_body}")
-            for line in resp.iter_lines(decode_unicode=True):
+            for raw in resp.iter_lines():
+                line = raw.decode("utf-8") if isinstance(raw, bytes) else raw
                 if self.cancel.is_set():
                     raise RuntimeError("inference cancelled")
                 if not line or not line.startswith("data:"):
