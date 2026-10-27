@@ -5,6 +5,12 @@ import pytest
 from cloud import launch
 
 
+def test_vlm_compare_startup_command_uses_shell_line_continuation():
+    startup = (launch.ROOT / "cloud/vm_startup.sh").read_text()
+    command = startup.split("  vlm-compare)\n", 1)[1].split(" ;;", 1)[0]
+    assert '"${LEFT}s" \\\n      python experiments/vlm_compare.py qwen-local' in command
+
+
 def test_vlm_compare_workload_is_whitelisted_and_under_ceiling():
     cfg = json.loads(launch.WORKLOAD_CONFIGS["vlm-compare"].read_text())
     p = launch.plan("nerva-adityapersonal", cfg, "dream-qwen-20261028-000000-abcdef")
