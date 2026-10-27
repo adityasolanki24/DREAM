@@ -183,3 +183,25 @@ Operational constraints for continuation: local free space was observed at about
 each batch and pause below 2 GB. Run at most two MuJoCo processes concurrently. Redirect background
 output to bounded logs, print progress lines only and never print arrays in loops. No cloud allocation
 has been made for this continuation; apply D14 and the repository's cloud safeguards before any launch.
+
+## W6 continuation decisions
+
+**D16 — scoring and provenance.** The evaluator actually uses contact mode, with 0.3 s
+unbroken hand-handle contact and a 25 N peak-force limit. The old distance description in
+`success_definition` is stale descriptive metadata, not the scoring path. Preserve the original
+14 agent episodes, 14 reference records and original metadata unchanged. Continue in
+`results/g1_reach_heights_v2_dev_continuation`, reusing those episodes only through a manifest
+recording source and destination SHA-256 checksums, original metadata and configuration hash,
+and why scoring remains unchanged. The runner generates new launch metadata normally. Reference
+(i) and (ii) are finite-search operational labels, not proof of impossibility; report their
+disagreements and incomplete coverage. The scripted baseline uses a different success-claim
+rule from the agent despite the shared evaluator and sensors; disclose this in comparisons.
+For label (ii), truth-input diagnostics on every agent physical failure plus agent physical
+successes cover all 60 scenes by the implemented union; assert coverage before reporting.
+
+**D17 — execution.** Run agent, scripted baseline, then truth-input diagnostics on agent
+physical failures, as sequential batches, with at most two workers and no simultaneous runners
+sharing the reference cache. Do not change imported code during any batch. Check free disk before
+each batch and stop below 2 GB; use bounded progress logs without looped array output. Complete
+all 60 development scenes and review evidence before any freeze decision. Do not run fresh
+held-out seeds 6000–6023 before a separate freeze and explicit go.
