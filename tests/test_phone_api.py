@@ -49,7 +49,7 @@ def test_submit_list_priority_cancel(api):
     assert call(api, "POST", f"/tasks/{tid}/cancel", {})[1] == {"result": "cancelled"}
     assert call(api, "POST", "/tasks/nope/priority", {"priority": 1})[0] == 404
     events = call(api, "GET", "/events?after=0")[1]
-    assert [e["kind"] for e in events] == ["accepted"]
+    assert [e["kind"] for e in events] == ["accepted", "cancelled"]
 
 
 def test_unrepresentable_and_malformed_requests_are_rejected(api):
@@ -78,3 +78,41 @@ def test_token_is_created_once_and_reused(tmp_path):
     path = tmp_path / "token"
     a = load_or_create_token(path)
     assert len(a) >= 32 and load_or_create_token(path) == a
+
+
+def test_invalid_request_objects_and_providers_are_rejected(api):
+    for body in (b"null", b"[]", b'"text"'):
+        assert api.handle("POST", "/tasks", f"Bearer {TOKEN}", body)[0] == 400
+    assert call(api, "POST", "/tasks", {"text": "tidy", "provider": "qwen"})[0] == 422
+    assert call(api, "GET", "/events?after=bad")[0] == 422
+
+
+def test_snapshot_is_authenticated_and_events_remain_monotonic(api):
+    api.snapshot = lambda: {"camera": None}
+    assert call(api, "GET", "/snapshot", token=None)[0] == 401
+    assert call(api, "GET", "/snapshot")[1] == {"camera": None}
+    for _ in range(2002):
+        api.notify("update", {})
+    events = call(api, "GET", "/events?after=1")[1]
+    assert len(events) == 2000 and events[0]["n"] == 3 and events[-1]["n"] == 2002
+
+
+def test_ag_ui_maps_real_events_and_keeps_cursor(api):
+    api.notify("started", {"id": "t"})
+    api.notify("action", {"id": "t", "tool": "look_around", "args": {}})
+    api.notify("result", {"id": "t", "tool": "look_around", "status": "succeeded", "message": ""})
+    api.notify("succeeded", {"id": "t", "reason": "observed"})
+    code, page = call(api, "GET", "/ag-ui/events?after=0")
+    assert code == 200 and page["cursor"] == 4
+    assert [e["type"] for e in page["events"]] == [
+        "RUN_STARTED",
+        "TOOL_CALL_START",
+        "TOOL_CALL_ARGS",
+        "TOOL_CALL_END",
+        "TOOL_CALL_RESULT",
+        "RUN_FINISHED",
+    ]
+    assert page["events"][1]["toolCallId"] == page["events"][4]["toolCallId"]
+    tail = call(api, "GET", "/ag-ui/events?after=2")[1]
+    assert tail["cursor"] == 4 and tail["events"][0]["type"] == "TOOL_CALL_RESULT"
+    assert call(api, "GET", "/ag-ui/events", token=None)[0] == 401

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import hmac
 import json
+import mimetypes
 import secrets
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -51,6 +52,49 @@ document.getElementById('e').prepend(d)})
 setInterval(load,2000);load()</script></body></html>"""
 
 
+def ag_ui_events(events: list[dict], after: int) -> dict:
+    """Translate retained scheduler events into AG-UI; cursor stays scheduler-based."""
+    output, runs, calls = [], {}, {}
+    for event in events:
+        n, kind = event["n"], event["kind"]
+        tid = event.get("id")
+        if kind in ("started", "resumed") and tid:
+            runs[tid] = f"{tid}-{n}"
+            translated = [{"type": "RUN_STARTED", "threadId": tid, "runId": runs[tid]}]
+        elif kind == "action" and tid:
+            call = f"{tid}-{n}"
+            calls[tid] = call
+            translated = [
+                {"type": "TOOL_CALL_START", "toolCallId": call, "toolCallName": event["tool"]},
+                {
+                    "type": "TOOL_CALL_ARGS",
+                    "toolCallId": call,
+                    "delta": json.dumps(event.get("args", {})),
+                },
+                {"type": "TOOL_CALL_END", "toolCallId": call},
+            ]
+        elif kind == "result" and tid in calls:
+            call = calls.pop(tid)
+            translated = [
+                {
+                    "type": "TOOL_CALL_RESULT",
+                    "messageId": f"result-{tid}-{n}",
+                    "toolCallId": call,
+                    "role": "tool",
+                    "content": json.dumps(
+                        {"status": event.get("status"), "message": event.get("message")}
+                    ),
+                }
+            ]
+        elif kind in ("succeeded", "failed", "cancelled", "suspended") and tid in runs:
+            translated = [{"type": "RUN_FINISHED", "threadId": tid, "runId": runs.pop(tid)}]
+        else:
+            translated = [{"type": "CUSTOM", "name": "dream.scheduler", "value": event}]
+        if n > after:
+            output.extend(translated)
+    return {"cursor": max(after, events[-1]["n"]) if events else after, "events": output}
+
+
 def token_file() -> Path:
     import os
 
@@ -71,61 +115,109 @@ def load_or_create_token(path: Path | None = None) -> str:
 class PhoneAPI:
     """Wire a scheduler (and optionally a memory query) to an authenticated HTTP server."""
 
-    def __init__(self, scheduler, token: str, status=None, memory_query=None) -> None:
+    def __init__(
+        self,
+        scheduler,
+        token: str,
+        status=None,
+        memory_query=None,
+        snapshot=None,
+        web_root: Path | None = None,
+        provider: str = "structured",
+    ) -> None:
         if len(token) < 24:
             raise ValueError("token too short")
         self.scheduler, self.token = scheduler, token
         self.status = status or (lambda: {})
         self.memory_query = memory_query
+        self.snapshot = snapshot
+        self.web_root = web_root
+        self.provider = provider
         self.events: list[dict] = []
+        self._event_number = 0
         self._lock = threading.Lock()
 
     def notify(self, kind: str, data: dict) -> None:
         """Scheduler notification sink; also what the page shows as completion notices."""
         with self._lock:
-            self.events.append({"n": len(self.events) + 1, "kind": kind, **data})
+            self._event_number += 1
+            self.events.append({"n": self._event_number, "kind": kind, **data})
+            del self.events[:-2000]
 
     def handle(self, method: str, url: str, auth: str | None, body: bytes) -> tuple[int, object]:
         """Pure request handler (tested without sockets)."""
         parts = urlparse(url)
+        if (
+            method == "GET"
+            and self.web_root is not None
+            and (parts.path == "/" or parts.path.startswith(("/assets/", "/_next/")))
+        ):
+            relative = "index.html" if parts.path == "/" else parts.path.lstrip("/")
+            root = self.web_root.resolve()
+            candidate = (root / relative).resolve()
+            if candidate.is_relative_to(root) and candidate.is_file():
+                return 200, (
+                    mimetypes.guess_type(candidate.name)[0] or "application/octet-stream",
+                    candidate.read_bytes(),
+                )
         if method == "GET" and parts.path == "/":
             return 200, PAGE
         if not auth or not hmac.compare_digest(auth.encode(), f"Bearer {self.token}".encode()):
             return 401, {"error": "unauthorised"}
         try:
             data = json.loads(body or b"{}")
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, UnicodeDecodeError):
             return 400, {"error": "invalid JSON"}
+        if not isinstance(data, dict):
+            return 400, {"error": "JSON object required"}
         path = parts.path.rstrip("/").split("/")[1:]
         s = self.scheduler
         try:
             if method == "GET" and path == ["status"]:
                 return 200, {"running": s.running, **self.status()}
+            if method == "GET" and path == ["snapshot"] and self.snapshot:
+                return 200, self.snapshot()
             if method == "GET" and path == ["tasks"]:
                 return 200, s.tasks()
             if method == "GET" and path == ["events"]:
                 after = int(parse_qs(parts.query).get("after", ["0"])[0])
                 with self._lock:
                     return 200, [e for e in self.events if e["n"] > after]
+            if method == "GET" and path == ["ag-ui", "events"]:
+                after = int(parse_qs(parts.query).get("after", ["0"])[0])
+                with self._lock:
+                    return 200, ag_ui_events(self.events, after)
             if method == "GET" and path == ["memory"] and self.memory_query:
                 label = parse_qs(parts.query).get("label", [""])[0]
                 return 200, self.memory_query(label)
             if method == "POST" and path == ["tasks"]:
-                text = str(data.get("text", "")).strip()
+                provider = data.get("provider", self.provider)
+                priority = data.get("priority", 0)
+                if not isinstance(provider, str):
+                    return 400, {"error": "provider must be a string"}
+                if provider != self.provider:
+                    return 422, {"error": f"provider is not configured: {provider}"}
+                if type(priority) is not int or not -1000 <= priority <= 1000:
+                    return 400, {"error": "priority must be an integer between -1000 and 1000"}
+                if not isinstance(data.get("text"), str):
+                    return 400, {"error": "task text must be a string"}
+                text = data["text"].strip()
                 if not text or len(text) > 500:
                     return 400, {"error": "task text required (<= 500 characters)"}
-                return 201, {"id": s.submit(text, int(data.get("priority", 0)))}
+                return 201, {"id": s.submit(text, priority)}
             if method == "POST" and len(path) == 3 and path[0] == "tasks":
                 tid, action = path[1], path[2]
                 if action == "cancel":
                     return 200, {"result": s.cancel(tid)}
+                if action == "pause":
+                    return 200, {"result": s.pause(tid)}
                 if action == "resume":
                     s.resume(tid)
                     return 200, {"result": "resume allowed"}
                 if action == "priority":
                     s.set_priority(tid, int(data["priority"]))
                     return 200, {"result": "priority set"}
-        except ValueError as error:  # e.g. a request the robot cannot represent
+        except (ValueError, TypeError) as error:  # e.g. a request the robot cannot represent
             return 422, {"error": str(error)}
         except KeyError:
             return 404, {"error": "unknown task"}
@@ -136,12 +228,21 @@ class PhoneAPI:
 
         class Handler(BaseHTTPRequestHandler):
             def _reply(self, method):
-                n = int(self.headers.get("Content-Length") or 0)
+                try:
+                    n = int(self.headers.get("Content-Length") or 0)
+                    if n < 0 or n > 65536:
+                        raise ValueError("invalid length")
+                except ValueError:
+                    self.send_error(400, "invalid content length")
+                    return
                 code, out = api.handle(method, self.path, self.headers.get("Authorization"),
                                        self.rfile.read(n) if n else b"")  # fmt: skip
-                raw = out.encode() if isinstance(out, str) else json.dumps(out).encode()
+                if isinstance(out, tuple):
+                    kind, raw = out
+                else:
+                    raw = out.encode() if isinstance(out, str) else json.dumps(out).encode()
+                    kind = "text/html" if isinstance(out, str) else "application/json"
                 self.send_response(code)
-                kind = "text/html" if isinstance(out, str) else "application/json"
                 self.send_header("Content-Type", kind)
                 self.send_header("Content-Length", str(len(raw)))
                 self.end_headers()
