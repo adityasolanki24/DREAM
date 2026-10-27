@@ -474,9 +474,35 @@ def check_pilot(out: Path, workload: str = "qwen-pilot") -> None:
         path = out / "vlm/run_qwen-local.json"
         if not path.is_file():
             raise RuntimeError("VLM comparison run JSON missing")
-        summary = json.loads(path.read_text())["summary"]
-        if summary.get("n_attempted") != summary.get("n_planned"):
-            raise RuntimeError("VLM comparison did not attempt every planned decision")
+        result = json.loads(path.read_text())
+        summary = result.get("summary", {})
+        rows = result.get("rows", [])
+        frozen = json.loads((ROOT / "results/phase1_vlm_compare/decisions.json").read_text())
+        expected = {d["id"] for d in frozen["decisions"]}
+        inputs = ["results/phase1_vlm_compare/decisions.json"] + [
+            "results/phase1_vlm_compare/" + d["image"] for d in frozen["decisions"]
+        ]
+        provenance = summary.get("provenance") or {}
+        if (
+            len(expected) != 11
+            or summary.get("n_attempted") != 11
+            or summary.get("n_planned") != 11
+            or len(rows) != 11
+            or {r.get("id") for r in rows} != expected
+            or len(result.get("selected_ids", [])) != 11
+            or set(result.get("selected_ids", [])) != expected
+            or summary.get("backend") != "qwen3-vl:Qwen/Qwen3-VL-4B-Instruct"
+            or provenance.get("model_id") != "Qwen/Qwen3-VL-4B-Instruct"
+            or provenance.get("model_revision") != "ebb281ec70b05090aa6165b016eac8ec08e71b17"
+            or provenance.get("device") != "cuda"
+            or not any(not r.get("error") and r.get("raw") for r in rows)
+            or any(
+                result.get("sha256", {}).get(p)
+                != hashlib.sha256((ROOT / p).read_bytes()).hexdigest()
+                for p in inputs
+            )
+        ):
+            raise RuntimeError("VLM comparison transport or provenance gate failed")
         return
     if workload != "qwen-pilot":
         raise ValueError("unsupported workload")

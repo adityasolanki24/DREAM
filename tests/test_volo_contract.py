@@ -1,11 +1,12 @@
 """Contract tests for the non-actuating VoLoAgent adapter.
 
-The message examples in ``tests/fixtures/volo_upstream_messages.json`` were recorded from the
-real upstream code (``experiments/record_volo_messages.py``, commit b4e6230). VoLo itself is
-optional: the tests that compare against it are skipped when it is not installed.
+Fixture decision strings are synthetic inputs passed through upstream parser code pinned at
+b4e6230, not observed VLM outputs. VoLo itself is optional; parser cross-checks are skipped
+when it is not installed.
 """
 
 import ast
+import importlib.util
 import json
 import pathlib
 
@@ -30,6 +31,18 @@ def _wire_obs():
             obs[key] = spec
     obs["observation/exterior_image_1_left"] = rng.integers(0, 255, (224, 224, 3), dtype=np.uint8)
     return obs
+
+
+def test_recorder_labels_synthetic_parser_cases_as_synthetic():
+    path = pathlib.Path(__file__).parents[1] / "experiments" / "record_volo_messages.py"
+    spec = importlib.util.spec_from_file_location("record_volo_messages", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    provenance = module.evidence_provenance()
+    assert provenance["decision_inputs"] == "synthetic_strings_passed_to_real_upstream_parser"
+    assert provenance["vlm_outputs_observed"] is False
+    assert provenance["passthrough_proxy_run"] is False
 
 
 @pytest.mark.parametrize("name", sorted(DECISIONS))

@@ -4,6 +4,7 @@ The token must come from this application's documented Sign in with ChatGPT flow
 credentials are deliberately unsupported. Authentication and account registration are
 performed separately so the robot runtime never opens a browser or stores credentials.
 """
+
 from __future__ import annotations
 
 import base64
@@ -44,6 +45,29 @@ def response_tool_schemas(tools: list[dict]) -> list[dict]:
     return [{"type": "function", **t["function"], "strict": False} for t in tools]
 
 
+def responses_request(
+    model: str, messages: list[dict], tools: list[dict], reasoning_effort: str | None = None
+) -> dict:
+    """Declare functions as a developer additional_tools input item for SIWC."""
+    body = {
+        "model": model,
+        "input": [
+            {
+                "type": "additional_tools",
+                "role": "developer",
+                "tools": response_tool_schemas(tools),
+            },
+            *responses_input(messages),
+        ],
+        "parallel_tool_calls": False,
+        "store": False,
+        "stream": True,
+    }
+    if reasoning_effort is not None:
+        body["reasoning"] = {"effort": reasoning_effort}
+    return body
+
+
 def response_output_text(data: dict) -> str:
     """Preserve all function calls so the shared parser rejects batches atomically."""
     output = data.get("output")
@@ -54,6 +78,8 @@ def response_output_text(data: dict) -> str:
         if not isinstance(item, dict):
             continue
         if item.get("type") == "function_call":
+            if item.get("namespace") not in (None, ""):
+                raise ValueError("unexpected function namespace")
             calls.append({"name": item.get("name"), "arguments": item.get("arguments", "{}")})
         elif item.get("type") == "message":
             for part in item.get("content", []):
@@ -64,25 +90,47 @@ def response_output_text(data: dict) -> str:
     return "\n".join(text)
 
 
+def completed_with_stream_items(completed: dict, items: list[dict]) -> dict:
+    """Use completed SSE items if the final response omits its output array."""
+    if not completed.get("output") and items:
+        return {**completed, "output": items}
+    return completed
+
+
 class ChatGPTPlanBackend:
     """Vision + typed function-call backend, authenticated with a SIWC plan token."""
 
-    def __init__(self, access_token: str, model: str, timeout_s: float = 90.0):
+    def __init__(
+        self,
+        access_token: str,
+        model: str,
+        timeout_s: float = 90.0,
+        reasoning_effort: str | None = None,
+    ):
         if not access_token or not model:
             raise ValueError("a SIWC access token and model slug are required")
         self.name = f"chatgpt-plan:{model}"
         self._token, self.model, self.timeout_s = access_token, model, timeout_s
+        self.reasoning_effort = reasoning_effort
         self.cancel = threading.Event()
         self.last_http_status = self.last_request_id = self.last_usage = None
         self.last_rate_limits: dict = {}
         self.last_error_body = None
 
     @classmethod
-    def from_token_file(cls, path: str | Path, model: str, timeout_s: float = 90.0):
+    def from_token_file(
+        cls,
+        path: str | Path,
+        model: str,
+        timeout_s: float = 90.0,
+        reasoning_effort: str | None = None,
+    ):
         record = json.loads(Path(path).read_text(encoding="utf-8"))
         if "chatgpt.tokens.use.direct" not in record.get("scopes", []):
             raise ValueError("credential does not grant chatgpt.tokens.use.direct")
-        return cls(record.get("access_token", ""), model, timeout_s)
+        if record.get("expires_at", 0) <= time.time():
+            raise ValueError("SIWC access token expired; sign in again")
+        return cls(record.get("access_token", ""), model, timeout_s, reasoning_effort)
 
     def set_cancel_event(self, cancel: threading.Event) -> None:
         self.cancel = cancel
@@ -90,22 +138,36 @@ class ChatGPTPlanBackend:
     def generate(self, messages: list[dict], tools: list[dict]) -> str:
         if self.cancel.is_set():
             raise RuntimeError("inference cancelled")
-        body = {"model": self.model, "input": responses_input(messages),
-                "tools": response_tool_schemas(tools), "parallel_tool_calls": False,
-                "store": False, "stream": True}
+        self.last_http_status = self.last_request_id = self.last_usage = None
+        self.last_response_id = self.last_error_body = None
+        self.last_rate_limits = {}
+        self.last_stream_items = []
+        body = responses_request(self.model, messages, tools, self.reasoning_effort)
         started = time.monotonic()
         from dream.runtime.siwc_auth import http_session
 
         completed = None
-        with http_session().post("https://api.openai.com/v1/responses", json=body,
-                                 headers={"Authorization": f"Bearer {self._token}"},
-                                 timeout=self.timeout_s, stream=True) as resp:
+        stream_items = []
+        with http_session().post(
+            "https://api.openai.com/v1/responses",
+            json=body,
+            headers={"Authorization": f"Bearer {self._token}"},
+            timeout=self.timeout_s,
+            stream=True,
+        ) as resp:
             self.last_http_status = resp.status_code
             self.last_request_id = resp.headers.get("x-request-id")
-            self.last_rate_limits = {k: v for k, v in resp.headers.items()
-                                     if k.lower().startswith("x-ratelimit-")}
+            self.last_rate_limits = {
+                k: v for k, v in resp.headers.items() if k.lower().startswith("x-ratelimit-")
+            }
             if not resp.ok:
-                self.last_error_body = resp.text[:600]
+                try:
+                    error = resp.json().get("error", {})
+                    self.last_error_body = (
+                        str(error.get("code", "unknown")) if isinstance(error, dict) else "unknown"
+                    )
+                except ValueError:
+                    self.last_error_body = "unparseable error"
                 raise RuntimeError(f"Responses HTTP {resp.status_code}: {self.last_error_body}")
             for raw in resp.iter_lines():
                 line = raw.decode("utf-8") if isinstance(raw, bytes) else raw
@@ -120,6 +182,11 @@ class ChatGPTPlanBackend:
                 if event.get("type") == "response.failed":
                     error = event.get("response", {}).get("error", {})
                     raise RuntimeError("Responses API failed: " + str(error.get("code", "unknown")))
+                if event.get("type") == "response.output_item.done":
+                    item = event.get("item")
+                    if isinstance(item, dict):
+                        stream_items.append(item)
+                        self.last_stream_items.append(item)
                 if event.get("type") == "response.completed":
                     completed = event.get("response")
             if completed is None:
@@ -132,15 +199,18 @@ class ChatGPTPlanBackend:
             raise ValueError(f"Responses API status {completed.get('status')!r}")
         self.last_response_id = completed.get("id")
         self.last_usage = completed.get("usage")
-        return response_output_text(completed)
+        return response_output_text(completed_with_stream_items(completed, stream_items))
 
 
 def list_models(access_token: str, timeout_s: float = 30.0) -> tuple[int, str | None, list[dict]]:
     """GET /v1/models for the signed-in account; returns (status, request_id, visible models)."""
     from dream.runtime.siwc_auth import http_session
 
-    resp = http_session().get("https://api.openai.com/v1/models", timeout=timeout_s,
-                              headers={"Authorization": f"Bearer {access_token}"})
+    resp = http_session().get(
+        "https://api.openai.com/v1/models",
+        timeout=timeout_s,
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
     models = []
     if resp.ok:
         data = resp.json()

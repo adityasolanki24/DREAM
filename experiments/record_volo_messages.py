@@ -1,5 +1,5 @@
 # ruff: noqa: E501
-"""Record real VoLoAgent message examples as a fixture for DREAM's contract tests.
+"""Record synthetic parser cases and wire-shape examples from pinned VoLoAgent code.
 
 Run this in the SEPARATE VoLo environment (never DREAM's .venv); it imports upstream code:
 
@@ -10,6 +10,7 @@ Nothing here actuates a robot. The upstream clone is pinned by the commit record
 
 from __future__ import annotations
 
+import importlib.metadata
 import importlib.util
 import json
 import subprocess
@@ -31,6 +32,16 @@ DECISIONS = {
     "bad_unknown_tool": '{"subgoal_action": "continue", "tool": "push", "args": {}, "reason": "x"}',
     "bad_not_json": "I will grasp the red block now.",
 }
+
+
+def evidence_provenance() -> dict[str, str | bool]:
+    """Describe the evidence this recorder can produce; it does not run a VLM or proxy."""
+    return {
+        "decision_inputs": "synthetic_strings_passed_to_real_upstream_parser",
+        "vlm_outputs_observed": False,
+        "wire_observations": "synthetic_schema_examples_generated_by_upstream_helper",
+        "passthrough_proxy_run": False,
+    }
 
 
 def main(clone: Path, out: Path) -> None:
@@ -79,20 +90,21 @@ def main(clone: Path, out: Path) -> None:
     payload = {
         "upstream": "NVlabs/VoLoAgent",
         "commit": sha,
+        "runtime": {
+            "python": sys.version.split()[0],
+            "numpy": np.__version__,
+            "vlm_orchestrator": importlib.metadata.version("vlm-orchestrator"),
+        },
+        "evidence_provenance": evidence_provenance(),
         "gr00t_resolution_hw": list(gr00t_zmq.GR00T_RESOLUTION),
         "gr00t_min_chunk_len": gr00t_zmq.GR00T_MIN_CHUNK_LEN,
         "tool_chain_decisions": decisions,
         "robolab_wire_observation": wire_desc,
         "gr00t_native_observation": g_obs_desc,
         "gr00t_native_action_for_8x8_chunk": g_act_desc,
-        "passthrough_dry_run_observed": {
-            "command": "mock openpi VLA :8000 + vlm-orchestrator --mode passthrough :8001 + examples/schema_smoke_test.py --grasp --steps 3",
-            "metadata_keys": ["model", "orchestrator"],
-            "response_actions": {"shape": [8, 8], "dtype": "float32"},
-            "result": "PASS",
-        },
     }
-    out.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    with out.open("x", encoding="utf-8") as f:
+        f.write(json.dumps(payload, indent=2, sort_keys=True) + "\n")
     print(f"wrote {out} (commit {sha})")
 
 

@@ -1,0 +1,90 @@
+{
+  "checks": {
+    "official_client_passed": true,
+    "proxy_only_grasp_fields_stripped_before_vla": true,
+    "steps_reached_mock_vla": true
+  },
+  "client_command": [
+    "C:\\Users\\24adi\\.cache\\dream-phase1\\voloenv\\Scripts\\python.exe",
+    "C:\\Users\\24adi\\.cache\\dream-phase1\\VoLoAgent\\examples\\schema_smoke_test.py",
+    "--orch-host",
+    "127.0.0.1",
+    "--orch-port",
+    "60035",
+    "--steps",
+    "3",
+    "--grasp"
+  ],
+  "client_output": "2026-10-28 10:20:39,502 schema_smoke connecting to ws://127.0.0.1:60035 ...\nC:\\Users\\24adi\\.cache\\dream-phase1\\VoLoAgent\\examples\\schema_smoke_test.py:103: DeprecationWarning: connect() must be used as a context manager: with connect(...) as websocket: ...; alternatively, use websocket = connect(..., legacy=True) to connect directly\n  metadata = codec.unpackb(ws.recv())\n2026-10-28 10:20:39,546 schema_smoke metadata OK: keys=['model', 'orchestrator', 'version']\u2026\n2026-10-28 10:20:39,592 schema_smoke step 0: actions=(8, 8), flush=False, instruction=''\n2026-10-28 10:20:39,601 schema_smoke step 1: actions=(8, 8), flush=False, instruction=''\n2026-10-28 10:20:39,609 schema_smoke step 2: actions=(8, 8), flush=False, instruction=''\n2026-10-28 10:20:39,810 schema_smoke [PASS] all assertions held\n2026-10-28 10:20:37,722 [__main__] INFO: Auto-created log dir \u2192 C:\\Users\\24adi/vlm-orchestrator/results/passthrough_20261028_102037\n2026-10-28 10:20:38,556 [vlm_orchestrator.proxy] INFO: VLM Orchestrator: frontend=OpenpiWsFrontend on 127.0.0.1:60035, backend=OpenpiWsBackend \u2192 127.0.0.1:60034, strategy=PassthroughStrategy, log_dir=C:\\Users\\24adi/vlm-orchestrator/results/passthrough_20261028_102037\n2026-10-28 10:20:38,556 [vlm_orchestrator.proxy] INFO: ================================================================\n2026-10-28 10:20:38,556 [vlm_orchestrator.proxy] INFO:  vlm-orchestrator listening on port 60035\n2026-10-28 10:20:38,556 [vlm_orchestrator.proxy] INFO:    ws://127.0.0.1:60035    (bind)\n2026-10-28 10:20:38,556 [vlm_orchestrator.proxy] INFO:  Eval-client flag: --remote-host <one of the above>\n2026-10-28 10:20:38,556 [vlm_orchestrator.proxy] INFO: ================================================================\n2026-10-28 10:20:38,558 [websockets.server] INFO: server listening on 127.0.0.1:60035\n2026-10-28 10:20:38,558 [vlm_orchestrator.protocols.openpi_ws] INFO: OpenpiWsFrontend listening on 127.0.0.1:60035\n2026-10-28 10:20:38,752 [websockets.server] INFO: connection closed\n2026-10-28 10:20:39,516 [websockets.server] INFO: connection open\n2026-10-28 10:20:39,545 [vlm_orchestrator.protocols.openpi_ws] INFO: OpenpiWsBackend connected to ws://127.0.0.1:60034\n2026-10-28 10:20:39,587 [vlm_orchestrator.proxy] INFO: Episode log dir: C:\\Users\\24adi/vlm-orchestrator/results/passthrough_20261028_102037\\pick_up_the_red_block\\episode_1\n2026-10-28 10:20:39,633 [vlm_orchestrator.proxy] INFO: Finalized episode 1 on end_episode signal (client ep=smoke_ep_0)\n2026-10-28 10:20:39,810 [websockets.server] INFO: connection closed\n2026-10-28 10:20:39,811 [vlm_orchestrator.proxy] INFO: Session ended for client at infer #3\n2026-10-28 10:20:39,824 [vlm_orchestrator.proxy] INFO: Session ended for client: 3 inferences\n",
+  "dependencies": {
+    "numpy": "2.5.4",
+    "vlm_orchestrator": "0.1.0",
+    "websockets": "17.3"
+  },
+  "expected_client_steps": 3,
+  "interpretation": "The official smoke client supplies synthetic grasp schema fields via --grasp. The proxy removes camera/depth fields before forwarding to the mock VLA as documented in vlm_orchestrator/proxy.py; this validates protocol routing and filtering, not grasp execution.",
+  "mock_received": [
+    {
+      "keys": [
+        "observation/ee_quat",
+        "observation/exterior_image_1_left",
+        "observation/gripper_position",
+        "observation/joint_position",
+        "observation/wrist_image_left",
+        "prompt"
+      ],
+      "prompt": "pick up the red block",
+      "step": null
+    },
+    {
+      "keys": [
+        "observation/ee_quat",
+        "observation/exterior_image_1_left",
+        "observation/gripper_position",
+        "observation/joint_position",
+        "observation/wrist_image_left",
+        "prompt"
+      ],
+      "prompt": "pick up the red block",
+      "step": null
+    },
+    {
+      "keys": [
+        "observation/ee_quat",
+        "observation/exterior_image_1_left",
+        "observation/gripper_position",
+        "observation/joint_position",
+        "observation/wrist_image_left",
+        "prompt"
+      ],
+      "prompt": "pick up the red block",
+      "step": null
+    }
+  ],
+  "mock_vla": "mock-openpi-vla cpu-smoke; returns float32 zero actions [8,8]",
+  "proxy_command": [
+    "C:\\Users\\24adi\\.cache\\dream-phase1\\voloenv\\Scripts\\python.exe",
+    "-m",
+    "vlm_orchestrator.cli",
+    "--mode",
+    "passthrough",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    "60035",
+    "--vla-host",
+    "127.0.0.1",
+    "--vla-port",
+    "60034",
+    "--frontend",
+    "openpi-ws",
+    "--backend",
+    "openpi-ws",
+    "--robolab-output-dir",
+    ""
+  ],
+  "python": "3.12.4",
+  "result": "PASS",
+  "scope": "local protocol pass-through with synthetic observations and mock VLA; no robot, simulator, model, or VLM",
+  "upstream_commit": "b4e623079ca8498a16bcd5016920d71f76c44d30"
+}

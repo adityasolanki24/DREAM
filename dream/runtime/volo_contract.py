@@ -8,9 +8,9 @@ DREAM-style tool that reports ``not executable: <reason>`` or returns a dry-run 
 
 There is deliberately no actuator path here: nothing in this file imports ``dream.robot``,
 ``dream.sim`` or VoLo, opens a socket, or produces a joint, gripper or velocity command.
-Upstream facts and file/line citations are in ``docs/phase1/VOLOAGENT.md``; the message
-examples used by the tests are recorded from the real upstream code in
-``tests/fixtures/volo_upstream_messages.json`` (``experiments/record_volo_messages.py``).
+Upstream facts are checked against the pinned VoLoAgent source modules listed beside the
+constants below. The parser cases are synthetic strings validated by that upstream parser;
+they are not captured VLM responses. The fixture also records synthetic wire-schema shapes.
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ from dream.tools.toolbox import ToolResult
 
 UPSTREAM_COMMIT = "b4e6230"  # NVlabs/VoLoAgent "Release"; Apache-2.0
 
-# --- what VoLo's released stack assumes (cited in docs/phase1/VOLOAGENT.md) -------------------
+# --- released stack assumptions (NVlabs/VoLoAgent, pinned at UPSTREAM_COMMIT) ----------------
 VOLO_ARM_DOF = 7  # single Franka Panda arm (grasp/ik.py)
 VOLO_ACTION_DIM = 8  # 7 joint-position targets (rad) + 1 gripper in [0, 1], 0 open / 1 closed
 VOLO_ACTION_HORIZON = 8  # rows per chunk (grasp/tool.py ACTION_HORIZON)

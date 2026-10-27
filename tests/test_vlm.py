@@ -206,6 +206,7 @@ def test_local_backend_passes_images_tools_and_cancellation_to_official_interfac
         tool_schemas(),
     )
     assert text == "<tool_call>{}</tool_call>"
+    assert backend.last_usage == {"input_tokens": 2, "output_tokens": 1}
     assert seen["messages"][0]["content"][0]["image"].size == (2, 2)
     assert seen["kwargs"]["tools"] == tool_schemas()
     assert seen["kwargs"]["tokenize"] and seen["kwargs"]["add_generation_prompt"]
@@ -214,6 +215,40 @@ def test_local_backend_passes_images_tools_and_cancellation_to_official_interfac
     backend.timeout_s = -1.0
     with pytest.raises(TimeoutError):
         backend.generate([], [])
+
+
+def test_local_backend_pins_model_and_processor_revision(monkeypatch):
+    import sys
+    from types import SimpleNamespace
+
+    from dream.runtime.qwen import QwenTransformersBackend
+
+    calls = []
+    model = SimpleNamespace(config=SimpleNamespace(_commit_hash="abc"), device="cuda", dtype="bf16")
+    model.to = lambda device: model
+    model.eval = lambda: model
+
+    def load_model(path, **kwargs):
+        calls.append((path, kwargs))
+        return model
+
+    def load_processor(path, **kwargs):
+        calls.append((path, kwargs))
+        return object()
+
+    monkeypatch.setitem(sys.modules, "torch", SimpleNamespace(bfloat16="bf16"))
+    monkeypatch.setitem(
+        sys.modules,
+        "transformers",
+        SimpleNamespace(
+            AutoProcessor=SimpleNamespace(from_pretrained=load_processor),
+            Qwen3VLForConditionalGeneration=SimpleNamespace(from_pretrained=load_model),
+        ),
+    )
+    backend = QwenTransformersBackend(device="cuda", revision="abc")
+    assert all(kwargs["revision"] == "abc" for _, kwargs in calls)
+    assert backend.provenance["model_revision"] == "abc"
+    assert backend.provenance["generation"] == {"do_sample": False, "max_new_tokens": 384}
 
 
 def test_inference_failure_stops_without_a_physical_tool_call(monkeypatch):

@@ -305,6 +305,7 @@ these cloud-only changes. The Windows fast-suite duration still exceeds the 60 s
 | 11 | **Discovery invoked on demand by the runtime (unfamiliar compartment on the Panda)** | **In progress**: implemented and tested on the narrowed scene; held-out evaluation below; challenge variants open | `tests/test_compartment.py`, `results/compartment`, audit table |
 | 12 | Experience memory, failure-driven replanning, skill adaptation | Planned | n/a |
 | 12a | Vision-language planner (Qwen3-VL-4B-Instruct) choosing typed tools | **Implemented and development-evaluated:** real checkpoint, 2/2 tray tasks; no held-out language benchmark. Caller-bound success, cancellation and rejection contracts | `results/qwen_cloud_pilot_dev`, `tests/test_vlm.py` |
+| 12a-GPT | ChatGPT-plan vision and typed tool calls | **Interface pilot only:** GPT-6 Luna, reasoning `none`, 11/11 valid calls and 6/11 correct on a frozen decision set; navigation 1/4. Candidate proposals are ground-truth-assisted; primary planner suitability is not established | `results/phase1_gpt_luna_none_20261028`, `docs/phase1/GPT_VISION.md` |
 | 12a-cloud | Capped GPU inference and live-physics pilot | **Executed:** zone c rejected capacity, zone b booted; guest and pilot gates passed. Cleanup error investigated and absence verified | `results/cloud_pilot_allocation_failure`, `cloud/launch.py`, `tests/test_cloud.py` |
 | 12b | Learned motor policy (MolmoAct2-DROID first open-loop candidate; GR00T alternative) | **Partially working:** real checkpoint produced a finite 15×8 chunk on L4; raw gripper range failed (4/15). Source contract audited; six fresh predictions physically reached (6/6). Learned task failed, classical succeeded. No manipulation transfer established | `tests/test_molmo.py`, `results/molmo_observation_dev`, source/decision audit below |
 | 12c | Booster T1 locomotion / visual navigation research | **Four real PPO actions; standing gate failed:** 0.08 s / 16 physics substeps, then exact-range knee rejection. CPU actor 81→23 and waypoint contracts tested; standing, walking and NavGPT inference **not validated** | `results/t1_stand_state_failure`, `results/t1_stand_second_retry_local`, `tests/test_navigation.py` |
@@ -322,6 +323,26 @@ these cloud-only changes. The Windows fast-suite duration still exceeds the 60 s
 ## Install
 
 Python >= 3.10 (developed on 3.13). CPU only.
+
+The optional ChatGPT-plan backend uses DREAM's own Sign in with ChatGPT (SIWC) credentials,
+not Codex credentials. Install `pip install -e ".[openai-plan]"`, then run
+`python experiments/openai_plan_login.py` for browser sign-in. It verifies the identity token
+and saves the credential outside the repository under `%LOCALAPPDATA%\DREAM\openai-chatgpt-plan`.
+Keep that file protected and out of Git, logs and shared artifacts. Refresh an explicitly selected
+credential with `python -m experiments.openai_plan_refresh <credential-file>`; the helper
+serializes rotation and replaces the file atomically. A leftover lock requires investigation
+before removal. Access and quota depend on the account and are shared with the owner's ChatGPT
+plan use. See [GPT vision status](docs/phase1/GPT_VISION.md) for the official flow and limits.
+
+The frozen, no-actuation GPT pilot used `gpt-6-luna` with `reasoning.effort=none`: 11/11 valid
+tool calls, 6/11 correct (navigation 1/4, object identification 2/4, information gathering 3/3).
+The fixed `look_around` baseline scored 3/11. Candidate proposals use ground truth and positive
+object candidates always have ID 0, so this is an interface pilot rather than an open-world vision
+evaluation. Median / maximum latency was 3.918 / 5.477 s; 5,213 input and 213 output tokens were
+reported, with zero reasoning tokens. The API-equivalent estimate at published standard rates is
+US$0.000628; actual plan billing and quota cost are unknown. Earlier SSE parser failures are
+preserved as pipeline failures and excluded from model-quality scores; a later Sol canary was a
+valid but incorrect navigation decision. The pilot does not establish a primary VLM recommendation.
 
 ```bash
 pip install -e ".[dev]"            # mujoco==3.16.0, numpy, matplotlib, pytest, ruff

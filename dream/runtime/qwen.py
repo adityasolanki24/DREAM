@@ -47,6 +47,7 @@ class QwenTransformersBackend:
         max_new_tokens: int = 384,
         dtype: str = "bfloat16",
         timeout_s: float = 60.0,
+        revision: str | None = None,
     ) -> None:
         import torch
         from transformers import AutoProcessor, Qwen3VLForConditionalGeneration
@@ -55,12 +56,24 @@ class QwenTransformersBackend:
         self._torch = torch
         self.model = (
             Qwen3VLForConditionalGeneration.from_pretrained(
-                model_path, torch_dtype=getattr(torch, dtype)
+                model_path,
+                torch_dtype=getattr(torch, dtype),
+                **({"revision": revision} if revision else {}),
             )
             .to(device)
             .eval()
         )
-        self.processor = AutoProcessor.from_pretrained(model_path)
+        self.processor = AutoProcessor.from_pretrained(
+            model_path, **({"revision": revision} if revision else {})
+        )
+        self.provenance = {
+            "model_id": model_path,
+            "model_revision": getattr(getattr(self.model, "config", None), "_commit_hash", None),
+            "device": device,
+            "dtype": dtype,
+            "generation": {"do_sample": False, "max_new_tokens": max_new_tokens},
+        }
+        self.last_usage = None
         self.max_new_tokens = max_new_tokens
         self.timeout_s = timeout_s
         self.cancel = threading.Event()
@@ -71,6 +84,7 @@ class QwenTransformersBackend:
     def generate(self, messages: list[dict], tools: list[dict]) -> str:
         from transformers import StoppingCriteria, StoppingCriteriaList
 
+        self.last_usage = None
         if self.cancel.is_set():
             raise RuntimeError("inference cancelled")
         deadline = time.monotonic() + self.timeout_s
@@ -110,6 +124,7 @@ class QwenTransformersBackend:
         if time.monotonic() >= deadline:
             raise TimeoutError("inference exceeded its time budget")
         new = out[0, inputs["input_ids"].shape[1] :]
+        self.last_usage = {"input_tokens": inputs["input_ids"].shape[1], "output_tokens": len(new)}
         # Keep <tool_call> markers; drop end-of-turn tokens.
         text = self.processor.decode(new, skip_special_tokens=False)
         return text.replace("<|im_end|>", "").replace("<|endoftext|>", "").strip()
