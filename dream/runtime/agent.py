@@ -293,6 +293,12 @@ class TaskAgent:
                     goal, False, "robot in protective stop (operator reset needed)", steps, emit
                 )
             action = self.planner.next_action(goal, scene, verdict, steps)
+            # A slow planner may return after a pause or cancellation request.
+            if self.tools.cancel.is_set():
+                return self._finish(goal, False, "cancelled by user", steps, emit)
+            if preempt is not None and preempt.is_set():
+                emit("suspended", {"steps": len(steps)})
+                return Episode(goal, False, "suspended at an action boundary", steps, True)
             if isinstance(action, Finish):
                 return self._finish(goal, action.success, action.reason, steps, emit)
             emit("action", {"tool": action.name, "args": action.args})

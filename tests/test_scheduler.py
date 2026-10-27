@@ -171,3 +171,91 @@ def test_interruption_scoring_measures_from_the_start_pose():
 
     assert entrance_error((1.78, -0.34, 0.2), (1.72, -0.44, 0.0)) < 0.13
     assert entrance_error((0.0, 0.0, 0.0), (1.72, -0.44, 0.0)) > 1.7
+
+
+def test_pause_holds_task_at_safe_boundary_until_resume(tmp_path):
+    log, notes = [], []
+    s, tools = make(tmp_path, log, notes)
+    tid = s.submit("tidy:3")
+    tools.on_work = lambda args: s.pause(tid) if args["k"] == 0 else None
+    s.step()
+    assert s.get(tid).state == "suspended"
+    assert s.next_task() is None
+    assert len(s.get(tid).steps) == 1
+    s.resume(tid)
+    s.run_until_idle()
+    assert s.get(tid).state == "succeeded"
+
+
+def test_preemption_during_planning_never_dispatches_a_new_tool(tmp_path):
+    log, notes = [], []
+    s, tools = make(tmp_path, log, notes)
+    tid = s.submit("tidy:1", resume="ask")
+
+    class SlowPlanner:
+        def next_action(self, goal, scene, verdict, history):
+            s.preempt.set()
+            return ToolCall("work", {})
+
+    def run(task, history, preempt, cancel):
+        tools.preempt, tools.cancel = preempt, cancel
+        return TaskAgent(tools, SlowPlanner()).run(task.goal, history=history, preempt=preempt)
+
+    s.run_task = run
+    s.step()
+    assert s.get(tid).state == "suspended"
+    assert all(name != "work" for name, _ in log)
+
+
+def test_cancel_wins_when_pause_and_cancel_arrive_together(tmp_path):
+    log, notes = [], []
+    s, tools = make(tmp_path, log, notes)
+    tid = s.submit("tidy:3")
+
+    def stop_both(args):
+        s.pause(tid)
+        s.cancel(tid)
+
+    tools.on_work = stop_both
+    s.step()
+    assert s.get(tid).state == "cancelled"
+    assert s.next_task() is None
+    assert len([name for name, _ in log if name == "work"]) == 1
+
+
+def test_cancel_arriving_after_suspended_episode_wins(tmp_path):
+    from dream.runtime.agent import Episode
+
+    s, _ = make(tmp_path, [], [])
+    tid = s.submit("tidy:1")
+
+    def run(task, history, preempt, cancel):
+        preempt.set()
+        cancel.set()
+        return Episode(task.goal, False, "suspended", history, suspended=True)
+
+    s.run_task = run
+    s.step()
+    assert s.get(tid).state == "cancelled"
+    assert s.next_task() is None
+
+
+def test_cancellation_during_planning_never_dispatches_a_tool_or_claims_success(tmp_path):
+    log, notes = [], []
+    s, tools = make(tmp_path, log, notes)
+    tid = s.submit("tidy:1")
+
+    class SlowPlanner:
+        def next_action(self, goal, scene, verdict, history):
+            s.cancel(tid)  # the stop request arrives while the planner is still thinking
+            return ToolCall("work", {})
+
+    def run(task, history, preempt, cancel):
+        tools.preempt, tools.cancel = preempt, cancel
+        return TaskAgent(tools, SlowPlanner()).run(task.goal, history=history, preempt=preempt)
+
+    s.run_task = run
+    s.step()
+    task = s.get(tid)
+    assert task.state == "cancelled" and task.result == "cancelled by user"
+    assert all(name != "work" for name, _ in log)

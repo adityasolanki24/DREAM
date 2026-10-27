@@ -94,17 +94,19 @@ class TaskScheduler:
         self.db.commit()
 
     def get(self, tid: str) -> Task | None:
-        r = self.db.execute("SELECT * FROM tasks WHERE id=?", (tid,)).fetchone()
+        with self.lock:
+            r = self.db.execute("SELECT * FROM tasks WHERE id=?", (tid,)).fetchone()
         if r is None:
             return None
         return Task(r[0], r[1], self.parse(r[1]), r[3], r[4], r[5], r[6], _steps_from(r[7]),
                     r[8], r[9], r[10])  # fmt: skip
 
     def tasks(self) -> list[dict]:
-        rows = self.db.execute(
-            "SELECT id, text, priority, state, created, updated, result, suspensions, steps"
-            " FROM tasks ORDER BY created"
-        ).fetchall()
+        with self.lock:
+            rows = self.db.execute(
+                "SELECT id, text, priority, state, created, updated, result, suspensions, steps"
+                " FROM tasks ORDER BY created"
+            ).fetchall()
         return [{"id": r[0], "text": r[1], "priority": r[2], "state": r[3], "created": r[4],
                  "updated": r[5], "result": r[6], "suspensions": r[7],
                  "steps": len(json.loads(r[8]))} for r in rows]  # fmt: skip
@@ -133,6 +135,7 @@ class TaskScheduler:
                 return "cancelling"
             t.state, t.result = "cancelled", "cancelled before running"
             self._save(t)
+            self.notify("cancelled", {"id": t.id, "text": t.text, "reason": t.result})
             return "cancelled"
 
     def set_priority(self, tid: str, priority: int) -> None:
@@ -155,13 +158,31 @@ class TaskScheduler:
                 t.resume = "auto"
                 self._save(t)
 
+    def pause(self, tid: str) -> str:
+        """Hold a queued task or request a safe-boundary stop of the running task."""
+        with self.lock:
+            t = self.get(tid)
+            if t is None:
+                raise KeyError(tid)
+            if t.state not in ("queued", "running", "suspended"):
+                return "not_pausable"
+            t.resume = "ask"
+            if tid == self.running:
+                self._save(t)
+                self.preempt.set()
+                return "pausing"
+            t.state = "suspended"
+            self._save(t)
+            return "paused"
+
     # -- execution (the robot's thread) ---------------------------------------------------------
     def next_task(self) -> Task | None:
-        rows = self.db.execute(
-            "SELECT id FROM tasks WHERE state='queued' OR (state='suspended' AND resume='auto')"
-            " ORDER BY priority DESC, created ASC LIMIT 1"
-        ).fetchone()
-        return None if rows is None else self.get(rows[0])
+        with self.lock:
+            rows = self.db.execute(
+                "SELECT id FROM tasks WHERE state='queued' OR (state='suspended' AND resume='auto')"
+                " ORDER BY priority DESC, created ASC LIMIT 1"
+            ).fetchone()
+            return None if rows is None else self.get(rows[0])
 
     def step(self) -> Task | None:
         """Run the most urgent runnable task until it ends or is suspended."""
@@ -182,13 +203,15 @@ class TaskScheduler:
             ep = Episode(t.goal, False, f"execution error: {error!r}", t.steps)
         with self.lock:
             t.steps = ep.steps
-            if ep.suspended:
-                t.state, t.suspensions = "suspended", t.suspensions + 1
-            elif self.cancel_running.is_set():
+            # A concurrent pause may have changed the persisted resume policy.
+            t.resume = self.get(t.id).resume
+            if self.cancel_running.is_set():
                 t.state = "cancelled"
+            elif ep.suspended:
+                t.state, t.suspensions = "suspended", t.suspensions + 1
             else:
                 t.state = "succeeded" if ep.success_claimed else "failed"
-            t.result = ep.reason
+            t.result = "cancelled by user" if t.state == "cancelled" else ep.reason
             self._save(t)
             self.running = None
         self.notify(t.state, {"id": t.id, "text": t.text, "reason": ep.reason})
