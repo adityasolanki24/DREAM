@@ -26,8 +26,15 @@ import numpy as np
 from dream.perception.detect import Detection
 
 DEPTH_NOISE = (0.001, 0.0015)  # sigma = a + b z^2, the camera's specification
-HANDLE_BIAS_STD = 0.004  # m, systematic term: rms 3D error of the fused estimate at 0.5-0.8 m
-# range on development scenes (results/g1_reach_heights_dev/perception_calibration.json)
+HANDLE_BIAS_STD = 0.004  # m, isotropic systematic term when no face is known (v1 value)
+# Systematic term per axis of the fixture face (outward normal, lateral, vertical), fitted on the
+# v1 DEVELOPMENT episodes by experiments/g1_reach_calibrate_perception.py
+# (results/g1_reach_heights_dev/perception_calibration_v2.json): the v1 isotropic 4 mm covered 64%
+# of dev errors within two sigma; real errors are 15 mm along the face (a bar handle is partly
+# visible), 6 mm along the normal and below the sensor model vertically. The vertical term keeps
+# a 2 mm floor.
+HANDLE_BIAS_FACE = (0.0057, 0.0152, 0.002)
+MIN_OCCLUDED_HEIGHT = 0.5  # m, assumed extra height of a box whose top touches the image border
 MIN_OBSTACLE_THICKNESS = 0.02  # m, half thickness floor for slabs seen face-on
 MAX_SIGHTINGS = 8
 FRAGMENT_GAP = 0.05  # m, same-coloured boxes this close to the fixture are pieces of it
@@ -89,6 +96,11 @@ def _box_of(d: Detection, cam, may_touch: bool = False) -> ObstacleBox:
         centre = centre + axes[i] * np.sign(float(axes[i] @ view)) * extra / 2
         sides[i] = MIN_OCCLUDED_DEPTH
     top = float(d.extent[2])
+    if d.kind == "box" and d.occluded:
+        # a top that touches the image border is where the camera stopped seeing, not the top of
+        # the box: the volume above is unknown, not free (the same rule as the depth extrusion).
+        # Measured on dev/held-out v1: perceived fixture tops 0.19-0.23 m low for handles > 0.9 m.
+        top += MIN_OCCLUDED_HEIGHT
     half = (max(sides[0] / 2, MIN_OBSTACLE_THICKNESS), max(sides[1] / 2, MIN_OBSTACLE_THICKNESS),
             top / 2)  # fmt: skip
     return ObstacleBox(
@@ -164,6 +176,7 @@ class HandleEstimator:
     color: str
     noise: tuple[float, float] = DEPTH_NOISE
     bias_std: float = HANDLE_BIAS_STD
+    bias_face: tuple[float, float, float] = HANDLE_BIAS_FACE
     _sightings: list[tuple[np.ndarray, np.ndarray]] = field(default_factory=list)
     _last: list[Detection] = field(default_factory=list)
     _cam: np.ndarray = field(default_factory=lambda: np.zeros(3))
@@ -203,9 +216,9 @@ class HandleEstimator:
         info = sum(np.linalg.inv(c) for _, c in self._sightings)
         cov = np.linalg.inv(info)
         pos = cov @ sum(np.linalg.inv(c) @ p for p, c in self._sightings)
-        cov = cov + self.bias_std**2 * np.eye(3)
         self._fixture_det = None
         fixture, normal = self._fixture(pos)
+        cov = cov + self._bias_covariance(normal)
         obstacles = []
         for d in self._last:
             h = as_handle(d, self._last)
@@ -224,6 +237,15 @@ class HandleEstimator:
             pos, cov, self.color, len(self._sightings), self._candidates, tuple(obstacles),
             fixture, normal, self._time,
         )  # fmt: skip
+
+    def _bias_covariance(self, normal) -> np.ndarray:
+        """Systematic covariance in the odometry frame: per-axis terms in the face frame when the
+        face is known, else the isotropic term (the largest of the face terms would be a guess)."""
+        if normal is None:
+            return self.bias_std**2 * np.eye(3)
+        n = np.array([normal[0], normal[1], 0.0])
+        frame = np.array([n, [-n[1], n[0], 0.0], [0.0, 0.0, 1.0]])
+        return frame.T @ np.diag(np.square(self.bias_face)) @ frame
 
     def _fixture(self, handle: np.ndarray) -> tuple[ObstacleBox | None, tuple[float, float] | None]:
         """The box whose footprint the handle protrudes from (nearest within 0.1 m), and the
