@@ -60,7 +60,7 @@ did not trigger and all 11 calls were attempted once each (one attempt per decis
 the code was fixed to stop on any `subscription_sharing_*` error. Whether function-tool namespaces
 are required was **not tested** (the request never got that far).
 
-Qwen3-VL was not run: no session VM was live, and `cloud/launch.py` only supports its whitelisted
+Qwen3-VL was not run (a `vlm-compare` cloud workload was added in commit 874eb58 but never launched; work was stopped before any VM was created): no session VM was live, and `cloud/launch.py` only supports its whitelisted
 workloads, so a new workload for this set needs changes to safeguarded cloud code and a costed GPU
 session (US$6 ceiling). Existing Qwen3-VL evidence is in the README (G1 exploration: Qwen 0/4 vs
 deterministic 1/4 on development cases).
