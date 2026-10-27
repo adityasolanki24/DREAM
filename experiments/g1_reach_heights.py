@@ -242,7 +242,8 @@ def run_episode(args: tuple) -> dict:
         caps = ControllerCapabilities.from_envelope_v2(ROOT / cfg["envelope"])
         env = G1MobileEnv(
             build_mobile_g1(
-                scene=lambda s: add_reach_scene(s, scene), hands=True,
+                scene=lambda s: add_reach_scene(s, scene),
+                hands=True,
                 touch=cfg.get("touch_sensors", False),
             ),
             np.random.default_rng([spec["seed"], 1]),
@@ -302,8 +303,11 @@ def run_episode(args: tuple) -> dict:
             agent=to_jsonable(report),
             evaluator=to_jsonable(verdict),
             stop_details=to_jsonable(
-                [{"t": s.t, "reason": s.reason, **s.detail}
-                 for sup in body.supervisors for s in sup.stops]
+                [
+                    {"t": s.t, "reason": s.reason, **s.detail}
+                    for sup in body.supervisors
+                    for s in sup.stops
+                ]
             ),  # WHICH joint triggered each stop (W6 instrumentation)
             reference=to_jsonable(ref),
             execution_trace=to_jsonable(trace_summary(body, probe)),
@@ -499,8 +503,11 @@ def main() -> None:
     ap.add_argument("config")
     ap.add_argument("--set", choices=("dev", "heldout"), required=True)
     ap.add_argument("--system", choices=(*SYSTEMS, "both"), default="both")
-    ap.add_argument("--where-agent-failed", action="store_true",
-                    help="only episodes the agent did not physically succeed in (truth-input runs)")
+    ap.add_argument(
+        "--where-agent-failed",
+        action="store_true",
+        help="only episodes the agent did not physically succeed in (truth-input runs)",
+    )
     ap.add_argument("--workers", type=int, default=2)
     ap.add_argument("--summarize", action="store_true")
     ap.add_argument("--only", nargs="*", help="episode ids")
@@ -508,21 +515,28 @@ def main() -> None:
     ap.add_argument("--video-dir", help="record spectator videos here (outside Git)")
     ap.add_argument("--video-ids", nargs="*", default=[])
     args = ap.parse_args()
-    cfg = json.loads(pathlib.Path(args.config).read_text())
+    config_bytes = pathlib.Path(args.config).read_bytes()
+    cfg = json.loads(config_bytes)
+    config_sha256 = hashlib.sha256(config_bytes).hexdigest()
     out = ROOT / (args.out or cfg[args.set]["results_dir"])
     envelope = ROOT / cfg["envelope"]
     if sha256(envelope) != cfg["envelope_sha256"]:
         raise SystemExit(f"envelope {envelope} does not match the pinned SHA-256")
+    meta_path = out / "meta.json"
+    if meta_path.exists() and json.loads(meta_path.read_text()).get("config") != cfg:
+        raise SystemExit(
+            f"config differs from existing metadata in {meta_path}; use a new output directory"
+        )
     if args.summarize:
         summarize_set(cfg, args.set, out)
         return
     sha = git("rev-parse", "HEAD")
     dirty = git("status", "--porcelain", "dream", "experiments", "tests")
     out.mkdir(parents=True, exist_ok=True)
-    meta_path = out / "meta.json"
     resumes = out / "resumes.jsonl"
     launch = {
         "git_sha": sha, "dirty": dirty.splitlines(), "set": args.set, "system": args.system,
+        "config_sha256": config_sha256,
         "time": time.strftime("%Y-%m-%d %H:%M:%S"),
     }  # fmt: skip
     with resumes.open("a") as f:  # every launch is recorded: the first run and each resume
@@ -530,7 +544,8 @@ def main() -> None:
     if not meta_path.exists():
         meta_path.write_text(json.dumps({
             "git_sha_at_start": sha, "dirty_paths_at_start": dirty.splitlines(),
-            "config": cfg, "envelope": cfg["envelope"], "envelope_sha256": sha256(envelope),
+            "config": cfg, "config_sha256": config_sha256,
+            "envelope": cfg["envelope"], "envelope_sha256": sha256(envelope),
             "python": platform.python_version(), "mujoco": mujoco.__version__,
             "numpy": np.__version__, "machine": platform.platform(),
             "odometry": "oracle-assisted (true increments + noise), dream/sim/g1_mobile.py",
