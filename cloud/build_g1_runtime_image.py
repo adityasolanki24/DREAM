@@ -70,25 +70,21 @@ def main() -> None:
 
     def metadata(path: str) -> str:
         request = urllib.request.Request(
-            "http://metadata.google.internal/computeMetadata/v1/instance/attributes/" + path,
+            "http://metadata.google.internal/computeMetadata/v1/" + path,
             headers={"Metadata-Flavor": "Google"},
         )
         with urllib.request.urlopen(request, timeout=5) as response:
             return response.read().decode()
 
-    bucket = metadata("dream-bucket")
+    bucket = metadata("instance/attributes/dream-bucket")
     project = metadata("project/project-id")
+    subprocess.run(["sync"], check=True, timeout=120)
     subprocess.run(
         ["gsutil", "-m", "rsync", "-r", "/work/out", f"gs://{bucket}/out"],
         check=True,
         timeout=600,
     )
-    request = urllib.request.Request(
-        "http://metadata.google.internal/computeMetadata/v1/instance/zone",
-        headers={"Metadata-Flavor": "Google"},
-    )
-    with urllib.request.urlopen(request, timeout=5) as response:
-        zone = response.read().decode().rsplit("/", 1)[-1]
+    zone = metadata("instance/zone").rsplit("/", 1)[-1]
     command = [
         "gcloud",
         "compute",
@@ -101,6 +97,7 @@ def main() -> None:
         args.source_disk,
         "--source-disk-zone",
         zone,
+        "--force",
         "--description",
         description,
         "--labels",

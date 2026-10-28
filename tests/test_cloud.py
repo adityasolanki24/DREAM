@@ -86,16 +86,24 @@ def test_g1_runtime_builder_is_one_scene_and_budgets_retained_image_storage():
             (cloud.ROOT / "experiments/configs/g1_runtime_build_demo.json").read_text()
         )["cases"]
     ] == ["free_heavier"]
-    assert p["estimated_usd"] == 8.27
+    assert p["estimated_usd"] == 7.16
     assert p["retained_image_monthly_estimate_usd"] == 5.0
+    assert p["max_minutes"] == 30
     assert p["region"] == "asia-southeast1"
     assert p["zones"] == ["asia-southeast1-a", "asia-southeast1-b", "asia-southeast1-c"]
     command = cloud.create_command(p, "a" * 40, "b" * 64)
     assert "--instance-termination-action=DELETE" in command
-    assert "--max-run-duration=45m" in command
+    assert "--max-run-duration=30m" in command
     metadata = next(arg for arg in command if arg.startswith("--metadata="))
     assert f"dream-runtime-image-name={p['runtime_image_name']}" in metadata
     assert not any("nerva" in arg for arg in command)
+
+
+def test_runtime_image_uses_real_project_metadata_and_forced_running_disk_image():
+    builder = (cloud.ROOT / "cloud/build_g1_runtime_image.py").read_text()
+    assert 'metadata("instance/attributes/dream-bucket")' in builder
+    assert 'metadata("project/project-id")' in builder
+    assert '"--force"' in builder
 
 
 def test_runtime_builder_bootstraps_the_hashed_python_environment():
