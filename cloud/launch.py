@@ -28,6 +28,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 CONFIG = ROOT / "experiments/configs/cloud_qwen_pilot.json"
 ZONES = ("us-central1-c", "us-central1-b", "us-central1-a")
+REGION_ZONES = {
+    "us-central1": ZONES,
+    "us-west1": ("us-west1-a", "us-west1-b", "us-west1-c"),
+}
 WORKLOAD_CONFIGS = {
     "groot-openloop": ROOT / "experiments/configs/cloud_groot_openloop.json",
     "g1-qwen": ROOT / "experiments/configs/cloud_g1_qwen.json",
@@ -128,7 +132,14 @@ def plan(project: str, cfg: dict, name: str) -> dict:
         raise ValueError("supply a valid --project or DREAM_GCP_PROJECT")
     if not re.fullmatch(r"dream-qwen-[a-z0-9-]{1,35}", name):
         raise ValueError("run names must be DREAM-specific")
-    if cfg["machine"] != "g2-standard-8" or cfg["zone"] not in ZONES:
+    region = cfg.get("region", "us-central1")
+    zones = tuple(cfg.get("zones", REGION_ZONES.get(region, ())))
+    if (
+        cfg["machine"] != "g2-standard-8"
+        or cfg["zone"] not in zones
+        or not zones
+        or any(not zone.startswith(region + "-") for zone in zones)
+    ):
         raise ValueError("this pilot is restricted to one reviewed L4 configuration")
     minutes = cfg["max_minutes"]
     workload = cfg.get("workload", "qwen-pilot")
@@ -157,7 +168,8 @@ def plan(project: str, cfg: dict, name: str) -> dict:
         "workload": workload,
         "project": project,
         "zone": cfg["zone"],
-        "region": "us-central1",
+        "region": region,
+        "zones": list(zones),
         "machine": cfg["machine"],
         "disk_gb": disk_gb,
         "max_minutes": minutes,
@@ -227,7 +239,7 @@ def allocate(p: dict, sha: str, checksum: str, startup: Path, dest: Path) -> Non
     Three zones are supported by the same regional L4 configuration. Other failures,
     including ambiguous timeouts, require inspection rather than another allocation.
     """
-    zones = [p["zone"], *(z for z in ZONES if z != p["zone"])]
+    zones = list(p.get("zones", [p["zone"], *(z for z in ZONES if z != p["zone"])]))
     records = []
     for zone in zones:
         p["zone"] = zone
@@ -551,12 +563,12 @@ def check_pilot(out: Path, workload: str = "qwen-pilot") -> None:
         raise RuntimeError("pilot acceptance gate failed or episodes incomplete")
 
 
-def audit(project: str) -> dict:
+def audit(project: str, region_name: str = "us-central1") -> dict:
     """Read-only readiness/inventory. An available quota is not guaranteed zonal capacity."""
     billing = json.loads(gcloud("billing", "projects", "describe", project, "--format=json"))
     region = json.loads(
         gcloud(
-            "compute", "regions", "describe", "us-central1", f"--project={project}", "--format=json"
+            "compute", "regions", "describe", region_name, f"--project={project}", "--format=json"
         )
     )
     instances = json.loads(
@@ -824,7 +836,7 @@ def wait_for_guest(p: dict) -> None:
 
 
 def _launch(p: dict, allowance: float) -> None:
-    state = audit(p["project"])
+    state = audit(p["project"], p["region"])
     if not state["billing_enabled"] or state["dream_instances"]:
         raise ValueError("billing disabled or another DREAM GPU job is present")
     quota = {q["metric"]: q["limit"] - q["usage"] for q in state["quotas"]}
@@ -1008,7 +1020,7 @@ def _launch(p: dict, allowance: float) -> None:
                 errors.append("delete budget alert " + alert)
         (dest / "cleanup_errors.json").write_text(json.dumps(errors, indent=2), encoding="utf-8")
         (dest / "post_audit.json").write_text(
-            json.dumps(audit(p["project"]), indent=2), encoding="utf-8"
+            json.dumps(audit(p["project"], p["region"]), indent=2), encoding="utf-8"
         )
         if errors:
             print("Cleanup needs audit; inspect", dest / "cleanup_errors.json")
@@ -1062,7 +1074,11 @@ def recover(manifest: Path, yes: bool) -> None:
         retrieved = True
     finally:
         errors = cleanup(p, remove_results=retrieved)
-        print(json.dumps({"cleanup_errors": errors, "audit": audit(p["project"])}, indent=2))
+        print(
+            json.dumps(
+                {"cleanup_errors": errors, "audit": audit(p["project"], p["region"])}, indent=2
+            )
+        )
 
 
 def main() -> None:
