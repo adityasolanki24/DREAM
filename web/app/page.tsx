@@ -93,7 +93,7 @@ export default function Page() {
   const pushToasts = useCallback((notices: { tone: Toast['tone']; title: string; body?: unknown }[]) => {
     const fresh = notices.map((n) => ({ ...n, key: ++toastKey.current })) as Toast[];
     if (!fresh.length) return;
-    setToasts((old) => [...old, ...fresh].slice(-4));
+    setToasts((old) => [...old, ...fresh].slice(-3));
     fresh.forEach((t) => setTimeout(() => setToasts((old) => old.filter((x) => x.key !== t.key)), 7000));
     if (notifyRef.current && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
       fresh.filter((t) => t.tone !== 'info').forEach((t) => new Notification(`DREAM: ${t.title}`, { body: typeof t.body === 'string' ? t.body : undefined }));
@@ -261,8 +261,8 @@ export default function Page() {
       </aside>
       <div className="workspace">
         <header className="topbar">
-          <div className="breadcrumb"><span>Mission</span><span className="slash">/</span><b>Workspace</b></div>
-          <div className="top-right"><ConnectionBadge link={link} /><NotifyButton enabled={notify} onToggle={toggleNotify} />
+          <div className="breadcrumb"><span className="crumb-root">Mission</span><span className="slash crumb-root">/</span><b>Workspace</b></div>
+          <div className="top-right"><ConnectionBadge link={link} compact={mobile} /><NotifyButton enabled={notify} onToggle={toggleNotify} />
             <Dropdown.Root><Dropdown.Trigger asChild><button className="icon-btn" aria-label="Session settings"><Settings size={18}/></button></Dropdown.Trigger>
               <Dropdown.Portal><Dropdown.Content className="dropdown" align="end" sideOffset={8}><Dropdown.Item className="dropdown-item" onSelect={() => setSettingsOpen(true)}>Change access token</Dropdown.Item><Dropdown.Item className="dropdown-item" onSelect={toggleNotify}>{notify ? 'Disable' : 'Enable'} notifications</Dropdown.Item>
                 <Dropdown.Separator className="dropdown-sep" /><Dropdown.Label className="dropdown-label">THEME</Dropdown.Label>
@@ -286,9 +286,9 @@ export default function Page() {
           <aside className="conversation" hidden={mobile && tab !== 'chat'}>{chat}</aside>
         </main>}
         <nav className="tabbar" aria-label="Sections">{TABS.map(({ id, label, icon: Icon }) => <button key={id} className={tab === id ? 'on' : ''} aria-current={tab === id ? 'page' : undefined} onClick={() => setTab(id)}><Icon size={20}/><span>{label}</span></button>)}</nav>
+        <Toasts toasts={toasts} onDismiss={(k) => setToasts((old) => old.filter((t) => t.key !== k))} />
       </div>
       <Dialog.Root open={settingsOpen} onOpenChange={setSettingsOpen}><Dialog.Portal><Dialog.Overlay className="dialog-overlay"/><Dialog.Content className="dialog-content"><Dialog.Title>Session connection</Dialog.Title><Dialog.Description>Update the token used for this browser tab.</Dialog.Description><Dialog.Close className="dialog-close" aria-label="Close"><X size={18}/></Dialog.Close><ConnectCard link={link} error={error} onConnect={(value) => { connect(value); setSettingsOpen(false); }}/></Dialog.Content></Dialog.Portal></Dialog.Root>
-      <Toasts toasts={toasts} onDismiss={(k) => setToasts((old) => old.filter((t) => t.key !== k))} />
     </div>
     </Tooltip.Provider>
   );

@@ -113,11 +113,20 @@ const LINK_LABEL: Record<Link, string> = {
   unauthorised: 'Token rejected',
 };
 
-export function ConnectionBadge({ link }: { link: Link }) {
+/** Short labels for the narrow (phone) header; the full label stays in aria-label and title. */
+const LINK_SHORT: Record<Link, string> = {
+  idle: 'Idle',
+  connecting: 'Connecting',
+  online: 'Connected',
+  offline: 'Offline',
+  unauthorised: 'Rejected',
+};
+
+export function ConnectionBadge({ link, compact = false }: { link: Link; compact?: boolean }) {
   return (
-    <span className={`conn conn-${link}`} role="status">
+    <span className={`conn conn-${link}`} role="status" aria-label={LINK_LABEL[link]} title={LINK_LABEL[link]}>
       <i />
-      {LINK_LABEL[link]}
+      {compact ? LINK_SHORT[link] : LINK_LABEL[link]}
     </span>
   );
 }

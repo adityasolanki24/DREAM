@@ -107,14 +107,14 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .side-footer { margin-top: auto; padding: var(--space-4) 10px 0; border-top: 1px solid var(--hairline); color: var(--text-primary); font-size: 12px; }
 .side-footer small { display: block; color: var(--text-secondary); margin: 4px 0 0 13px; }
 .side-dot { display: inline-block; width: 7px; height: 7px; background: var(--success); border-radius: 50%; margin-right: 6px; }
-.workspace { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: var(--space-3); }
+.workspace { position: relative; min-width: 0; min-height: 0; flex: 1; display: flex; flex-direction: column; gap: var(--space-3); }
 .topbar { height: var(--topbar); flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 var(--space-5); background: var(--card); border: 1px solid var(--hairline); border-radius: var(--radius-card); box-shadow: var(--shadow-1); }
 .brand { display: flex; align-items: center; gap: 10px; }
 .top-right { display: flex; align-items: center; gap: var(--space-2); }
 .breadcrumb { display: flex; align-items: center; gap: 11px; color: var(--text-secondary); font-size: 13px; }
 .breadcrumb b { color: var(--text-primary); font-weight: 600; }
 .slash { color: var(--hairline-strong); }
-.conn { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-secondary); padding: 5px 12px; border: 1px solid var(--hairline); border-radius: var(--radius-pill); background: var(--raised); }
+.conn { display: inline-flex; align-items: center; gap: 7px; flex: none; white-space: nowrap; font-size: 12px; color: var(--text-secondary); padding: 5px 12px; border: 1px solid var(--hairline); border-radius: var(--radius-pill); background: var(--raised); }
 .conn i { width: 7px; height: 7px; border-radius: 50%; background: var(--text-secondary); }
 .conn-online i { background: var(--success); }
 .conn-connecting i { background: var(--amber); }
@@ -313,7 +313,8 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
 .empty strong { color: var(--text-primary); font-weight: 600; font-size: 14px; }
 .empty span { font-size: 12.5px; max-width: 300px; }
 .empty-icon { width: 48px; height: 48px; display: grid; place-items: center; background: var(--raised); border-radius: 50%; margin-bottom: var(--space-1); color: var(--text-secondary); }
-.toasts { position: fixed; z-index: 60; top: calc(var(--topbar) + 20px); right: 16px; display: flex; flex-direction: column; gap: 8px; width: min(360px, calc(100vw - 24px)); pointer-events: none; }
+/* Desktop: bottom-left corner of the main area, clear of the chat column and the offline banner (top). */
+.toasts { position: absolute; z-index: 60; left: var(--space-5); bottom: var(--space-5); display: flex; flex-direction: column; gap: 8px; width: min(360px, calc(100% - 2 * var(--space-5))); pointer-events: none; }
 .toast { pointer-events: auto; display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; background: var(--raised); border: 1px solid var(--hairline); border-left: 3px solid var(--tone, var(--hairline-strong)); border-radius: var(--radius-control); box-shadow: var(--shadow-2); animation: in 0.18s ease-out; }
 .toast div { flex: 1; min-width: 0; } .toast b { display: block; font-weight: 600; font-size: 13px; } .toast span { display: block; font-size: 12.5px; color: var(--text-secondary); overflow-wrap: anywhere; }
 .toast button { background: none; border: 0; color: var(--text-secondary); font-size: 18px; line-height: 1; padding: 0 2px; }
@@ -363,6 +364,8 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   .mobile-content .visual-tabs > [role=tabpanel] { min-height: 0; flex: 1; display: flex; }
   .mobile-content .visual-tabs > [hidden] { display: none; }
   .mobile-content .visual-tabs .panel { flex: 1; }
+  /* The task list scrolls inside the panel; keep its last rows clear of the tab bar. */
+  .mobile-content .task { padding-bottom: calc(var(--tabbar) + env(safe-area-inset-bottom)); }
   .mobile-content .viewport, .mobile-content .mapbox { min-height: 250px; }
   .conversation { flex: 1; }
   .conversation[hidden] { display: none; }
@@ -373,7 +376,9 @@ button:disabled { cursor: not-allowed; opacity: 0.45; }
   .facts { grid-template-columns: repeat(2, 1fr); }
   .viewport, .mapbox { margin: 0 var(--space-3); border-radius: var(--radius-card); }
   .prio { margin-left: 0; }
-  .toasts { top: 72px; }
+  /* Phone: above the bottom tab bar (its height plus the safe area), full width, never over the banner at the top. */
+  .toasts { left: var(--space-3); right: var(--space-3); width: auto; bottom: calc(var(--tabbar) + env(safe-area-inset-bottom) + var(--space-3)); }
+  .crumb-root { display: none; }
   .btn, .view-switch button, .icon-btn, .chip-btn, .tabs button { min-height: 44px; } .icon-btn { min-width: 44px; }
   .composer textarea { font-size: 16px; }
 }
