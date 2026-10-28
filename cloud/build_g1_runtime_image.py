@@ -79,6 +79,9 @@ def main() -> None:
 
     bucket = metadata("instance/attributes/dream-bucket")
     project = metadata("project/project-id")
+    # The snapshot boots as a fresh VM. Never bake the source VM's one-shot
+    # startup guard into the image or the fresh guest will skip provisioning.
+    Path("/var/dream_started").unlink(missing_ok=True)
     subprocess.run(["sync"], check=True, timeout=120)
     subprocess.run(
         ["gsutil", "-m", "rsync", "-r", "/work/out", f"gs://{bucket}/out"],
