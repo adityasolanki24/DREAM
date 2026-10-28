@@ -1,0 +1,573 @@
+"""Typed robot tools for a task-level agent (rule-based now, a language model later).
+
+Each tool has a declared schema (``TOOL_SPECS``, in JSON-schema style for future function
+calling). Every call goes through ``Toolbox.call``, which validates arguments, checks state
+preconditions and returns a ``ToolResult``. Tools act only through the ``Embodiment``
+(controller setpoints with safety limits enforced underneath) and read only ``Perception``.
+They cannot move objects directly, write torques, or see simulator ground truth.
+"""
+
+from __future__ import annotations
+
+import math
+import threading
+from dataclasses import dataclass, field
+
+import numpy as np
+
+import dream.skills.articulation as art
+from dream.skills import manipulation as skills
+from dream.tools import discovery
+from dream.tools.goals import InRegion, OnTop, parse_goal, resting_on, verify
+from dream.types import Embodiment, Perception
+
+# m: TCP parking pose above the robot's side of the table, behind every object it can reach,
+# so neither camera looks through the arm at the workspace.
+PARK_POSITION = np.array([0.3, 0.0, 0.45])
+HOLD_MIN_WIDTH = 0.01  # m: closed fingers stopped wider than this are holding something
+HOLD_MAX_DISTANCE = 0.04  # m: an object this close to the TCP is the one being held
+TABLE_REGION = ((0.35, 0.65), (-0.28, 0.28))  # m: where the arm can comfortably set objects down
+# m beyond an object's size between neighbour centres: the closed fingers stick out ~1.5 cm
+# past a held cube, so a tighter spacing makes them strike the neighbour while lowering.
+FINGER_CLEARANCE = 0.025
+# m between a placed object's side and a region wall: the fingers protrude past the object along
+# the closing axis and must not strike the wall while lowering.
+WALL_CLEARANCE = 0.025  # > release slack/2 + finger thickness (~0.018)
+
+TOOL_SPECS: list[dict] = [
+    {
+        "name": "observe_scene",
+        "description": "List visible objects (pose estimates) and fixtures.",
+        "parameters": {},
+    },
+    {
+        "name": "get_robot_state",
+        "description": "Joint state, TCP pose, gripper state, safety status, capabilities.",
+        "parameters": {},
+    },
+    {
+        "name": "move_end_effector",
+        "description": "Move the gripper (pointing down) to a position and yaw.",
+        "parameters": {
+            "position": {"type": "vector3", "required": True},
+            "yaw": {"type": "number", "required": False},
+        },
+    },
+    {
+        "name": "grasp",
+        "description": "Pick up a named object from above. Requires an empty gripper.",
+        "parameters": {"object": {"type": "string", "required": True}},
+    },
+    {
+        "name": "retract",
+        "description": (
+            "Move the arm to its parking pose, clear of the workspace and of the cameras' view "
+            "(to observe what the arm was hiding)."
+        ),
+        "parameters": {},
+    },
+    {
+        "name": "release",
+        "description": "Open the gripper (letting go of a held handle also backs off).",
+        "parameters": {},
+    },
+    {
+        "name": "place",
+        "description": "Put the held object in a region ('tray'), on an object, or on 'table'.",
+        "parameters": {
+            "object": {"type": "string", "required": True},
+            "target": {"type": "string", "required": True},
+        },
+    },
+    {
+        "name": "verify_goal",
+        "description": "Check a structured goal against observations, with margin.",
+        "parameters": {"goal": {"type": "goal", "required": True}},
+    },
+    {
+        "name": "investigate_physics",
+        "description": (
+            "Grasp the handle of an articulated object and probe it with capped forces until its "
+            "mechanism (fixed, sliding, hinged), constraint and parameters are identified, the "
+            "model is found inadequate, a safety limit trips, or the probe budget is spent."
+        ),
+        "parameters": {
+            "object": {"type": "string", "required": True},
+            "budget": {"type": "number", "required": False},  # probes, default 12
+            "strategy": {"type": "string", "required": False},  # "eig" (default) | "random"
+            "max_force": {"type": "number", "required": False},  # N, at most 15
+        },
+    },
+    {
+        "name": "open_articulated",
+        "description": (
+            "Open an articulated object. 'learned' (default) follows the constraint identified by "
+            "investigate_physics and requires it; 'fixed_pull' pulls straight out of the front "
+            "without a model (a baseline)."
+        ),
+        "parameters": {
+            "object": {"type": "string", "required": True},
+            "strategy": {"type": "string", "required": False},
+            # m: stop as soon as the visible opening is at least this half width
+            "min_opening": {"type": "number", "required": False},
+        },
+    },
+]
+SPECS = {s["name"]: s for s in TOOL_SPECS}
+READ_ONLY = ("observe_scene", "get_robot_state", "verify_goal")  # never blocked by cancel/stop
+
+
+@dataclass
+class ToolResult:
+    tool: str
+    status: str  # "succeeded" | "failed" | "rejected" | "timeout" | "stopped"
+    message: str = ""
+    data: dict = field(default_factory=dict)
+    sim_time: float = 0.0  # s of robot time spent
+
+    @property
+    def ok(self) -> bool:
+        return self.status == "succeeded"
+
+
+class Cancelled(Exception):
+    pass
+
+
+class Toolbox:
+    def __init__(
+        self,
+        robot: Embodiment,
+        perception: Perception,
+        cancel: threading.Event | None = None,
+        rng: np.random.Generator | None = None,
+    ):
+        self.robot = robot
+        self.perception = perception
+        self.cancel = cancel or threading.Event()
+        self.rng = rng if rng is not None else np.random.default_rng(0)
+        self._grasped: str | None = None  # the object of the last successful grasp
+        self._gripped_handle: str | None = None  # an investigation left this handle in the hand
+        # Results of investigate_physics in this session (not memory: nothing persists).
+        self.investigations: dict[str, discovery.Investigation] = {}
+        self.on_discovery_step = None  # optional callback(step: dict, belief) for live displays
+
+    # ----- entry point ----------------------------------------------------------------
+
+    def call(self, name: str, args: dict | None = None) -> ToolResult:
+        args = dict(args or {})
+        if name not in SPECS:
+            return ToolResult(name, "rejected", f"unknown tool '{name}'")
+        problem = _validate(SPECS[name]["parameters"], args)
+        if problem:
+            return ToolResult(name, "rejected", problem)
+        if self.cancel.is_set() and name not in READ_ONLY:
+            return ToolResult(name, "stopped", "cancelled before start")
+        if self.robot.state().protective_stop and name not in READ_ONLY:
+            return ToolResult(
+                name, "rejected", f"robot in protective stop: {self.robot.state().stop_reason}"
+            )
+        t0 = self.robot.state().time
+        try:
+            result = getattr(self, f"_{name}")(**args)
+        except Cancelled:
+            self.robot.hold()
+            result = ToolResult(name, "stopped", "cancelled; robot holding position")
+        result.sim_time = self.robot.state().time - t0
+        return result
+
+    # ----- tools ------------------------------------------------------------------------
+
+    def _observe_scene(self) -> ToolResult:
+        objects = [
+            {
+                "name": o.name,
+                "color": o.color,
+                "position": np.round(o.position, 4).tolist(),
+                "yaw": round(o.yaw, 3),
+                "size": o.size,
+                "visible": o.visible,
+                "last_seen": o.last_seen,
+                "position_std": o.position_std,
+            }
+            for o in self.perception.observe_objects()
+        ]
+        fixtures = {
+            k: {"centre": np.round(c, 4).tolist(), "half_width": h}
+            for k, (c, h) in self.perception.fixtures().items()
+        }
+        articulated = [
+            {
+                "name": a.name,
+                "handle_position": np.round(a.handle_pos, 4).tolist(),
+                "box_centre": np.round(a.box_centre, 4).tolist(),
+                "box_half": np.round(a.box_half, 4).tolist(),
+                "handle_visible": a.handle_visible,
+                "last_seen": a.last_seen,
+                "position_std": a.position_std,
+                "orientation_observed": a.orientation_observed,
+            }
+            for a in self.perception.observe_articulated()
+        ]
+        return ToolResult(
+            "observe_scene",
+            "succeeded",
+            data={
+                "objects": objects,
+                "fixtures": fixtures,
+                "articulated": articulated,
+                "investigations": {k: v.summary() for k, v in self.investigations.items()},
+                "holding": self.held_object(),
+                "holding_handle": self.held_handle(),
+            },
+        )
+
+    def _get_robot_state(self) -> ToolResult:
+        s = self.robot.state()
+        return ToolResult(
+            "get_robot_state",
+            "succeeded",
+            data={
+                "time": s.time,
+                "joint_pos": np.round(s.joint_pos, 4).tolist(),
+                "tcp_pos": np.round(s.tcp_pos, 4).tolist(),
+                "tcp_yaw": round(skills.tcp_yaw(s.tcp_quat), 3),
+                "gripper_width": round(s.gripper_width, 4),
+                "holding": self.held_object(),
+                "protective_stop": s.protective_stop,
+                "capabilities": [t["name"] for t in TOOL_SPECS],
+            },
+        )
+
+    def _move_end_effector(self, position, yaw: float | None = None) -> ToolResult:
+        y = skills.tcp_yaw(self.robot.state().tcp_quat) if yaw is None else float(yaw)
+        r = self._guard(lambda rb: skills.move_to(rb, np.asarray(position, float), y))
+        return self._from_skill("move_end_effector", r)
+
+    def _grasp(self, object: str) -> ToolResult:
+        if self.held_handle() is not None:
+            return ToolResult(
+                "grasp",
+                "rejected",
+                f"precondition: gripper holds the handle of '{self.held_handle()}'",
+            )
+        if self.held_object() is not None:
+            return ToolResult(
+                "grasp", "rejected", f"precondition: gripper already holds '{self.held_object()}'"
+            )
+        if skills.find(self.perception, object) is None:
+            return ToolResult("grasp", "rejected", f"precondition: '{object}' is not visible")
+        blockers = resting_on(object, self.perception.observe_objects())
+        if blockers:
+            return ToolResult("grasp", "rejected", f"precondition: {blockers} rest on '{object}'")
+        r = self._guard(lambda rb: skills.pick(rb, self.perception, object))
+        if r.ok:
+            self._grasped = object
+        if r.ok and self.held_object() != object:
+            return ToolResult(
+                "grasp",
+                "failed",
+                f"holding '{self.held_object()}' instead of '{object}'",
+                r.details,
+            )
+        return self._from_skill("grasp", r)
+
+    def _retract(self) -> ToolResult:
+        if self.held_handle() is not None:
+            return ToolResult("retract", "rejected", "precondition: release the handle first")
+        r = self._guard(lambda rb: skills.move_via_travel_height(rb, PARK_POSITION, 0.0))
+        return self._from_skill("retract", r)
+
+    def _release(self) -> ToolResult:
+        if self.held_handle() is not None:  # let go of a handle: leave compliance, back off
+            return self._from_skill("release", self._guard(art.release_handle))
+        width = min(skills.OPEN_WIDTH, self.robot.state().gripper_width + skills.RELEASE_SLACK)
+        r = self._guard(lambda rb: skills.set_gripper(rb, width))
+        return self._from_skill("release", r)
+
+    def _place(self, object: str, target: str) -> ToolResult:
+        held = self.held_object()
+        if held != object:
+            return ToolResult(
+                "place", "rejected", f"precondition: holding {held!r}, not '{object}'"
+            )
+        on_target = [
+            b for b in resting_on(target, self.perception.observe_objects()) if b != object
+        ]
+        if on_target:
+            return ToolResult("place", "rejected", f"precondition: {on_target} occupy '{target}'")
+        point = self.target_point(object, target)
+        if point is None:
+            known = target in self.perception.fixtures() or target == "table"
+            why = "no free spot" if known else "unknown or unseen target"
+            return ToolResult("place", "rejected", f"{why} in '{target}'")
+        yaw = self.container_place_yaw(target)
+        r = self._guard(lambda rb: skills.place(rb, self.perception, object, point, yaw=yaw))
+        return self._from_skill("place", r)
+
+    def _verify_goal(self, goal) -> ToolResult:
+        try:
+            g = goal if isinstance(goal, (InRegion, OnTop)) else parse_goal(goal)
+        except ValueError as e:
+            return ToolResult("verify_goal", "rejected", str(e))
+        v = verify(g, self.perception.observe_objects(), self.perception.fixtures())
+        return ToolResult(
+            "verify_goal",
+            "succeeded",
+            v.reason,
+            {"satisfied": v.satisfied, "margin_m": v.margin, "uncertain": v.uncertain},
+        )
+
+    def _investigate_physics(
+        self, object: str, budget: float = 12, strategy: str = "eig", max_force: float = 15.0
+    ) -> ToolResult:
+        name = "investigate_physics"
+        if art.find_articulated(self.perception, object) is None:
+            return ToolResult(name, "rejected", f"no articulated object '{object}' observed")
+        if self.held_object() is not None:
+            return ToolResult(name, "rejected", f"precondition: holding '{self.held_object()}'")
+        if strategy not in ("eig", "random"):
+            return ToolResult(name, "rejected", f"unknown strategy '{strategy}'")
+        if not (float(budget).is_integer() and 1 <= budget <= 50):
+            return ToolResult(name, "rejected", "'budget' must be an integer number of probes 1-50")
+        if not 0 < max_force <= discovery.DEFAULT_SAFETY.max_force:
+            return ToolResult(name, "rejected", "'max_force' must be in (0, 15] N")
+        safety = discovery.SafetyConstraints(max_force=float(max_force))
+        inv = self._guard(
+            lambda rb: discovery.investigate(
+                rb,
+                self.perception,
+                object,
+                int(budget),
+                self.rng,
+                strategy=strategy,
+                safety=safety,
+                on_step=self.on_discovery_step,
+            )
+        )
+        self.investigations[object] = inv
+        self._gripped_handle = object if inv.opening_supported else None
+        # The tool succeeded if the investigation ran to a conclusion, including "fixed",
+        # "insufficient information" and "model inadequate"; the data say which.
+        status = "failed" if inv.status in ("unsafe", "unobservable", "failed") else "succeeded"
+        return ToolResult(name, status, inv.reason, inv.summary())
+
+    def _open_articulated(
+        self, object: str, strategy: str = "learned", min_opening: float | None = None
+    ) -> ToolResult:
+        name = "open_articulated"
+        if art.find_articulated(self.perception, object) is None:
+            return ToolResult(name, "rejected", f"no articulated object '{object}' observed")
+        if self.held_object() is not None:
+            return ToolResult(name, "rejected", f"precondition: holding '{self.held_object()}'")
+        if strategy == "learned":
+            inv = self.investigations.get(object)
+            if inv is None or not inv.opening_supported:
+                why = "not investigated" if inv is None else f"investigation: {inv.status}"
+                return ToolResult(name, "rejected", f"no supported opening strategy ({why})")
+            r = self._guard(
+                lambda rb: discovery.open_learned(
+                    rb,
+                    self.perception,
+                    object,
+                    inv,
+                    min_opening=min_opening,
+                    already_gripped=self._gripped_handle == object,
+                )
+            )
+        elif strategy == "fixed_pull":
+            r = self._guard(lambda rb: discovery.open_fixed_pull(rb, self.perception, object))
+        else:
+            return ToolResult(name, "rejected", f"unknown strategy '{strategy}'")
+        self._gripped_handle = None  # opening always ends by letting go
+        return self._from_skill(name, r)
+
+    # ----- helpers ------------------------------------------------------------------------
+
+    def container_place_yaw(self, target: str) -> float | None:
+        """Hand yaw for placing into an articulated container, or None to keep the current one.
+
+        The Panda hand is 20 cm wide along the finger axis but only 6 cm across. Lining the wide
+        axis up with the container's front face keeps it off a drawer's front panel and away
+        from a lid standing open at the back. The front is where the handle stuck out of the
+        box when first seen (closed), from the investigation, else from the current view.
+        """
+        inv = self.investigations.get(target)
+        if inv is not None and inv.belief is not None:
+            g = inv.belief.geometry
+            front = g.handle_pos - g.panel_center
+        else:
+            obs = art.find_articulated(self.perception, target)
+            if obs is None:
+                return None
+            front = obs.handle_pos - obs.box_centre
+        if np.linalg.norm(front[:2]) < 1e-3:
+            return None
+        # _down(yaw) closes the fingers along (-sin yaw, cos yaw): perpendicular to the front.
+        yaw = float(np.arctan2(front[1], front[0]))
+        current = skills.tcp_yaw(self.robot.state().tcp_quat)
+        options = yaw + np.arange(-3, 4) * np.pi
+        options = options[np.abs(options) <= 0.75 * np.pi]
+        return float(options[np.argmin(np.abs(options - current))])
+
+    def held_handle(self) -> str | None:
+        """Name of the articulated object whose handle the closed fingers are on, if any.
+
+        The toolbox's own record comes first (an investigation that left the handle in the hand),
+        as long as the fingers stay closed on something: a camera may not recognise a knob half
+        hidden by the fingers. Otherwise a handle perceived at the hand counts.
+        """
+        s = self.robot.state()
+        if s.gripper_command > 0.005 or s.gripper_width < discovery.GRASP_MIN_WIDTH:
+            self._gripped_handle = None
+            return None
+        if self._gripped_handle is not None:
+            return self._gripped_handle
+        for a in self.perception.observe_articulated():
+            if np.linalg.norm(a.handle_pos - s.tcp_pos) < max(0.025, discovery.near_handle(a)):
+                return a.name
+        return None
+
+    def held_object(self) -> str | None:
+        """Infer what is held from finger opening, observations and the last successful grasp.
+
+        An object seen near the TCP is held. A camera may not see a held object at all (the
+        hand hides it), so the object this toolbox last grasped counts as held while the
+        fingers stay closed on something and it is not seen anywhere else.
+        """
+        s = self.robot.state()
+        if s.gripper_command > 0.01 or s.gripper_width < HOLD_MIN_WIDTH:
+            self._grasped = None
+            return None
+        if self.held_handle() is not None:  # the fingers are on a handle, not an object
+            return None
+        objs = self.perception.observe_objects()
+        seen = [o for o in objs if o.visible]
+        near = [o for o in seen if np.linalg.norm(o.position - s.tcp_pos) < HOLD_MAX_DISTANCE]
+        if near:
+            return min(near, key=lambda o: np.linalg.norm(o.position - s.tcp_pos)).name
+        if self._grasped is not None and not any(o.name == self._grasped for o in seen):
+            return self._grasped
+        return None
+
+    def target_point(self, object: str, target: str) -> np.ndarray | None:
+        """Where the object's centre should end up for a named target."""
+        obj = skills.find(self.perception, object)
+        fixtures = self.perception.fixtures()
+        if obj is None:
+            return None
+        if target in fixtures:
+            centre, half = fixtures[target]
+            # Free spot inside the region, clear of objects already there and of the walls. Packing
+            # from a corner leaves room for more objects than filling the centre first.
+            inner = half - obj.size / 2 - WALL_CLEARANCE
+            lo = centre[:2] - inner
+            spot = self.free_spot(
+                obj,
+                ((lo[0], centre[0] + inner), (lo[1], centre[1] + inner)),
+                obj.size + FINGER_CLEARANCE,
+                [],
+                lo,
+                step=0.005,
+                floor_z=float(centre[2]),
+            )
+            return None if spot is None else np.array([*spot, centre[2] + obj.size / 2])
+        if target == "table":
+            boxes = [(c[:2], h + 0.03) for c, h in fixtures.values()]
+            spot = self.free_spot(obj, TABLE_REGION, 0.08, boxes, obj.position[:2])
+            return None if spot is None else np.array([*spot, obj.size / 2])
+        support = skills.find(self.perception, target)
+        if support is None:
+            return None
+        return support.position + [0, 0, (support.size + obj.size) / 2]
+
+    def free_spot(
+        self, obj, region, clearance, boxes, prefer, step: float = 0.02, floor_z: float = 0.0
+    ):
+        """Point in ``region`` at least ``clearance`` from other objects and outside ``boxes``,
+        nearest to ``prefer``. Uses observations only. Returns None if nothing fits.
+
+        Objects resting well above the region's floor (``floor_z``) do not occupy it (for
+        example the knob of a lid standing open above a cavity).
+        """
+        others = [
+            o.position[:2]
+            for o in self.perception.observe_objects()
+            if o.name != obj.name and o.position[2] < floor_z + 2 * obj.size
+        ]
+        (x0, x1), (y0, y1) = region
+        best, best_d = None, np.inf
+        for x in np.arange(x0, x1 + 1e-9, step):
+            for y in np.arange(y0, y1 + 1e-9, step):
+                p = np.array([x, y])
+                if any(np.linalg.norm(p - q) < clearance for q in others):
+                    continue
+                if any(np.max(np.abs(p - c)) < h + obj.size for c, h in boxes):
+                    continue
+                d = np.linalg.norm(p - prefer)
+                if d < best_d:
+                    best, best_d = p, d
+        return best
+
+    def _guard(self, fn):
+        """Run a skill with an embodiment whose waits end early when cancel is requested."""
+        return fn(_CancellableRobot(self.robot, self.cancel))
+
+    @staticmethod
+    def _from_skill(tool: str, r: skills.SkillResult) -> ToolResult:
+        if r.ok:
+            return ToolResult(tool, "succeeded", "", r.details)
+        status = (
+            "timeout"
+            if r.reason.startswith("timeout")
+            else "stopped"
+            if "protective stop" in r.reason
+            else "failed"
+        )
+        if "workspace" in r.reason:
+            status = "rejected"
+        return ToolResult(tool, status, r.reason, r.details)
+
+
+class _CancellableRobot:
+    """Embodiment wrapper: waits also end on cancel, then raise ``Cancelled``."""
+
+    def __init__(self, robot: Embodiment, cancel: threading.Event) -> None:
+        self._robot = robot
+        self._cancel = cancel
+
+    def __getattr__(self, name):
+        return getattr(self._robot, name)
+
+    def wait_until(self, predicate, timeout: float) -> bool:
+        ok = self._robot.wait_until(lambda: predicate() or self._cancel.is_set(), timeout)
+        if self._cancel.is_set():
+            raise Cancelled
+        return ok
+
+
+def _validate(params: dict, args: dict) -> str:
+    for key in args:
+        if key not in params:
+            return f"unexpected argument '{key}'"
+    for key, p in params.items():
+        if key not in args:
+            if p.get("required"):
+                return f"missing required argument '{key}'"
+            continue
+        v = args[key]
+        t = p["type"]
+        if t == "string" and not (isinstance(v, str) and v):
+            return f"'{key}' must be a non-empty string"
+        if t == "number" and not (isinstance(v, (int, float)) and math.isfinite(v)):
+            return f"'{key}' must be a finite number"
+        if t == "vector3":
+            try:
+                arr = np.asarray(v, dtype=float)
+            except (TypeError, ValueError):
+                return f"'{key}' must be 3 numbers"
+            if arr.shape != (3,) or not np.all(np.isfinite(arr)):
+                return f"'{key}' must be 3 finite numbers"
+        if t == "goal" and not isinstance(v, (str, dict, InRegion, OnTop)):
+            return f"'{key}' must be a structured goal"
+    return ""

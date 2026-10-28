@@ -7,7 +7,7 @@ observe, investigate, compose available skills, verify the outcome, and recognis
 
 ## Current status — 29 October 2026
 
-**This checkout: `codex/g1-runtime-builder-20261028`.** Runtime-image build, genuine Isaac/Qwen app run, idle-balance correction and local inspection-failure audit. Inspection/planning corrections are not implemented yet.
+**This checkout: `codex/g1-runtime-builder-20261028`.** Combined interface and runtime development: model picker, full-frame camera, language-goal routing, cached-image build, genuine Isaac/Qwen run, idle-balance correction and exact local inspection audit. Inspection/planning corrections remain pending.
 
 | Component | Evidence-backed status | Limits / next work |
 |---|---|---|
@@ -70,9 +70,12 @@ loop locally **before another paid evaluation**. The requested fresh Qwen evalua
 | Branch | Role |
 |---|---|
 | `main` | Stable integration line; only changes that pass the applicable checks are integrated |
-| `codex/phase1-agentic-interface` | Active interface, natural-language routing and model-comparison checkpoints |
-| `codex/g1-runtime-builder-20261028` | Active runtime image, Isaac app integration and unfinished inspection audit |
+| `codex/g1-runtime-builder-20261028` | Combined active interface, model comparison, runtime image, Isaac integration and unfinished inspection audit |
 | `claude/wholebody-autonomy` | Separate active whole-body research, with unresolved W6 gates |
+
+The interface branch was consolidated into the runtime branch; its original tip remains
+archived and its former worktree will use a detached checkout, avoiding a duplicate active
+branch. Both documentation archives and all staged/untracked checkpoints are retained.
 
 Retired branch heads are retained by annotated `archive/2026-10-29/...` tags. Do not merge
 unfinished research solely to remove a branch. Runtime/kitchen integration is currently

@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import { argSummary, endTitle, type Notice, type Thread, type Tool } from './feed.mjs';
 import { mapPixels, worldToPixel } from './map.mjs';
+import { describeMeta, type ModelChoice, type ProviderEntry } from '../modelChoice.mjs';
+import { ModelPicker } from './ModelPicker';
 import type { Link, Snapshot, Task } from './types';
 
 export const text = (v: unknown): string => (v == null ? '' : typeof v === 'string' ? v : JSON.stringify(v));
@@ -192,7 +194,7 @@ function ToolRow({ tool }: { tool: Tool }) {
   );
 }
 
-function AgentBlock({ task, thread, stopping }: { task: Task; thread?: Thread; stopping: boolean }) {
+function AgentBlock({ task, thread, stopping, modelLabel }: { task: Task; thread?: Thread; stopping: boolean; modelLabel: string | null }) {
   // A live task state beats a stale "suspended" end marker left in the thread by an earlier pause.
   const state = RUNNABLE.includes(task.state) ? task.state : (thread?.end?.state ?? task.state);
   const done = ['succeeded', 'failed', 'cancelled'].includes(state);
@@ -200,7 +202,7 @@ function AgentBlock({ task, thread, stopping }: { task: Task; thread?: Thread; s
   return (
     <div className={`bubble agent state-${state}`}>
       <div className="bubble-head">
-        <span className="who">DREAM</span>
+        <span className="thread-who"><span className="who">DREAM</span>{modelLabel && <span className="thread-model" title={`Ran with ${modelLabel}`}>{modelLabel}</span>}</span>
         <StatePill state={state} />
       </div>
       {stopping && !done && (
@@ -228,10 +230,11 @@ function AgentBlock({ task, thread, stopping }: { task: Task; thread?: Thread; s
 }
 
 export function Chat({
-  tasks, threads, running, stopping, link, examples, providerLabel, onSend, notice,
+  tasks, threads, running, stopping, link, choices, choice, onChoose, onSend, notice,
 }: {
   tasks: Task[]; threads: Record<string, Thread>; running: string | null; stopping: Set<string>; link: Link;
-  examples: string[]; providerLabel?: string; onSend: (text: string) => Promise<boolean>; notice: string;
+  choices: ProviderEntry[]; choice: ModelChoice | null; onChoose: (c: ModelChoice) => void;
+  onSend: (text: string) => Promise<boolean>; notice: string;
 }) {
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
@@ -241,6 +244,13 @@ export function Chat({
   const recogniser = useRef<{ stop: () => void } | null>(null);
   const [voiceSupported, setVoiceSupported] = useState(false);
   const online = link === 'online';
+  // Goal forms come from the chosen provider's `supports`, so chips and the placeholder never promise a form it rejects.
+  const examples = choices.find((c) => c.id === choice?.provider)?.supports ?? [];
+  // A chip with a placeholder such as "<place>" fills in the words before it, for the user to finish.
+  const fill = (x: string) => (x.includes('<') ? x.slice(0, x.indexOf('<')) : x);
+  const placeholder = online
+    ? examples.length > 0 ? `Try: ${examples.join(' or ')}` : 'Ask DREAM to do something…'
+    : 'Connect to send a task';
 
   useEffect(() => {
     const w = window as unknown as Record<string, unknown>;
@@ -282,17 +292,19 @@ export function Chat({
   }
 
   return (
-    <Panel title="Chat" className="chat" meta={<span className="muted small">{providerLabel ?? 'Goal parser unavailable'}</span>}>
+    <Panel title="Chat" className="chat">
       <div className="thread" aria-live="polite">
         {tasks.length === 0 && (
           <Empty icon={online ? <Send size={20} /> : <WifiOff size={20} />} title={online ? 'Tell DREAM what to do' : 'Not connected'}>
-            {online ? 'Use a supported goal such as "inspect cabinet" or "goto entrance". Progress and outcomes appear here.' : 'Connect to a session to send tasks.'}
+            {online
+              ? (examples.length > 0 ? `Use a supported goal such as ${examples.map((x) => `"${x}"`).join(' or ')}. Progress and outcomes appear here.` : 'Progress and outcomes appear here.')
+              : 'Connect to a session to send tasks.'}
           </Empty>
         )}
         {tasks.map((t) => (
           <div key={t.id} className="exchange" data-task-id={t.id}>
             <div className="bubble user">{t.text}</div>
-            <AgentBlock task={t} thread={threads[t.id]} stopping={stopping.has(t.id)} />
+            <AgentBlock task={t} thread={threads[t.id]} stopping={stopping.has(t.id)} modelLabel={describeMeta(choices, t.meta)} />
           </div>
         ))}
         <div ref={bottom} />
@@ -302,17 +314,20 @@ export function Chat({
         {online && examples.length > 0 && !draft && (
           <div className="examples">
             {examples.map((x) => (
-              <button key={x} className="chip-btn" onClick={() => setDraft(x)}>{x}</button>
+              <button key={x} className="chip-btn" onClick={() => setDraft(fill(x))}>{x}</button>
             ))}
           </div>
         )}
+        <div className="composer-tools">
+          <ModelPicker choices={choices} value={choice} onChange={onChoose} disabled={!online} />
+        </div>
         <div className={`composer ${online ? '' : 'disabled'}`}>
           <textarea
             aria-label="Task"
             rows={1}
             maxLength={500}
             disabled={!online}
-            placeholder={online ? 'Ask DREAM to do something…' : 'Connect to send a task'}
+            placeholder={placeholder}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
