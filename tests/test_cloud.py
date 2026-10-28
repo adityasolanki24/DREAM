@@ -98,6 +98,15 @@ def test_g1_runtime_builder_is_one_scene_and_budgets_retained_image_storage():
     assert not any("nerva" in arg for arg in command)
 
 
+def test_runtime_builder_bootstraps_the_hashed_python_environment():
+    startup = (cloud.ROOT / "cloud/vm_startup.sh").read_text()
+    assert "uv pip install --require-hashes -r \"/work/DREAM/cloud/$LOCK\"" in startup
+    assert "uv venv --python 3.12.12 /opt/dream-runtime" in startup
+    assert "source /opt/dream-runtime/bin/activate" in startup
+    assert 'export MUJOCO_GL=egl' in startup
+    assert 'elif [[ "$WORKLOAD" == g1-runtime-build ]]' not in startup
+
+
 def test_walking_workload_is_separate_capped_and_needs_physical_evidence(tmp_path):
     cfg = json.loads(cloud.WORKLOAD_CONFIGS["isaac-t1-walk"].read_text())
     p = cloud.plan("example-project", cfg, "dream-qwen-test")

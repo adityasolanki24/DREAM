@@ -68,9 +68,6 @@ if [[ "$WORKLOAD" == g1-qwen || "$WORKLOAD" == g1-autonomy ]]; then
   export PYOPENGL_PLATFORM=egl
   python /work/DREAM/cloud/cached_runtime.py --lock /work/DREAM/cloud/requirements.lock.txt \
     --out /work/out/runtime_preflight.json --freeze /work/out/pip-freeze.txt --cuda
-elif [[ "$WORKLOAD" == g1-runtime-build ]]; then
-  export MUJOCO_GL=egl
-  export PYOPENGL_PLATFORM=egl
 else
 apt-get update -q
 apt-get install -y -q libosmesa6 python3-pip ffmpeg
@@ -82,6 +79,8 @@ fi
 export DREAM_RECORDINGS_ROOT=/work/out/recordings
 python3 -m pip install uv==0.9.4
 if [[ "$WORKLOAD" == g1-runtime-build ]]; then
+  export MUJOCO_GL=egl
+  export PYOPENGL_PLATFORM=egl
   uv venv --python 3.12.12 /opt/dream-runtime
   source /opt/dream-runtime/bin/activate
 else
