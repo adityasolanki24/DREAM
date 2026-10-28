@@ -3,6 +3,7 @@ fresh observation, cancellation acknowledgement, persistence across a restart.""
 
 from __future__ import annotations
 
+import sqlite3
 import threading
 
 from dream.runtime.agent import Finish, TaskAgent, ToolCall
@@ -269,3 +270,51 @@ def test_tasks_listing_reports_the_resume_policy_for_pause_and_resume(tmp_path):
     assert s.tasks()[0]["resume"] == "ask"
     s.resume(tid)
     assert s.tasks()[0]["resume"] == "auto"
+
+
+def test_task_meta_is_persisted_and_listed(tmp_path):
+    s, _tools = make(tmp_path, [], [])
+    tid = s.submit("tidy:1", meta={"provider": "qwen", "model": "m1"})
+    assert s.tasks()[0]["meta"] == {"provider": "qwen", "model": "m1"}
+    reopened = TaskScheduler(str(tmp_path / "tasks.sqlite"), lambda *a: None, parse)
+    assert reopened.get(tid).meta == {"provider": "qwen", "model": "m1"}
+
+
+def test_accepted_event_names_the_provider_and_model(tmp_path):
+    events = []
+    s = TaskScheduler(str(tmp_path / "tasks.sqlite"), lambda *a: None, parse,
+                      notify=lambda k, d: events.append((k, d)))  # fmt: skip
+    s.submit("tidy:1", meta={"provider": "openai_chatgpt_plan", "model": "gpt-x"})
+    s.submit("tidy:2")
+    kind, data = events[0]
+    assert kind == "accepted" and data["provider"] == "openai_chatgpt_plan"
+    assert data["model"] == "gpt-x"
+    assert events[1][1]["provider"] is None and events[1][1]["model"] is None
+
+
+def test_database_without_meta_column_is_migrated_and_old_rows_read_empty_meta(tmp_path):
+    path = tmp_path / "old.sqlite"
+    db = sqlite3.connect(path)
+    db.execute(
+        "CREATE TABLE tasks (id TEXT PRIMARY KEY, text TEXT, goal TEXT, priority INTEGER,"
+        " state TEXT, created REAL, updated REAL, steps TEXT, result TEXT, suspensions INTEGER,"
+        " resume TEXT)"
+    )  # fmt: skip
+    db.execute(
+        "INSERT INTO tasks VALUES ('old1', 'tidy:1', 'x', 0, 'queued', 1.0, 1.0, '[]', '', 0,"
+        " 'auto')"
+    )  # fmt: skip
+    db.commit()
+    db.close()
+    s = TaskScheduler(str(path), lambda *a: None, parse)
+    columns = [row[1] for row in s.db.execute("PRAGMA table_info(tasks)")]
+    assert columns[-1] == "meta"
+    assert s.tasks()[0]["meta"] == {}
+    tid = s.submit("tidy:2", meta={"provider": "qwen", "model": "m"})
+    assert s.get(tid).meta == {"provider": "qwen", "model": "m"}
+    # Opening an already migrated database again must not fail or alter the rows.
+    again = TaskScheduler(str(path), lambda *a: None, parse)
+    assert {t["id"]: t["meta"] for t in again.tasks()} == {
+        "old1": {},
+        tid: {"provider": "qwen", "model": "m"},
+    }

@@ -41,6 +41,7 @@ class Task:
     result: str = ""
     suspensions: int = 0
     resume: str = "auto"  # "auto" | "ask": whether a suspended task restarts by itself
+    meta: dict = field(default_factory=dict)  # caller choices, e.g. {"provider", "model"}
 
 
 def _steps_json(steps: list[Step]) -> str:
@@ -71,8 +72,11 @@ class TaskScheduler:
         self.db.execute(
             "CREATE TABLE IF NOT EXISTS tasks (id TEXT PRIMARY KEY, text TEXT, goal TEXT,"
             " priority INTEGER, state TEXT, created REAL, updated REAL, steps TEXT,"
-            " result TEXT, suspensions INTEGER, resume TEXT)"
+            " result TEXT, suspensions INTEGER, resume TEXT, meta TEXT DEFAULT '{}')"
         )
+        columns = {row[1] for row in self.db.execute("PRAGMA table_info(tasks)")}
+        if "meta" not in columns:  # databases created before per-task meta
+            self.db.execute("ALTER TABLE tasks ADD COLUMN meta TEXT DEFAULT '{}'")
         self.run_task, self.parse, self.clock = run_task, parse, clock
         self.notify = notify or (lambda kind, data: None)
         self.lock = threading.RLock()
@@ -87,9 +91,10 @@ class TaskScheduler:
     def _save(self, t: Task) -> None:
         t.updated = self.clock()
         self.db.execute(
-            "INSERT OR REPLACE INTO tasks VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            "INSERT OR REPLACE INTO tasks (id, text, goal, priority, state, created, updated,"
+            " steps, result, suspensions, resume, meta) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
             (t.id, t.text, repr(t.goal), t.priority, t.state, t.created, t.updated,
-             _steps_json(t.steps), t.result, t.suspensions, t.resume),
+             _steps_json(t.steps), t.result, t.suspensions, t.resume, json.dumps(t.meta)),
         )  # fmt: skip
         self.db.commit()
 
@@ -99,29 +104,33 @@ class TaskScheduler:
         if r is None:
             return None
         return Task(r[0], r[1], self.parse(r[1]), r[3], r[4], r[5], r[6], _steps_from(r[7]),
-                    r[8], r[9], r[10])  # fmt: skip
+                    r[8], r[9], r[10], json.loads(r[11] or "{}"))  # fmt: skip
 
     def tasks(self) -> list[dict]:
         with self.lock:
             rows = self.db.execute(
                 "SELECT id, text, priority, state, created, updated, result, suspensions, steps,"
-                " resume FROM tasks ORDER BY created"
+                " resume, meta FROM tasks ORDER BY created"
             ).fetchall()
         return [{"id": r[0], "text": r[1], "priority": r[2], "state": r[3], "created": r[4],
                  "updated": r[5], "result": r[6], "suspensions": r[7],
-                 "steps": len(json.loads(r[8])), "resume": r[9]} for r in rows]  # fmt: skip
+                 "steps": len(json.loads(r[8])), "resume": r[9],
+                 "meta": json.loads(r[10] or "{}")} for r in rows]  # fmt: skip
 
     # -- requests (any thread) ------------------------------------------------------------------
-    def submit(self, text: str, priority: int = 0, resume: str = "auto") -> str:
+    def submit(self, text: str, priority: int = 0, resume: str = "auto",
+               meta: dict | None = None) -> str:  # fmt: skip
         goal = self.parse(text)  # rejects what the robot cannot represent, before queueing
         with self.lock:
             t = Task(uuid.uuid4().hex[:10], text, goal, int(priority), created=self.clock(),
-                     resume=resume)  # fmt: skip
+                     resume=resume, meta=dict(meta or {}))  # fmt: skip
             self._save(t)
             running = self.get(self.running) if self.running else None
             if running is not None and t.priority > running.priority:
                 self.preempt.set()  # honoured at the next safe boundary
-            self.notify("accepted", {"id": t.id, "text": text, "preempting": self.preempt.is_set()})
+            self.notify("accepted", {"id": t.id, "text": text, "preempting": self.preempt.is_set(),
+                                     "provider": t.meta.get("provider"),
+                                     "model": t.meta.get("model")})  # fmt: skip
             return t.id
 
     def cancel(self, tid: str) -> str:

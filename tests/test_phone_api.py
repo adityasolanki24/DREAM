@@ -134,3 +134,30 @@ def test_ag_ui_stream_id_is_stable_per_api_and_changes_on_restart(api):
     assert first == call(api, "GET", "/ag-ui/events?after=0")[1]["stream_id"]
     restarted = PhoneAPI(api.scheduler, TOKEN)
     assert first != call(restarted, "GET", "/ag-ui/events?after=0")[1]["stream_id"]
+
+
+def test_post_uses_the_validator_result_as_task_meta(api):
+    seen = []
+
+    def validate(text, provider, model):
+        seen.append((text, provider, model))
+        if model == "gone":
+            raise ValueError("model is not available for qwen: gone")
+        return {"provider": provider or "structured", "model": model}
+
+    api.validate_task = validate
+    code, out = call(api, "POST", "/tasks", {"text": " tidy ", "provider": "qwen", "model": "m"})
+    assert code == 201 and "id" in out
+    assert seen == [("tidy", "qwen", "m")]
+    assert call(api, "GET", "/tasks")[1][0]["meta"] == {"provider": "qwen", "model": "m"}
+    code, out = call(api, "POST", "/tasks", {"text": "tidy", "model": "gone"})
+    assert code == 422 and out == {"error": "model is not available for qwen: gone"}
+    assert len(call(api, "GET", "/tasks")[1]) == 1
+
+
+def test_provider_or_model_without_a_registry_is_refused(api):
+    code, out = call(api, "POST", "/tasks", {"text": "tidy", "model": "m"})
+    assert code == 422 and out == {"error": "provider is not configured: m"}
+    assert call(api, "POST", "/tasks", {"text": "tidy", "provider": 3})[0] == 400
+    assert call(api, "POST", "/tasks", {"text": "tidy", "model": 3})[0] == 400
+    assert call(api, "GET", "/tasks")[1] == []

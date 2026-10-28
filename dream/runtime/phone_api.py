@@ -138,7 +138,11 @@ class PhoneAPI:
         snapshot=None,
         web_root: Path | None = None,
         provider: str = "structured",
+        validate_task=None,
     ) -> None:
+        """``validate_task(text, provider, model) -> meta`` checks a submission against the
+        caller's provider registry and raises ValueError to refuse it (HTTP 422). Without it,
+        a request naming a provider or model is refused."""
         if len(token) < 24:
             raise ValueError("token too short")
         self.scheduler, self.token = scheduler, token
@@ -147,6 +151,7 @@ class PhoneAPI:
         self.snapshot = snapshot
         self.web_root = web_root
         self.provider = provider
+        self.validate_task = validate_task
         self.events: list[dict] = []
         self._stream_id = secrets.token_hex(16)
         self._event_number = 0
@@ -206,12 +211,12 @@ class PhoneAPI:
                 label = parse_qs(parts.query).get("label", [""])[0]
                 return 200, self.memory_query(label)
             if method == "POST" and path == ["tasks"]:
-                provider = data.get("provider", self.provider)
+                provider, model = data.get("provider"), data.get("model")
                 priority = data.get("priority", 0)
-                if not isinstance(provider, str):
+                if provider is not None and not isinstance(provider, str):
                     return 400, {"error": "provider must be a string"}
-                if provider != self.provider:
-                    return 422, {"error": f"provider is not configured: {provider}"}
+                if model is not None and not isinstance(model, str):
+                    return 400, {"error": "model must be a string"}
                 if type(priority) is not int or not -1000 <= priority <= 1000:
                     return 400, {"error": "priority must be an integer between -1000 and 1000"}
                 if not isinstance(data.get("text"), str):
@@ -219,7 +224,13 @@ class PhoneAPI:
                 text = data["text"].strip()
                 if not text or len(text) > 500:
                     return 400, {"error": "task text required (<= 500 characters)"}
-                return 201, {"id": s.submit(text, priority)}
+                if self.validate_task is not None:
+                    meta = self.validate_task(text, provider, model)  # ValueError -> 422
+                elif provider is not None or model is not None:
+                    raise ValueError(f"provider is not configured: {provider or model}")
+                else:
+                    meta = {}
+                return 201, {"id": s.submit(text, priority, meta=meta)}
             if method == "POST" and len(path) == 3 and path[0] == "tasks":
                 tid, action = path[1], path[2]
                 if action == "cancel":
