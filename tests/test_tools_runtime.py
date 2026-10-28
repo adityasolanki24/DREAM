@@ -29,6 +29,18 @@ def test_parse_structured_goals_and_reject_everything_else():
             parse_goal(bad)
 
 
+def test_parse_supported_mobile_goal_from_plain_language():
+    from dream.tools.goals import Inspect
+
+    for phrase in (
+        "inspect the cabinet",
+        "Please inspect cabinet!",
+        "can you find the cabinet?",
+        "take a look at the cabinet",
+    ):
+        assert parse_goal(phrase) == Inspect("cabinet")
+
+
 def test_verify_in_region_and_on_top_from_observations():
     objs = [_obs("red", 0.5, 0.02, 0.024), _obs("blue", 0.3, 0.2), _obs("green", 0.3, 0.2, 0.06)]
     assert verify(InRegion("red", "tray"), objs, TRAY).satisfied

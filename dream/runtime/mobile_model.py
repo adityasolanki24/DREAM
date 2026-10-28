@@ -10,6 +10,7 @@ import json
 
 from dream.runtime.agent import Finish, ToolCall
 from dream.runtime.vlm import parse_tool_call
+from dream.tools.goals import GoToPlace, Inspect
 
 
 def schema(name, description, properties=None, required=None):
@@ -54,6 +55,68 @@ SCHEMAS = [
         ["success", "reason"],
     ),
 ]
+
+GOAL_SCHEMAS = [
+    schema("inspect_cabinet", "Find the cabinet and stand where it can be examined."),
+    schema(
+        "go_to_place",
+        "Go to a named place already present in home memory.",
+        {"place": {"type": "string"}},
+        ["place"],
+    ),
+    schema(
+        "unsupported",
+        "The request cannot be represented by the available mobile skills.",
+        {"reason": {"type": "string"}},
+        ["reason"],
+    ),
+]
+
+
+def interpret_mobile_goal(backend, utterance, places, scene, camera):
+    """Ask the selected VLM to map a spoken request to a supported typed mobile goal."""
+    message = {
+        "request": utterance,
+        "available_places": sorted(places),
+        "observed_scene": scene,
+        "capabilities": ["inspect a cabinet", "navigate to a remembered place"],
+    }
+    parts = [{"type": "text", "text": json.dumps(message, default=str)}]
+    frame = camera()
+    if frame is not None:
+        parts.append({"type": "image", "image": frame})
+    messages = [
+        {
+            "role": "system",
+            "content": [
+                {
+                    "type": "text",
+                    "text": (
+                        "Interpret the user's goal from the request and current robot observation. "
+                        "Select one typed goal only when it preserves the user's intent and is "
+                        "supported by the listed mobile skills. Never invent a place or "
+                        "capability; "
+                        "otherwise call unsupported."
+                    ),
+                }
+            ],
+        },
+        {"role": "user", "content": parts},
+    ]
+    call, error = parse_tool_call(backend.generate(messages, GOAL_SCHEMAS))
+    if call is None:
+        raise ValueError(f"goal interpretation failed: {error}")
+    name, args = call["name"], call["arguments"]
+    if name == "inspect_cabinet" and not args:
+        return Inspect("cabinet")
+    if name == "go_to_place" and set(args) == {"place"}:
+        place = args["place"]
+        if isinstance(place, str) and place in places:
+            return GoToPlace(place)
+        raise ValueError("model selected a place that is not in home memory")
+    if name == "unsupported" and set(args) == {"reason"} and isinstance(args["reason"], str):
+        raise ValueError(f"unsupported goal: {args['reason']}")
+    raise ValueError(f"invalid goal interpretation: {name}")
 
 
 class MobileModelPlanner:

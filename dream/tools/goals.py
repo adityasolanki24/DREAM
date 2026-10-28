@@ -12,6 +12,7 @@ how close to the decision boundary a judgement is.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 import numpy as np
@@ -60,21 +61,37 @@ class GoToPlace:
 Goal = InRegion | OnTop | Inspect | GoToPlace
 
 
+@dataclass(frozen=True)
+class NaturalLanguageGoal:
+    """Uninterpreted user request, only accepted by a configured language-model provider."""
+
+    utterance: str
+
+
 def parse_goal(spec: str | dict) -> Goal:
-    """Parse a structured goal. Raises ``ValueError`` for anything that is not one."""
+    """Parse typed goal syntax and a small, explicit set of natural-language aliases."""
     if isinstance(spec, str):
-        words = spec.strip().split()
-        if len(words) == 2 and words[0] == "inspect":
-            spec = {"type": "inspect", "target": words[1]}
-        elif len(words) == 2 and words[0] == "goto":
-            spec = {"type": "goto", "target": words[1]}
-        elif len(words) != 3 or words[0] not in ("in", "on"):
-            raise ValueError(
-                f"not a structured goal: {spec!r}. Use 'in <object> <region>' or "
-                "'on <object> <support>' (natural language is not supported yet)."
-            )
+        normalized = " ".join(spec.strip().casefold().split()).rstrip(".!?")
+        if re.fullmatch(
+            r"(?:please\s+)?(?:can you\s+)?(?:inspect|find|look at|take a look at)\s+"
+            r"(?:the\s+)?cabinet",
+            normalized,
+        ):
+            spec = {"type": "inspect", "target": "cabinet"}
         else:
-            spec = {"type": words[0], "object": words[1], "target": words[2]}
+            words = normalized.split()
+            if len(words) == 2 and words[0] == "inspect":
+                spec = {"type": "inspect", "target": words[1]}
+            elif len(words) == 2 and words[0] == "goto":
+                spec = {"type": "goto", "target": words[1]}
+            elif len(words) != 3 or words[0] not in ("in", "on"):
+                raise ValueError(
+                    f"unsupported goal: {spec!r}. This session supports inspecting the cabinet; "
+                    "structured manipulation goals use 'in <object> <region>' or "
+                    "'on <object> <support>'."
+                )
+            else:
+                spec = {"type": words[0], "object": words[1], "target": words[2]}
     kind, obj, target = spec.get("type"), spec.get("object"), spec.get("target")
     if kind == "goto":
         if not (isinstance(target, str) and target.isidentifier()):

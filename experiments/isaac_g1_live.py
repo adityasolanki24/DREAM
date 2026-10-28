@@ -145,9 +145,11 @@ def serve(args, cfg):
     from dream.runtime.agent import TaskAgent
     from dream.runtime.scheduler import TaskScheduler
     from dream.runtime.mobile_model import MobileModelPlanner
+    from dream.runtime.mobile_model import interpret_mobile_goal
     from dream.sim.g1_mobile import DEFAULT_ODOMETRY_NOISE, HEAD_CAMERA, G1MobileBase
     from dream.sim.isaac_g1 import IsaacG1Env
     from dream.tools.mobile import MobileToolbox
+    from dream.tools.goals import NaturalLanguageGoal
     from experiments.isaac_g1_kitchen import (
         FLOOR, Evidence, choose_start, free_space, kitchen_url,
     )
@@ -172,6 +174,12 @@ def serve(args, cfg):
                          (FLOOR,), checkpoint=evidence.stage)
         env.reset(x, y, yaw, floor_z=float(hi[2]))
         base = G1MobileBase(env, WBCLocomotion.from_cache())
+        # Use the same validated ten-second WBC settling phase as kitchen bring-up.
+        # The first live session fell before the first model-selected action.
+        stand_s = float(cfg["bringup"]["stand_s"])
+        base.walk(0.0, 0.0, 0.0, stand_s)
+        if base.stop_reason is not None:
+            raise RuntimeError(f"G1 failed standing gate: {base.stop_reason}")
         memory = SpatialMemory(np.random.default_rng([args.start, 2]))
         events_path = out / "tool_events.jsonl"
 
@@ -200,7 +208,8 @@ def serve(args, cfg):
             "initial_clear_run_m": clear_run,
             "start_selection": "scene geometry only for a collision-clear reset pose",
         })
-        evidence.stage("robot_ready", x=x, y=y, yaw=yaw)
+        evidence.stage("robot_ready", x=x, y=y, yaw=yaw, standing_s=stand_s,
+                       sim_time_s=env.time, stop_reason=base.stop_reason)
 
         qwen_process, qwen_log = start_qwen(args, out)
         providers_args = argparse.Namespace(qwen_url=f"http://127.0.0.1:{args.qwen_port}",
@@ -219,6 +228,14 @@ def serve(args, cfg):
             if task.meta.get("provider") != "qwen":
                 raise RuntimeError("this live Isaac session accepts Qwen VLM tasks only")
             recorder.set_cancel_event(cancel)
+            if isinstance(task.goal, NaturalLanguageGoal):
+                observed = toolbox.call("observe_scene")
+                if not observed.ok:
+                    raise RuntimeError("goal interpretation observation failed")
+                task.goal = interpret_mobile_goal(
+                    recorder, task.text, toolbox.places, observed.data,
+                    lambda: None if memory.last_frame is None else memory.last_frame.rgb.copy(),
+                )
             planner = MobileModelPlanner(
                 recorder, task.text,
                 lambda: None if memory.last_frame is None else memory.last_frame.rgb.copy(),

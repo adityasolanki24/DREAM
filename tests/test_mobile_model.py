@@ -1,7 +1,8 @@
 import json
 
 from dream.runtime.agent import Finish, ToolCall
-from dream.runtime.mobile_model import MobileModelPlanner
+from dream.runtime.mobile_model import MobileModelPlanner, interpret_mobile_goal
+from dream.tools.goals import GoToPlace, Inspect
 
 
 class Model:
@@ -39,6 +40,35 @@ def test_model_cannot_claim_success_without_bound_goal_verification():
     assert decide(
         "finish", {"success": True, "reason": "done"}, verdict={"satisfied": True}
     ).success
+
+
+def test_language_model_maps_request_to_only_supported_typed_goals():
+    assert interpret_mobile_goal(
+        Model("inspect_cabinet", {}),
+        "go look for the cupboard",
+        {},
+        {"candidates": []},
+        lambda: None,
+    ) == Inspect("cabinet")
+    assert interpret_mobile_goal(
+        Model("go_to_place", {"place": "entrance"}),
+        "take me to the door",
+        {"entrance": [0, 0]},
+        {"candidates": []},
+        lambda: None,
+    ) == GoToPlace("entrance")
+    try:
+        interpret_mobile_goal(
+            Model("go_to_place", {"place": "bedroom"}),
+            "go to my bedroom",
+            {"entrance": [0, 0]},
+            {},
+            lambda: None,
+        )
+    except ValueError as error:
+        assert "not in home memory" in str(error)
+    else:
+        raise AssertionError("unobserved place must be refused")
 
 
 def test_home_memory_is_read_only_and_reports_sightings(tmp_path):

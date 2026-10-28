@@ -100,15 +100,13 @@ def test_model_checks_goal_form_and_default_model(tmp_path):
         422,
         {"error": "model is not available for qwen: nope"},
     )
-    assert post(api, {"text": "goto entrance", "provider": "qwen", "model": "q1"}) == (
-        422,
-        {"error": "model mobile planner currently supports 'inspect cabinet' only"},
-    )
+    assert post(api, {"text": "go to the entrance", "provider": "qwen", "model": "q1"})[0] == 201
     assert post(api, {"text": "inspect cabinet", "provider": "structured", "model": "q1"}) == (
         422,
         {"error": "model must be omitted for structured"},
     )
-    assert post(api, {"text": "fly to the moon", "provider": "qwen", "model": "q1"})[0] == 422
+    assert post(api, {"text": "fly to the moon", "provider": "qwen", "model": "q1"})[0] == 201
+    assert post(api, {"text": "fly to the moon", "provider": "structured"})[0] == 422
     assert post(api, {"text": "inspect cabinet", "provider": "qwen"})[0] == 201  # default q1
     assert (
         post(api, {"text": "inspect cabinet", "provider": "openai_chatgpt_plan", "model": "g2"})[0]
@@ -117,6 +115,8 @@ def test_model_checks_goal_form_and_default_model(tmp_path):
     assert post(api, {"text": "goto entrance"})[0] == 201  # default structured parser
     tasks = api.scheduler.tasks()
     assert [t["meta"] for t in tasks] == [
+        {"provider": "qwen", "model": "q1"},
+        {"provider": "qwen", "model": "q1"},
         {"provider": "qwen", "model": "q1"},
         {"provider": "openai_chatgpt_plan", "model": "g2"},
         {"provider": "structured", "model": None},
@@ -158,7 +158,7 @@ def test_build_providers_lists_unconfigured_providers_with_reasons():
     assert providers["openai_chatgpt_plan"].reason == (
         "sign in with experiments/openai_plan_login.py and start with --openai-token-file"
     )
-    assert providers["openai_chatgpt_plan"].describe()["supports"] == ["inspect cabinet"]
+    assert providers["openai_chatgpt_plan"].describe()["supports"] == []
 
 
 def test_qwen_offers_the_single_served_model(tmp_path):
