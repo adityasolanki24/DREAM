@@ -86,10 +86,10 @@ def test_g1_runtime_builder_is_one_scene_and_budgets_retained_image_storage():
             (cloud.ROOT / "experiments/configs/g1_runtime_build_demo.json").read_text()
         )["cases"]
     ] == ["free_heavier"]
-    assert p["estimated_usd"] == 7.66
+    assert p["estimated_usd"] == 7.84
     assert p["retained_image_monthly_estimate_usd"] == 5.0
-    assert p["region"] == "us-east1"
-    assert p["zones"] == ["us-east1-b", "us-east1-c", "us-east1-d"]
+    assert p["region"] == "us-east4"
+    assert p["zones"] == ["us-east4-a", "us-east4-c"]
     command = cloud.create_command(p, "a" * 40, "b" * 64)
     assert "--instance-termination-action=DELETE" in command
     assert "--max-run-duration=45m" in command
