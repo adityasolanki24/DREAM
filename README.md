@@ -184,8 +184,13 @@ failed its first Qwen-selected `look_around` at simulation time 10.02 s with a 6
 pelvis tilt. The idle server called Kit updates while the PhysX timeline was playing,
 advancing physics outside the WBC stepping path. The corrected event loop freezes
 simulation while waiting for input; initial camera capture precedes API readiness and
-tasks after a safety stop are rejected. Three focused CPU regressions pass; physical
-validation of the correction is pending. Failure evidence is preserved in
+tasks after a safety stop are rejected. Three focused CPU regressions pass. A genuine
+app retry at `65ce8b3` completed the model-selected `look_around` and `inspect` calls
+without a fall (26.52 s total simulation time, including standing). The goal still failed:
+the model called `finish(success=false)` because inspection-pose verification reported
+"not on the handle's side of the object". This demonstrates removal of the original
+idle-transition failure on one development case, not reliable task completion or transfer.
+Failure and retry evidence are preserved in
 `results/isaac_live_idle_failure`. The isolation check currently fails on the pre-existing
 `dream/skills/g1_reach.py` import of `mujoco`; this correction does not change that file.
 
