@@ -1,12 +1,12 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Camera, Brain, ListChecks, MessageSquare, LayoutDashboard, Map, Settings, Pause, Play, Square, X, Check } from 'lucide-react';
+import { Camera, Brain, ListChecks, MessageSquare, LayoutDashboard, Map, Settings, X, Check } from 'lucide-react';
 import * as Tabs from '@radix-ui/react-tabs';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import * as Dropdown from '@radix-ui/react-dropdown-menu';
 import {
-  Chat, ConnectCard, ConnectionBadge, MapPanel, MemoryPanel, NotifyButton, RobotView, TaskPanel, Toasts, type Toast,
+  Chat, ConnectCard, ConnectionBadge, MapPanel, MemoryPanel, NotifyButton, RobotView, TaskOverview, TaskPanel, Toasts, schedulerOrder, type Toast,
 } from './components';
 import { applyEvents, emptyFeed, type AgEvent, type Feed } from './feed.mjs';
 import type { Link, Snapshot, Status, Task } from './types';
@@ -201,6 +201,15 @@ export default function Page() {
     }
   }
 
+  async function setPriority(id: string, priority: number) {
+    try {
+      await api(`/tasks/${encodeURIComponent(id)}/priority`, 'POST', { priority });
+      await poll();
+    } catch (e) {
+      pushToasts([{ tone: 'bad', title: 'Could not change the priority', body: e instanceof Error ? e.message : '' }]);
+    }
+  }
+
   async function toggleNotify() {
     if (notify) return setNotify(false);
     if (typeof Notification === 'undefined') {
@@ -212,8 +221,9 @@ export default function Page() {
   }
 
   const ordered = [...tasks].sort((a, b) => a.created - b.created);
+  // The running task, else the next one the scheduler would pick (priority DESC, created ASC).
   const current =
-    ordered.find((t) => t.id === status?.running) ?? [...ordered].reverse().find((t) => ['running', 'suspended', 'queued'].includes(t.state));
+    ordered.find((t) => t.id === status?.running) ?? [...ordered].filter((t) => ['running', 'suspended', 'queued'].includes(t.state)).sort(schedulerOrder)[0];
   const shown = current ?? ordered.at(-1);
   const graphTask = tasks.find((t) => t.id === snapshot?.task_graph?.task_id);
   const threads = feed.threads;
@@ -227,7 +237,7 @@ export default function Page() {
     providerLabel={snapshot?.provider_label} onSend={submit} notice={chatNotice} />;
   const robot = <RobotView snapshot={snapshot} link={link} current={shown} thread={shown ? threads[shown.id] : undefined} />;
   const map = <MapPanel snapshot={snapshot} />;
-  const task = <TaskPanel current={shown} graphTask={graphTask} thread={graphTask ? threads[graphTask.id] : undefined} snapshot={snapshot} stopping={current ? stopping.has(current.id) : false} onAction={act} />;
+  const task = <TaskPanel current={shown} tasks={ordered} graphTask={graphTask} thread={graphTask ? threads[graphTask.id] : undefined} snapshot={snapshot} stopping={stopping} onAction={act} onPriority={setPriority} />;
   const memory = <MemoryPanel snapshot={snapshot} tasks={ordered} />;
   const navItems = [
     { id: 'overview' as const, label: 'Overview', icon: LayoutDashboard },
@@ -268,7 +278,7 @@ export default function Page() {
             <div className="workspace-heading"><div><div className="eyebrow">MISSION CONTROL</div><h1>{view === 'overview' ? 'Robot workspace' : view === 'activity' ? 'Task activity' : view === 'world' ? 'Spatial world' : 'Memory & history'}</h1></div><span className="source-label">UNITREE G1 · SIMULATION</span></div>
             {!mobile && <div className="desktop-content">
               {view === 'overview' && <><Tabs.Root defaultValue="camera" className="visual-tabs"><div className="visual-toolbar"><Tabs.List aria-label="Robot view" className="view-switch"><Tabs.Trigger value="camera">Camera</Tabs.Trigger><Tabs.Trigger value="map">Map</Tabs.Trigger></Tabs.List><span>ROBOT OBSERVATIONS</span></div><Tabs.Content value="camera" className="visual-content">{robot}</Tabs.Content><Tabs.Content value="map" className="visual-content">{map}</Tabs.Content></Tabs.Root>
-                <section className="task-strip"><div><span className="eyebrow">{current ? 'CURRENT TASK' : 'TASK STATUS'}</span><strong>{current?.text ?? 'No active task'}</strong><small>{current ? (stopping.has(current.id) ? 'Stopping at the next safe boundary' : current.state) : 'Ready for a supported goal'}</small></div><div className="strip-actions"><button className="btn" disabled={!current || current.state !== 'running' || stopping.has(current.id)} onClick={() => current && act(current.id, 'pause')}><Pause size={15}/> Pause</button><button className="btn" disabled={!current || current.state !== 'suspended'} onClick={() => current && act(current.id, 'resume')}><Play size={15}/> Resume</button><button className="btn danger" disabled={!current || stopping.has(current.id)} onClick={() => current && act(current.id, 'cancel')}><Square size={14}/> Cancel</button></div><button className="text-link" onClick={() => setView('activity')}>View activity →</button></section></>}
+                <TaskOverview tasks={ordered} shown={shown} stopping={stopping} onAction={act} onPriority={setPriority} onNavigate={() => setView('activity')} /></>}
               {view === 'activity' && task}{view === 'world' && map}{view === 'memory' && memory}
             </div>}
             {mobile && <div className="mobile-content">{tab === 'robot' && <Tabs.Root defaultValue="camera" className="visual-tabs"><Tabs.List className="view-switch" aria-label="Robot view"><Tabs.Trigger value="camera">Camera</Tabs.Trigger><Tabs.Trigger value="map">Map</Tabs.Trigger></Tabs.List><Tabs.Content value="camera">{robot}</Tabs.Content><Tabs.Content value="map">{map}</Tabs.Content></Tabs.Root>}{tab === 'task' && task}{tab === 'memory' && memory}</div>}
