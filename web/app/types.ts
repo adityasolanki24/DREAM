@@ -9,6 +9,7 @@ export type Task = {
   result?: string | null;
   steps: number;
   suspensions: number;
+  resume: 'auto' | 'ask';
 };
 
 export type MapData = {
@@ -67,3 +68,10 @@ export type Snapshot = {
 export type Status = { running: string | null; robot_time_s?: number; stop_reason?: string | null };
 
 export type Link = 'idle' | 'connecting' | 'online' | 'offline' | 'unauthorised';
+
+declare global {
+  interface Window {
+    // Defined by the inline theme script in layout.tsx.
+    dreamTheme?: { get(): 'system' | 'light' | 'dark'; set(mode: 'system' | 'light' | 'dark'): void };
+  }
+}

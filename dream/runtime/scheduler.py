@@ -104,12 +104,12 @@ class TaskScheduler:
     def tasks(self) -> list[dict]:
         with self.lock:
             rows = self.db.execute(
-                "SELECT id, text, priority, state, created, updated, result, suspensions, steps"
-                " FROM tasks ORDER BY created"
+                "SELECT id, text, priority, state, created, updated, result, suspensions, steps,"
+                " resume FROM tasks ORDER BY created"
             ).fetchall()
         return [{"id": r[0], "text": r[1], "priority": r[2], "state": r[3], "created": r[4],
                  "updated": r[5], "result": r[6], "suspensions": r[7],
-                 "steps": len(json.loads(r[8]))} for r in rows]  # fmt: skip
+                 "steps": len(json.loads(r[8])), "resume": r[9]} for r in rows]  # fmt: skip
 
     # -- requests (any thread) ------------------------------------------------------------------
     def submit(self, text: str, priority: int = 0, resume: str = "auto") -> str:

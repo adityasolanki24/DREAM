@@ -259,3 +259,13 @@ def test_cancellation_during_planning_never_dispatches_a_tool_or_claims_success(
     task = s.get(tid)
     assert task.state == "cancelled" and task.result == "cancelled by user"
     assert all(name != "work" for name, _ in log)
+
+
+def test_tasks_listing_reports_the_resume_policy_for_pause_and_resume(tmp_path):
+    s, _tools = make(tmp_path, [], [])
+    tid = s.submit("tidy:3")
+    assert s.tasks()[0]["resume"] == "auto"
+    s.pause(tid)
+    assert s.tasks()[0]["resume"] == "ask"
+    s.resume(tid)
+    assert s.tasks()[0]["resume"] == "auto"
