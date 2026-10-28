@@ -34,7 +34,7 @@ from dream.runtime.scheduler import TaskScheduler
 from dream.runtime.search import PlacePlanner, RoomSearchPlanner
 from dream.sim.g1_mobile import G1MobileBase, G1MobileEnv, build_mobile_g1
 from dream.sim.room import add_room, sample_room
-from dream.tools.goals import GoToPlace, Inspect, parse_goal
+from dream.tools.goals import GoToPlace, Inspect, NaturalLanguageGoal, parse_goal
 from dream.tools.mobile import MobileToolbox
 from experiments.g1_explore_room import Budgeted
 
@@ -42,15 +42,22 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
 def mobile_goal(text):
-    goal = parse_goal(text)
-    if not isinstance(goal, (GoToPlace, Inspect)):
-        raise ValueError("mobile session supports 'inspect cabinet' and 'goto <place>' only")
-    return goal
+    try:
+        goal = parse_goal(text)
+    except ValueError:
+        if isinstance(text, str) and text.strip():
+            return NaturalLanguageGoal(text.strip())
+        raise
+    if isinstance(goal, (GoToPlace, Inspect)):
+        return goal
+    raise ValueError(
+        "this mobile session supports cabinet inspection and remembered-place navigation"
+    )
 
 
 STRUCTURED_LABEL = "Structured goal parser (no language model)"
 STRUCTURED_SUPPORTS = ["inspect cabinet", "goto <place>"]
-MODEL_SUPPORTS = ["inspect cabinet"]
+MODEL_SUPPORTS = []
 
 
 @dataclass
@@ -187,15 +194,22 @@ def make_validator(providers, default):
         if choice.backend_for is None:
             if model is not None:
                 raise ValueError("model must be omitted for structured")
-            mobile_goal(text)
+            goal = mobile_goal(text)
+            if isinstance(goal, NaturalLanguageGoal):
+                raise ValueError(
+                    "the structured provider accepts typed goals; choose Qwen for natural language"
+                )
             return {"provider": pid, "model": None}
         chosen = choice.default_model if model is None else model
         if not chosen:
             raise ValueError(f"model is required for {pid}")
         if choice.models and chosen not in choice.models:
             raise ValueError(f"model is not available for {pid}: {chosen}")
-        if not isinstance(mobile_goal(text), Inspect):
-            raise ValueError("model mobile planner currently supports 'inspect cabinet' only")
+        goal = mobile_goal(text)
+        if isinstance(goal, NaturalLanguageGoal) and pid != "qwen":
+            raise ValueError(
+                "natural-language goal interpretation requires the Qwen tool-calling provider"
+            )
         return {"provider": pid, "model": chosen}
 
     return validate
@@ -304,8 +318,7 @@ def make_snapshot(api, scheduler, base, memory, home_path=None, providers=None):
 
 
 def make_run_task(toolbox, base, memory, providers, emit):
-    """Planner per task from its meta: structured planners unless a model provider is named
-    and the goal is an Inspect. ``emit(kind, data)`` receives the task's own events."""
+    """Resolve natural-language goals with the selected VLM, then use typed mobile tools."""
 
     def run_task(task, history, preempt, cancel):
         toolbox.preempt, toolbox.cancel = preempt, cancel
@@ -314,6 +327,28 @@ def make_run_task(toolbox, base, memory, providers, emit):
         if provider_id != "structured" and provider_id not in providers:
             raise RuntimeError(f"provider not configured: {provider_id}")
         choice = providers.get(provider_id)
+
+        def event(kind, data):
+            emit(kind, {"id": task.id, **data})
+
+        if isinstance(task.goal, NaturalLanguageGoal):
+            if choice is None or choice.backend_for is None or provider_id != "qwen":
+                raise ValueError("natural-language goal interpretation needs the Qwen provider")
+            from dream.runtime.mobile_model import interpret_mobile_goal
+
+            backend = choice.backend_for(model)
+            backend.set_cancel_event(cancel)
+            observed = toolbox.call("observe_scene")
+            if not observed.ok:
+                raise ValueError(f"could not observe before interpreting goal: {observed.message}")
+            task.goal = interpret_mobile_goal(
+                backend,
+                task.text,
+                toolbox.places,
+                observed.data,
+                lambda: None if memory.last_frame is None else memory.last_frame.rgb.copy(),
+            )
+            event("goal_interpreted", {"goal": repr(task.goal), "model": model})
         if choice is not None and choice.backend_for is not None and isinstance(task.goal, Inspect):
             from dream.runtime.mobile_model import MobileModelPlanner
 
@@ -330,9 +365,6 @@ def make_run_task(toolbox, base, memory, providers, emit):
                 if isinstance(task.goal, GoToPlace)
                 else Budgeted(RoomSearchPlanner("gain"), base, base.time + 240)
             )
-
-        def event(kind, data):
-            emit(kind, {"id": task.id, **data})
 
         return TaskAgent(toolbox, planner, max_steps=60).run(
             task.goal, on_event=event, history=history, preempt=preempt

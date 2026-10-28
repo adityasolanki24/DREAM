@@ -37,19 +37,22 @@ export function useModelChoice(providerChoices: ProviderChoice[] | undefined, de
 
 const keyOf = (provider: string, model: string | null) => `${provider}|${model ?? ''}`;
 
-function Hint({ entry }: { entry: ProviderEntry }) {
+/** The goal forms a provider accepts. `block` is the header line under a provider's group label. */
+function Hint({ entry, block = false }: { entry: ProviderEntry; block?: boolean }) {
   if (entry.supports.length === 0) return null;
-  return <span className={styles.itemHint}>Accepts: {entry.supports.join(' · ')}</span>;
+  const text = `Accepts: ${entry.supports.join(' · ')}`;
+  return block ? <div className={styles.hint}>{text}</div> : <span className={styles.itemHint}>{text}</span>;
 }
 
 type Props = {
   choices: ProviderEntry[];
   value: ModelChoice | null;
   onChange: (choice: ModelChoice) => void;
+  disabled?: boolean;
 };
 
 /** Compact pill that shows the current parser and model, and opens a menu of every provider. */
-export function ModelPicker({ choices, value, onChange }: Props) {
+export function ModelPicker({ choices, value, onChange, disabled = false }: Props) {
   const byKey = new Map<string, ModelChoice>();
   for (const entry of choices) {
     if (!entry.available) continue;
@@ -61,7 +64,7 @@ export function ModelPicker({ choices, value, onChange }: Props) {
   return (
     <Dropdown.Root>
       <Dropdown.Trigger asChild>
-        <button type="button" className={styles.trigger} aria-label="Model for new tasks" disabled={!value}>
+        <button type="button" className={styles.trigger} aria-label="Model for new tasks" disabled={disabled || choices.length === 0}>
           <span className={styles.triggerText}>{label}</span>
           <ChevronDown size={16} aria-hidden className={styles.chev} />
         </button>
@@ -87,7 +90,7 @@ export function ModelPicker({ choices, value, onChange }: Props) {
               return (
                 <Dropdown.Group key={entry.id} className={styles.group}>
                   <Dropdown.Label className={styles.groupLabel}>{entry.label}</Dropdown.Label>
-                  <Hint entry={entry} />
+                  <Hint entry={entry} block />
                   {entry.available ? entry.models.map((model) => (
                     <Dropdown.RadioItem key={model} value={keyOf(entry.id, model)} className={styles.item}>
                       <span className={styles.itemText}><span>{model}</span></span>

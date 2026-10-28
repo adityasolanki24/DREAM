@@ -8,6 +8,8 @@ import * as Dropdown from '@radix-ui/react-dropdown-menu';
 import {
   Chat, ConnectCard, ConnectionBadge, MapPanel, MemoryPanel, NotifyButton, RobotView, TaskOverview, TaskPanel, Toasts, schedulerOrder, type Toast,
 } from './components';
+import { useModelChoice } from './ModelPicker';
+import { buildTaskBody } from '../modelChoice.mjs';
 import { applyEvents, emptyFeed, type AgEvent, type Feed } from './feed.mjs';
 import type { Link, Snapshot, Status, Task } from './types';
 import { createPollGate, fetchWithTimeout } from './connection.mjs';
@@ -39,6 +41,7 @@ export default function Page() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [stopping, setStopping] = useState<Set<string>>(new Set());
   const [chatNotice, setChatNotice] = useState('');
+  const models = useModelChoice(snapshot?.provider_choices, snapshot?.provider);
   const [tab, setTab] = useState<Tab>('robot');
   const [mobile, setMobile] = useState(false);
   useEffect(() => {
@@ -180,8 +183,13 @@ export default function Page() {
   }
 
   async function submit(textValue: string) {
+    if (!models.choice) {
+      setChatNotice('No provider is available for new tasks. Check the backend configuration.');
+      return false;
+    }
     try {
-      await api('/tasks', 'POST', { text: textValue, priority: 0, provider: snapshot?.provider });
+      // A 422 (for example "model is not available for ...") lands in the chat notice; the draft is kept by the caller.
+      await api('/tasks', 'POST', buildTaskBody(textValue, models.choice));
       setChatNotice('');
       await poll();
       return true;
@@ -233,8 +241,7 @@ export default function Page() {
   if (token === null) return null;
 
   const chat = <Chat tasks={ordered} threads={threads} running={status?.running ?? null} stopping={stopping} link={link}
-    examples={snapshot?.provider === 'structured' ? ['inspect cabinet', 'goto entrance'] : ['inspect cabinet']}
-    providerLabel={snapshot?.provider_label} onSend={submit} notice={chatNotice} />;
+    choices={models.choices} choice={models.choice} onChoose={models.select} onSend={submit} notice={chatNotice} />;
   const robot = <RobotView snapshot={snapshot} link={link} current={shown} thread={shown ? threads[shown.id] : undefined} />;
   const map = <MapPanel snapshot={snapshot} />;
   const task = <TaskPanel current={shown} tasks={ordered} graphTask={graphTask} thread={graphTask ? threads[graphTask.id] : undefined} snapshot={snapshot} stopping={stopping} onAction={act} onPriority={setPriority} />;
@@ -257,7 +264,10 @@ export default function Page() {
             <button className={view === id ? 'side-link on' : 'side-link'} aria-current={view === id ? 'page' : undefined} onClick={() => setView(id)}><Icon size={18}/><span>{label}</span></button>
           </Tooltip.Trigger><Tooltip.Portal><Tooltip.Content side="right" className="tooltip">{label}<Tooltip.Arrow /></Tooltip.Content></Tooltip.Portal></Tooltip.Root>)}
         </nav>
-        <div className="side-footer"><span className="side-dot"/> Local session <small>MuJoCo simulation</small></div>
+        <div className="side-footer"><span className="side-dot"/>
+          {link === 'online' ? 'Connected session' : 'Session offline'}
+          <small>{snapshot?.environment ?? 'Environment unknown'}</small>
+        </div>
       </aside>
       <div className="workspace">
         <header className="topbar">

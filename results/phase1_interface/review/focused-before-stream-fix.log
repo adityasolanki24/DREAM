@@ -1,0 +1,15 @@
+.........F................                                               [100%]
+================================== FAILURES ===================================
+________ test_ag_ui_stream_id_is_stable_per_api_and_changes_on_restart ________
+
+api = <dream.runtime.phone_api.PhoneAPI object at 0x000001C17A68A150>
+
+    def test_ag_ui_stream_id_is_stable_per_api_and_changes_on_restart(api):
+>       first = call(api, "GET", "/ag-ui/events?after=0")[1]["stream_id"]
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'stream_id'
+
+tests\test_phone_api.py:132: KeyError
+=========================== short test summary info ===========================
+FAILED tests/test_phone_api.py::test_ag_ui_stream_id_is_stable_per_api_and_changes_on_restart
+1 failed, 25 passed in 4.19s

@@ -17,7 +17,7 @@ async function legacy(browser, token, dir) {
   await page.goto(BASE + '/');
   await page.getByLabel('Access token').fill('wrong');
   await page.getByRole('button', { name: 'Connect', exact: true }).click();
-  await page.getByText('Token rejected', { exact: true }).first().waitFor();
+  await page.locator('[role="status"][aria-label="Token rejected"]').waitFor();
   await page.getByLabel('Access token').fill(token);
   await page.getByRole('button', { name: 'Connect', exact: true }).click();
   await page.getByText('Connected', { exact: true }).waitFor();
@@ -91,7 +91,7 @@ async function legacy(browser, token, dir) {
   console.log('phone draft and width verified');
 
   await page.route('**/snapshot', route => route.abort());
-  await page.getByText('Backend unreachable', { exact: true }).waitFor({ timeout: 30000 });
+  await page.locator('[role="status"][aria-label="Backend unreachable"]').waitFor({ timeout: 30000 });
   await page.unroute('**/snapshot');
   await page.getByText('Connected', { exact: true }).waitFor({ timeout: 30000 });
   assert.deepEqual(errors, []);
@@ -182,7 +182,7 @@ async function v3(browser, token, shotDir) {
     await u.page.goto(BASE + '/');
     await u.page.getByLabel('Access token').fill('wrong');
     await u.page.getByRole('button', { name: 'Connect', exact: true }).click();
-    await u.page.getByText('Token rejected', { exact: true }).first().waitFor();
+    await u.page.locator('[role="status"][aria-label="Token rejected"]').waitFor();
     await u.page.waitForTimeout(500);
     await shot(u.page, theme, vp, 'unauthorised');
     assert.deepEqual(u.errors, []);
@@ -224,7 +224,7 @@ async function v3(browser, token, shotDir) {
     // offline banner after having connected
     await tab(page, vp, 'Robot');
     await page.route('**/snapshot', route => route.abort());
-    await page.getByText('Backend unreachable', { exact: true }).waitFor({ timeout: 30000 });
+    await page.locator('[role="status"][aria-label="Backend unreachable"]').waitFor({ timeout: 30000 });
     const banner = page.locator('.banner[role="alert"]');
     await banner.waitFor();
     assert.equal((await banner.innerText()).trim(), OFFLINE_BANNER);
