@@ -70,9 +70,11 @@ loop locally **before another paid evaluation**. The requested fresh Qwen evalua
 | Branch | Role |
 |---|---|
 | `main` | Stable integration line; only changes that pass the applicable checks are integrated |
-| `codex/phase1-agentic-interface` | Active interface, natural-language routing and model-comparison checkpoints |
-| `codex/g1-runtime-builder-20261028` | Active runtime image, Isaac app integration and unfinished inspection audit |
+| `codex/g1-runtime-builder-20261028` | Combined active interface, model comparison, runtime image, Isaac integration and unfinished inspection audit |
 | `claude/wholebody-autonomy` | Separate active whole-body research, with unresolved W6 gates |
+
+The interface branch was consolidated into the runtime branch. The main working folder
+uses that combined branch, while the separate whole-body worktree remains intact.
 
 Retired branch heads are retained by annotated `archive/2026-10-29/...` tags. Do not merge
 unfinished research solely to remove a branch. Runtime/kitchen integration is currently
@@ -127,9 +129,14 @@ The initial stop rejected a missing root result manifest; recovery independently
 66 saved output objects against GCS MD5/size metadata and retained local SHA-256 hashes before
 deleting the bucket (absence confirmed by a 404). The reconciled runtime-based estimate is
 US$5.30, against the original US$7.65 maximum-lifetime estimate; actual billing is unavailable.
-`results/cloud_isaac_20261029_cleanup` records the recovery and its limits. The post-audit also
-lists a separate older DREAM router/network; this is not a claim that all historical project
-resources have been removed. No fresh paid evaluation was launched during this consolidation.
+`results/cloud_isaac_20261029_cleanup` records the recovery and its limits. The separate older DREAM NAT/router/network/subnet and service account have also now been
+removed. The final inventory shows zero VMs, disks, reserved addresses, routers, snapshots
+or forwarding rules; only the default network remains. Historical bucket outputs were
+retrieved and independently hash-verified before deletion. The validated runtime image is
+retained at the owner's request (24.5 GiB; approximately US$1.23/month at the published image
+storage rate). Cloud Storage soft-deleted bytes may remain billable until their seven-day
+retention expires; deleting a bucket does not imply immediate zero storage billing. NERVA
+resources are outside this cleanup. No fresh paid evaluation was launched.
 
 Weights, caches, credentials and large raw recordings remain outside Git/OneDrive, normally
 under `%LOCALAPPDATA%/DREAM`. Compact evidence, source and result metadata are committed.
@@ -148,3 +155,17 @@ A pre-consolidation backup contains Git bundles for every branch, staged/unstage
 patches, untracked-file ZIPs and a SHA-256 inventory. Its location is recorded outside Git at
 `%LOCALAPPDATA%/DREAM/archives/latest-consolidation.txt`. Credential-pattern scanning of the
 pending material found no matches; private runtime credentials remain outside these commits.
+
+## Repository consolidation checks
+
+The foundation source at `287cd67` passed 328 fast tests, including isolation, before
+fast-forward integration into `main`. The combined interface/runtime tree passed focused
+model-choice, backend, tool-runtime, comparison-summary and Isaac idle regressions. Its
+unchanged interface files passed 30 web unit checks and the production build (with one
+existing CSS compatibility warning). The Portfolio production build and TypeScript checks
+passed after the video and recovered role media were integrated.
+
+There are no open pull requests in DREAM or Portfolio as of this cleanup. Seven retired
+DREAM branch heads and six Portfolio branch heads are recoverable through annotated archive
+tags; only the three DREAM branches listed above and Portfolio `main` remain. Unfinished
+runtime and W6 work were not represented as validated or merged into stable `main`.
