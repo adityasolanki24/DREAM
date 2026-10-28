@@ -122,9 +122,14 @@ inference result as evidence of a genuine VLM demonstration.
 DREAM cloud jobs use the scoped `cloud/` tooling in project `nerva-adityapersonal` with
 estimated job/cumulative cost guards, immutable source snapshots and machine-enforced VM
 expiry. Actual billed cost has not been established; estimates must not be labelled bills.
-The latest Isaac session was instructed to stop. Compute cleanup completed without reported
-errors; result-bucket verification/recovery is being reconciled after a missing root manifest.
-Check the recorded cleanup receipt before claiming every resource has been removed.
+The latest Isaac session's scoped compute/network/identity cleanup returned no errors.
+The initial stop rejected a missing root result manifest; recovery independently verified all
+66 saved output objects against GCS MD5/size metadata and retained local SHA-256 hashes before
+deleting the bucket (absence confirmed by a 404). The reconciled runtime-based estimate is
+US$5.30, against the original US$7.65 maximum-lifetime estimate; actual billing is unavailable.
+`results/cloud_isaac_20261029_cleanup` records the recovery and its limits. The post-audit also
+lists a separate older DREAM router/network; this is not a claim that all historical project
+resources have been removed. No fresh paid evaluation was launched during this consolidation.
 
 Weights, caches, credentials and large raw recordings remain outside Git/OneDrive, normally
 under `%LOCALAPPDATA%/DREAM`. Compact evidence, source and result metadata are committed.
