@@ -69,9 +69,8 @@ class DecisionRecorder:
         self.backend.set_cancel_event(event)
 
     def generate(self, messages, tools):
-        from PIL import Image
-
         import numpy as np
+        from PIL import Image
 
         index = self.index
         self.index += 1
@@ -106,12 +105,30 @@ class DecisionRecorder:
 
 
 def start_qwen(args, out: pathlib.Path):
+    # A timed-out Isaac job can leave its separate, pinned model server alive.
+    # Reuse that verified server rather than loading a second copy on the same GPU.
+    try:
+        with urllib.request.urlopen(
+            f"http://127.0.0.1:{args.qwen_port}/healthz", timeout=2
+        ) as response:
+            health = json.loads(response.read())
+        if health.get("ready") and health.get("revision") == QWEN_REVISION:
+            (out / "qwen_reused.json").write_text(json.dumps(health), encoding="utf-8")
+            return None, None
+    except (OSError, ValueError):
+        pass
     log = (out / "qwen_server.log").open("w", encoding="utf-8")
     env = {**os.environ, "PYTHONPATH": str(ROOT) + os.pathsep + os.environ.get("PYTHONPATH", "")}
     command = [
         os.environ.get("DREAM_QWEN_PYTHON", "/opt/dream-runtime/bin/python"),
-        "-m", "experiments.qwen_tool_server",
-        "--host", "127.0.0.1", "--port", str(args.qwen_port), "--revision", QWEN_REVISION,
+        "-m",
+        "experiments.qwen_tool_server",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        str(args.qwen_port),
+        "--revision",
+        QWEN_REVISION,
     ]
     proc = subprocess.Popen(command, cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT)
     deadline = time.monotonic() + args.model_start_timeout_s
@@ -120,7 +137,9 @@ def start_qwen(args, out: pathlib.Path):
             log.flush()
             raise RuntimeError(f"Qwen server exited during load; inspect {out / 'qwen_server.log'}")
         try:
-            with urllib.request.urlopen(f"http://127.0.0.1:{args.qwen_port}/healthz", timeout=2) as r:
+            with urllib.request.urlopen(
+                f"http://127.0.0.1:{args.qwen_port}/healthz", timeout=2
+            ) as r:
                 health = json.loads(r.read())
             if health.get("ready") and health.get("revision") == QWEN_REVISION:
                 return proc, log
@@ -130,6 +149,15 @@ def start_qwen(args, out: pathlib.Path):
     proc.wait(timeout=30)
     log.close()
     raise TimeoutError("Qwen3-VL did not finish its pinned CUDA preflight before the deadline")
+
+
+def run_tasks(app, scheduler, sleep=time.sleep):
+    """Serve tasks while Isaac is open; only a tool may advance controlled physics."""
+    while app.is_running():
+        if scheduler.step() is None:
+            # Kit updates tick a playing PhysX timeline without a WBC policy tick.
+            # Keep this synchronous simulation frozen during user/model waiting.
+            sleep(0.05)
 
 
 def serve(args, cfg):
@@ -144,17 +172,25 @@ def serve(args, cfg):
     from dream.perception.spatial import SpatialMemory
     from dream.robot.g1_wbc import WBCLocomotion
     from dream.runtime.agent import TaskAgent
+    from dream.runtime.mobile_model import MobileModelPlanner, interpret_mobile_goal
     from dream.runtime.scheduler import TaskScheduler
-    from dream.runtime.mobile_model import MobileModelPlanner
-    from dream.runtime.mobile_model import interpret_mobile_goal
     from dream.sim.g1_mobile import DEFAULT_ODOMETRY_NOISE, HEAD_CAMERA, G1MobileBase
     from dream.sim.isaac_g1 import IsaacG1Env
-    from dream.tools.mobile import MobileToolbox
     from dream.tools.goals import NaturalLanguageGoal
+    from dream.tools.mobile import MobileToolbox
     from experiments.isaac_g1_kitchen import (
-        FLOOR, Evidence, choose_start, free_space, kitchen_url,
+        FLOOR,
+        Evidence,
+        choose_start,
+        free_space,
+        kitchen_url,
     )
-    from experiments.phase1_interface import build_providers, make_snapshot, make_validator, mobile_goal
+    from experiments.phase1_interface import (
+        build_providers,
+        make_snapshot,
+        make_validator,
+        mobile_goal,
+    )
 
     out = args.out.resolve()
     out.mkdir(parents=True, exist_ok=True)
@@ -171,8 +207,15 @@ def serve(args, cfg):
         cells, boxes, lo, hi = free_space(world.stage, cfg)
         x, y, yaw, clear_run = choose_start(cells, boxes, "explore", args.start)
         rng = np.random.default_rng([args.start, 1])
-        env = IsaacG1Env(world, args.robot_usd, rng, DEFAULT_ODOMETRY_NOISE, HEAD_CAMERA,
-                         (FLOOR,), checkpoint=evidence.stage)
+        env = IsaacG1Env(
+            world,
+            args.robot_usd,
+            rng,
+            DEFAULT_ODOMETRY_NOISE,
+            HEAD_CAMERA,
+            (FLOOR,),
+            checkpoint=evidence.stage,
+        )
         env.reset(x, y, yaw, floor_z=float(hi[2]))
         base = G1MobileBase(env, WBCLocomotion.from_cache())
         # Use the same validated ten-second WBC settling phase as kitchen bring-up.
@@ -194,51 +237,69 @@ def serve(args, cfg):
 
         toolbox = MobileToolbox(base, memory, on_event=tool_event, navigator="rpp")
         toolbox.places = {"entrance": np.zeros(2)}
-        evidence.write("isaac_session.json", {
-            "simulator": "NVIDIA Isaac Sim 6.2.0.0 / PhysX / RTX head camera",
-            "scene": args.kitchen,
-            "scene_source": url,
-            "robot": "Unitree G1 under the unchanged NVIDIA Decoupled WBC",
-            "model": "Qwen/Qwen3-VL-4B-Instruct",
-            "model_revision": QWEN_REVISION,
-            "model_decisions": "live tool calls from current Isaac camera observations",
-            "motor_policy": "pretrained WBC velocity controller; typed-tool planner above it",
-            "odometry": "oracle-assisted, as documented for this Milestone B adapter",
-            "seed": args.start,
-            "initial_pose": [x, y, yaw],
-            "initial_clear_run_m": clear_run,
-            "start_selection": "scene geometry only for a collision-clear reset pose",
-        })
-        evidence.stage("robot_ready", x=x, y=y, yaw=yaw, standing_s=stand_s,
-                       sim_time_s=env.time, stop_reason=base.stop_reason)
+        evidence.write(
+            "isaac_session.json",
+            {
+                "simulator": "NVIDIA Isaac Sim 6.2.0.0 / PhysX / RTX head camera",
+                "scene": args.kitchen,
+                "scene_source": url,
+                "robot": "Unitree G1 under the unchanged NVIDIA Decoupled WBC",
+                "model": "Qwen/Qwen3-VL-4B-Instruct",
+                "model_revision": QWEN_REVISION,
+                "model_decisions": "live tool calls from current Isaac camera observations",
+                "motor_policy": "pretrained WBC velocity controller; typed-tool planner above it",
+                "odometry": "oracle-assisted, as documented for this Milestone B adapter",
+                "seed": args.start,
+                "initial_pose": [x, y, yaw],
+                "initial_clear_run_m": clear_run,
+                "start_selection": "scene geometry only for a collision-clear reset pose",
+            },
+        )
+        evidence.stage(
+            "robot_ready",
+            x=x,
+            y=y,
+            yaw=yaw,
+            standing_s=stand_s,
+            sim_time_s=env.time,
+            stop_reason=base.stop_reason,
+        )
 
         qwen_process, qwen_log = start_qwen(args, out)
-        providers_args = argparse.Namespace(qwen_url=f"http://127.0.0.1:{args.qwen_port}",
-                                             openai_token_file=None, openai_model=None)
+        providers_args = argparse.Namespace(
+            qwen_url=f"http://127.0.0.1:{args.qwen_port}", openai_token_file=None, openai_model=None
+        )
         providers = build_providers(providers_args)
         qwen_choice = providers["qwen"]
         backend = qwen_choice.backend_for(qwen_choice.default_model)
         recorder = DecisionRecorder(backend, out, lambda: env.time)
         qwen_choice.backend_for = lambda _model: recorder
-        evidence.stage("qwen_ready", model=qwen_choice.default_model,
-                       revision=QWEN_REVISION, gpu="NVIDIA L4")
+        evidence.stage(
+            "qwen_ready", model=qwen_choice.default_model, revision=QWEN_REVISION, gpu="NVIDIA L4"
+        )
 
         api_ref = {"api": None}
 
         def run_task(task, history, preempt, cancel):
             if task.meta.get("provider") != "qwen":
                 raise RuntimeError("this live Isaac session accepts Qwen VLM tasks only")
+            if base.stop_reason is not None:
+                raise RuntimeError(f"robot requires a fresh session: {base.stop_reason}")
             recorder.set_cancel_event(cancel)
             if isinstance(task.goal, NaturalLanguageGoal):
                 observed = toolbox.call("observe_scene")
                 if not observed.ok:
                     raise RuntimeError("goal interpretation observation failed")
                 task.goal = interpret_mobile_goal(
-                    recorder, task.text, toolbox.places, observed.data,
+                    recorder,
+                    task.text,
+                    toolbox.places,
+                    observed.data,
                     lambda: None if memory.last_frame is None else memory.last_frame.rgb.copy(),
                 )
             planner = MobileModelPlanner(
-                recorder, task.text,
+                recorder,
+                task.text,
                 lambda: None if memory.last_frame is None else memory.last_frame.rgb.copy(),
             )
 
@@ -246,19 +307,26 @@ def serve(args, cfg):
                 row = {"id": task.id, **data}
                 api_ref["api"].notify(kind, row)
                 with events_path.open("a", encoding="utf-8") as stream:
-                    stream.write(json.dumps({"sim_time_s": env.time, "kind": kind,
-                                             **row}, default=str) + "\n")
+                    stream.write(
+                        json.dumps({"sim_time_s": env.time, "kind": kind, **row}, default=str)
+                        + "\n"
+                    )
                     stream.flush()
 
             return TaskAgent(toolbox, planner, max_steps=cfg["explore"]["max_steps"]).run(
-                task.goal, on_event=emit, history=history, preempt=preempt,
+                task.goal,
+                on_event=emit,
+                history=history,
+                preempt=preempt,
             )
 
         store = out / "tasks.sqlite"
         scheduler = TaskScheduler(str(store), run_task, mobile_goal)
         token = secrets.token_urlsafe(32)
         api = PairedPhoneAPI(
-            scheduler, token, status=lambda: {
+            scheduler,
+            token,
+            status=lambda: {
                 "robot_time_s": round(base.time, 2),
                 "odometry": base.odometry().tolist(),
                 "stop_reason": base.stop_reason,
@@ -267,29 +335,36 @@ def serve(args, cfg):
                 **make_snapshot(api, scheduler, base, memory, providers=providers),
                 "environment": "NVIDIA Isaac Sim 6.2 / Unitree G1 / PhysX",
             },
-            provider="qwen", validate_task=make_validator(providers, "qwen"),
+            provider="qwen",
+            validate_task=make_validator(providers, "qwen"),
         )
         api.provider_label = qwen_choice.label
         api_ref["api"] = api
         scheduler.notify = api.notify
+        initial = toolbox.call("observe_scene")
+        if not initial.ok:
+            raise RuntimeError("initial camera observation failed")
+        evidence.stage("initial_observation_ready", sim_time_s=env.time)
         api_server = api.serve(host="0.0.0.0", port=args.api_port)
-        print(f"Isaac G1 live API ready on port {args.api_port}; one-time IAP pairing enabled",
-              flush=True)
+        print(
+            f"Isaac G1 live API ready on port {args.api_port}; one-time IAP pairing enabled",
+            flush=True,
+        )
         evidence.stage("phone_api_ready", port=args.api_port)
-        while True:
-            if scheduler.step() is None:
-                app.update()
-                time.sleep(0.05)
+        run_tasks(app, scheduler)
     finally:
         if "env" in locals():
-            evidence.write("physical_outcome.json", {
-                "simulation_time_s": env.time,
-                "final_true_pose_for_evaluation_only": env.true_pose().tolist(),
-                "final_height_m_for_evaluation_only": env.true_height(),
-                "contact_steps": env.contact_steps,
-                "contacts": [c.__dict__ for c in env.contacts],
-                "physics_steps": env.physics_steps,
-            })
+            evidence.write(
+                "physical_outcome.json",
+                {
+                    "simulation_time_s": env.time,
+                    "final_true_pose_for_evaluation_only": env.true_pose().tolist(),
+                    "final_height_m_for_evaluation_only": env.true_height(),
+                    "contact_steps": env.contact_steps,
+                    "contacts": [c.__dict__ for c in env.contacts],
+                    "physics_steps": env.physics_steps,
+                },
+            )
         if api_server is not None:
             api_server.shutdown()
         if scheduler is not None:
@@ -304,8 +379,9 @@ def serve(args, cfg):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=pathlib.Path,
-                        default=ROOT / "experiments/configs/isaac_g1_kitchen.json")
+    parser.add_argument(
+        "--config", type=pathlib.Path, default=ROOT / "experiments/configs/isaac_g1_kitchen.json"
+    )
     parser.add_argument("--kitchen", default="l_shape")
     parser.add_argument("--start", type=int, default=7)
     parser.add_argument("--out", type=pathlib.Path, required=True)

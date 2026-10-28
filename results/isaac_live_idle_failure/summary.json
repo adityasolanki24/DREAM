@@ -1,0 +1,62 @@
+{
+  "source": "authenticated live PhoneAPI snapshot",
+  "git_sha": "7ab03710536b1e40f4a3e0d483c517390a1ae72e",
+  "session": "dream-qwen-isaac-20261028-235109-18660c",
+  "environment": "NVIDIA Isaac Sim 6.2 / Unitree G1 / PhysX",
+  "robot_time_s": 10.02,
+  "stop_reason": "fall: pelvis tilt 62 deg",
+  "tool_executions": [
+    {
+      "n": 4,
+      "kind": "action",
+      "id": "966864e4b8",
+      "tool": "look_around",
+      "args": {}
+    },
+    {
+      "n": 5,
+      "kind": "result",
+      "id": "966864e4b8",
+      "tool": "look_around",
+      "status": "stopped",
+      "message": "fall: pelvis tilt 62 deg"
+    }
+  ],
+  "history": [
+    {
+      "id": "966864e4b8",
+      "text": "inspect cabinet",
+      "priority": 0,
+      "state": "failed",
+      "created": 1793194680.1662235,
+      "updated": 1793194700.5354774,
+      "result": "fall: pelvis tilt 62 deg",
+      "suspensions": 0,
+      "steps": 1,
+      "resume": "auto",
+      "meta": {
+        "provider": "qwen",
+        "model": "Qwen/Qwen3-VL-4B-Instruct"
+      }
+    },
+    {
+      "id": "d7cc94ec3c",
+      "text": "inspect cabinet",
+      "priority": 0,
+      "state": "failed",
+      "created": 1793194730.016344,
+      "updated": 1793194741.4052525,
+      "result": "verify_goal failed: robot stopped: fall: pelvis tilt 62 deg",
+      "suspensions": 0,
+      "steps": 0,
+      "resume": "auto",
+      "meta": {
+        "provider": "qwen",
+        "model": "Qwen/Qwen3-VL-4B-Instruct"
+      }
+    }
+  ],
+  "classification": "general algorithmic correction: remove uncontrolled idle physics updates",
+  "physical_fix_validation": "pending fresh Isaac run",
+  "local_validation": "3 focused regressions pass; pre-existing skills/g1_reach.py import mujoco fails isolation"
+}

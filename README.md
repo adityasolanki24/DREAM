@@ -165,15 +165,29 @@ python -m experiments.g1_failure_audit --root <episode-results-directory> --out 
 | Bound transfer time and UTF-8 decoding; constrain advertised goal relations | General algorithmic correction | Focused regressions; original model decisions never rewritten |
 | Retain grip after ordinary failures; bound release retries | General algorithmic correction | Failure-before/pass-after regressions; original protective-stop behavior unchanged |
 | Lower toward observed support before unloading | Task-specific heuristic, sphere/platform scope | Matched development attempts; residual lowering failures retained; not a reliable general release skill |
-| Cached-runtime gate and deferred media rendering | Measurement/engineering | Offline contracts pass; no paid cached image validated |
+| Cached-runtime gate and deferred media rendering | Measurement/engineering | Offline contracts and paid cached-image preflight pass; placement failure retained |
 | Wait for measured asynchronous physics progress in the hold test | General algorithmic correction to test scheduling | Original full run retained (346 pass / 1 wall-clock scheduling failure); drift/progress/safety assertions unchanged |
 
 Future G1 GPU launches now require an immutable cached-image ID and a preflight receipt
 matching the dependency lock before allocation. The guest verifies installed versions and
-CUDA offline, without an apt/pip fallback. **No cached image was built or validated here**;
-existing cold-image configurations fail closed. New recording captures snapshots without
+CUDA offline, without an apt/pip fallback. Cached runtime image ID
+`4812387390768042548` passed the locked CUDA/MuJoCo/inference preflight; its genuine
+G1 placement attempt failed release verification. The image-build guest exited with an
+image-operation JSON parsing error after image creation; the READY image and result
+checksums were independently verified and the receipt records that recovery.
+Existing cold-image configurations fail closed. New recording captures snapshots without
 rendering; a fresh freeze can select `recording_evidence="snapshots"`, while original
 video gates remain strict. No further full Qwen evaluation or motor-policy training ran.
+
+The live Isaac G1 session at `7ab0371` passed ten seconds of controlled standing, then
+failed its first Qwen-selected `look_around` at simulation time 10.02 s with a 62-degree
+pelvis tilt. The idle server called Kit updates while the PhysX timeline was playing,
+advancing physics outside the WBC stepping path. The corrected event loop freezes
+simulation while waiting for input; initial camera capture precedes API readiness and
+tasks after a safety stop are rejected. Three focused CPU regressions pass; physical
+validation of the correction is pending. Failure evidence is preserved in
+`results/isaac_live_idle_failure`. The isolation check currently fails on the pre-existing
+`dream/skills/g1_reach.py` import of `mujoco`; this correction does not change that file.
 
 Final recovery checkpoint validation: **347 full-suite tests passed in 530.29 s**; **320 fast tests passed in 167.62 s**, with 27 slow tests excluded. The fast suite remains above the 60-second target. Ruff lint/format, shell syntax and staged-diff checks pass. The earlier full run (346 passed, one fixed wall-clock scheduling failure) remains recorded, alongside failed-before/passing-after contract regressions. No historical tracked result was modified.
 
