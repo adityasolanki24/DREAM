@@ -21,6 +21,7 @@ import urllib.request
 from urllib.parse import urlparse
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 QWEN_REVISION = "ebb281ec70b05090aa6165b016eac8ec08e71b17"
 
 
