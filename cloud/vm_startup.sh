@@ -71,7 +71,7 @@ if [[ "$WORKLOAD" == g1-qwen || "$WORKLOAD" == g1-autonomy ]]; then
 else
 apt-get update -q
 apt-get install -y -q libosmesa6 python3-pip ffmpeg
-if [[ "$WORKLOAD" == g1-autonomy ]]; then
+if [[ "$WORKLOAD" == g1-autonomy || "$WORKLOAD" == g1-runtime-build ]]; then
   apt-get install -y -q libegl1
   export MUJOCO_GL=egl
   export PYOPENGL_PLATFORM=egl

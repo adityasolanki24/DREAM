@@ -104,6 +104,8 @@ def test_runtime_builder_bootstraps_the_hashed_python_environment():
     assert "uv venv --python 3.12.12 /opt/dream-runtime" in startup
     assert "source /opt/dream-runtime/bin/activate" in startup
     assert 'export MUJOCO_GL=egl' in startup
+    assert '"$WORKLOAD" == g1-autonomy || "$WORKLOAD" == g1-runtime-build' in startup
+    assert "apt-get install -y -q libegl1" in startup
     assert 'elif [[ "$WORKLOAD" == g1-runtime-build ]]' not in startup
 
 
