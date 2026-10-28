@@ -54,6 +54,13 @@ export OPENBLAS_NUM_THREADS=1
 export TOKENIZERS_PARALLELISM=false
 export HF_HUB_DISABLE_TELEMETRY=1
 if [[ "$WORKLOAD" == isaac-g1-session ]]; then
+  # Isaac gets its own locked simulator environment; VLM inference reuses the
+  # separately validated runtime image and must never resolve dependencies here.
+  test -x /opt/dream-runtime/bin/python
+  export DREAM_QWEN_PYTHON=/opt/dream-runtime/bin/python
+  /opt/dream-runtime/bin/python /work/DREAM/cloud/cached_runtime.py \
+    --lock /work/DREAM/cloud/requirements.lock.txt \
+    --out /work/out/runtime_preflight.json --freeze /work/out/qwen-freeze.txt --cuda
   source /work/DREAM/cloud/isaac_g1_session.sh
   exit 0
 fi

@@ -126,6 +126,35 @@ def plan(project: str, cfg: dict, name: str, iap_api_port: int | None = None) ->
         raise ValueError("sessions use one reviewed L4 configuration for 30..180 minutes")
     if iap_api_port is not None and not 1024 <= iap_api_port <= 65535:
         raise ValueError("IAP API port must be between 1024 and 65535")
+    receipt_path = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "DREAM/g1_runtime_image.json"
+    if not receipt_path.is_file():
+        raise ValueError("Isaac sessions require a validated G1/Qwen runtime image receipt")
+    runtime = json.loads(receipt_path.read_text(encoding="utf-8"))
+    image = runtime.get("image", {})
+    image_name, image_id = image.get("name"), str(image.get("id", ""))
+    if not isinstance(image_name, str) or not image_id.isdigit():
+        raise ValueError("cached runtime receipt must name an immutable numeric image ID")
+    verified_image = json.loads(
+        gcloud("compute", "images", "describe", image_name, f"--project={project}",
+               "--format=json")
+    )
+    image_description = json.loads(verified_image.get("description", "{}"))
+    lock_hash = hashlib.sha256((ROOT / "cloud/requirements.lock.txt").read_bytes()).hexdigest()
+    if (
+        str(verified_image.get("id")) != image_id
+        or verified_image.get("status") != "READY"
+        or runtime.get("requirements_lock_sha256") != lock_hash
+        or image_description.get("requirements_lock_sha256") != lock_hash
+        or runtime.get("preflight_passed") is not True
+        or runtime.get("inference_and_physics_validated") is not True
+        or runtime.get("checkpoint") != "Qwen/Qwen3-VL-4B-Instruct"
+        or runtime.get("checkpoint_revision") != "ebb281ec70b05090aa6165b016eac8ec08e71b17"
+        or runtime.get("mujoco") != "3.16.0"
+        or image_description.get("checkpoint_revision") != runtime.get("checkpoint_revision")
+    ):
+        raise ValueError(
+            "cached image identity or preflight receipt does not match the G1/Qwen lock"
+        )
     return {
         "name": name, "workload": WORKLOAD, "project": project, "zone": cfg["zone"],
         "zones": list(zones), "region": region,
@@ -133,7 +162,8 @@ def plan(project: str, cfg: dict, name: str, iap_api_port: int | None = None) ->
         "max_minutes": minutes, "bucket": name, "network": name, "subnet": name + "-subnet",
         "router": name + "-router", "nat": name + "-nat",
         "account": "dream-" + hashlib.sha256(name.encode()).hexdigest()[:16],
-        "image": cfg["image"], "image_project": cfg["image_project"],
+        "image": image_name, "image_project": project, "cached_image_id": image_id,
+        "runtime_image_receipt": runtime,
         "estimated_usd": estimate(cfg, minutes),
         "per_session_ceiling_usd": cfg["per_session_ceiling_usd"],
         "continuation_cap_usd": cfg["continuation_cap_usd"],

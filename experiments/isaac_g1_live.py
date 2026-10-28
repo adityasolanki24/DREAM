@@ -109,7 +109,8 @@ def start_qwen(args, out: pathlib.Path):
     log = (out / "qwen_server.log").open("w", encoding="utf-8")
     env = {**os.environ, "PYTHONPATH": str(ROOT) + os.pathsep + os.environ.get("PYTHONPATH", "")}
     command = [
-        "/work/qwen-venv/bin/python", "-m", "experiments.qwen_tool_server",
+        os.environ.get("DREAM_QWEN_PYTHON", "/opt/dream-runtime/bin/python"),
+        "-m", "experiments.qwen_tool_server",
         "--host", "127.0.0.1", "--port", str(args.qwen_port), "--revision", QWEN_REVISION,
     ]
     proc = subprocess.Popen(command, cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT)
