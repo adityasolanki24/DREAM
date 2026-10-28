@@ -10,6 +10,19 @@ export type Task = {
   steps: number;
   suspensions: number;
   resume: 'auto' | 'ask';
+  // Which parser and model ran the task. Absent on tasks created before model choice existed.
+  meta?: { provider?: string; model?: string | null };
+};
+
+/** One entry of snapshot.provider_choices. Older snapshots send only {id, label}; see normaliseProviderChoices. */
+export type ProviderChoice = {
+  id: string;
+  label: string;
+  available: boolean;
+  reason: string | null;
+  models: string[];
+  default_model: string | null;
+  supports: string[];
 };
 
 export type MapData = {
@@ -46,7 +59,7 @@ export type HomeMemory = {
 export type Snapshot = {
   provider: string;
   provider_label: string;
-  provider_choices: { id: string; label: string }[];
+  provider_choices: ProviderChoice[];
   environment?: string;
   robot_time_s: number;
   odometry: number[];
