@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Camera, Brain, ListChecks, MessageSquare, LayoutDashboard, Map, Settings, Pause, Play, Square, X } from 'lucide-react';
+import { Camera, Brain, ListChecks, MessageSquare, LayoutDashboard, Map, Settings, Pause, Play, Square, X, Check } from 'lucide-react';
 import * as Tabs from '@radix-ui/react-tabs';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Tooltip from '@radix-ui/react-tooltip';
@@ -50,6 +50,9 @@ export default function Page() {
   }, []);
   const [view, setView] = useState<'overview' | 'activity' | 'world' | 'memory'>('overview');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [themeMode, setThemeMode] = useState<'system' | 'light' | 'dark'>('system');
+  useEffect(() => { setThemeMode(window.dreamTheme?.get() ?? 'system'); }, []);
+  const chooseTheme = (m: string) => { const mode = m === 'light' || m === 'dark' ? m : 'system'; window.dreamTheme?.set(mode); setThemeMode(mode); };
   const [notify, setNotify] = useState(false);
   const cursor = useRef(0);
   const streamId = useRef<string | null>(null);
@@ -251,7 +254,11 @@ export default function Page() {
           <div className="breadcrumb"><span>Mission</span><span className="slash">/</span><b>Workspace</b></div>
           <div className="top-right"><ConnectionBadge link={link} /><NotifyButton enabled={notify} onToggle={toggleNotify} />
             <Dropdown.Root><Dropdown.Trigger asChild><button className="icon-btn" aria-label="Session settings"><Settings size={18}/></button></Dropdown.Trigger>
-              <Dropdown.Portal><Dropdown.Content className="dropdown" align="end" sideOffset={8}><Dropdown.Item className="dropdown-item" onSelect={() => setSettingsOpen(true)}>Change access token</Dropdown.Item><Dropdown.Item className="dropdown-item" onSelect={toggleNotify}>{notify ? 'Disable' : 'Enable'} notifications</Dropdown.Item></Dropdown.Content></Dropdown.Portal>
+              <Dropdown.Portal><Dropdown.Content className="dropdown" align="end" sideOffset={8}><Dropdown.Item className="dropdown-item" onSelect={() => setSettingsOpen(true)}>Change access token</Dropdown.Item><Dropdown.Item className="dropdown-item" onSelect={toggleNotify}>{notify ? 'Disable' : 'Enable'} notifications</Dropdown.Item>
+                <Dropdown.Separator className="dropdown-sep" /><Dropdown.Label className="dropdown-label">THEME</Dropdown.Label>
+                <Dropdown.RadioGroup value={themeMode} onValueChange={chooseTheme}>
+                  {(['system', 'light', 'dark'] as const).map((m) => <Dropdown.RadioItem key={m} value={m} className="dropdown-item" onSelect={(e) => e.preventDefault()}>{m[0].toUpperCase() + m.slice(1)}<Dropdown.ItemIndicator className="check"><Check size={16} aria-hidden /></Dropdown.ItemIndicator></Dropdown.RadioItem>)}
+                </Dropdown.RadioGroup></Dropdown.Content></Dropdown.Portal>
             </Dropdown.Root>
           </div>
         </header>
