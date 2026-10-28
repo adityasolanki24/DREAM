@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import subprocess
+import time
 from pathlib import Path
 
 from cloud.cached_runtime import validate
@@ -105,28 +106,43 @@ def main() -> None:
         "--format=json",
     ]
     completed = subprocess.run(command, check=True, capture_output=True, text=True, timeout=600)
-    image = json.loads(completed.stdout)
+    created = json.loads(completed.stdout)
+    if isinstance(created, list):
+        if len(created) != 1 or not isinstance(created[0], dict):
+            raise RuntimeError("GCE returned an unexpected image-create response")
+        image = created[0]
+    elif isinstance(created, dict):
+        image = created
+    else:
+        raise RuntimeError("GCE returned an unexpected image-create response")
     image_id = str(image.get("id", ""))
     if not image_id.isdigit():
         raise RuntimeError("GCE did not return an immutable numeric image ID")
-    verified = json.loads(
-        subprocess.run(
-            [
-                "gcloud",
-                "compute",
-                "images",
-                "describe",
-                args.image_name,
-                "--project",
-                project,
-                "--format=json",
-            ],
-            check=True,
-            capture_output=True,
-            text=True,
-            timeout=120,
-        ).stdout
-    )
+    deadline = time.monotonic() + 600
+    while True:
+        verified = json.loads(
+            subprocess.run(
+                [
+                    "gcloud",
+                    "compute",
+                    "images",
+                    "describe",
+                    args.image_name,
+                    "--project",
+                    project,
+                    "--format=json",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=120,
+            ).stdout
+        )
+        if verified.get("status") == "READY":
+            break
+        if verified.get("status") == "FAILED" or time.monotonic() >= deadline:
+            raise RuntimeError(f"created image did not become READY: {verified.get('status')}")
+        time.sleep(10)
     if (
         str(verified.get("id")) != image_id
         or verified.get("status") != "READY"
