@@ -918,7 +918,7 @@ def _launch(p: dict, allowance: float) -> None:
                 p["image_builder_role"],
                 project,
                 "--title=DREAM temporary runtime image builder",
-                "--permissions=compute.images.create,compute.images.get,compute.disks.get,compute.disks.useReadOnly,compute.globalOperations.get",
+                "--permissions=compute.images.create,compute.images.get,compute.images.setLabels,compute.disks.get,compute.disks.useReadOnly,compute.globalOperations.get",
                 "--stage=GA",
             )
             gcloud(

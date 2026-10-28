@@ -101,9 +101,11 @@ def test_g1_runtime_builder_is_one_scene_and_budgets_retained_image_storage():
 
 def test_runtime_image_uses_real_project_metadata_and_forced_running_disk_image():
     builder = (cloud.ROOT / "cloud/build_g1_runtime_image.py").read_text()
+    launcher = (cloud.ROOT / "cloud/launch.py").read_text()
     assert 'metadata("instance/attributes/dream-bucket")' in builder
     assert 'metadata("project/project-id")' in builder
     assert '"--force"' in builder
+    assert "compute.images.setLabels" in launcher
 
 
 def test_runtime_builder_bootstraps_the_hashed_python_environment():
