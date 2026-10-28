@@ -1,0 +1,19 @@
+{
+ "spec": {
+  "id": "dev_v1ho_s5008",
+  "set": "dev",
+  "seed": 5008,
+  "height": 0.8969221361788153,
+  "distance": 1.5598713556398796,
+  "lateral": -0.26044204062681875,
+  "yaw_jitter": -0.2963135470248573,
+  "n_crates": 0,
+  "second_fixture": false
+ },
+ "system": "agent",
+ "git_sha": "1be513053a3460c2d800ac6755a5821094045b20",
+ "error": "Traceback (most recent call last):\n  File \"C:\\Users\\24adi\\DREAM-wholebody\\experiments\\g1_reach_heights.py\", line 284, in run_episode\n    report = skill.run(instruction)\n  File \"C:\\Users\\24adi\\DREAM-wholebody\\dream\\tools\\reach.py\", line 427, in run\n    done = self._walk_then_reach(rep, est, goal, plans, attempt)\n  File \"C:\\Users\\24adi\\DREAM-wholebody\\dream\\tools\\reach.py\", line 467, in _walk_then_reach\n    chosen, pre, why = self._select(rep, here.plans, target, \"at_stance\")\n                       ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\24adi\\DREAM-wholebody\\dream\\tools\\reach.py\", line 318, in _select\n    picked, tried = self.body.verify(\n                    ~~~~~~~~~~~~~~~~^\n        [plan], target.obstacles, pre=pre, approach=approach_axis(target)\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"C:\\Users\\24adi\\DREAM-wholebody\\dream\\robot\\g1_reach_ports.py\", line 210, in verify\n    r = verify_by_rollout(\n        first.target, factory, boxes, self.planner.pm, self.safety, procedure, plan\n    )\n  File \"C:\\Users\\24adi\\DREAM-wholebody\\dream\\robot\\g1_rollout.py\", line 251, in verify_by_rollout\n    report = backend.execute(target, monitor=meter)\n  File \"C:\\Users\\24adi\\DREAM-wholebody\\dream\\robot\\wholebody.py\", line 381, in execute\n    return self._run(synchronized_path(self.command(), goal, caps), req, monitor)\n           ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\24adi\\DREAM-wholebody\\dream\\robot\\wholebody.py\", line 423, in _run\n    c.set_posture(cmd.height, cmd.rpy)\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\24adi\\DREAM-wholebody\\dream\\robot\\g1_wbc.py\", line 193, in set_posture\n    raise ValueError(f\"height command {h} outside {HEIGHT_RANGE}\")\nValueError: height command 0.7400000107504702 outside (0.2, 0.74)\n",
+ "timing": {
+  "wall_s": 73.27551919999678
+ }
+}

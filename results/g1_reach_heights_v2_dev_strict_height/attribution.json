@@ -1,0 +1,116 @@
+{
+ "reference_feasible_v1": {
+  "n": 41,
+  "v1": {
+   "refused: rollout": 6,
+   "success": 6,
+   "stop: torque limit": 10,
+   "perception/navigation": 5,
+   "stop: joint position limit": 3,
+   "physical success without claim": 2,
+   "refused: planner": 8,
+   "stop: foot support lost": 1
+  },
+  "v2": {
+   "success": 29,
+   "perception/navigation": 3,
+   "refused: rollout": 4,
+   "stop: joint position limit (waist_pitch_joint)": 2,
+   "physical success without claim": 2,
+   "stop: foot support lost": 1
+  },
+  "v2_stop_joints": {
+   "waist_pitch_joint|joint position limit": 3,
+   "None|foot support lost": 1
+  },
+  "transitions": {
+   "refused: rollout -> success": 6,
+   "success -> perception/navigation": 1,
+   "success -> success": 4,
+   "stop: torque limit -> success": 9,
+   "perception/navigation -> refused: rollout": 1,
+   "stop: torque limit -> stop: joint position limit (waist_pitch_joint)": 1,
+   "perception/navigation -> success": 3,
+   "success -> physical success without claim": 1,
+   "stop: joint position limit -> stop: foot support lost": 1,
+   "stop: joint position limit -> stop: joint position limit (waist_pitch_joint)": 1,
+   "physical success without claim -> success": 2,
+   "refused: planner -> refused: rollout": 3,
+   "stop: joint position limit -> success": 1,
+   "stop: foot support lost -> success": 1,
+   "refused: planner -> physical success without claim": 1,
+   "refused: planner -> success": 3,
+   "perception/navigation -> perception/navigation": 1,
+   "refused: planner -> perception/navigation": 1
+  }
+ },
+ "all": {
+  "n": 60,
+  "v1": {
+   "refused: planner": 26,
+   "refused: rollout": 6,
+   "success": 6,
+   "stop: torque limit": 10,
+   "perception/navigation": 6,
+   "stop: joint position limit": 3,
+   "physical success without claim": 2,
+   "stop: foot support lost": 1
+  },
+  "v2": {
+   "refused: planner": 17,
+   "success": 29,
+   "perception/navigation": 5,
+   "refused: rollout": 4,
+   "stop: joint position limit (waist_pitch_joint)": 2,
+   "physical success without claim": 2,
+   "stop: foot support lost": 1
+  },
+  "v2_stop_joints": {
+   "waist_pitch_joint|joint position limit": 3,
+   "None|foot support lost": 1
+  },
+  "transitions": {
+   "refused: planner -> refused: planner": 17,
+   "refused: rollout -> success": 6,
+   "success -> perception/navigation": 1,
+   "success -> success": 4,
+   "stop: torque limit -> success": 9,
+   "perception/navigation -> refused: rollout": 1,
+   "stop: torque limit -> stop: joint position limit (waist_pitch_joint)": 1,
+   "perception/navigation -> success": 3,
+   "success -> physical success without claim": 1,
+   "stop: joint position limit -> stop: foot support lost": 1,
+   "stop: joint position limit -> stop: joint position limit (waist_pitch_joint)": 1,
+   "physical success without claim -> success": 2,
+   "refused: planner -> refused: rollout": 3,
+   "stop: joint position limit -> success": 1,
+   "perception/navigation -> perception/navigation": 2,
+   "stop: foot support lost -> success": 1,
+   "refused: planner -> physical success without claim": 1,
+   "refused: planner -> success": 3,
+   "refused: planner -> perception/navigation": 2
+  }
+ },
+ "v2_reference_label_i": {
+  "feasible": 38,
+  "n": 60,
+  "v2_success_on_label_i_feasible": 31
+ },
+ "reference_comparison": {
+  "note": "Finite searches; missing truth inputs are unresolved, not infeasible.",
+  "coverage_n": 60,
+  "agent_n": 60,
+  "uncovered": [],
+  "i_only_among_covered": [
+   "dev_h1.10_L1_s101",
+   "dev_v1ho_s5012",
+   "dev_v1ho_s5023"
+  ],
+  "ii_only": []
+ },
+ "matching": {
+  "v1_only": [],
+  "v2_only": [],
+  "note": "Cause categories are heuristics based on recorded evidence, not root causes."
+ }
+}

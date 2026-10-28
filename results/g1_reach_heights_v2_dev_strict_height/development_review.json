@@ -1,0 +1,326 @@
+{
+  "git_sha": "5f9add2eaaa28a1a77ecd6c9a8e259bd6f98240c",
+  "config_sha256": "f85525af9e7d096a96573573d206e2315382bd353d0efb186203a6f234eb0f9e",
+  "counts": {
+    "agent": 60,
+    "baseline": 60,
+    "truth_diagnostic": 29,
+    "errors": 0,
+    "truth_union_coverage": 60
+  },
+  "physical_and_verdict": {
+    "agent": {
+      "physical_success": 31,
+      "physical_success_reached": 29,
+      "physical_success_failed": 1,
+      "physical_success_refused": 1
+    },
+    "baseline": {
+      "physical_success": 7,
+      "physical_success_reached": 0,
+      "physical_success_failed": 7
+    }
+  },
+  "warning": "Agent and baseline use different claim rules; physical evaluator shared. Finite reference searches are operational labels, not proof of impossibility. Cause categories are heuristics, not established root causes. Development data only.",
+  "reference_ii": {
+    "n_truth_runs": 29,
+    "n_feasible_ii": 35,
+    "agent_success_on_ii_feasible": {
+      "k": 31,
+      "n": 35,
+      "rate": 0.8857142857142857,
+      "wilson95": [
+        0.7404853121378726,
+        0.9546482069844427
+      ]
+    },
+    "feasible_i_and_ii": 35,
+    "feasible_i_not_ii": [
+      "dev_h1.10_L1_s101",
+      "dev_v1ho_s5012",
+      "dev_v1ho_s5023"
+    ],
+    "feasible_ii_not_i": []
+  },
+  "gates": {
+    "agent": {
+      "zero_collapses": {
+        "pass": true,
+        "applicable": true,
+        "value": {
+          "k": 0,
+          "n": 60,
+          "rate": 0.0,
+          "wilson95": [
+            0.0,
+            0.060171853034227174
+          ]
+        }
+      },
+      "zero_false_success_claims": {
+        "pass": true,
+        "applicable": true,
+        "value": {
+          "k": 0,
+          "n": 60,
+          "rate": 0.0,
+          "wilson95": [
+            0.0,
+            0.060171853034227174
+          ]
+        }
+      },
+      "success_on_reference_feasible_ge": {
+        "threshold": 0.8,
+        "pass": true,
+        "applicable": true,
+        "value": {
+          "k": 31,
+          "n": 38,
+          "rate": 0.8157894736842105,
+          "wilson95": [
+            0.6658114179568251,
+            0.9077823486488728
+          ]
+        }
+      },
+      "success_off_band_feasible_ge": {
+        "threshold": 0.7,
+        "pass": false,
+        "applicable": true,
+        "value": {
+          "k": 2,
+          "n": 3,
+          "rate": 0.6666666666666666,
+          "wilson95": [
+            0.2076595988078242,
+            0.9385080559790691
+          ]
+        }
+      },
+      "correct_refusal_on_infeasible_ge": {
+        "threshold": 0.9,
+        "pass": false,
+        "applicable": true,
+        "value": {
+          "k": 19,
+          "n": 22,
+          "rate": 0.8636363636363636,
+          "wilson95": [
+            0.6666501265111675,
+            0.9525099632305449
+          ]
+        }
+      }
+    },
+    "scripted_baseline": {
+      "zero_collapses": {
+        "pass": true,
+        "applicable": true,
+        "value": {
+          "k": 0,
+          "n": 60,
+          "rate": 0.0,
+          "wilson95": [
+            0.0,
+            0.060171853034227174
+          ]
+        }
+      },
+      "zero_false_success_claims": {
+        "pass": true,
+        "applicable": true,
+        "value": {
+          "k": 0,
+          "n": 60,
+          "rate": 0.0,
+          "wilson95": [
+            0.0,
+            0.060171853034227174
+          ]
+        }
+      },
+      "success_on_reference_feasible_ge": {
+        "threshold": 0.8,
+        "pass": false,
+        "applicable": true,
+        "value": {
+          "k": 7,
+          "n": 38,
+          "rate": 0.18421052631578946,
+          "wilson95": [
+            0.0922176513511272,
+            0.334188582043175
+          ]
+        }
+      },
+      "success_off_band_feasible_ge": {
+        "threshold": 0.7,
+        "pass": false,
+        "applicable": true,
+        "value": {
+          "k": 0,
+          "n": 3,
+          "rate": 0.0,
+          "wilson95": [
+            0.0,
+            0.5614970356393196
+          ]
+        }
+      },
+      "correct_refusal_on_infeasible_ge": {
+        "threshold": 0.9,
+        "pass": true,
+        "applicable": true,
+        "value": {
+          "k": 20,
+          "n": 22,
+          "rate": 0.9090909090909091,
+          "wilson95": [
+            0.721850529721749,
+            0.9747045712376774
+          ]
+        }
+      }
+    }
+  },
+  "attribution": {
+    "reference_feasible_v1": {
+      "n": 41,
+      "v1": {
+        "refused: rollout": 6,
+        "success": 6,
+        "stop: torque limit": 10,
+        "perception/navigation": 5,
+        "stop: joint position limit": 3,
+        "physical success without claim": 2,
+        "refused: planner": 8,
+        "stop: foot support lost": 1
+      },
+      "v2": {
+        "success": 29,
+        "perception/navigation": 3,
+        "refused: rollout": 4,
+        "stop: joint position limit (waist_pitch_joint)": 2,
+        "physical success without claim": 2,
+        "stop: foot support lost": 1
+      },
+      "v2_stop_joints": {
+        "waist_pitch_joint|joint position limit": 3,
+        "None|foot support lost": 1
+      },
+      "transitions": {
+        "refused: rollout -> success": 6,
+        "success -> perception/navigation": 1,
+        "success -> success": 4,
+        "stop: torque limit -> success": 9,
+        "perception/navigation -> refused: rollout": 1,
+        "stop: torque limit -> stop: joint position limit (waist_pitch_joint)": 1,
+        "perception/navigation -> success": 3,
+        "success -> physical success without claim": 1,
+        "stop: joint position limit -> stop: foot support lost": 1,
+        "stop: joint position limit -> stop: joint position limit (waist_pitch_joint)": 1,
+        "physical success without claim -> success": 2,
+        "refused: planner -> refused: rollout": 3,
+        "stop: joint position limit -> success": 1,
+        "stop: foot support lost -> success": 1,
+        "refused: planner -> physical success without claim": 1,
+        "refused: planner -> success": 3,
+        "perception/navigation -> perception/navigation": 1,
+        "refused: planner -> perception/navigation": 1
+      }
+    },
+    "all": {
+      "n": 60,
+      "v1": {
+        "refused: planner": 26,
+        "refused: rollout": 6,
+        "success": 6,
+        "stop: torque limit": 10,
+        "perception/navigation": 6,
+        "stop: joint position limit": 3,
+        "physical success without claim": 2,
+        "stop: foot support lost": 1
+      },
+      "v2": {
+        "refused: planner": 17,
+        "success": 29,
+        "perception/navigation": 5,
+        "refused: rollout": 4,
+        "stop: joint position limit (waist_pitch_joint)": 2,
+        "physical success without claim": 2,
+        "stop: foot support lost": 1
+      },
+      "v2_stop_joints": {
+        "waist_pitch_joint|joint position limit": 3,
+        "None|foot support lost": 1
+      },
+      "transitions": {
+        "refused: planner -> refused: planner": 17,
+        "refused: rollout -> success": 6,
+        "success -> perception/navigation": 1,
+        "success -> success": 4,
+        "stop: torque limit -> success": 9,
+        "perception/navigation -> refused: rollout": 1,
+        "stop: torque limit -> stop: joint position limit (waist_pitch_joint)": 1,
+        "perception/navigation -> success": 3,
+        "success -> physical success without claim": 1,
+        "stop: joint position limit -> stop: foot support lost": 1,
+        "stop: joint position limit -> stop: joint position limit (waist_pitch_joint)": 1,
+        "physical success without claim -> success": 2,
+        "refused: planner -> refused: rollout": 3,
+        "stop: joint position limit -> success": 1,
+        "perception/navigation -> perception/navigation": 2,
+        "stop: foot support lost -> success": 1,
+        "refused: planner -> physical success without claim": 1,
+        "refused: planner -> success": 3,
+        "refused: planner -> perception/navigation": 2
+      }
+    },
+    "v2_reference_label_i": {
+      "feasible": 38,
+      "n": 60,
+      "v2_success_on_label_i_feasible": 31
+    },
+    "reference_comparison": {
+      "note": "Finite searches; missing truth inputs are unresolved, not infeasible.",
+      "coverage_n": 60,
+      "agent_n": 60,
+      "uncovered": [],
+      "i_only_among_covered": [
+        "dev_h1.10_L1_s101",
+        "dev_v1ho_s5012",
+        "dev_v1ho_s5023"
+      ],
+      "ii_only": []
+    },
+    "matching": {
+      "v1_only": [],
+      "v2_only": [],
+      "note": "Cause categories are heuristics based on recorded evidence, not root causes."
+    }
+  },
+  "calibration": {
+    "fit_n": 33,
+    "rms_mm_normal_along_vertical": [
+      6.0696,
+      15.2941,
+      1.1141
+    ],
+    "coverage_before": [
+      21,
+      33
+    ],
+    "coverage_after": [
+      28,
+      33
+    ],
+    "source": "results/g1_reach_heights_dev/perception_calibration_v2.json"
+  },
+  "runtime_s": {
+    "smoke": 90,
+    "agent_remaining": 2123,
+    "baseline": 542,
+    "truth": 495
+  }
+}

@@ -1,0 +1,393 @@
+{
+ "spec": {
+  "id": "dev_h0.35_L1_s102",
+  "set": "dev",
+  "seed": 102,
+  "height": 0.35,
+  "layout": 1,
+  "distance": 2.0,
+  "lateral": 0.3,
+  "yaw_jitter": 0.2617993877991494,
+  "n_crates": 2,
+  "second_fixture": true
+ },
+ "system": "scripted_baseline",
+ "git_sha": "5f9add2eaaa28a1a77ecd6c9a8e259bd6f98240c",
+ "instruction": "touch the yellow handle",
+ "agent": {
+  "verdict": "refused",
+  "reason": "perceived height 0.35 m is outside 0.55-1.15 m: the upright reach does not crouch or stretch",
+  "goal": {
+   "verb": "touch",
+   "color": "yellow",
+   "noun": "handle",
+   "tolerance": 0.03
+  },
+  "measured_error": null,
+  "claim_threshold": null,
+  "target": {
+   "position": [
+    1.9861,
+    0.2946,
+    0.3534
+   ],
+   "covariance": [
+    [
+     9.79e-05,
+     -7.03e-05,
+     -3.2e-06
+    ],
+    [
+     -7.03e-05,
+     0.0002286,
+     -5e-07
+    ],
+    [
+     -3.2e-06,
+     -5e-07,
+     3.31e-05
+    ]
+   ],
+   "sigma": 0.0161,
+   "color": "yellow",
+   "views": 2,
+   "same_colour_candidates": 1,
+   "n_obstacles": 5,
+   "obstacles": [
+    {
+     "kind": "box",
+     "color": "grey",
+     "hand_may_touch": true,
+     "center": [
+      2.225,
+      0.408,
+      0.6
+     ],
+     "half_extents": [
+      0.25,
+      0.439,
+      0.6
+     ],
+     "yaw": 0.401
+    },
+    {
+     "kind": "box",
+     "color": "blue",
+     "hand_may_touch": false,
+     "center": [
+      1.796,
+      -1.267,
+      0.451
+     ],
+     "half_extents": [
+      0.236,
+      0.25,
+      0.451
+     ],
+     "yaw": 0.716
+    },
+    {
+     "kind": "box",
+     "color": "grey",
+     "hand_may_touch": true,
+     "center": [
+      2.319,
+      0.188,
+      0.6
+     ],
+     "half_extents": [
+      0.25,
+      0.21,
+      0.6
+     ],
+     "yaw": 0.454
+    },
+    {
+     "kind": "box",
+     "color": "grey",
+     "hand_may_touch": false,
+     "center": [
+      1.103,
+      -1.181,
+      0.564
+     ],
+     "half_extents": [
+      0.094,
+      0.25,
+      0.564
+     ],
+     "yaw": 0.524
+    },
+    {
+     "kind": "box",
+     "color": "purple",
+     "hand_may_touch": false,
+     "center": [
+      2.595,
+      -1.077,
+      0.501
+     ],
+     "half_extents": [
+      0.192,
+      0.25,
+      0.501
+     ],
+     "yaw": 0.576
+    }
+   ],
+   "fixture": {
+    "center": [
+     2.225,
+     0.408,
+     0.6
+    ],
+    "half_extents": [
+     0.25,
+     0.439,
+     0.6
+    ],
+    "yaw": 0.401
+   }
+  },
+  "posture": null,
+  "plans": [],
+  "rollouts": [],
+  "execution": {},
+  "restances": 0,
+  "events": [
+   {
+    "t": 1.0,
+    "kind": "goal",
+    "text": "[scripted_baseline] touch the yellow handle"
+   },
+   {
+    "t": 4.2,
+    "kind": "result",
+    "text": "perceived height 0.35 m is outside 0.55-1.15 m: the upright reach does not crouch or stretch"
+   }
+  ]
+ },
+ "evaluator": {
+  "true_distance_m": 1.7226755945284207,
+  "true_distance_by_arm": {
+   "left": 1.7226755945284207,
+   "right": 1.779962646386989
+  },
+  "min_distance_during_m": {
+   "left": 1.7134158177696706,
+   "right": 1.7716409544740976
+  },
+  "physical_success": false,
+  "success_mode": "contact",
+  "success_distance_v1": false,
+  "success_contact_v2": false,
+  "handle_contact_s": 0.0,
+  "handle_contact_peak_force_n": 0.0,
+  "claimed": false,
+  "claimed_success": false,
+  "false_success_claim": false,
+  "collapse": {
+   "tilt_latch": false,
+   "undesired_ground_contact": false,
+   "foot_support_loss": false,
+   "joint_limit_contact": false,
+   "collapsed": false,
+   "undesired_contact_max_s": 0.0,
+   "foot_loss_max_s": 0.0,
+   "joint_limit_total_s": 0.0
+  },
+  "joint_limit_contact_s": 0.0,
+  "protective_stops": [],
+  "unresolved_protective_stop": false,
+  "contacts": {
+   "peak_force_n": {
+    "handle_hand": 0.0,
+    "fixture_hand": 0.0,
+    "fixture_other": 0.0,
+    "distractor": 0.0
+   },
+   "ticks": {
+    "handle_hand": 0,
+    "fixture_hand": 0,
+    "fixture_other": 0,
+    "distractor": 0
+   },
+   "unintended_contact": false
+  },
+  "reference_feasible": false,
+  "refusal_correct": true,
+  "missed_opportunity": false,
+  "height_band": "low"
+ },
+ "stop_details": [],
+ "reference": {
+  "feasible": false,
+  "n_plans": 0,
+  "n_failures": 58,
+  "failure_reasons": {
+   "hand_residual": 57,
+   "com_outside_support": 35,
+   "collision": 38,
+   "feet_off_stance": 7,
+   "pelvis_tilt": 12,
+   "solver": 1,
+   "stance_blocked": 67
+  },
+  "rollouts": [],
+  "posture": null
+ },
+ "execution_trace": {
+  "commanded_final": {
+   "pelvis_height": 0.74,
+   "torso_rpy": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "arm_max_abs": 0.036431813039452976
+  },
+  "achieved_final": {
+   "ach_height": 0.748036401690988,
+   "ach_rpy": [
+    -0.00591386388820045,
+    0.057494204216977436,
+    0.0003072978336013189
+   ],
+   "com_margin": 0.07182619343740718
+  },
+  "height_error_final": 0.00803640169098796,
+  "peak_torque_ratio": 0.27204641245652716,
+  "peak_tilt": 0.048164435390354136,
+  "peak_tilt_rate": 0.192710879329075,
+  "min_com_margin": 0.04570131474552049,
+  "monitored_ticks": 160
+ },
+ "truth": {
+  "handle_center": [
+   1.9889978500470304,
+   0.2952091027549766,
+   0.35
+  ],
+  "handle_color": "yellow",
+  "fixture": {
+   "name": "fixture_body",
+   "center": [
+    2.2181098545901463,
+    0.3949761552001347,
+    0.3493150591900741
+   ],
+   "half": [
+    0.23789152722603407,
+    0.4559591942957116,
+    0.3493150591900741
+   ],
+   "yaw": -2.7309033181811464,
+   "rgba": [
+    0.7239598086185208,
+    0.7239598086185208,
+    0.7239598086185208,
+    1.0
+   ]
+  },
+  "distractors": [
+   {
+    "name": "distractor_fixture",
+    "center": [
+     0.9063039001622659,
+     -1.2502519665941247,
+     0.45
+    ],
+    "half": [
+     0.2,
+     0.3,
+     0.45
+    ],
+    "yaw": 2.1053669553103194,
+    "rgba": [
+     0.7616857996990302,
+     0.7616857996990302,
+     0.7616857996990302,
+     1.0
+    ]
+   },
+   {
+    "name": "distractor_handle",
+    "center": [
+     0.7982959172258836,
+     -1.0678286248255502,
+     0.5
+    ],
+    "half": [
+     0.012,
+     0.045,
+     0.012
+    ],
+    "yaw": 2.1053669553103194,
+    "rgba": [
+     0.75,
+     0.15,
+     0.12,
+     1.0
+    ]
+   },
+   {
+    "name": "distractor_crate_0",
+    "center": [
+     2.605611444497225,
+     -1.0806093691742515,
+     0.24926752692344178
+    ],
+    "half": [
+     0.19015482640069106,
+     0.24015320857736477,
+     0.24926752692344178
+    ],
+    "yaw": 0.5659334965873506,
+    "rgba": [
+     0.5,
+     0.25,
+     0.65,
+     1.0
+    ]
+   },
+   {
+    "name": "distractor_crate_1",
+    "center": [
+     1.7323986988977202,
+     -1.1948224905974472,
+     0.1996399820020105
+    ],
+    "half": [
+     0.23946562080540512,
+     0.13903335462952707,
+     0.1996399820020105
+    ],
+    "yaw": -2.4273339657274926,
+    "rgba": [
+     0.15,
+     0.3,
+     0.75,
+     1.0
+    ]
+   }
+  ],
+  "params": {
+   "distance": 2.0,
+   "lateral": 0.3,
+   "yaw_jitter": 0.2617993877991494,
+   "fixture_half": [
+    0.23789152722603407,
+    0.4559591942957116,
+    0.3493150591900741
+   ],
+   "n_crates": 2,
+   "second_fixture": true
+  }
+ },
+ "timing": {
+  "sim_s": 4.199999999999933,
+  "wall_s": 9.400537900000927,
+  "skill_wall_s": 8.306446999999025
+ },
+ "error": null
+}
