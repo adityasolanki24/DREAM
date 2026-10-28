@@ -469,7 +469,7 @@ export function MapPanel({ snapshot }: { snapshot: Snapshot | null }) {
       )}
       <p className="footnote">
         {map ? `${map.resolution_m} m per cell · odometry: ${map.odometry}` : 'No spatial data in this session.'}
-        {snapshot?.odometry ? ` · x ${snapshot.odometry[0].toFixed(2)} m, y ${snapshot.odometry[1].toFixed(2)} m` : ''}
+        {map && snapshot?.odometry ? ` · x ${snapshot.odometry[0].toFixed(2)} m, y ${snapshot.odometry[1].toFixed(2)} m` : ''}
       </p>
     </Panel>
   );
