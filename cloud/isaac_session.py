@@ -356,7 +356,11 @@ def main() -> None:
     ap.add_argument("--env", choices=["isaac", "dream"], default="isaac")
     ap.add_argument("--yes", action="store_true")
     ap.add_argument("job", nargs="*", help="after --: experiments/<name>.py and its arguments")
-    args = ap.parse_args()
+    args, extra = ap.parse_known_args()
+    if args.command == "submit":
+        args.job.extend(extra)
+    elif extra:
+        ap.error("unrecognized arguments: " + " ".join(extra))
     cfg = json.loads(CONFIG.read_text())
     if args.command in ("plan", "start"):
         name = f"dream-qwen-isaac-{time.strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:6]}"
