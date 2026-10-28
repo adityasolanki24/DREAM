@@ -1,0 +1,25 @@
+{
+  "machine": "g2-standard-8",
+  "zone": "us-central1-c",
+  "max_minutes": 45,
+  "image": "common-cu129-ubuntu-2204-nvidia-580-v20261019",
+  "workload": "g1-runtime-build",
+  "runtime_image_name": "dream-g1-qwen-runtime",
+  "cost": {
+    "checked_date": "2026-10-28",
+    "vm_usd_per_hour": 0.853624312,
+    "disk_usd_per_hour": 0.014,
+    "nat_gateway_and_ip_usd_per_hour": 0.0064,
+    "nat_usd_per_gib": 0.045,
+    "nat_download_gib": 25,
+    "storage_egress_and_reserve_usd": 0.8,
+    "image_storage_gib_ceiling": 100,
+    "image_storage_usd_per_gib_hour": 0.00006849,
+    "sources": [
+      "https://cloud.google.com/products/compute/accelerator-optimized",
+      "https://cloud.google.com/nat/pricing",
+      "https://cloud.google.com/compute/disks-image-pricing"
+    ],
+    "note": "One temporary L4 builder; 45-minute Google-enforced deletion, hashed dependency lock, exact Qwen checkpoint and a single G1 development case. Includes 25 GiB network, storage contingency, and one month of image storage at the full 100 GiB provisioned-disk ceiling. The image is retained for reuse; its continuing storage is about US$5/month at this ceiling."
+  }
+}

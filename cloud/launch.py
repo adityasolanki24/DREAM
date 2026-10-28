@@ -31,6 +31,7 @@ ZONES = ("us-central1-c", "us-central1-b", "us-central1-a")
 WORKLOAD_CONFIGS = {
     "groot-openloop": ROOT / "experiments/configs/cloud_groot_openloop.json",
     "g1-qwen": ROOT / "experiments/configs/cloud_g1_qwen.json",
+    "g1-runtime-build": ROOT / "experiments/configs/cloud_g1_runtime_build.json",
     "g1-autonomy": ROOT / "experiments/configs/cloud_g1_autonomy.json",
     "qwen-pilot": CONFIG,
     "molmo-openloop": ROOT / "experiments/configs/cloud_molmo_openloop.json",
@@ -43,7 +44,7 @@ WORKLOAD_CONFIGS = {
 
 def run_destination(workload: str, name: str) -> Path:
     """Retrieve recorded jobs outside Git/OneDrive; retain old recovery locations."""
-    if workload in ("g1-autonomy", "g1-qwen", "vlm-compare"):
+    if workload in ("g1-autonomy", "g1-qwen", "g1-runtime-build", "vlm-compare"):
         root = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "DREAM/cloud_runs"
         destination = (root / name).resolve()
         if destination.is_relative_to(ROOT.resolve()) or any(
@@ -147,6 +148,10 @@ def plan(project: str, cfg: dict, name: str) -> dict:
     )
     estimate += rates["nat_download_gib"] * rates["nat_usd_per_gib"]
     estimate += rates["storage_egress_and_reserve_usd"]
+    # Reserve one month of retained custom-image storage, even if the VM lasts minutes.
+    image_storage = cfg["cost"].get("image_storage_gib_ceiling", 0)
+    image_storage_rate = cfg["cost"].get("image_storage_usd_per_gib_hour", 0)
+    estimate += image_storage * image_storage_rate * 730
     return {
         "name": name,
         "workload": workload,
@@ -165,7 +170,14 @@ def plan(project: str, cfg: dict, name: str) -> dict:
         "image": cfg["image"],
         "image_project": cfg.get("image_project", "deeplearning-platform-release"),
         "cached_image_id": cfg.get("cached_image_id"),
+        "runtime_image_name": (
+            f"{cfg['runtime_image_name']}-{name.removeprefix('dream-qwen-')}"
+            if cfg.get("runtime_image_name")
+            else None
+        ),
+        "image_builder_role": "dreamImage" + hashlib.sha256(name.encode()).hexdigest()[:8],
         "estimated_usd": round(estimate, 2),
+        "retained_image_monthly_estimate_usd": round(image_storage * image_storage_rate * 730, 2),
         "cost_note": "estimate, not a billing hard cap; VM lifetime is enforced by Google",
     }
 
@@ -179,6 +191,7 @@ def create_command(p: dict, sha: str, archive_hash: str, startup: Path | None = 
         "dream-archive-sha256": archive_hash,
         "dream-max-minutes": str(p["max_minutes"]),
         "dream-workload": p.get("workload", "qwen-pilot"),
+        "dream-runtime-image-name": p.get("runtime_image_name") or "none",
     }
     return [
         "compute",
@@ -324,12 +337,26 @@ def check_pilot(out: Path, workload: str = "qwen-pilot") -> None:
     """A retrieved guest failure is not a pass. Keep preregistered task success report-only."""
     if (out / "EXIT_CODE").read_text().strip() != "0":
         raise RuntimeError("guest failed; inspect preserved outputs before another paid run")
-    if workload in ("g1-qwen", "g1-autonomy"):
+    if workload in ("g1-qwen", "g1-autonomy", "g1-runtime-build"):
         from experiments.cloud_g1_qwen import validate_evidence
 
         try:
             if workload == "g1-autonomy":
                 validate_evidence(out / "g1", ROOT / "experiments/configs/g1_autonomy_frozen.json")
+            elif workload == "g1-runtime-build":
+                config = ROOT / "experiments/configs/g1_runtime_build_demo.json"
+                validate_evidence(out / "g1", config)
+                receipt = json.loads((out / "runtime_image.json").read_text(encoding="utf-8"))
+                if (
+                    not receipt["image"]["id"].isdigit()
+                    or receipt.get("inference_and_physics_validated") is not True
+                    or receipt.get("checkpoint_revision")
+                    != "ebb281ec70b05090aa6165b016eac8ec08e71b17"
+                    or receipt.get("mujoco") != "3.16.0"
+                ):
+                    raise ValueError(
+                        "runtime image receipt does not prove the exact validated stack"
+                    )
             else:
                 validate_evidence(out / "g1")
         except (OSError, KeyError, ValueError, TypeError) as error:
@@ -658,6 +685,13 @@ def validate_cached_image(p: dict) -> None:
     if p.get("workload") not in ("g1-qwen", "g1-autonomy"):
         return
     if not p.get("cached_image_id"):
+        receipt = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "DREAM/g1_runtime_image.json"
+        if receipt.is_file():
+            record = json.loads(receipt.read_text(encoding="utf-8"))
+            p["cached_image_id"] = record["image"]["id"]
+            p["image"] = record["image"]["name"]
+            p["image_project"] = p["project"]
+    if not p.get("cached_image_id"):
         raise ValueError("G1 GPU jobs require a prevalidated cached runtime image; no cold install")
     image = json.loads(
         gcloud(
@@ -676,6 +710,9 @@ def validate_cached_image(p: dict) -> None:
         or image.get("status") != "READY"
         or receipt.get("requirements_lock_sha256") != lock_hash
         or receipt.get("preflight_passed") is not True
+        or receipt.get("inference_and_physics_validated") is not True
+        or receipt.get("checkpoint_revision") != "ebb281ec70b05090aa6165b016eac8ec08e71b17"
+        or receipt.get("mujoco") != "3.16.0"
     ):
         raise ValueError("cached runtime image identity or preflight receipt differs")
 
@@ -816,7 +853,7 @@ def _launch(p: dict, allowance: float) -> None:
     retrieved = False
     alert = None
     try:
-        if p.get("workload") in ("g1-qwen", "g1-autonomy", "groot-openloop"):
+        if p.get("workload") in ("g1-qwen", "g1-autonomy", "groot-openloop", "g1-runtime-build"):
             alert = create_g1_budget_alert(p)
             (dest / "budget_alert.json").write_text(
                 json.dumps(
@@ -842,6 +879,24 @@ def _launch(p: dict, allowance: float) -> None:
         )
         gcloud("iam", "service-accounts", "create", p["account"], project)
         grant_result_access(p["bucket"], account)
+        if p.get("workload") == "g1-runtime-build":
+            gcloud(
+                "iam",
+                "roles",
+                "create",
+                p["image_builder_role"],
+                project,
+                "--title=DREAM temporary runtime image builder",
+                "--permissions=compute.images.create,compute.images.get,compute.disks.get,compute.disks.useReadOnly,compute.globalOperations.get",
+                "--stage=GA",
+            )
+            gcloud(
+                "projects",
+                "add-iam-policy-binding",
+                p["project"],
+                f"--member=serviceAccount:{account}",
+                f"--role=projects/{p['project']}/roles/{p['image_builder_role']}",
+            )
         if assets is not None:
             gcloud(
                 "storage", "rsync", "--recursive", str(assets), f"gs://{p['bucket']}/model-input"
@@ -892,7 +947,8 @@ def _launch(p: dict, allowance: float) -> None:
                     "README.md",
                     "AGENTS.md",
                 ]
-                if p.get("workload") in ("g1-qwen", "g1-autonomy", "groot-openloop", "vlm-compare")
+                if p.get("workload")
+                in ("g1-qwen", "g1-autonomy", "groot-openloop", "g1-runtime-build", "vlm-compare")
                 else []
             )
             if p.get("workload") == "vlm-compare":
@@ -923,6 +979,21 @@ def _launch(p: dict, allowance: float) -> None:
         if assets is not None:
             (assets / "weights.private.json").unlink(missing_ok=True)
         errors = cleanup(p, remove_results=retrieved)
+        if p.get("workload") == "g1-runtime-build":
+            try:
+                gcloud(
+                    "projects",
+                    "remove-iam-policy-binding",
+                    p["project"],
+                    f"--member=serviceAccount:{account}",
+                    f"--role=projects/{p['project']}/roles/{p['image_builder_role']}",
+                )
+            except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+                errors.append("remove temporary runtime image role binding")
+            try:
+                gcloud("iam", "roles", "delete", p["image_builder_role"], project)
+            except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+                errors.append("delete temporary runtime image role")
         if alert:
             account, budget = alert.split("/budgets/")
             try:
@@ -944,6 +1015,14 @@ def _launch(p: dict, allowance: float) -> None:
     if errors:
         raise RuntimeError("cleanup incomplete; resolve before another paid run")
     check_pilot(dest / "out", p.get("workload", "qwen-pilot"))
+    if p.get("workload") == "g1-runtime-build":
+        receipt_path = (
+            Path(os.environ.get("LOCALAPPDATA", Path.home())) / "DREAM/g1_runtime_image.json"
+        )
+        receipt_path.parent.mkdir(parents=True, exist_ok=True)
+        receipt_path.write_text(
+            (dest / "out/runtime_image.json").read_text(encoding="utf-8"), encoding="utf-8"
+        )
     print(
         "Pilot completed; preregistered gates passed. Task success remains report-only.", flush=True
     )

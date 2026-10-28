@@ -76,6 +76,26 @@ def test_pilot_is_private_isolated_and_deleted_even_if_the_job_hangs():
     assert not any("nerva" in arg for arg in command)
 
 
+def test_g1_runtime_builder_is_one_scene_and_budgets_retained_image_storage():
+    cfg = json.loads(cloud.WORKLOAD_CONFIGS["g1-runtime-build"].read_text())
+    p = cloud.plan("example-project", cfg, "dream-qwen-test")
+    assert cfg["workload"] == "g1-runtime-build"
+    assert [
+        case["name"]
+        for case in json.loads(
+            (cloud.ROOT / "experiments/configs/g1_runtime_build_demo.json").read_text()
+        )["cases"]
+    ] == ["free_heavier"]
+    assert p["estimated_usd"] == 7.58
+    assert p["retained_image_monthly_estimate_usd"] == 5.0
+    command = cloud.create_command(p, "a" * 40, "b" * 64)
+    assert "--instance-termination-action=DELETE" in command
+    assert "--max-run-duration=45m" in command
+    metadata = next(arg for arg in command if arg.startswith("--metadata="))
+    assert f"dream-runtime-image-name={p['runtime_image_name']}" in metadata
+    assert not any("nerva" in arg for arg in command)
+
+
 def test_walking_workload_is_separate_capped_and_needs_physical_evidence(tmp_path):
     cfg = json.loads(cloud.WORKLOAD_CONFIGS["isaac-t1-walk"].read_text())
     p = cloud.plan("example-project", cfg, "dream-qwen-test")

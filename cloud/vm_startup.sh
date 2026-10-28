@@ -13,6 +13,9 @@ export DREAM_CODE_SHA=$(meta instance/attributes/dream-code-sha)
 CAP=$(meta instance/attributes/dream-max-minutes)
 WORKLOAD=$(meta instance/attributes/dream-workload)
 mkdir -p /work/out
+# Cached runtime images carry the prior build's filesystem. Its evidence is first
+# retrieved from that run's private bucket, so each new VM starts with empty outputs.
+find /work/out -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
 exec > >(tee -a /work/out/vm.log) 2>&1
 sync_out() { gsutil -q -m rsync -r /work/out "gs://$BUCKET/out" || true; }
 finish() {
@@ -65,6 +68,9 @@ if [[ "$WORKLOAD" == g1-qwen || "$WORKLOAD" == g1-autonomy ]]; then
   export PYOPENGL_PLATFORM=egl
   python /work/DREAM/cloud/cached_runtime.py --lock /work/DREAM/cloud/requirements.lock.txt \
     --out /work/out/runtime_preflight.json --freeze /work/out/pip-freeze.txt --cuda
+elif [[ "$WORKLOAD" == g1-runtime-build ]]; then
+  export MUJOCO_GL=egl
+  export PYOPENGL_PLATFORM=egl
 else
 apt-get update -q
 apt-get install -y -q libosmesa6 python3-pip ffmpeg
@@ -75,8 +81,13 @@ if [[ "$WORKLOAD" == g1-autonomy ]]; then
 fi
 export DREAM_RECORDINGS_ROOT=/work/out/recordings
 python3 -m pip install uv==0.9.4
-uv venv --python 3.12.12 /work/venv
-source /work/venv/bin/activate
+if [[ "$WORKLOAD" == g1-runtime-build ]]; then
+  uv venv --python 3.12.12 /opt/dream-runtime
+  source /opt/dream-runtime/bin/activate
+else
+  uv venv --python 3.12.12 /work/venv
+  source /work/venv/bin/activate
+fi
 LOCK=requirements.lock.txt
 case "$WORKLOAD" in molmo-openloop|molmo-closedloop) LOCK=molmo.requirements.lock.txt ;; esac
 if [[ "$WORKLOAD" == groot-openloop ]]; then
@@ -100,6 +111,11 @@ case "$WORKLOAD" in
   g1-qwen)
     timeout --signal=TERM --kill-after=30s "${LEFT}s" \
       python -m experiments.cloud_g1_qwen --out /work/out/g1 ;;
+  g1-runtime-build)
+    timeout --signal=TERM --kill-after=30s "${LEFT}s" \
+      python -m experiments.cloud_g1_qwen --config experiments/configs/g1_runtime_build_demo.json --out /work/out/g1
+    timeout --signal=TERM --kill-after=30s "${LEFT}s" \
+      python -m cloud.build_g1_runtime_image --source-disk "$NAME" --image-name "$(meta instance/attributes/dream-runtime-image-name)" --out /work/out/runtime_image.json ;;
   g1-autonomy)
     timeout --signal=TERM --kill-after=30s "${LEFT}s" \
       python -m experiments.cloud_g1_qwen --config experiments/configs/g1_autonomy_frozen.json --out /work/out/g1 ;;

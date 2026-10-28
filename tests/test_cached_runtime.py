@@ -29,6 +29,9 @@ def test_cached_image_must_match_immutable_id_and_current_dependency_lock(monkey
             {
                 "requirements_lock_sha256": digest,
                 "preflight_passed": True,
+                "inference_and_physics_validated": True,
+                "checkpoint_revision": "ebb281ec70b05090aa6165b016eac8ec08e71b17",
+                "mujoco": "3.16.0",
             }
         ),
     }
