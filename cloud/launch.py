@@ -31,6 +31,7 @@ ZONES = ("us-central1-c", "us-central1-b", "us-central1-a")
 REGION_ZONES = {
     "us-central1": ZONES,
     "us-west1": ("us-west1-a", "us-west1-b", "us-west1-c"),
+    "us-east1": ("us-east1-b", "us-east1-c", "us-east1-d"),
 }
 WORKLOAD_CONFIGS = {
     "groot-openloop": ROOT / "experiments/configs/cloud_groot_openloop.json",
@@ -658,14 +659,30 @@ def cleanup(p: dict, *, remove_results: bool) -> list[str]:
         ["compute", "routers", "delete", p["router"], project, region],
         ["compute", "networks", "subnets", "delete", p["subnet"], project, region],
         ["compute", "networks", "delete", p["network"], project],
+    ]
+    if p.get("workload") == "g1-runtime-build":
+        account = f"{p['account']}@{p['project']}.iam.gserviceaccount.com"
+        commands.extend(
+            [
+                [
+                    "projects",
+                    "remove-iam-policy-binding",
+                    p["project"],
+                    f"--member=serviceAccount:{account}",
+                    f"--role=projects/{p['project']}/roles/{p['image_builder_role']}",
+                ],
+                ["iam", "roles", "delete", p["image_builder_role"], project],
+            ]
+        )
+    commands.append(
         [
             "iam",
             "service-accounts",
             "delete",
             f"{p['account']}@{p['project']}.iam.gserviceaccount.com",
             project,
-        ],
-    ]
+        ]
+    )
     if p.get("workload") == "groot-openloop":
         commands.insert(1, ["secrets", "delete", p["name"], project])
     if remove_results:
@@ -991,21 +1008,6 @@ def _launch(p: dict, allowance: float) -> None:
         if assets is not None:
             (assets / "weights.private.json").unlink(missing_ok=True)
         errors = cleanup(p, remove_results=retrieved)
-        if p.get("workload") == "g1-runtime-build":
-            try:
-                gcloud(
-                    "projects",
-                    "remove-iam-policy-binding",
-                    p["project"],
-                    f"--member=serviceAccount:{account}",
-                    f"--role=projects/{p['project']}/roles/{p['image_builder_role']}",
-                )
-            except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
-                errors.append("remove temporary runtime image role binding")
-            try:
-                gcloud("iam", "roles", "delete", p["image_builder_role"], project)
-            except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
-                errors.append("delete temporary runtime image role")
         if alert:
             account, budget = alert.split("/budgets/")
             try:

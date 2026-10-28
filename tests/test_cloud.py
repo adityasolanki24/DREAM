@@ -88,8 +88,8 @@ def test_g1_runtime_builder_is_one_scene_and_budgets_retained_image_storage():
     ] == ["free_heavier"]
     assert p["estimated_usd"] == 7.66
     assert p["retained_image_monthly_estimate_usd"] == 5.0
-    assert p["region"] == "us-west1"
-    assert p["zones"] == ["us-west1-a", "us-west1-b", "us-west1-c"]
+    assert p["region"] == "us-east1"
+    assert p["zones"] == ["us-east1-b", "us-east1-c", "us-east1-d"]
     command = cloud.create_command(p, "a" * 40, "b" * 64)
     assert "--instance-termination-action=DELETE" in command
     assert "--max-run-duration=45m" in command
@@ -439,6 +439,22 @@ def test_cleanup_preserves_unretrieved_evidence_and_never_touches_nerva(monkeypa
     assert not any(args[0] == "storage" for args in calls)
     assert all(not any("nerva" in arg for arg in args) for args in calls)
     assert any("dream-qwen-test-nat" in args for args in calls)
+
+
+def test_runtime_image_role_is_removed_before_its_service_account(monkeypatch):
+    calls = []
+    monkeypatch.setattr(cloud, "gcloud", lambda *args: calls.append(args) or "")
+    plan = _plan()
+    plan.update(workload="g1-runtime-build", image_builder_role="dreamImageTest")
+    assert cloud.cleanup(plan, remove_results=False) == []
+    binding = next(
+        i for i, args in enumerate(calls) if args[:2] == ("projects", "remove-iam-policy-binding")
+    )
+    role = next(i for i, args in enumerate(calls) if args[:3] == ("iam", "roles", "delete"))
+    account = next(
+        i for i, args in enumerate(calls) if args[:3] == ("iam", "service-accounts", "delete")
+    )
+    assert binding < account and role < account
 
 
 def test_cleanup_accepts_self_deleted_vm_but_reports_permission_failures(monkeypatch):
