@@ -33,6 +33,7 @@ REGION_ZONES = {
     "us-west1": ("us-west1-a", "us-west1-b", "us-west1-c"),
     "us-east1": ("us-east1-b", "us-east1-c", "us-east1-d"),
     "us-east4": ("us-east4-a", "us-east4-c"),
+    "asia-southeast1": ("asia-southeast1-a", "asia-southeast1-b", "asia-southeast1-c"),
 }
 WORKLOAD_CONFIGS = {
     "groot-openloop": ROOT / "experiments/configs/cloud_groot_openloop.json",

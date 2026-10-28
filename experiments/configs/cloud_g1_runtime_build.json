@@ -1,20 +1,20 @@
 {
   "machine": "g2-standard-8",
-  "region": "us-east4",
-  "zone": "us-east4-a",
-  "zones": ["us-east4-a", "us-east4-c"],
+  "region": "asia-southeast1",
+  "zone": "asia-southeast1-a",
+  "zones": ["asia-southeast1-a", "asia-southeast1-b", "asia-southeast1-c"],
   "max_minutes": 45,
   "image": "common-cu129-ubuntu-2204-nvidia-580-v20261019",
   "workload": "g1-runtime-build",
   "runtime_image_name": "dream-g1-qwen-runtime",
   "cost": {
     "checked_date": "2026-10-28",
-    "vm_usd_per_hour": 1.2,
+    "vm_usd_per_hour": 1.5,
     "disk_usd_per_hour": 0.014,
     "nat_gateway_and_ip_usd_per_hour": 0.0064,
     "nat_usd_per_gib": 0.045,
     "nat_download_gib": 25,
-    "storage_egress_and_reserve_usd": 0.8,
+    "storage_egress_and_reserve_usd": 1.0,
     "image_storage_gib_ceiling": 100,
     "image_storage_usd_per_gib_hour": 0.00006849,
     "sources": [
@@ -22,6 +22,6 @@
       "https://cloud.google.com/nat/pricing",
       "https://cloud.google.com/compute/disks-image-pricing"
     ],
-    "note": "One temporary L4 builder; 45-minute Google-enforced deletion, hashed dependency lock, exact Qwen checkpoint and a single G1 development case. VM estimate uses US$1.20/hour, above the published US-central G2 rate, as a regional price and usage buffer for us-east4. Includes 25 GiB network, storage contingency, and one month of image storage at the full 100 GiB provisioned-disk ceiling. The image is retained for reuse; its continuing storage is about US$5/month at this ceiling."
+    "note": "One temporary L4 builder; 45-minute Google-enforced deletion, hashed dependency lock, exact Qwen checkpoint and a single G1 development case. VM estimate uses US$1.50/hour plus a US$1 storage/network reserve for asia-southeast1. Includes 25 GiB network and one month of image storage at the full 100 GiB provisioned-disk ceiling. The image is retained for reuse; its continuing storage is about US$5/month at this ceiling."
   }
 }
