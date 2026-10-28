@@ -172,6 +172,7 @@ class OpenAICompatibleBackend:
         )
         with urllib.request.urlopen(req, timeout=self.timeout_s) as resp:
             response = json.loads(resp.read())
+        self.last_usage = response.get("usage")
         if self.cancel.is_set():
             raise RuntimeError("inference cancelled")
         return _hosted_text(response)

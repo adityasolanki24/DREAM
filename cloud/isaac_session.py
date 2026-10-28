@@ -93,7 +93,7 @@ def reconcile(entry: dict, cfg: dict) -> float:
     return min(entry["estimated_usd"], estimate(cfg, math.ceil(minutes)))
 
 
-def plan(project: str, cfg: dict, name: str) -> dict:
+def plan(project: str, cfg: dict, name: str, iap_api_port: int | None = None) -> dict:
     """Inspectable plan; no cloud calls."""
     if not re.fullmatch(r"[a-z][a-z0-9-]{4,61}[a-z0-9]", project):
         raise ValueError("supply a valid --project")
@@ -106,6 +106,8 @@ def plan(project: str, cfg: dict, name: str) -> dict:
         or not 30 <= minutes <= 180
     ):
         raise ValueError("sessions use one reviewed L4 configuration for 30..180 minutes")
+    if iap_api_port is not None and not 1024 <= iap_api_port <= 65535:
+        raise ValueError("IAP API port must be between 1024 and 65535")
     return {
         "name": name, "workload": WORKLOAD, "project": project, "zone": cfg["zone"],
         "region": "us-central1", "machine": cfg["machine"], "disk_gb": cfg["disk_gb"],
@@ -117,6 +119,8 @@ def plan(project: str, cfg: dict, name: str) -> dict:
         "per_session_ceiling_usd": cfg["per_session_ceiling_usd"],
         "continuation_cap_usd": cfg["continuation_cap_usd"],
         "cost_note": "estimate, not a billing hard cap; VM lifetime is enforced by Google",
+        **({"iap_api_port": iap_api_port, "iap_firewall": name + "-iap"}
+           if iap_api_port is not None else {}),
     }  # fmt: skip
 
 
@@ -194,6 +198,11 @@ def start(p: dict, allowance: float, yes: bool) -> Path:
         gcloud("compute", "networks", "subnets", "create", p["subnet"], project, region,
                f"--network={p['network']}", "--range=10.77.0.0/28",
                "--enable-private-ip-google-access")  # fmt: skip
+        if p.get("iap_api_port") is not None:
+            gcloud("compute", "firewall-rules", "create", p["iap_firewall"], project,
+                   f"--network={p['network']}", "--direction=INGRESS", "--action=ALLOW",
+                   f"--rules=tcp:{p['iap_api_port']}", "--source-ranges=35.235.240.0/20",
+                   f"--target-service-accounts={account}", "--enable-logging")  # fmt: skip
         gcloud("compute", "routers", "create", p["router"], project, region,
                f"--network={p['network']}")  # fmt: skip
         gcloud("compute", "routers", "nats", "create", p["nat"], project, region,
@@ -323,6 +332,7 @@ def main() -> None:
     ap.add_argument("--project", default=os.environ.get("DREAM_GCP_PROJECT", ""))
     ap.add_argument("--manifest", type=Path)
     ap.add_argument("--allowance-usd", type=float, default=0.0)
+    ap.add_argument("--iap-api-port", type=int)
     ap.add_argument("--timeout-s", type=int, default=1800)
     ap.add_argument("--env", choices=["isaac", "dream"], default="isaac")
     ap.add_argument("--yes", action="store_true")
@@ -331,7 +341,7 @@ def main() -> None:
     cfg = json.loads(CONFIG.read_text())
     if args.command in ("plan", "start"):
         name = f"dream-qwen-isaac-{time.strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:6]}"
-        p = plan(args.project, cfg, name)
+        p = plan(args.project, cfg, name, args.iap_api_port)
         print(json.dumps({**p, "ledger_charged_usd": sum(
             charged(e) for e in read_ledger())}, indent=2), flush=True)  # fmt: skip
         if args.command == "start":

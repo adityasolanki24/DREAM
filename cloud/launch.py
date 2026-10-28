@@ -687,6 +687,8 @@ def cleanup(p: dict, *, remove_results: bool) -> list[str]:
     )
     if p.get("workload") == "groot-openloop":
         commands.insert(1, ["secrets", "delete", p["name"], project])
+    if p.get("iap_firewall"):
+        commands.insert(1, ["compute", "firewall-rules", "delete", p["iap_firewall"], project])
     if remove_results:
         commands += [["storage", "rm", "--recursive", f"gs://{p['bucket']}"]]
     for command in commands:

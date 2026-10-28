@@ -40,6 +40,10 @@ uv pip install --python /work/isaac-venv --index-strategy unsafe-best-match --pr
   --extra-index-url https://download.pytorch.org/whl/cu128 -r /work/DREAM/cloud/isaac62.lock.txt
 uv pip install --python /work/isaac-venv --no-deps -e /work/DREAM
 uv pip freeze --python /work/isaac-venv > /work/out/pip-freeze.txt
+# Qwen's locked CUDA/Transformers stack stays isolated from Isaac Sim's pinned torch 2.11.
+uv venv --python 3.12 /work/qwen-venv
+uv pip install --python /work/qwen-venv --require-hashes -r /work/DREAM/cloud/requirements.lock.txt
+uv pip freeze --python /work/qwen-venv > /work/out/qwen-freeze.txt
 # Separate converter environment: its USD libraries must not mix with Isaac's.
 uv venv --python 3.12 /work/conv-venv
 uv pip install --python /work/conv-venv --prerelease=allow 'mujoco-usd-converter==0.8.0' \
