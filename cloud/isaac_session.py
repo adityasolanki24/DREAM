@@ -35,6 +35,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from cloud.launch import (  # noqa: E402
+    REGION_ZONES,
     allocate,
     audit,
     cleanup,
@@ -64,6 +65,18 @@ def ledger_path() -> Path:
 def read_ledger() -> list[dict]:
     path = ledger_path()
     return json.loads(path.read_text()) if path.is_file() else []
+
+
+def prior_cloud_run_estimates() -> float:
+    """Conservatively include earlier DREAM cloud-run estimates in this continuation cap."""
+    root = local_root() / "cloud_runs"
+    total = 0.0
+    if root.is_dir():
+        for path in root.glob("*/manifest.json"):
+            manifest = json.loads(path.read_text(encoding="utf-8"))
+            if manifest.get("workload") != WORKLOAD:
+                total += float(manifest.get("estimated_usd", 0.0))
+    return round(total, 2)
 
 
 def estimate(cfg: dict, minutes: int) -> float:
@@ -99,9 +112,14 @@ def plan(project: str, cfg: dict, name: str, iap_api_port: int | None = None) ->
         raise ValueError("supply a valid --project")
     if not re.fullmatch(r"dream-qwen-isaac-[a-z0-9-]{1,29}", name):
         raise ValueError("run names must be DREAM-specific")
+    region = cfg.get("region", "us-central1")
+    zones = tuple(cfg.get("zones", REGION_ZONES.get(region, ())))
     minutes = cfg["max_minutes"]
     if (
         cfg["machine"] != "g2-standard-8"
+        or not zones
+        or cfg["zone"] not in zones
+        or any(not z.startswith(region + "-") for z in zones)
         or not isinstance(minutes, int)
         or not 30 <= minutes <= 180
     ):
@@ -110,7 +128,8 @@ def plan(project: str, cfg: dict, name: str, iap_api_port: int | None = None) ->
         raise ValueError("IAP API port must be between 1024 and 65535")
     return {
         "name": name, "workload": WORKLOAD, "project": project, "zone": cfg["zone"],
-        "region": "us-central1", "machine": cfg["machine"], "disk_gb": cfg["disk_gb"],
+        "zones": list(zones), "region": region,
+        "machine": cfg["machine"], "disk_gb": cfg["disk_gb"],
         "max_minutes": minutes, "bucket": name, "network": name, "subnet": name + "-subnet",
         "router": name + "-router", "nat": name + "-nat",
         "account": "dream-" + hashlib.sha256(name.encode()).hexdigest()[:16],
@@ -158,14 +177,14 @@ def settle_failed_start(p: dict, dest: Path, errors: list) -> None:
 def start(p: dict, allowance: float, yes: bool) -> Path:
     with tempfile.TemporaryDirectory(prefix="dream-isaac-check-") as directory:
         archive(Path(directory))  # refuse a dirty tree before creating or charging anything
-    spent = sum(charged(e) for e in read_ledger())
+    spent = sum(charged(e) for e in read_ledger()) + prior_cloud_run_estimates()
     if not yes or not math.isfinite(allowance) or allowance < p["estimated_usd"]:
         raise ValueError("--yes and --allowance-usd covering the estimate are required")
     if allowance > p["per_session_ceiling_usd"]:
         raise ValueError("allowance exceeds the configured per-session ceiling")
     if spent + p["estimated_usd"] > p["continuation_cap_usd"]:
         raise ValueError(f"cumulative estimate {spent:.2f} + this session exceeds the cap")
-    state = audit(p["project"])
+    state = audit(p["project"], p["region"])
     quota = {q["metric"]: q["limit"] - q["usage"] for q in state["quotas"]}
     if not state["billing_enabled"] or state["dream_instances"]:
         raise ValueError("billing disabled or another DREAM GPU job is present")
@@ -343,7 +362,8 @@ def main() -> None:
         name = f"dream-qwen-isaac-{time.strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:6]}"
         p = plan(args.project, cfg, name, args.iap_api_port)
         print(json.dumps({**p, "ledger_charged_usd": sum(
-            charged(e) for e in read_ledger())}, indent=2), flush=True)  # fmt: skip
+            charged(e) for e in read_ledger()) + prior_cloud_run_estimates()},
+            indent=2), flush=True)  # fmt: skip
         if args.command == "start":
             start(p, args.allowance_usd, args.yes)
     elif args.command == "submit":

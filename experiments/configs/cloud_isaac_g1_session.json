@@ -1,17 +1,19 @@
 {
   "workload": "isaac-g1-session",
   "machine": "g2-standard-8",
-  "zone": "us-central1-c",
+  "region": "asia-southeast1",
+  "zone": "asia-southeast1-a",
+  "zones": ["asia-southeast1-a", "asia-southeast1-b", "asia-southeast1-c"],
   "max_minutes": 180,
   "disk_gb": 200,
   "image": "common-cu129-ubuntu-2204-nvidia-580-v20261019",
   "image_project": "deeplearning-platform-release",
-  "per_session_ceiling_usd": 6.0,
+  "per_session_ceiling_usd": 8.0,
   "continuation_cap_usd": 100.0,
   "gpu_choice": "NVIDIA L4 (Ada, 3rd-gen RT cores, 24 GB). Isaac Sim 6.x requirements: RT cores required (A100/H100 unsupported), >= 16 GB VRAM; tested tiers RTX 4080 / 5080 / RTX PRO 6000. L4 meets the RT-core and VRAM requirements but is not a tested tier, so sufficiency is measured (startup, render validity, real-time factor, VRAM) in the first session rather than assumed. RTX PRO 6000 (G4) is offered in us-central1-b/c/f but this project has no G4 GPU quota; L4 quota is 8.",
   "cost": {
-    "checked_date": "2026-10-23",
-    "vm_usd_per_hour": 0.853624312,
+    "checked_date": "2026-10-28",
+    "vm_usd_per_hour": 1.5,
     "disk_usd_per_hour": 0.028,
     "nat_gateway_and_ip_usd_per_hour": 0.0064,
     "nat_usd_per_gib": 0.045,
@@ -22,7 +24,7 @@
       "https://cloud.google.com/nat/pricing",
       "https://cloud.google.com/compute/disks-image-pricing"
     ],
-    "note": "Rates carried from cloud_isaac_t1_stand.json (checked 23 Oct 2026). 50 GiB NAT reserve covers the Isaac Sim 6.2 wheels, PyTorch and streamed NVIDIA assets. Estimate, not a billing cap."
+    "note": "Asia-Southeast1 L4 rates checked 28 Oct 2026 against the existing DREAM G2 runtime-builder configuration. 50 GiB NAT reserve covers Isaac Sim 6.2 wheels, PyTorch, the 8.9 GiB Qwen checkpoint and streamed NVIDIA assets. Estimate, not a billing cap."
   },
-  "cap_note": "Raised from 25 to 100 USD on 26 Oct 2026: the owner authorised cloud use as needed for the Isaac Sim work."
+  "cap_note": "US Central had no L4 capacity in any approved zone on 28 Oct 2026. Switched to DREAM's already priced Asia-Southeast1 L4 region; the session ceiling tracks the resulting 180-minute estimate with modest headroom. The continuation guard remains US$100."
 }
