@@ -64,7 +64,7 @@ export type Snapshot = {
   robot_time_s: number;
   odometry: number[];
   stop_reason: string | null;
-  camera: { data_url: string; time_s: number } | null;
+  camera: { data_url?: string; time_s: number; transport?: string } | null;
   map: MapData | null;
   objects: Candidate[];
   persistent_memory: HomeMemory | null;

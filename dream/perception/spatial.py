@@ -74,6 +74,7 @@ class Candidate:
     def summary(self) -> dict:
         return {
             "id": self.id,
+            "reference": f"candidate:{self.id}",
             "color": self.color,
             "position": np.round(self.position, 3).tolist(),
             "extent": np.round(self.extent, 3).tolist(),

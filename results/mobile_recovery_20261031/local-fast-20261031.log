@@ -1,0 +1,55 @@
+.....................F.................................................. [ 14%]
+........................................................................ [ 28%]
+........................................................................ [ 42%]
+........................................................................ [ 57%]
+........................................................................ [ 71%]
+...............F........................................................ [ 85%]
+......................................................................s  [100%]
+================================== FAILURES ===================================
+_______ test_g1_without_cached_image_is_rejected_before_any_cloud_call ________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001CACCF422C0>
+
+    def test_g1_without_cached_image_is_rejected_before_any_cloud_call(monkeypatch):
+        monkeypatch.setattr(launch, "gcloud", lambda *args: pytest.fail("cloud call before cache gate"))
+        with pytest.raises(ValueError, match="cached runtime"):
+>           launch.validate_cached_image({"workload": "g1-autonomy"})
+
+tests\test_cached_runtime.py:14: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+p = {'workload': 'g1-autonomy', 'cached_image_id': '4812387390768042548', 'image': 'dream-g1-qwen-runtime-20261028-231756-bdff9c'}
+
+    def validate_cached_image(p: dict) -> None:
+        """Future G1 jobs require an immutable, prevalidated image before any paid mutation."""
+        if p.get("workload") not in ("g1-qwen", "g1-autonomy"):
+            return
+        if not p.get("cached_image_id"):
+            receipt = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "DREAM/g1_runtime_image.json"
+            if receipt.is_file():
+                record = json.loads(receipt.read_text(encoding="utf-8"))
+                p["cached_image_id"] = record["image"]["id"]
+                p["image"] = record["image"]["name"]
+>               p["image_project"] = p["project"]
+                                     ^^^^^^^^^^^^
+E               KeyError: 'project'
+
+cloud\launch.py:726: KeyError
+_____ test_physics_keeps_running_while_idle_and_rejects_natural_language ______
+
+session = <dream.session.LiveSession object at 0x000001CAA890BDF0>
+
+    def test_physics_keeps_running_while_idle_and_rejects_natural_language(session):
+        t0 = session.env.time
+        time.sleep(0.3)
+        assert session.env.time > t0  # the control loop runs without any goal
+>       assert "not a structured goal" in session.submit("please put the red cube in the tray")
+E       assert 'not a structured goal' in "unsupported goal: 'please put the red cube in the tray'. This session supports inspecting the cabinet; structured manipulation goals use 'in <object> <region>' or 'on <object> <support>'."
+E        +  where "unsupported goal: 'please put the red cube in the tray'. This session supports inspecting the cabinet; structured manipulation goals use 'in <object> <region>' or 'on <object> <support>'." = submit('please put the red cube in the tray')
+E        +    where submit = <dream.session.LiveSession object at 0x000001CAA890BDF0>.submit
+
+tests\test_session.py:26: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_cached_runtime.py::test_g1_without_cached_image_is_rejected_before_any_cloud_call
+FAILED tests/test_session.py::test_physics_keeps_running_while_idle_and_rejects_natural_language
+2 failed, 500 passed, 1 skipped, 30 deselected in 215.95s (0:03:35)

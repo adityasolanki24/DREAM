@@ -6,6 +6,7 @@ exchanges the code (TLS verification on), verifies the ID token against OpenAI's
 requires the chatgpt.tokens.use.direct scope. The credential record is saved outside the
 repository under %LOCALAPPDATA%/DREAM/openai-chatgpt-plan. Token values are never printed.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -45,8 +46,11 @@ def _listen(port: int, state: str, client_id: str | None, result: dict) -> HTTPS
                 ok = True
             except ValueError:
                 ok = False
-            body = (b"DREAM sign-in received. You may close this tab." if ok
-                    else b"DREAM sign-in failed. Return to the terminal.")
+            body = (
+                b"DREAM sign-in received. You may close this tab."
+                if ok
+                else b"DREAM sign-in failed. Return to the terminal."
+            )
             self.send_response(200 if ok else 400)
             self.send_header("Content-Type", "text/plain; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
@@ -68,19 +72,31 @@ def _exchange(http, issued_id: str, code: str, verifier: str, callback: str) -> 
     import requests
 
     try:
-        resp = http.post(ISSUER + "/api/accounts/oauth/token", timeout=30, data={
-            "grant_type": "authorization_code", "client_id": issued_id, "code": code,
-            "code_verifier": verifier, "redirect_uri": callback, "resource": RESOURCE})
+        resp = http.post(
+            ISSUER + "/api/accounts/oauth/token",
+            timeout=30,
+            data={
+                "grant_type": "authorization_code",
+                "client_id": issued_id,
+                "code": code,
+                "code_verifier": verifier,
+                "redirect_uri": callback,
+                "resource": RESOURCE,
+            },
+        )
     except requests.RequestException as exc:
-        raise SystemExit(f"Token exchange network/TLS error: {type(exc).__name__}: "
-                         f"{str(exc)[:200]}") from exc
+        raise SystemExit(
+            f"Token exchange network/TLS error: {type(exc).__name__}: {str(exc)[:200]}"
+        ) from exc
     if not resp.ok:
         try:
             err = resp.json().get("error")
         except ValueError:
             err = None
-        raise SystemExit(f"Token exchange failed: HTTP {resp.status_code} error={err}; "
-                         "no credentials saved (an invalid_grant means restart sign-in).")
+        raise SystemExit(
+            f"Token exchange failed: HTTP {resp.status_code} error={err}; "
+            "no credentials saved (an invalid_grant means restart sign-in)."
+        )
     return resp.json()
 
 
@@ -97,9 +113,13 @@ def _verify_identity(http, token: dict, issued_id: str, nonce: str) -> dict:
     kid = jwt.get_unverified_header(id_token).get("kid")
     key = next(k for k in jwks["keys"] if k.get("kid") == kid)
     identity = jwt.decode(
-        id_token, jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(key)),
-        algorithms=[key.get("alg", "RS256")], audience=issued_id, issuer=ISSUER,
-        options={"require": ["sub", "iss", "aud", "exp", "iat", "nonce"]})
+        id_token,
+        jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(key)),
+        algorithms=[key.get("alg", "RS256")],
+        audience=issued_id,
+        issuer=ISSUER,
+        options={"require": ["sub", "iss", "aud", "exp", "iat", "nonce"]},
+    )
     if identity.get("nonce") != nonce:
         raise SystemExit("ID token nonce mismatch; credentials not saved.")
     return identity
@@ -118,8 +138,14 @@ def main() -> None:
     verifier, _ = make_pkce()
     result: dict = {}
     server = _listen(args.port, state, args.client_id, result)
-    url = authorization_url(redirect_uri=callback, state=state, nonce=nonce, verifier=verifier,
-                            host_id=host_id, issued_client_id=args.client_id)
+    url = authorization_url(
+        redirect_uri=callback,
+        state=state,
+        nonce=nonce,
+        verifier=verifier,
+        host_id=host_id,
+        issued_client_id=args.client_id,
+    )
     print("Official ChatGPT authorization page; scopes: " + SCOPES, flush=True)
     if not args.no_browser:
         webbrowser.open(url)
@@ -142,13 +168,20 @@ def main() -> None:
         raise SystemExit("Plan usage not granted (no chatgpt.tokens.use.direct); not saved.")
     identity = _verify_identity(http, token, issued_id, nonce)
     record = {
-        "issuer": ISSUER, "subject": identity["sub"], "client_id": issued_id,
-        "ext_agent_host_id": host_id, "id_token": token["id_token"],
+        "issuer": ISSUER,
+        "subject": identity["sub"],
+        "client_id": issued_id,
+        "ext_agent_host_id": host_id,
+        "id_token": token["id_token"],
         "email": identity.get("email"),
         "expires_at": int(time.time()) + int(token.get("expires_in", 0)),
-        "access_token": token["access_token"], "refresh_token": token.get("refresh_token"),
-        "token_type": token.get("token_type", "Bearer"), "expires_in": token.get("expires_in"),
-        "scopes": scopes, "saved_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+        "access_token": token["access_token"],
+        "refresh_token": token.get("refresh_token"),
+        "token_type": token.get("token_type", "Bearer"),
+        "expires_in": token.get("expires_in"),
+        "scopes": scopes,
+        "saved_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
     CRED_DIR.mkdir(parents=True, exist_ok=True)
     path = CRED_DIR / (issued_id + ".json")
     tmp = path.with_suffix(".tmp")

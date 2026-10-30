@@ -5,9 +5,9 @@ observe, investigate, compose available skills, verify the outcome, and recognis
 **General-purpose task completion is the objective, not an established capability.**
 `AGENTS.md` is the authoritative engineering and behavioural contract; `CLAUDE.md` aliases it.
 
-## Current status — 29 October 2026
+## Current status — 31 October 2026
 
-**This checkout: `codex/g1-runtime-builder-20261028`.** Combined interface and runtime development: model picker, full-frame camera, language-goal routing, cached-image build, genuine Isaac/Qwen run, idle-balance correction and exact local inspection audit. Inspection/planning corrections remain pending.
+**This checkout: `codex/g1-runtime-builder-20261028`.** Combined interface and runtime development: model picker, full-frame camera, language-goal routing, cached-image build, genuine Isaac/Qwen run, idle-balance correction and exact local inspection audit. Instance-bound inspection semantics, bounded model-led recovery and local physical-loop checks are implemented. A fresh cloud evaluation is pending.
 
 | Component | Evidence-backed status | Limits / next work |
 |---|---|---|
@@ -17,7 +17,8 @@ observe, investigate, compose available skills, verify the outcome, and recognis
 | Classical room search | Held-out nominal 20/20, shifted 8/10, no-cabinet 6/6 correct refusals | Oracle-assisted odometry; colour/depth perception; furniture contact occurred in 18/66 historical episodes |
 | Navigation, memory and interruption | RPP navigation, SQLite home/experience memory, scene graph and interruptible phone API implemented on the later kitchen/interface branches | Use the frozen results and their caveats; none establish unrestricted autonomy or validated SLAM |
 | App and model selection | Desktop/mobile mission control, camera, chat, provider/model selection, task events and pause/cancel; genuine app-to-cloud execution recorded | Full camera frame is contained, not cropped. Voice UI exists; reliable end-to-end spoken task completion has not been established |
-| Natural-language goals | Configured VLM can interpret nonempty language into typed supported goals | Current mobile capabilities are cabinet inspection and navigation to remembered places; other requests must be declined |
+| Natural-language goals | Configured VLM can interpret nonempty language into typed supported goals | Mobile goals bind observed candidate IDs, observed reachable frontiers/viewpoints or remembered places. Unsupported manipulation requests receive structured refusals; arbitrary physical goals are not supported |
+| Camera delivery | Cached binary JPEG with unique frame IDs, change-based fetch, independent media polling and reconnect/slow-encoder regressions | Separate 640×360 NVENC/MediaMTX/WHEP implementation is experimental; only software-codec plumbing tested locally. ICE/TCP over private IAP is a fallback; 10 FPS and sub-800 ms glass-to-glass are not established |
 | Cached cloud runtime | Immutable image `4812387390768042548`; locked CUDA 12.8, L4, MuJoCo 3.16 and actual inference/physics preflight verified | Image-build receipt records recovery from a post-creation JSON parsing error; its manipulation attempt failed release verification |
 | Genuine Isaac/Qwen run | Isaac Sim 6.2 / PhysX / Unitree G1, Qwen3-VL-4B-Instruct; pinned checkpoint revision `ebb281ec70b05090aa6165b016eac8ec08e71b17` | Development demonstration only; cabinet task completion failed |
 | GPT/VoLoAgent work | Official ChatGPT sign-in backend and a small frozen-decision interface pilot; VoLoAgent non-actuating contract work | No completed matched physical GPT/Qwen comparison; no validated VoLoAgent actuation |
@@ -48,22 +49,48 @@ estimated map found:
 - Candidate 2: 41 reachable cells satisfy the existing inspection-pose predicate, but the
   old sampler omitted them. Its only offered side-5 viewpoint was 2.12 m from the handle
   and was not a valid inspection pose. Its detected handle was assigned side 1.
-- Candidate 9: 364 reachable cells satisfy that predicate. Its offered side-4 and side-5
-  viewpoints have paths on the saved map and satisfy the pose predicate; side 0 does not.
+- Candidate 9: 364 cells satisfy the original distance/side/heading predicate. The added
+  occupancy-ray audit rejects its proposed side-4/5 viewpoints because the handle sightline
+  is occluded. A walkable path alone does not establish a valid inspection; these poses
+  are no longer advertised. Side 0 also fails the original predicate.
 - These are **estimated-map reachability results**, not proof of physical reachability or
   correct handle association in Isaac. Original raw RGB-D was not preserved for this run.
 
 Audit source, exact input and original reproduction are under
 `experiments/audit_mobile_inspection.py` and `results/mobile_inspection_semantics` on the
-runtime branch. No inspection-semantics correction, recovery regression set, deterministic
-physical loop validation or fresh Qwen evaluation has run since this diagnosis.
+runtime branch. Regression tests now cover wrong-side partial inspection, unreachable or
+occluded handle sides, misleading success, alternative-viewpoint selection, instance binding,
+unsupported requests and bounded search exhaustion. Inspection records separately report
+`handle_observed`, `at_inspection_pose` and `inspection_complete`. A partial observation returns
+an incomplete action result; only measured completion can satisfy an instance-bound goal.
+Qwen retains tool selection, with bounded repair calls for inadmissible actions or premature
+finishes. There is no scripted replacement for model decisions in the cloud runtime.
 
-The next engineering gate is explicit action/goal semantics and bounded model-led recovery:
-wrong-side observation must not count as completed inspection; consider other admissible
-viewpoints/candidates; refuse when admissible alternatives or the task budget are exhausted.
-Retain original robot dynamics, safety limits, idle handling and the unchanged kitchen scenario.
-Run the exact saved regressions and a complete deterministic perception/navigation/verification
-loop locally **before another paid evaluation**. The requested fresh Qwen evaluation is pending.
+Two CPU development episodes ran the complete RGB-D perception/navigation/verification loop
+with the unchanged MuJoCo G1 and WBC, using an explicitly deterministic **test baseline**:
+seeds 0 and 2 passed independent ground-truth verification, with zero recorded contacts,
+zero safety stops and zero false success claims. They used 37.52/39.82 simulated seconds and
+5.31/5.12 m of travel. These are development cases from the familiar generator, not held-out
+or Qwen results. Conditions, paths, tool outcomes and negative media attempts are preserved
+in `results/mobile_recovery_20261031`. Historical search scores above remain historical;
+the changed viewpoint selection has not been re-evaluated on the old held-out distribution.
+
+| Change | Classification | Evidence and remaining limit |
+|---|---|---|
+| Instance-bound goal verification and incomplete-inspection results | General algorithmic correction | Saved failures and regression tests; no physics or scene simplification |
+| Reachable inspection-cell selection with handle-side, heading and sightline checks | General algorithmic correction | Saved candidate 2/9 audit and two independent development physics cases; estimated-map geometry remains fallible |
+| Latest-only JPEG and separate NVENC/WHEP publisher | Delivery engineering | Auth/cache/drop/reconnect tests; 40/40 frames encoded and recorded with local software codec after two preserved failed plumbing attempts; cloud NVENC and real browser playback pending |
+
+The final fast suite passed 503 tests (one skipped), and the 31 JavaScript tests and production
+build passed. Lint/format and isolation passed. The complete slow suite remains pending.
+On eight saved real camera observations, offline median PNG/base64 encoding took 11.10 ms
+and 178,256 bytes; JPEG quality 80 took 0.56 ms and 7,780 bytes. These are encoding/payload
+measurements, **not** live FPS or end-to-end latency (`encoding_benchmark.json`).
+
+The next gate is one genuine Qwen evaluation in the unchanged existing Isaac kitchen, with
+raw sensor snapshots, model inputs/outputs, paths, independent instance-specific verification
+and a recorded camera stream. The idle-balance correction, original dynamics and safety limits
+remain. No fresh cloud task success or live video latency is claimed yet.
 
 ## Branches and integration
 

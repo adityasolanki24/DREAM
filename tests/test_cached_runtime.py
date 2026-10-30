@@ -51,3 +51,13 @@ def test_runtime_preflight_checks_installed_versions_without_installing(tmp_path
     monkeypatch.setattr(cached_runtime.importlib.metadata, "version", lambda name: "1.3")
     with pytest.raises(ValueError, match="dependency"):
         cached_runtime.validate(lock)
+
+
+def test_local_receipt_cannot_fill_an_incomplete_project_request(tmp_path, monkeypatch):
+    receipt = tmp_path / "DREAM/g1_runtime_image.json"
+    receipt.parent.mkdir()
+    receipt.write_text(json.dumps({"image": {"id": "123", "name": "cached"}}))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    monkeypatch.setattr(launch, "gcloud", lambda *args: pytest.fail("cloud call before cache gate"))
+    with pytest.raises(ValueError, match="cached runtime"):
+        launch.validate_cached_image({"workload": "g1-autonomy"})

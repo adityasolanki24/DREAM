@@ -12,6 +12,8 @@ import { mapPixels, worldToPixel } from './map.mjs';
 import { describeMeta, type ModelChoice, type ProviderEntry } from '../modelChoice.mjs';
 import { ModelPicker } from './ModelPicker';
 import type { Link, Snapshot, Task } from './types';
+import { useCamera } from './useCamera';
+import { useWebRTC } from './useWebRTC';
 
 export const text = (v: unknown): string => (v == null ? '' : typeof v === 'string' ? v : JSON.stringify(v));
 const clock = (seconds: number) => `${seconds.toFixed(1)} s`;
@@ -358,24 +360,27 @@ export function Chat({
 
 /* ---------- robot view ---------------------------------------------------------------------- */
 
-export function RobotView({ snapshot, link, current, thread }: { snapshot: Snapshot | null; link: Link; current?: Task; thread?: Thread }) {
+export function RobotView({ snapshot, link, current, thread, token = '' }: { snapshot: Snapshot | null; link: Link; current?: Task; thread?: Thread; token?: string }) {
+  const rtc = useWebRTC(token);
+  const media = useCamera(token, !rtc.live);
   const stale = link !== 'online';
-  const camera = snapshot?.camera;
-  const age = camera && snapshot ? Math.max(0, snapshot.robot_time_s - camera.time_s) : null;
+  const camera = media.url ? { data_url: media.url, time_s: snapshot?.robot_time_s ?? 0 } : snapshot?.camera;
+  const age = media.url ? media.ageMs / 1000 : camera && snapshot ? Math.max(0, snapshot.robot_time_s - camera.time_s) : null;
   const action = thread?.tools.at(-1);
   // The feed carries no timestamps, so the tool that produced this frame cannot be identified
   // honestly; the overlay therefore states the age only.
   return (
-    <Panel title="Robot view" className="robot" meta={<span className="muted small">{camera ? 'Updates when a tool observes' : 'No frame'}</span>}>
+    <Panel title="Robot view" className="robot" meta={<span className="muted small">{rtc.live ? (rtc.fps === 0 ? 'Simulation frozen / waiting for sensing' : 'WebRTC ICE/TCP fallback') : media.url ? media.status : camera ? 'Updates when a tool observes' : 'No frame'}</span>}>
       <div className={`viewport ${stale ? 'stale' : ''}`}>
-        {camera ? (
+        <video ref={rtc.video} autoPlay playsInline muted aria-label="Robot head camera live video" style={{ display: rtc.live ? 'block' : 'none', width: '100%', height: '100%', objectFit: 'contain' }} />
+        {!rtc.live && (camera ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={camera.data_url} alt="Robot head camera frame" />
         ) : (
           <Empty icon={<Camera size={22} />} title="No camera frame yet">
             {link === 'online' ? 'A frame appears once the robot has looked around.' : 'Connect to see what the robot sees.'}
           </Empty>
-        )}
+        ))}
         {camera && age != null && (
           <span className="cam-pill">
             <Clock size={13} aria-hidden /> Last observed {age < 10 ? age.toFixed(1) : Math.round(age)} s ago
@@ -386,6 +391,8 @@ export function RobotView({ snapshot, link, current, thread }: { snapshot: Snaps
           <span>{snapshot?.environment ?? 'Source not labelled'}</span>
         </div>
       </div>
+      {rtc.live && <div className="stream-facts" role="status">WebRTC ICE/TCP fallback · {rtc.fps} FPS · dropped {rtc.dropped} · mean jitter-buffer delay {Math.round(rtc.jitterMs)} ms (not end-to-end latency)</div>}
+      {!rtc.live && media.url && <div className="stream-facts" role="status">{media.status} · {media.fps} FPS · dropped {media.dropped} · estimated frame latency {Math.round(media.ageMs)} ms · transport {Math.round(media.transportMs)} ms · decode {Math.round(media.decodeMs)} ms · encode {Math.round(media.encodeMs)} ms</div>}
       <dl className="facts">
         <div><dt>Robot clock</dt><dd>{snapshot ? clock(snapshot.robot_time_s) : '—'}</dd></div>
         <div><dt>Frame age</dt><dd>{age == null ? '—' : `${age.toFixed(1)} s`}</dd></div>

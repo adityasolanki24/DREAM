@@ -57,18 +57,16 @@ def test_language_model_maps_request_to_only_supported_typed_goals():
         {"candidates": []},
         lambda: None,
     ) == GoToPlace("entrance")
-    try:
-        interpret_mobile_goal(
-            Model("go_to_place", {"place": "bedroom"}),
-            "go to my bedroom",
-            {"entrance": [0, 0]},
-            {},
-            lambda: None,
-        )
-    except ValueError as error:
-        assert "not in home memory" in str(error)
-    else:
-        raise AssertionError("unobserved place must be refused")
+    from dream.tools.goals import UnsupportedGoal
+
+    refusal = interpret_mobile_goal(
+        Model("go_to_place", {"place": "bedroom"}),
+        "go to my bedroom",
+        {"entrance": [0, 0]},
+        {},
+        lambda: None,
+    )
+    assert isinstance(refusal, UnsupportedGoal) and "not in home memory" in refusal.reason
 
 
 def test_home_memory_is_read_only_and_reports_sightings(tmp_path):

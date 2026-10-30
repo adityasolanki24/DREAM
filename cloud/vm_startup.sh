@@ -1,10 +1,12 @@
 #!/bin/bash
 # NERVA-style private, capped job lifecycle, isolated to this DREAM VM and bucket.
 set -euo pipefail
-[ -f /var/dream_started ] && exit 0
-touch /var/dream_started
 MD=http://metadata.google.internal/computeMetadata/v1
 meta() { curl -fsS -H 'Metadata-Flavor: Google' "$MD/$1"; }
+# Cached images may contain a previous VM marker. Idempotency is per instance.
+INSTANCE_ID=$(meta instance/id)
+[ "$(cat /var/dream_started 2>/dev/null || true)" = "$INSTANCE_ID" ] && exit 0
+printf '%s\n' "$INSTANCE_ID" > /var/dream_started
 BUCKET=$(meta instance/attributes/dream-bucket)
 NAME=$(meta instance/name)
 ZONE=$(basename "$(meta instance/zone)")

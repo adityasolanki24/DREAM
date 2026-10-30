@@ -17,6 +17,7 @@ import json
 import mimetypes
 import secrets
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -139,6 +140,8 @@ class PhoneAPI:
         web_root: Path | None = None,
         provider: str = "structured",
         validate_task=None,
+        camera=None,
+        media=None,
     ) -> None:
         """``validate_task(text, provider, model) -> meta`` checks a submission against the
         caller's provider registry and raises ValueError to refuse it (HTTP 422). Without it,
@@ -152,6 +155,10 @@ class PhoneAPI:
         self.web_root = web_root
         self.provider = provider
         self.validate_task = validate_task
+        self.camera = camera
+        self.media = media
+        self.client_metrics = []
+        self._media_slots = threading.BoundedSemaphore(2)
         self.events: list[dict] = []
         self._stream_id = secrets.token_hex(16)
         self._event_number = 0
@@ -184,6 +191,10 @@ class PhoneAPI:
             return 200, PAGE
         if not auth or not hmac.compare_digest(auth.encode(), f"Bearer {self.token}".encode()):
             return 401, {"error": "unauthorised"}
+        if parts.path.startswith("/media/whep") and self.media is not None:
+            return self.media.proxy(method, parts.path, body)
+        if method == "GET" and parts.path == "/media/status":
+            return 200, self.media.status() if self.media is not None else {"available": False}
         try:
             data = json.loads(body or b"{}")
         except (json.JSONDecodeError, UnicodeDecodeError):
@@ -193,6 +204,46 @@ class PhoneAPI:
         path = parts.path.rstrip("/").split("/")[1:]
         s = self.scheduler
         try:
+            if method == "POST" and path == ["camera", "client-metrics"]:
+                allowed = (
+                    "frame_id",
+                    "transport_ms",
+                    "decode_ms",
+                    "estimated_age_ms",
+                    "fps",
+                    "dropped",
+                )
+                clean = {
+                    k: v
+                    for k, v in data.items()
+                    if k in allowed
+                    and (
+                        isinstance(v, (int, float))
+                        or (k == "frame_id" and isinstance(v, str) and len(v) < 100)
+                    )
+                }
+                with self._lock:
+                    self.client_metrics.append({"server_unix_s": time.time(), **clean})
+                    del self.client_metrics[:-256]
+                return 200, {"accepted": True}
+            if method == "GET" and path == ["camera", "meta"] and self.camera is not None:
+                return 200, self.camera.metadata()
+            if method == "GET" and path == ["camera", "frame"] and self.camera is not None:
+                frame = self.camera.latest()
+                after = parse_qs(parts.query).get("after", [None])[0]
+                if frame is None or frame.id == after:
+                    return 204, ("image/jpeg", b"")
+                return 200, (
+                    "image/jpeg",
+                    frame.jpeg,
+                    {
+                        "X-Frame-Id": frame.id,
+                        "X-Frame-Sequence": str(frame.sequence),
+                        "X-Stream-Id": self.camera.epoch,
+                        "X-Captured-Unix-S": str(frame.captured_unix_s),
+                        "X-Server-Unix-S": str(time.time()),
+                    },
+                )
             if method == "GET" and path == ["status"]:
                 return 200, {"running": s.running, **self.status()}
             if method == "GET" and path == ["snapshot"] and self.snapshot:
@@ -261,24 +312,75 @@ class PhoneAPI:
                 except ValueError:
                     self.send_error(400, "invalid content length")
                     return
+                if method == "GET" and urlparse(self.path).path == "/camera/stream":
+                    self._camera_stream()
+                    return
                 code, out = api.handle(method, self.path, self.headers.get("Authorization"),
                                        self.rfile.read(n) if n else b"")  # fmt: skip
                 if isinstance(out, tuple):
-                    kind, raw = out
+                    kind, raw = out[:2]
                 else:
                     raw = out.encode() if isinstance(out, str) else json.dumps(out).encode()
                     kind = "text/html" if isinstance(out, str) else "application/json"
                 self.send_response(code)
                 self.send_header("Content-Type", kind)
+                self.send_header("Cache-Control", "no-store")
+                if isinstance(out, tuple) and len(out) == 3:
+                    for key, value in out[2].items():
+                        self.send_header(key, value)
                 self.send_header("Content-Length", str(len(raw)))
                 self.end_headers()
-                self.wfile.write(raw)
+                try:
+                    self.wfile.write(raw)
+                except (BrokenPipeError, ConnectionResetError, TimeoutError):
+                    pass
+
+            def _camera_stream(self):
+                auth = self.headers.get("Authorization")
+                if not auth or not hmac.compare_digest(
+                    auth.encode(), f"Bearer {api.token}".encode()
+                ):
+                    self.send_error(401)
+                    return
+                if api.camera is None:
+                    self.send_error(404)
+                    return
+                if not api._media_slots.acquire(blocking=False):
+                    self.send_error(429, "two media clients maximum")
+                    return
+                self.connection.settimeout(3)
+                try:
+                    self.send_response(200)
+                    self.send_header(
+                        "Content-Type", "multipart/x-mixed-replace; boundary=dreamframe"
+                    )
+                    self.send_header("Cache-Control", "no-store")
+                    self.end_headers()
+                    after = None
+                    while not api.camera.metadata()["closed"]:
+                        frame = api.camera.wait(after)
+                        if frame is None:
+                            continue
+                        after = frame.id
+                        head = (
+                            f"--dreamframe\r\nContent-Type: image/jpeg\r\n"
+                            f"Content-Length: {len(frame.jpeg)}\r\nX-Frame-Id: {frame.id}\r\n\r\n"
+                        )
+                        self.wfile.write(head.encode() + frame.jpeg + b"\r\n")
+                        self.wfile.flush()
+                except (OSError, TimeoutError):
+                    pass
+                finally:
+                    api._media_slots.release()
 
             def do_GET(self):  # noqa: N802
                 self._reply("GET")
 
             def do_POST(self):  # noqa: N802
                 self._reply("POST")
+
+            def do_DELETE(self):  # noqa: N802
+                self._reply("DELETE")
 
             def log_message(self, *args):  # requests are not logged: headers carry the token
                 pass

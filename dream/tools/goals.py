@@ -1,10 +1,9 @@
 """Structured task goals and their verification from observations.
 
-DREAM has no natural-language understanding yet. Goals are typed structures, written either as
-dicts ({"type": "in", "object": "red", "target": "tray"}) or in a strict two-word command
-syntax ("in red tray", "on red blue"). That syntax is *not* language understanding, and
-anything else is rejected. A pretrained language model can later produce these structures
-through the same interface.
+This module parses typed dictionaries and a small command syntax, including inspection
+aliases. Parsing these strings is not language understanding. Configured model-backed
+runtimes interpret natural language separately, then produce these bounded goal structures.
+Candidate references bind per-session track IDs; unsupported goals carry explicit reasons.
 
 Verification uses only perception (noisy tracked poses) and reports a margin, so callers know
 how close to the decision boundary a judgement is.
@@ -46,6 +45,7 @@ class Inspect:
     """
 
     target: str
+    candidate: int | None = None  # monotonic per-session track ID; never rebind a lost track
 
 
 @dataclass(frozen=True)
@@ -58,7 +58,23 @@ class GoToPlace:
     place: str
 
 
-Goal = InRegion | OnTop | Inspect | GoToPlace
+@dataclass(frozen=True)
+class GoToObserved:
+    """A particular observed, reachable position bound during interpretation."""
+
+    x: float
+    y: float
+    reference: str
+
+
+@dataclass(frozen=True)
+class UnsupportedGoal:
+    """A capability/grounding refusal, rather than an execution error."""
+
+    reason: str
+
+
+Goal = InRegion | OnTop | Inspect | GoToPlace | GoToObserved | UnsupportedGoal
 
 
 @dataclass(frozen=True)
@@ -72,6 +88,9 @@ def parse_goal(spec: str | dict) -> Goal:
     """Parse typed goal syntax and a small, explicit set of natural-language aliases."""
     if isinstance(spec, str):
         normalized = " ".join(spec.strip().casefold().split()).rstrip(".!?")
+        instance = re.fullmatch(r"inspect candidate (\d+)", normalized)
+        if instance:
+            return Inspect("cabinet", candidate=int(instance[1]))
         if re.fullmatch(
             r"(?:please\s+)?(?:can you\s+)?(?:inspect|find|look at|take a look at)\s+"
             r"(?:the\s+)?cabinet",
@@ -86,7 +105,8 @@ def parse_goal(spec: str | dict) -> Goal:
                 spec = {"type": "goto", "target": words[1]}
             elif len(words) != 3 or words[0] not in ("in", "on"):
                 raise ValueError(
-                    f"unsupported goal: {spec!r}. This session supports inspecting the cabinet; "
+                    f"not a structured goal: unsupported goal: {spec!r}. "
+                    "This session supports inspecting the cabinet; "
                     "structured manipulation goals use 'in <object> <region>' or "
                     "'on <object> <support>'."
                 )
@@ -98,9 +118,12 @@ def parse_goal(spec: str | dict) -> Goal:
             raise ValueError(f"place name must be a single word: {target!r}")
         return GoToPlace(target)
     if kind == "inspect":
+        candidate = spec.get("candidate")
+        if candidate is not None and (type(candidate) is not int or candidate < 1):
+            raise ValueError("candidate must be a positive observed track ID")
         if target != "cabinet":
             raise ValueError(f"cannot inspect {target!r}: the only known target is 'cabinet'")
-        return Inspect(target)
+        return Inspect(target, candidate)
     if not (isinstance(obj, str) and isinstance(target, str)):
         raise ValueError(f"goal needs string 'object' and 'target': {spec!r}")
     if kind == "in":

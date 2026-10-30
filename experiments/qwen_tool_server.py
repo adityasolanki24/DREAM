@@ -54,9 +54,18 @@ def serve(args) -> None:
     )
     if not torch.cuda.is_available() or backend.provenance["model_revision"] != args.revision:
         raise RuntimeError("Qwen CUDA device or pinned model revision failed preflight")
-    print(json.dumps({"ready": True, "model": args.model, "revision": args.revision,
-                      "device": backend.provenance["device"],
-                      "gpu": torch.cuda.get_device_name(0)}), flush=True)
+    print(
+        json.dumps(
+            {
+                "ready": True,
+                "model": args.model,
+                "revision": args.revision,
+                "device": backend.provenance["device"],
+                "gpu": torch.cuda.get_device_name(0),
+            }
+        ),
+        flush=True,
+    )
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *_args):
@@ -64,8 +73,9 @@ def serve(args) -> None:
 
         def do_GET(self):  # noqa: N802
             if self.path == "/healthz":
-                body = json.dumps({"ready": True, "model": args.model,
-                                   "revision": args.revision}).encode()
+                body = json.dumps(
+                    {"ready": True, "model": args.model, "revision": args.revision}
+                ).encode()
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(body)))
@@ -88,17 +98,26 @@ def serve(args) -> None:
                 response_text = backend.generate(
                     decode_messages(request["messages"]), request["tools"]
                 )
-                body = json.dumps({
-                    "id": "dream-qwen-tool-call",
-                    "object": "chat.completion",
-                    "created": int(time.time()),
-                    "model": args.model,
-                    "choices": [{"index": 0, "finish_reason": "stop", "message": {
-                        "role": "assistant", "content": response_text,
-                    }}],
-                    "usage": backend.last_usage or {},
-                    "latency_s": round(time.perf_counter() - started, 3),
-                }).encode()
+                body = json.dumps(
+                    {
+                        "id": "dream-qwen-tool-call",
+                        "object": "chat.completion",
+                        "created": int(time.time()),
+                        "model": args.model,
+                        "choices": [
+                            {
+                                "index": 0,
+                                "finish_reason": "stop",
+                                "message": {
+                                    "role": "assistant",
+                                    "content": response_text,
+                                },
+                            }
+                        ],
+                        "usage": backend.last_usage or {},
+                        "latency_s": round(time.perf_counter() - started, 3),
+                    }
+                ).encode()
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
             except Exception as error:  # no prompt, image or credential is written to output

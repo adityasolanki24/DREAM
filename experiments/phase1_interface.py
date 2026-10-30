@@ -8,8 +8,6 @@ object candidates are session observations, not persistent home memory.
 from __future__ import annotations
 
 import argparse
-import base64
-import io
 import json
 import os
 import pathlib
@@ -23,7 +21,6 @@ if os.name != "nt" and "DISPLAY" not in os.environ:
     os.environ.setdefault("PYOPENGL_PLATFORM", os.environ["MUJOCO_GL"])
 
 import numpy as np
-from PIL import Image
 
 from dream.perception.occupancy import CELL
 from dream.perception.spatial import SpatialMemory
@@ -34,7 +31,14 @@ from dream.runtime.scheduler import TaskScheduler
 from dream.runtime.search import PlacePlanner, RoomSearchPlanner
 from dream.sim.g1_mobile import G1MobileBase, G1MobileEnv, build_mobile_g1
 from dream.sim.room import add_room, sample_room
-from dream.tools.goals import GoToPlace, Inspect, NaturalLanguageGoal, parse_goal
+from dream.tools.goals import (
+    GoToObserved,
+    GoToPlace,
+    Inspect,
+    NaturalLanguageGoal,
+    UnsupportedGoal,
+    parse_goal,
+)
 from dream.tools.mobile import MobileToolbox
 from experiments.g1_explore_room import Budgeted
 
@@ -253,12 +257,17 @@ def make_snapshot(api, scheduler, base, memory, home_path=None, providers=None):
     frame = memory.last_frame
     camera = None
     if frame is not None:
-        buffer = io.BytesIO()
-        Image.fromarray(frame.rgb.copy()).save(buffer, format="PNG")
+        if getattr(api, "camera", None) is None:
+            from dream.runtime.camera_stream import CameraStream
+
+            api.camera = CameraStream()
+        if not getattr(api, "camera_managed", False):
+            api.camera.submit(frame)
         camera = {
-            "mime": "image/png",
-            "data_url": "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode(),
             "time_s": frame.time,
+            "transport": "binary-jpeg",
+            "frame_url": "/camera/frame",
+            **api.camera.metadata(),
         }
     grid = memory.grid
     cells = np.zeros_like(grid.logodds, dtype=np.uint8)
@@ -349,7 +358,11 @@ def make_run_task(toolbox, base, memory, providers, emit):
                 lambda: None if memory.last_frame is None else memory.last_frame.rgb.copy(),
             )
             event("goal_interpreted", {"goal": repr(task.goal), "model": model})
-        if choice is not None and choice.backend_for is not None and isinstance(task.goal, Inspect):
+        if (
+            choice is not None
+            and choice.backend_for is not None
+            and isinstance(task.goal, (Inspect, GoToObserved, GoToPlace, UnsupportedGoal))
+        ):
             from dream.runtime.mobile_model import MobileModelPlanner
 
             backend = choice.backend_for(model)

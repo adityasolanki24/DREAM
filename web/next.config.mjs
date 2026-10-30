@@ -8,7 +8,7 @@ const nextConfig = exporting
   ? { output: 'export', images: { unoptimized: true } }
   : {
       async rewrites() {
-        return ['status', 'tasks', 'tasks/:path*', 'snapshot', 'events', 'ag-ui/:path*', 'memory'].map((p) => ({
+        return ['camera/:path*', 'media/:path*', 'status', 'tasks', 'tasks/:path*', 'snapshot', 'events', 'ag-ui/:path*', 'memory'].map((p) => ({
           source: `/${p}`,
           destination: `${backend}/${p}`,
         }));

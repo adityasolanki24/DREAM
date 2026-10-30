@@ -717,6 +717,8 @@ def validate_cached_image(p: dict) -> None:
     """Future G1 jobs require an immutable, prevalidated image before any paid mutation."""
     if p.get("workload") not in ("g1-qwen", "g1-autonomy"):
         return
+    if not p.get("cached_image_id") and not p.get("project"):
+        raise ValueError("G1 GPU jobs require a project and prevalidated cached runtime image")
     if not p.get("cached_image_id"):
         receipt = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "DREAM/g1_runtime_image.json"
         if receipt.is_file():

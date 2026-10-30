@@ -1,4 +1,5 @@
 """Documented Sign in with ChatGPT OAuth helpers for local DREAM tooling."""
+
 from __future__ import annotations
 
 import base64
@@ -21,12 +22,23 @@ def make_pkce() -> tuple[str, str]:
     return verifier, _b64url(hashlib.sha256(verifier.encode("ascii")).digest())
 
 
-def authorization_url(*, redirect_uri: str, state: str, nonce: str,
-                      verifier: str, host_id: str, issued_client_id: str | None = None) -> str:
+def authorization_url(
+    *,
+    redirect_uri: str,
+    state: str,
+    nonce: str,
+    verifier: str,
+    host_id: str,
+    issued_client_id: str | None = None,
+) -> str:
     query = {
         "client_id": issued_client_id or "dynamic_agent_client",
-        "response_type": "code", "redirect_uri": redirect_uri, "scope": SCOPES,
-        "resource": RESOURCE, "state": state, "nonce": nonce,
+        "response_type": "code",
+        "redirect_uri": redirect_uri,
+        "scope": SCOPES,
+        "resource": RESOURCE,
+        "state": state,
+        "nonce": nonce,
         "code_challenge_method": "S256",
         "code_challenge": _b64url(hashlib.sha256(verifier.encode("ascii")).digest()),
     }
@@ -35,8 +47,9 @@ def authorization_url(*, redirect_uri: str, state: str, nonce: str,
     return "https://auth.openai.com/api/accounts/authorize?" + urllib.parse.urlencode(query)
 
 
-def validate_callback(query: dict[str, str], expected_state: str,
-                      issued_client_id: str | None = None) -> str:
+def validate_callback(
+    query: dict[str, str], expected_state: str, issued_client_id: str | None = None
+) -> str:
     """Validate OAuth callback state/error/client binding and return its one-time code."""
     if not hmac.compare_digest(query.get("state", ""), expected_state):
         raise ValueError("OAuth state mismatch")

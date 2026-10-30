@@ -33,6 +33,24 @@ def test_waiting_for_a_goal_never_steps_uncontrolled_physics():
     assert len(waits) == 19
 
 
+def test_independent_inspection_score_checks_the_selected_instance():
+    import numpy as np
+
+    from experiments.isaac_g1_kitchen import score
+
+    candidates = [
+        SimpleNamespace(id=1, handle=np.array([0.0, 2.0, 0.0]), handle_views=10),
+        SimpleNamespace(id=2, handle=np.array([1.0, 0.0, 0.0]), handle_views=1),
+    ]
+    env = SimpleNamespace(true_pose=lambda: [0.0, 0.0, 0.0], odometry=lambda: [0.0, 0.0, 0.0])
+    toolbox = SimpleNamespace(memory=SimpleNamespace(candidates=candidates))
+    handles = [
+        {"centre": [1.0, 0.0, 0.0], "cabinet_centre": [2.0, 0.0, 0.0], "path": "cabinet/handle"}
+    ]
+    assert score(env, toolbox, True, handles)["false_claim"]
+    assert score(env, toolbox, True, handles, candidate_id=2)["success"]
+
+
 @pytest.mark.parametrize("revision", [live.QWEN_REVISION, "different-checkpoint"])
 def test_cached_model_reuse_requires_exact_ready_revision(monkeypatch, tmp_path, revision):
     health = {"ready": True, "revision": revision}

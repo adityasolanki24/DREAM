@@ -26,8 +26,8 @@ from dream.navigation.planning import (
 )
 from dream.navigation.rpp import RegulatedPurePursuit, densify, line_of_sight, shortcut, smooth
 from dream.perception.occupancy import CELL
-from dream.perception.spatial import CLOSE_VIEW, SIDES, SpatialMemory
-from dream.tools.goals import GoToPlace, Inspect, parse_goal
+from dream.perception.spatial import CLOSE_VIEW, HANDLE_GAP, SIDES, SpatialMemory
+from dream.tools.goals import GoToObserved, GoToPlace, Inspect, UnsupportedGoal, parse_goal
 from dream.tools.toolbox import ToolResult, _validate
 from dream.types import MobileBase
 
@@ -167,7 +167,7 @@ class MobileToolbox:
         out = []
         for c in self.memory.candidates:
             for k in range(SIDES):
-                if k in c.sides_close and c.handle_side() != k:
+                if c.handle is None and k in c.sides_close:
                     continue
                 chosen = self.side_point(c, k, passable, dist)
                 if chosen is None:
@@ -185,11 +185,36 @@ class MobileToolbox:
         obliquely, and the outward direction from a partial-view centre estimate is rough
         (development room 4 put it against a wall)."""
         grid = self.memory.grid
-        if c.handle is not None and c.handle_side() == k:
-            anchor, base = c.handle[:2], c.handle[:2] - c.position[:2]
-            reach = VIEW_DISTANCE
-        else:
-            anchor, base, reach = c.position[:2], c.side_direction(k), c.radius + VIEW_DISTANCE
+        if c.handle is not None:
+            # Enumerate reachable map cells instead of five samples on a fixed circle.
+            cells = np.argwhere(passable & np.isfinite(dist))
+            if not len(cells):
+                return None
+            points = grid.centre(cells[:, 0], cells[:, 1])
+            delta = points - c.handle[:2]
+            length = np.linalg.norm(delta, axis=1)
+            outward = c.handle[:2] - c.position[:2]
+            bearing = (
+                np.rint(
+                    np.arctan2((points - c.position[:2])[:, 1], (points - c.position[:2])[:, 0])
+                    / (2 * np.pi / SIDES)
+                ).astype(int)
+                % SIDES
+            )
+            eligible = (length >= INSPECT_RANGE[0]) & (length <= INSPECT_RANGE[1])
+            eligible &= (delta @ outward > 0) & (bearing == k)
+            indices = np.flatnonzero(eligible)
+            indices = sorted(
+                indices,
+                key=lambda i: (float(dist[tuple(cells[i])]), abs(length[i] - VIEW_DISTANCE)),
+            )
+            for i in indices:
+                xy = points[i]
+                if self.visible_handle(c, xy):
+                    n = (xy - c.handle[:2]) / length[i]
+                    return xy, n, float(dist[tuple(cells[i])])
+            return None
+        anchor, base, reach = c.position[:2], c.side_direction(k), c.radius + VIEW_DISTANCE
         base = base / max(float(np.linalg.norm(base)), 1e-6)
         for a in np.radians([0, 30, -30, 60, -60]):
             ca, sa = math.cos(a), math.sin(a)
@@ -208,6 +233,13 @@ class MobileToolbox:
         fr.sort(key=lambda f: -(f.gain - FRONTIER_COST_WEIGHT * f.cost))
         data = {
             "pose": np.round(self.base.odometry(), 3).tolist(),
+            "inspection_poses": {
+                str(c.id): {
+                    "valid": self.at_inspection_pose(c)[0],
+                    "reason": self.at_inspection_pose(c)[1],
+                }
+                for c in self.memory.candidates
+            },
             "odometry_source": "robot odometry estimate",
             "explored_m2": float(grid.free().sum() * CELL * CELL),
             "candidates": [c.summary() for c in self.memory.candidates],
@@ -218,6 +250,9 @@ class MobileToolbox:
                     "xy": np.round(v.xy, 3).tolist(),
                     "heading": round(v.heading, 3),
                     "cost_m": round(v.cost, 2),
+                    "purpose": "inspection"
+                    if self._candidate(v.candidate).handle is not None
+                    else "discovery",
                 }
                 for v in self.viewpoints(passable, dist)
             ],
@@ -250,6 +285,26 @@ class MobileToolbox:
 
     def _verify_goal(self, goal) -> ToolResult:
         goal = parse_goal(goal) if isinstance(goal, (str, dict)) else goal
+        if isinstance(goal, UnsupportedGoal):
+            return ToolResult(
+                "verify_goal",
+                "succeeded",
+                "",
+                {"satisfied": False, "unsupported": True, "reason": goal.reason},
+            )
+        if isinstance(goal, GoToObserved):
+            distance = float(np.linalg.norm(self.base.odometry()[:2] - [goal.x, goal.y]))
+            return ToolResult(
+                "verify_goal",
+                "succeeded",
+                "",
+                {
+                    "satisfied": distance <= PLACE_TOLERANCE,
+                    "reason": f"{distance:.2f} m away",
+                    "place_xy": [goal.x, goal.y],
+                    "reference": goal.reference,
+                },
+            )
         if isinstance(goal, GoToPlace):
             if goal.place not in self.places:
                 return ToolResult("verify_goal", "succeeded", "",
@@ -269,25 +324,58 @@ class MobileToolbox:
                 "",
                 {"satisfied": False, "reason": "no box with a handle seen"},
             )
-        c = max(found, key=lambda c: c.handle_views)
-        at, why = self.at_inspection_pose(c)
-        report = self.inspections.get(c.id, {})
-        done = at and report.get("handle_confirmed_close", False)
-        if done:
-            reason = "handle re-detected while inspecting from an inspection pose"
-        elif at and report:
-            reason = "inspected, but the handle was not seen again up close"
-        else:
-            reason = why or "not inspected yet"
-        return ToolResult(
-            "verify_goal", "succeeded", "", {"satisfied": done, "reason": reason, "candidate": c.id}
+        if goal.candidate is not None:
+            found = [c for c in found if c.id == goal.candidate]
+        if not found:
+            return ToolResult(
+                "verify_goal",
+                "succeeded",
+                "",
+                {
+                    "satisfied": False,
+                    "candidate": goal.candidate,
+                    "reason": "requested instance is not currently observed with a handle",
+                },
+            )
+        checks = []
+        for c in found:
+            at, why = self.at_inspection_pose(c)
+            report = self.inspections.get(c.id, {})
+            complete = at and report.get("inspection_complete", False)
+            checks.append(
+                {
+                    "satisfied": complete,
+                    "candidate": c.id,
+                    "at_inspection_pose": at,
+                    "reason": "handle observed from a valid inspection pose"
+                    if complete
+                    else (why or "inspection from this pose still required"),
+                }
+            )
+        # Generic category goals may match any completed instance; instance goals never rebind.
+        verdict = next((v for v in checks if v["satisfied"]), checks[0])
+        return ToolResult("verify_goal", "succeeded", "", {**verdict, "instances": checks})
+
+    def visible_handle(self, c, xy) -> bool:
+        """Observed occupancy must not occlude the ray up to the handle's surface margin."""
+        if c.handle is None:
+            return False
+        grid = self.memory.grid
+        delta = np.asarray(xy) - c.handle[:2]
+        length = float(np.linalg.norm(delta))
+        end = c.handle[:2] + delta / max(length, 1e-6) * HANDLE_GAP
+        start_cell = tuple(int(v) for v in grid.cell(xy))
+        end_cell = tuple(int(v) for v in grid.cell(end))
+        return bool(
+            grid.inside(*start_cell)
+            and grid.inside(*end_cell)
+            and line_of_sight(~grid.occupied(), start_cell, end_cell)
         )
 
-    def at_inspection_pose(self, c) -> tuple[bool, str]:
-        """Within INSPECT_RANGE of the handle, on its side of the object, facing it."""
+    def inspection_pose(self, c, pose) -> tuple[bool, str]:
+        """The unchanged inspection distance, side and heading constraints, at an explicit pose."""
         if c.handle is None:
             return False, "no handle seen"
-        pose = self.base.odometry()
         h = c.handle[:2]
         d = float(np.linalg.norm(pose[:2] - h))
         to_handle = math.atan2(h[1] - pose[1], h[0] - pose[0])
@@ -299,6 +387,9 @@ class MobileToolbox:
         if abs(wrap(to_handle - pose[2])) > INSPECT_ANGLE:
             return False, "not facing the handle"
         return True, ""
+
+    def at_inspection_pose(self, c) -> tuple[bool, str]:
+        return self.inspection_pose(c, self.base.odometry())
 
     # ----- actions ---------------------------------------------------------------------
     def _look_around(self) -> ToolResult:
@@ -457,6 +548,13 @@ class MobileToolbox:
         path = self._plan_rpp(goal, heading)
         if path is None:
             return ToolResult("go_to", "failed", "no path over observed free space")
+        self.on_event(
+            "navigation_path",
+            "planned path",
+            goal=goal.tolist(),
+            heading=heading,
+            path=[np.asarray(p).tolist() for p in path],
+        )
         follower.set_path(path, heading)
         blocked, replans, last_look = 0, 0, self.base.time
         grid = self.memory.grid
@@ -519,6 +617,14 @@ class MobileToolbox:
         if chosen is None:
             return ToolResult("approach", "failed", "no reachable viewpoint on that side")
         xy, n, _ = chosen
+        self.on_event(
+            "viewpoint",
+            "validated approach target",
+            candidate=c.id,
+            side=k,
+            xy=xy.tolist(),
+            heading=math.atan2(-n[1], -n[0]),
+        )
         self.on_event("action", f"approach candidate {c.id} ({c.color}) side {k}")
         r = self._go_to(float(xy[0]), float(xy[1]), math.atan2(-n[1], -n[0]))
         self._look()
@@ -537,7 +643,9 @@ class MobileToolbox:
         at, why = self.at_inspection_pose(c) if c.handle is not None else (False, "")
         report = {
             # Seen again in this close-range look, not just inferred from earlier views.
-            "handle_confirmed_close": c.handle_views > before,
+            "handle_observed": c.handle_views > before,
+            "handle_confirmed_close": at and c.handle_views > before,
+            "inspection_complete": at and c.handle_views > before,
             "candidate": c.summary(),
             "seen": "a box-like object"
             + (" with a handle on one face" if c.handle is not None else " with no handle seen"),
@@ -551,4 +659,12 @@ class MobileToolbox:
             "pose_note": why,
         }
         self.inspections[c.id] = report
-        return ToolResult("inspect", "succeeded", report["seen"], report)
+        complete = report["inspection_complete"]
+        return ToolResult(
+            "inspect",
+            "succeeded" if complete else "failed",
+            "inspection complete"
+            if complete
+            else f"partial observation only: {why or 'handle not re-observed'}",
+            report,
+        )

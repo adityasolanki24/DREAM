@@ -18,7 +18,7 @@ from dream.runtime.mobile_model import MobileModelPlanner
 from dream.runtime.openai_plan import ChatGPTPlanBackend
 from dream.runtime.phone_api import PhoneAPI
 from dream.runtime.scheduler import TaskScheduler
-from dream.runtime.search import PlacePlanner, RoomSearchPlanner
+from dream.runtime.search import RoomSearchPlanner
 from experiments.g1_explore_room import Budgeted
 
 TOKEN = "t" * 32
@@ -307,7 +307,7 @@ def test_each_task_gets_the_planner_its_meta_names(tmp_path, monkeypatch):
         assert isinstance(runs[-1], Budgeted) and isinstance(runs[-1].planner, RoomSearchPlanner)
 
     run_task(task({"provider": "qwen", "model": "q1"}, "goto entrance"), [], preempt, cancel)
-    assert isinstance(runs[-1], PlacePlanner)
+    assert isinstance(runs[-1], MobileModelPlanner)
 
     with pytest.raises(RuntimeError, match="provider not configured: missing"):
         run_task(task({"provider": "missing", "model": "x"}), [], preempt, cancel)

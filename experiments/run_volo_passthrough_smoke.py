@@ -42,11 +42,13 @@ def main(clone: Path, out: Path) -> None:
         while True:
             try:
                 observation = codec.unpackb(ws.recv())
-                received.append({
-                    "prompt": observation.get("prompt"),
-                    "keys": sorted(observation),
-                    "step": observation.get("__step"),
-                })
+                received.append(
+                    {
+                        "prompt": observation.get("prompt"),
+                        "keys": sorted(observation),
+                        "step": observation.get("__step"),
+                    }
+                )
                 ws.send(packer.pack({"actions": np.zeros((8, 8), dtype=np.float32)}))
             except Exception:
                 return
@@ -56,22 +58,47 @@ def main(clone: Path, out: Path) -> None:
     threading.Thread(target=vla.serve_forever, daemon=True).start()
     proxy_port = _free_port()
     proxy_cmd = [
-        str(py), "-m", "vlm_orchestrator.cli", "--mode", "passthrough",
-        "--host", "127.0.0.1", "--port", str(proxy_port),
-        "--vla-host", "127.0.0.1", "--vla-port", str(vla_port),
-        "--frontend", "openpi-ws", "--backend", "openpi-ws",
-        "--robolab-output-dir", "",
+        str(py),
+        "-m",
+        "vlm_orchestrator.cli",
+        "--mode",
+        "passthrough",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        str(proxy_port),
+        "--vla-host",
+        "127.0.0.1",
+        "--vla-port",
+        str(vla_port),
+        "--frontend",
+        "openpi-ws",
+        "--backend",
+        "openpi-ws",
+        "--robolab-output-dir",
+        "",
     ]
     env = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONPATH=str(clone))
     proxy = subprocess.Popen(
-        proxy_cmd, cwd=clone, env=env, stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT, text=True, encoding="utf-8",
+        proxy_cmd,
+        cwd=clone,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        encoding="utf-8",
     )
     stdout = ""
     client_cmd = [
-        str(py), str(clone / "examples" / "schema_smoke_test.py"),
-        "--orch-host", "127.0.0.1", "--orch-port", str(proxy_port),
-        "--steps", "3", "--grasp",
+        str(py),
+        str(clone / "examples" / "schema_smoke_test.py"),
+        "--orch-host",
+        "127.0.0.1",
+        "--orch-port",
+        str(proxy_port),
+        "--steps",
+        "3",
+        "--grasp",
     ]
     try:
         deadline = time.monotonic() + 20
@@ -86,8 +113,13 @@ def main(clone: Path, out: Path) -> None:
         else:
             raise TimeoutError("VoLo CLI proxy did not start within 20 seconds")
         client = subprocess.run(
-            client_cmd, cwd=clone, env=env, capture_output=True, text=True,
-            encoding="utf-8", timeout=60,
+            client_cmd,
+            cwd=clone,
+            env=env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=60,
         )
         stdout = client.stdout + client.stderr
         if client.returncode:
@@ -105,7 +137,9 @@ def main(clone: Path, out: Path) -> None:
 
     sha = subprocess.run(
         ["git", "-C", str(clone), "rev-parse", "HEAD"],
-        capture_output=True, text=True, check=True,
+        capture_output=True,
+        text=True,
+        check=True,
     ).stdout.strip()
     payload = {
         "result": "PASS",

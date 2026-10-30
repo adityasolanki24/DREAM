@@ -292,6 +292,7 @@ class TaskAgent:
                 return self._finish(
                     goal, False, "robot in protective stop (operator reset needed)", steps, emit
                 )
+            emit("verification", {"verdict": verdict, "goal": repr(goal)})
             action = self.planner.next_action(goal, scene, verdict, steps)
             # A slow planner may return after a pause or cancellation request.
             if self.tools.cancel.is_set():
@@ -306,7 +307,13 @@ class TaskAgent:
             result = self.tools.call(action.name, action.args)
             steps.append(Step(action, result, time.perf_counter() - t0))
             emit(
-                "result", {"tool": action.name, "status": result.status, "message": result.message}
+                "result",
+                {
+                    "tool": action.name,
+                    "status": result.status,
+                    "message": result.message,
+                    "data": result.data,
+                },
             )
             if result.status == "stopped":
                 return self._finish(goal, False, result.message, steps, emit)

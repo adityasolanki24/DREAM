@@ -135,8 +135,7 @@ def plan(project: str, cfg: dict, name: str, iap_api_port: int | None = None) ->
     if not isinstance(image_name, str) or not image_id.isdigit():
         raise ValueError("cached runtime receipt must name an immutable numeric image ID")
     verified_image = json.loads(
-        gcloud("compute", "images", "describe", image_name, f"--project={project}",
-               "--format=json")
+        gcloud("compute", "images", "describe", image_name, f"--project={project}", "--format=json")
     )
     image_description = json.loads(verified_image.get("description", "{}"))
     lock_hash = hashlib.sha256((ROOT / "cloud/requirements.lock.txt").read_bytes()).hexdigest()
@@ -168,7 +167,8 @@ def plan(project: str, cfg: dict, name: str, iap_api_port: int | None = None) ->
         "per_session_ceiling_usd": cfg["per_session_ceiling_usd"],
         "continuation_cap_usd": cfg["continuation_cap_usd"],
         "cost_note": "estimate, not a billing hard cap; VM lifetime is enforced by Google",
-        **({"iap_api_port": iap_api_port, "iap_firewall": name + "-iap"}
+        **({"iap_api_port": iap_api_port, "iap_firewall": name + "-iap",
+            "iap_media_port": cfg.get("iap_media_port")}
            if iap_api_port is not None else {}),
     }  # fmt: skip
 
@@ -248,9 +248,15 @@ def start(p: dict, allowance: float, yes: bool) -> Path:
                f"--network={p['network']}", "--range=10.77.0.0/28",
                "--enable-private-ip-google-access")  # fmt: skip
         if p.get("iap_api_port") is not None:
+            ports = [p["iap_api_port"]]
+            if p.get("iap_media_port") is not None:
+                ports.append(p["iap_media_port"])
+            if any(not isinstance(port, int) or not 1024 <= port <= 65535 for port in ports):
+                raise ValueError("invalid private IAP media/API port")
+            rules = ",".join(f"tcp:{port}" for port in ports)
             gcloud("compute", "firewall-rules", "create", p["iap_firewall"], project,
                    f"--network={p['network']}", "--direction=INGRESS", "--action=ALLOW",
-                   f"--rules=tcp:{p['iap_api_port']}", "--source-ranges=35.235.240.0/20",
+                   f"--rules={rules}", "--source-ranges=35.235.240.0/20",
                    f"--target-service-accounts={account}", "--enable-logging")  # fmt: skip
         gcloud("compute", "routers", "create", p["router"], project, region,
                f"--network={p['network']}")  # fmt: skip

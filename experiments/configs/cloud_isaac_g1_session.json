@@ -3,7 +3,11 @@
   "machine": "g2-standard-8",
   "region": "asia-southeast1",
   "zone": "asia-southeast1-a",
-  "zones": ["asia-southeast1-a", "asia-southeast1-b", "asia-southeast1-c"],
+  "zones": [
+    "asia-southeast1-a",
+    "asia-southeast1-b",
+    "asia-southeast1-c"
+  ],
   "max_minutes": 180,
   "disk_gb": 200,
   "image": "common-cu129-ubuntu-2204-nvidia-580-v20261019",
@@ -26,5 +30,6 @@
     ],
     "note": "Asia-Southeast1 L4 rates checked 28 Oct 2026 against the existing DREAM G2 runtime-builder configuration. 50 GiB NAT reserve covers Isaac Sim 6.2 wheels, PyTorch, the 8.9 GiB Qwen checkpoint and streamed NVIDIA assets. Estimate, not a billing cap."
   },
-  "cap_note": "US Central had no L4 capacity in any approved zone on 28 Oct 2026. Switched to DREAM's already priced Asia-Southeast1 L4 region; the session ceiling tracks the resulting 180-minute estimate with modest headroom. The continuation guard remains US$100."
+  "cap_note": "US Central had no L4 capacity in any approved zone on 28 Oct 2026. Switched to DREAM's already priced Asia-Southeast1 L4 region; the session ceiling tracks the resulting 180-minute estimate with modest headroom. The continuation guard remains US$100.",
+  "iap_media_port": 18189
 }

@@ -242,7 +242,7 @@ export default function Page() {
 
   const chat = <Chat tasks={ordered} threads={threads} running={status?.running ?? null} stopping={stopping} link={link}
     choices={models.choices} choice={models.choice} onChoose={models.select} onSend={submit} notice={chatNotice} />;
-  const robot = <RobotView snapshot={snapshot} link={link} current={shown} thread={shown ? threads[shown.id] : undefined} />;
+  const robot = <RobotView token={token} snapshot={snapshot} link={link} current={shown} thread={shown ? threads[shown.id] : undefined} />;
   const map = <MapPanel snapshot={snapshot} />;
   const task = <TaskPanel current={shown} tasks={ordered} graphTask={graphTask} thread={graphTask ? threads[graphTask.id] : undefined} snapshot={snapshot} stopping={stopping} onAction={act} onPriority={setPriority} />;
   const memory = <MemoryPanel snapshot={snapshot} tasks={ordered} />;

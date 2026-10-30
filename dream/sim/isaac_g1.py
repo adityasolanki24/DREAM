@@ -21,6 +21,7 @@ log are for the evaluator only. The pure helpers at the top run without Isaac (t
 
 from __future__ import annotations
 
+import time
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from math import atan2, cos, sin
@@ -223,6 +224,7 @@ class IsaacG1Env:
             kps=np.zeros(len(dofs)), kds=np.zeros(len(dofs))
         )
         self._annotators = None
+        self.control_timings_ms = []
         self.physics_steps = 0
         self.empty_capture_retries = 0  # reported per episode
         self.last_segmentation = None
@@ -349,6 +351,49 @@ class IsaacG1Env:
             calibration,
         )
 
+    def capture_media(self):
+        """Separate 640x360 RGB render product; never changes perception calibration.
+
+        Called only by the simulation owner. Rendering must leave every root pose
+        component and the controlled physics-step counter unchanged.
+        """
+        from dataclasses import replace
+        from types import SimpleNamespace
+
+        import omni.replicator.core as rep
+        from pxr import UsdGeom
+
+        if not hasattr(self, "_media_rgb"):
+            path = self.camera_path + "_media"
+            cam = UsdGeom.Camera.Define(self.stage, path)
+            horizontal, vertical = apertures(replace(self.head, width=640, height=360))
+            cam.CreateFocalLengthAttr(10.0)
+            cam.CreateHorizontalApertureAttr(horizontal)
+            cam.CreateVerticalApertureAttr(vertical)
+            original = UsdGeom.Camera(self.stage.GetPrimAtPath(self.camera_path))
+            cam.CreateClippingRangeAttr(original.GetClippingRangeAttr().Get())
+            source = UsdGeom.Xformable(self.stage.GetPrimAtPath(self.camera_path))
+            UsdGeom.Xformable(cam.GetPrim()).AddTransformOp().Set(source.GetLocalTransformation())
+            self._media_product = rep.create.render_product(path, (640, 360))
+            self._media_rgb = rep.AnnotatorRegistry.get_annotator("rgb")
+            self._media_rgb.attach([self._media_product])
+        before, steps = np.concatenate(self._root()), self.physics_steps
+        self.world.render()
+        rgb = np.asarray(self._media_rgb.get_data())
+        for _ in range(EMPTY_CAPTURE_RETRIES):
+            if rgb.shape[:2] == (360, 640):
+                break
+            self.world.render()
+            rgb = np.asarray(self._media_rgb.get_data())
+        if (
+            self.physics_steps != steps
+            or np.max(np.abs(np.concatenate(self._root()) - before)) > 1e-9
+        ):
+            raise RuntimeError("media rendering advanced physics")
+        if rgb.shape[:2] != (360, 640):
+            raise RuntimeError(f"media camera returned {rgb.shape}")
+        return SimpleNamespace(time=self.time, rgb=rgb[..., :3].astype(np.uint8).copy())
+
     def _odom_calibration(self) -> CameraCalibration:
         pelvis_p, quat = self._root()
         rp = quat_matrix(quat)
@@ -375,6 +420,7 @@ class IsaacG1Env:
     # -- stepping -----------------------------------------------------------------------------
     def step(self, controller) -> None:
         """One 50 Hz policy tick and DECIMATION physics steps of clipped PD torque."""
+        control_start = time.perf_counter()
         controller.tick(self.proprioception())
         for _ in range(DECIMATION):
             prop = self.proprioception()
@@ -390,6 +436,7 @@ class IsaacG1Env:
         from dream.sim.g1_mobile import G1MobileEnv
 
         G1MobileEnv._integrate_odometry(self)  # the identical oracle-assisted model
+        self.control_timings_ms.append((time.perf_counter() - control_start) * 1000)
 
     def _read_contacts(self) -> None:
         from omni.physx import get_physx_simulation_interface

@@ -14,6 +14,7 @@ import json
 import os
 import pathlib
 import secrets
+import signal
 import subprocess
 import sys
 import time
@@ -55,11 +56,12 @@ class PairedPhoneAPI:
 class DecisionRecorder:
     """Keep each genuine Qwen input image, raw tool-call output and timing."""
 
-    def __init__(self, backend, out: pathlib.Path, sim_time):
+    def __init__(self, backend, out: pathlib.Path, sim_time, capture=None):
         self.backend, self.out, self.sim_time = backend, out, sim_time
         self.folder = out / "qwen_decisions"
         self.folder.mkdir(parents=True, exist_ok=True)
         self.index = 0
+        self.capture = capture
 
     @property
     def name(self):
@@ -74,6 +76,8 @@ class DecisionRecorder:
 
         index = self.index
         self.index += 1
+        if self.capture is not None:
+            self.capture(index)
         image_sha = None
         text_parts = []
         for message in messages:
@@ -86,21 +90,27 @@ class DecisionRecorder:
                     Image.fromarray(rgb).save(image_path)
                     image_sha = hashlib.sha256(image_path.read_bytes()).hexdigest()
         t0 = time.perf_counter()
-        output = self.backend.generate(messages, tools)
         record = {
             "index": index,
             "sim_time_s": float(self.sim_time()),
-            "inference_s": round(time.perf_counter() - t0, 3),
             "model": self.backend.model,
             "revision": QWEN_REVISION,
             "image_sha256": image_sha,
             "messages": text_parts,
             "tools": tools,
-            "output": output,
-            "usage": self.backend.last_usage,
+            "status": "started",
         }
         path = self.folder / f"{index:04d}_decision.json"
         path.write_text(json.dumps(record, indent=2), encoding="utf-8")
+        try:
+            output = self.backend.generate(messages, tools)
+            record.update(output=output, usage=self.backend.last_usage, status="completed")
+        except Exception as error:
+            record.update(status="failed", error=str(error))
+            raise
+        finally:
+            record["inference_s"] = round(time.perf_counter() - t0, 3)
+            path.write_text(json.dumps(record, indent=2), encoding="utf-8")
         return output
 
 
@@ -151,9 +161,9 @@ def start_qwen(args, out: pathlib.Path):
     raise TimeoutError("Qwen3-VL did not finish its pinned CUDA preflight before the deadline")
 
 
-def run_tasks(app, scheduler, sleep=time.sleep):
+def run_tasks(app, scheduler, sleep=time.sleep, keep_running=None):
     """Serve tasks while Isaac is open; only a tool may advance controlled physics."""
-    while app.is_running():
+    while app.is_running() and (keep_running is None or keep_running()):
         if scheduler.step() is None:
             # Kit updates tick a playing PhysX timeline without a WBC policy tick.
             # Keep this synchronous simulation frozen during user/model waiting.
@@ -195,7 +205,14 @@ def serve(args, cfg):
     out = args.out.resolve()
     out.mkdir(parents=True, exist_ok=True)
     evidence = Evidence(out)
-    qwen_process = qwen_log = api_server = scheduler = None
+    qwen_process = qwen_log = api_server = scheduler = camera = media = None
+    stopped = False
+
+    def request_stop(*_):
+        nonlocal stopped
+        stopped = True
+
+    signal.signal(signal.SIGTERM, request_stop)
     try:
         assets = get_assets_root_path()
         url = kitchen_url(assets, args.kitchen)
@@ -236,6 +253,53 @@ def serve(args, cfg):
                 api_server.notify(kind, row)
 
         toolbox = MobileToolbox(base, memory, on_event=tool_event, navigator="rpp")
+        from dream.eval.isaac_scene import labelled_objects
+        from dream.runtime.camera_stream import CameraStream
+        from dream.runtime.media_runtime import MediaRuntime, install_binary
+        from experiments.isaac_g1_kitchen import handle_truth, score
+
+        truth_handles = handle_truth(labelled_objects(world.stage))  # evaluation only
+        trajectory = out / "trajectory.jsonl"
+        capture_stats = []
+        if args.media:
+            binary, media_lock = install_binary(
+                ROOT / "experiments/configs/media_runtime.json",
+                pathlib.Path("/work/cache/mediamtx"),
+            )
+            media = MediaRuntime(out / "media", binary)
+            evidence.write("media_runtime_lock.json", media_lock)
+        camera = CameraStream(on_rgb=None if media is None else media.submit)
+        last_media = last_path = -float("inf")
+
+        def sample():
+            nonlocal last_media, last_path
+            if env.time - last_path >= 0.1:
+                with trajectory.open("a", encoding="utf-8") as stream:
+                    stream.write(
+                        json.dumps(
+                            {
+                                "sim_time_s": env.time,
+                                "wall_unix_s": time.time(),
+                                "odometry": base.odometry().tolist(),
+                                "true_pose_evaluation_only": env.true_pose().tolist(),
+                                "height_evaluation_only": env.true_height(),
+                            }
+                        )
+                        + "\n"
+                    )
+                last_path = env.time
+            if time.monotonic() - last_media >= 0.1:
+                start = time.perf_counter()
+                captured_unix = time.time()
+                frame = env.capture_media()
+                camera.submit(frame, captured_unix_s=captured_unix)
+                capture_stats.append(
+                    {"sim_time_s": env.time, "capture_ms": (time.perf_counter() - start) * 1000}
+                )
+                last_media = time.monotonic()
+
+        base.on_tick = sample
+        sample()
         toolbox.places = {"entrance": np.zeros(2)}
         evidence.write(
             "isaac_session.json",
@@ -272,15 +336,34 @@ def serve(args, cfg):
         providers = build_providers(providers_args)
         qwen_choice = providers["qwen"]
         backend = qwen_choice.backend_for(qwen_choice.default_model)
-        recorder = DecisionRecorder(backend, out, lambda: env.time)
+
+        def capture_decision(index):
+            frame = memory.last_frame
+            if frame is None:
+                return
+            np.savez_compressed(
+                out / f"sensor_{index:04d}.npz",
+                rgb=frame.rgb,
+                depth=frame.depth,
+                self_mask=frame.self_mask,
+                camera_position=frame.calibration.position,
+                camera_rotation=frame.calibration.rotation,
+                camera_fovy_deg=frame.calibration.fovy_deg,
+                occupancy=memory.grid.logodds,
+            )
+
+        recorder = DecisionRecorder(backend, out, lambda: env.time, capture_decision)
         qwen_choice.backend_for = lambda _model: recorder
         evidence.stage(
             "qwen_ready", model=qwen_choice.default_model, revision=QWEN_REVISION, gpu="NVIDIA L4"
         )
 
         api_ref = {"api": None}
+        task_finished_at = None
 
         def run_task(task, history, preempt, cancel):
+            nonlocal task_finished_at
+            toolbox.cancel, toolbox.preempt = cancel, preempt
             if task.meta.get("provider") != "qwen":
                 raise RuntimeError("this live Isaac session accepts Qwen VLM tasks only")
             if base.stop_reason is not None:
@@ -313,12 +396,31 @@ def serve(args, cfg):
                     )
                     stream.flush()
 
-            return TaskAgent(toolbox, planner, max_steps=cfg["explore"]["max_steps"]).run(
+            from experiments.g1_explore_room import Budgeted
+
+            episode = TaskAgent(
+                toolbox, Budgeted(planner, base, 180), max_steps=cfg["explore"]["max_steps"]
+            ).run(
                 task.goal,
                 on_event=emit,
                 history=history,
                 preempt=preempt,
             )
+            verdict = toolbox.call("verify_goal", goal=task.goal).data
+            candidate = verdict.get("candidate")
+            result = score(
+                env, toolbox, episode.success_claimed, truth_handles, candidate_id=candidate
+            )
+            evidence.write(
+                f"task_{task.id}_evaluation.json",
+                {
+                    "episode": episode.to_dict(),
+                    "agent_verdict": verdict,
+                    "independent_verification": result,
+                },
+            )
+            task_finished_at = time.monotonic()
+            return episode
 
         store = out / "tasks.sqlite"
         scheduler = TaskScheduler(str(store), run_task, mobile_goal)
@@ -337,7 +439,10 @@ def serve(args, cfg):
             },
             provider="qwen",
             validate_task=make_validator(providers, "qwen"),
+            camera=camera,
+            media=media,
         )
+        api.camera_managed = True
         api.provider_label = qwen_choice.label
         api_ref["api"] = api
         scheduler.notify = api.notify
@@ -351,7 +456,20 @@ def serve(args, cfg):
             flush=True,
         )
         evidence.stage("phone_api_ready", port=args.api_port)
-        run_tasks(app, scheduler)
+        deadline = time.monotonic() + args.duration_s
+        run_tasks(
+            app,
+            scheduler,
+            keep_running=lambda: (
+                not stopped
+                and time.monotonic() < deadline
+                and (
+                    not args.single_task
+                    or task_finished_at is None
+                    or time.monotonic() - task_finished_at < 30
+                )
+            ),
+        )
     finally:
         if "env" in locals():
             evidence.write(
@@ -363,10 +481,24 @@ def serve(args, cfg):
                     "contact_steps": env.contact_steps,
                     "contacts": [c.__dict__ for c in env.contacts],
                     "physics_steps": env.physics_steps,
+                    "control_tick_ms": env.control_timings_ms,
                 },
             )
         if api_server is not None:
+            evidence.write(
+                "camera_delivery.json",
+                {
+                    "server": camera.metadata(),
+                    "client": api.client_metrics,
+                    "capture_samples": capture_stats,
+                    "media": None if media is None else media.status(),
+                },
+            )
             api_server.shutdown()
+        if camera is not None:
+            camera.close()
+        if media is not None:
+            media.close()
         if scheduler is not None:
             scheduler.db.close()
         if qwen_process is not None:
@@ -389,6 +521,9 @@ def main():
     parser.add_argument("--api-port", type=int, default=8765)
     parser.add_argument("--qwen-port", type=int, default=8767)
     parser.add_argument("--model-start-timeout-s", type=int, default=1200)
+    parser.add_argument("--duration-s", type=int, default=1200)
+    parser.add_argument("--media", action="store_true")
+    parser.add_argument("--single-task", action="store_true")
     args = parser.parse_args()
     cfg = json.loads(args.config.read_text(encoding="utf-8"))
     if args.kitchen not in cfg["development_kitchens"]:

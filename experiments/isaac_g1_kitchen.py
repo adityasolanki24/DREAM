@@ -206,7 +206,7 @@ def handle_truth(objects):
     return out
 
 
-def score(env, tb, claimed: bool, handles: list[dict]) -> dict:
+def score(env, tb, claimed: bool, handles: list[dict], candidate_id: int | None = None) -> dict:
     import numpy as np
 
     from dream.navigation.follow import wrap
@@ -230,7 +230,10 @@ def score(env, tb, claimed: bool, handles: list[dict]) -> dict:
     out["phantom_handles"] = phantom
     if not found or not handles:
         return {**out, "success": False, "false_claim": claimed, "identity_error_m": None}
-    best = max(found, key=lambda c: c.handle_views)
+    selected = [c for c in found if candidate_id is None or c.id == candidate_id]
+    if not selected:
+        return {**out, "success": False, "false_claim": claimed, "identity_error_m": None}
+    best = max(selected, key=lambda c: c.handle_views)
     est = robot_frame(best.handle, ox, oy, oyaw)
     errs = [float(np.linalg.norm(est - robot_frame(h["centre"], x, y, yaw))) for h in handles]
     k = int(np.argmin(errs))
