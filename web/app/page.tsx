@@ -1,7 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Camera, Brain, ListChecks, MessageSquare, LayoutDashboard, Map, Settings, X, Check } from 'lucide-react';
-import * as Tabs from '@radix-ui/react-tabs';
+import { Camera, Brain, ListChecks, LayoutDashboard, Map, Settings, X, Check, Sparkles, FlaskConical } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import * as Dropdown from '@radix-ui/react-dropdown-menu';
@@ -20,13 +19,37 @@ class ApiError extends Error {
   }
 }
 
-const TABS = [
-  { id: 'chat', label: 'Chat', icon: MessageSquare },
-  { id: 'robot', label: 'Robot', icon: Camera },
-  { id: 'task', label: 'Task', icon: ListChecks },
-  { id: 'memory', label: 'Memory', icon: Brain },
+const MODES = [
+  { id: 'companion', label: 'Companion', icon: Sparkles },
+  { id: 'live', label: 'Live', icon: Camera },
+  { id: 'research', label: 'Research', icon: FlaskConical },
 ] as const;
-type Tab = (typeof TABS)[number]['id'];
+type Mode = (typeof MODES)[number]['id'];
+
+function StateActions({ task, onAction }: { task: Task; onAction: (id: string, action: 'pause' | 'resume' | 'cancel') => void }) {
+  return <div className="presence-actions">{task.state === 'running' && <button aria-label="Pause task" title="Pause" onClick={() => onAction(task.id, 'pause')}><span aria-hidden>Ⅱ</span></button>}{task.state === 'suspended' && <button aria-label="Resume task" title="Resume" onClick={() => onAction(task.id, 'resume')}><span aria-hidden>▶</span></button>}<button className="stop-action" aria-label="Cancel task" title="Cancel" onClick={() => onAction(task.id, 'cancel')}><span aria-hidden>■</span></button></div>;
+}
+
+function presenceFor(task: Task | undefined, thread: import('./feed.mjs').Thread | undefined, safetyStop: string | null, listening = false) {
+  if (listening) return { state: 'listening', label: 'Listening to your voice' };
+  if (safetyStop) return { state: 'safety-stopped', label: `Safety stopped · ${safetyStop}` };
+  if (!task) return { state: 'idle', label: 'Ready when you are' };
+  if (task.state === 'succeeded') return { state: 'completed', label: 'Task ended · runtime reports success' };
+  if (task.state === 'failed') return { state: 'failed', label: 'Task failed' };
+  if (task.state === 'cancelled') return { state: 'idle', label: 'Task cancelled' };
+  if (task.state === 'queued') return { state: 'idle', label: 'Waiting for robot availability' };
+  if (task.state === 'suspended') return { state: 'idle', label: 'Task paused' };
+  const action = thread?.tools.at(-1);
+  if (action?.status === 'failed') return { state: 'recovering', label: `Recovering after ${action.name} failed` };
+  if (action?.status === 'running') {
+    const name = action.name.toLowerCase();
+    if (/navigate|search|move_to|go_to/.test(name)) return { state: 'navigating', label: `Navigating · ${action.name}` };
+    if (/look|observe|inspect|camera|view/.test(name)) return { state: 'observing', label: `Observing · ${action.name}` };
+    if (/verify|finish|check/.test(name)) return { state: 'verifying', label: `Verifying · ${action.name}` };
+    return { state: 'interacting', label: `Interacting · ${action.name}` };
+  }
+  return { state: 'planning', label: 'Planning next action' };
+}
 
 export default function Page() {
   const [token, setToken] = useState<string | null>(null);
@@ -42,7 +65,11 @@ export default function Page() {
   const [stopping, setStopping] = useState<Set<string>>(new Set());
   const [chatNotice, setChatNotice] = useState('');
   const models = useModelChoice(snapshot?.provider_choices, snapshot?.provider);
-  const [tab, setTab] = useState<Tab>('robot');
+  const [mode, setMode] = useState<Mode>('live');
+  const [cameraView, setCameraView] = useState<'camera' | 'map'>('camera');
+  const [showLiveChat, setShowLiveChat] = useState(false);
+  const [companionExpanded, setCompanionExpanded] = useState(false);
+  const [voiceListening, setVoiceListening] = useState(false);
   const [mobile, setMobile] = useState(false);
   useEffect(() => {
     const query = window.matchMedia('(max-width: 850px)');
@@ -240,8 +267,9 @@ export default function Page() {
 
   if (token === null) return null;
 
+  const presence = presenceFor(shown, shown ? threads[shown.id] : undefined, snapshot?.stop_reason ?? null, voiceListening);
   const chat = <Chat tasks={ordered} threads={threads} running={status?.running ?? null} stopping={stopping} link={link}
-    choices={models.choices} choice={models.choice} onChoose={models.select} onSend={submit} notice={chatNotice} />;
+    choices={models.choices} choice={models.choice} onChoose={models.select} onSend={submit} notice={chatNotice} onListeningChange={setVoiceListening} />;
   const robot = <RobotView token={token} snapshot={snapshot} link={link} current={shown} thread={shown ? threads[shown.id] : undefined} />;
   const map = <MapPanel snapshot={snapshot} />;
   const task = <TaskPanel current={shown} tasks={ordered} graphTask={graphTask} thread={graphTask ? threads[graphTask.id] : undefined} snapshot={snapshot} stopping={stopping} onAction={act} onPriority={setPriority} />;
@@ -255,10 +283,10 @@ export default function Page() {
 
   return (
     <Tooltip.Provider delayDuration={250}>
-    <div className="app" data-tab={tab}>
+    <div className="app" data-mode={mode} data-expanded={companionExpanded}>
       <aside className="sidebar">
         <div className="side-brand"><span className="mark"><i /><i /><i /></span><span>DREAM</span></div>
-        <div className="side-label">WORKSPACE</div>
+        <div className="side-label">RESEARCH</div>
         <nav aria-label="Workspace">
           {navItems.map(({id, label, icon: Icon}) => <Tooltip.Root key={id}><Tooltip.Trigger asChild>
             <button className={view === id ? 'side-link on' : 'side-link'} aria-current={view === id ? 'page' : undefined} onClick={() => setView(id)}><Icon size={18}/><span>{label}</span></button>
@@ -271,7 +299,7 @@ export default function Page() {
       </aside>
       <div className="workspace">
         <header className="topbar">
-          <div className="breadcrumb"><span className="crumb-root">Mission</span><span className="slash crumb-root">/</span><b>Workspace</b></div>
+          <div className="mode-switch" aria-label="Interface mode">{MODES.map(({id,label,icon:Icon}) => <button key={id} aria-pressed={mode===id} className={mode===id?'selected':''} onClick={() => setMode(id)}><Icon size={15} aria-hidden/><span>{label}</span></button>)}</div>
           <div className="top-right"><ConnectionBadge link={link} compact={mobile} /><NotifyButton enabled={notify} onToggle={toggleNotify} />
             <Dropdown.Root><Dropdown.Trigger asChild><button className="icon-btn" aria-label="Session settings"><Settings size={18}/></button></Dropdown.Trigger>
               <Dropdown.Portal><Dropdown.Content className="dropdown" align="end" sideOffset={8}><Dropdown.Item className="dropdown-item" onSelect={() => setSettingsOpen(true)}>Change access token</Dropdown.Item><Dropdown.Item className="dropdown-item" onSelect={toggleNotify}>{notify ? 'Disable' : 'Enable'} notifications</Dropdown.Item>
@@ -285,17 +313,21 @@ export default function Page() {
         {link === 'offline' && everConnected && <div className="banner" role="alert">Connection lost. Showing the last data received; it is not live. Retrying…</div>}
         {needsConnect ? <main className="center"><ConnectCard link={link} error={error} onConnect={connect} /></main> : <main className="workspace-body">
           <div className="main-area">
-            <div className="workspace-heading"><div><div className="eyebrow">MISSION CONTROL</div><h1>{view === 'overview' ? 'Robot workspace' : view === 'activity' ? 'Task activity' : view === 'world' ? 'Spatial world' : 'Memory & history'}</h1></div><span className="source-label">UNITREE G1 · SIMULATION</span></div>
-            {!mobile && <div className="desktop-content">
-              {view === 'overview' && <><Tabs.Root defaultValue="camera" className="visual-tabs"><div className="visual-toolbar"><Tabs.List aria-label="Robot view" className="view-switch"><Tabs.Trigger value="camera">Camera</Tabs.Trigger><Tabs.Trigger value="map">Map</Tabs.Trigger></Tabs.List><span>ROBOT OBSERVATIONS</span></div><Tabs.Content value="camera" className="visual-content">{robot}</Tabs.Content><Tabs.Content value="map" className="visual-content">{map}</Tabs.Content></Tabs.Root>
-                <TaskOverview tasks={ordered} shown={shown} stopping={stopping} onAction={act} onPriority={setPriority} onNavigate={() => setView('activity')} /></>}
-              {view === 'activity' && task}{view === 'world' && map}{view === 'memory' && memory}
-            </div>}
-            {mobile && <div className="mobile-content">{tab === 'robot' && <Tabs.Root defaultValue="camera" className="visual-tabs"><Tabs.List className="view-switch" aria-label="Robot view"><Tabs.Trigger value="camera">Camera</Tabs.Trigger><Tabs.Trigger value="map">Map</Tabs.Trigger></Tabs.List><Tabs.Content value="camera">{robot}</Tabs.Content><Tabs.Content value="map">{map}</Tabs.Content></Tabs.Root>}{tab === 'task' && task}{tab === 'memory' && memory}</div>}
+            <div className="workspace-heading"><div><div className="eyebrow">{mode === 'companion' ? 'YOUR EMBODIED AI' : mode === 'live' ? 'LIVE SESSION' : 'RESEARCH WORKSPACE'}</div><h1>{mode === 'companion' ? 'What should we do?' : mode === 'live' ? 'Robot view' : view === 'overview' ? 'Task overview' : view === 'activity' ? 'Task activity' : view === 'world' ? 'Spatial world' : 'Memory & history'}</h1></div><span className="source-label">{snapshot?.environment ?? 'Environment unknown'}</span></div>
+            <div className="mode-content">
+              <div className="live-surface">
+                <div className="visual-toolbar"><div className="view-switch" aria-label="Robot view"><button aria-pressed={cameraView==='camera'} className={cameraView==='camera'?'selected':''} onClick={() => setCameraView('camera')}>Camera</button><button aria-pressed={cameraView==='map'} className={cameraView==='map'?'selected':''} onClick={() => setCameraView('map')}>Map</button></div><span><ConnectionBadge link={link} compact /> <span className="live-task-label">{shown?.text ?? 'No active task'}</span>{shown && ['running','suspended','queued'].includes(shown.state) && <StateActions task={shown} onAction={act}/>}<button className="dock-toggle" onClick={() => setShowLiveChat(v => !v)} aria-expanded={showLiveChat}>{showLiveChat ? 'Hide chat' : 'Open chat'}</button></span></div>
+                <div className="persistent-stage"><div className="stage-content" hidden={cameraView !== 'camera'}>{robot}</div><div className="stage-content" hidden={cameraView !== 'map'}>{map}</div></div>
+              </div>
+              <div className="research-content" hidden={mode !== 'research'}>
+                {view === 'overview' && <><TaskOverview tasks={ordered} shown={shown} stopping={stopping} onAction={act} onPriority={setPriority} onNavigate={() => setView('activity')} />{task}</>}
+                {view === 'activity' && task}{view === 'world' && <>{map}{memory}</>}{view === 'memory' && memory}
+              </div>
+            </div>
           </div>
-          <aside className="conversation" hidden={mobile && tab !== 'chat'}>{chat}</aside>
+          <aside className={`conversation ${mode === 'live' && showLiveChat ? 'live-chat-open' : ''}`} aria-label="DREAM conversation">{mode === 'companion' && <div className="companion-presence"><div className={`dream-orb state-${presence.state}`} aria-hidden><span/></div><div><b>DREAM</b><span role="status">{presence.label}{shown ? ` · ${shown.text}` : ''}</span></div>{shown && ['running','suspended','queued'].includes(shown.state) && <StateActions task={shown} onAction={act}/>}<button className="dock-toggle" onClick={() => setCompanionExpanded(v => !v)} aria-expanded={companionExpanded}>{companionExpanded ? 'Compact' : 'Conversation'}</button></div>}{chat}</aside>
         </main>}
-        <nav className="tabbar" aria-label="Sections">{TABS.map(({ id, label, icon: Icon }) => <button key={id} className={tab === id ? 'on' : ''} aria-current={tab === id ? 'page' : undefined} onClick={() => setTab(id)}><Icon size={20}/><span>{label}</span></button>)}</nav>
+        <nav className="tabbar" aria-label="Interface modes">{MODES.map(({ id, label, icon: Icon }) => <button key={id} className={mode === id ? 'on' : ''} aria-current={mode === id ? 'page' : undefined} onClick={() => setMode(id)}><Icon size={20}/><span>{label}</span></button>)}</nav>
         <Toasts toasts={toasts} onDismiss={(k) => setToasts((old) => old.filter((t) => t.key !== k))} />
       </div>
       <Dialog.Root open={settingsOpen} onOpenChange={setSettingsOpen}><Dialog.Portal><Dialog.Overlay className="dialog-overlay"/><Dialog.Content className="dialog-content"><Dialog.Title>Session connection</Dialog.Title><Dialog.Description>Update the token used for this browser tab.</Dialog.Description><Dialog.Close className="dialog-close" aria-label="Close"><X size={18}/></Dialog.Close><ConnectCard link={link} error={error} onConnect={(value) => { connect(value); setSettingsOpen(false); }}/></Dialog.Content></Dialog.Portal></Dialog.Root>

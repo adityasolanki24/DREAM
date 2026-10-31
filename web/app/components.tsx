@@ -232,11 +232,11 @@ function AgentBlock({ task, thread, stopping, modelLabel }: { task: Task; thread
 }
 
 export function Chat({
-  tasks, threads, running, stopping, link, choices, choice, onChoose, onSend, notice,
+  tasks, threads, running, stopping, link, choices, choice, onChoose, onSend, notice, onListeningChange,
 }: {
   tasks: Task[]; threads: Record<string, Thread>; running: string | null; stopping: Set<string>; link: Link;
   choices: ProviderEntry[]; choice: ModelChoice | null; onChoose: (c: ModelChoice) => void;
-  onSend: (text: string) => Promise<boolean>; notice: string;
+  onSend: (text: string) => Promise<boolean>; notice: string; onListeningChange?: (listening: boolean) => void;
 }) {
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
@@ -273,7 +273,7 @@ export function Chat({
   }
 
   function toggleVoice() {
-    if (listening) return recogniser.current?.stop();
+    if (listening) { onListeningChange?.(false); return recogniser.current?.stop(); }
     const w = window as unknown as Record<string, new () => {
       lang: string; interimResults: boolean; start: () => void; stop: () => void;
       onresult: (e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void;
@@ -286,10 +286,11 @@ export function Chat({
     r.interimResults = false;
     r.onresult = (e) => setDraft((old) => `${old}${old ? ' ' : ''}${e.results[0][0].transcript}`.trim());
     r.onerror = (e) => setVoiceNote(e.error === 'not-allowed' ? 'Microphone permission was denied.' : 'Voice input failed. You can type instead.');
-    r.onend = () => setListening(false);
+    r.onend = () => { setListening(false); onListeningChange?.(false); };
     recogniser.current = r;
     setVoiceNote('');
     setListening(true);
+    onListeningChange?.(true);
     r.start();
   }
 
