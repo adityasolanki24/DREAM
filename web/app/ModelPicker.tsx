@@ -8,6 +8,7 @@ import {
   type ModelChoice, type ProviderEntry,
 } from '../modelChoice.mjs';
 import type { ProviderChoice } from './types';
+import { shortModelLabel } from './lib/format';
 
 function localStore(): Storage | null {
   try {
@@ -59,12 +60,13 @@ export function ModelPicker({ choices, value, onChange, disabled = false }: Prop
     if (entry.models.length === 0) byKey.set(keyOf(entry.id, null), { provider: entry.id, model: null });
     for (const model of entry.models) byKey.set(keyOf(entry.id, model), { provider: entry.id, model });
   }
-  const label = value ? describeChoice(choices, value) : 'No provider available';
+  const full = value ? describeChoice(choices, value) : 'No provider available';
+  const label = value ? (shortModelLabel(choices, value.provider, value.model) ?? full) : full;
 
   return (
     <Dropdown.Root>
       <Dropdown.Trigger asChild>
-        <button type="button" className={styles.trigger} aria-label="Model for new tasks" disabled={disabled || choices.length === 0}>
+        <button type="button" className={styles.trigger} aria-label="Model for new tasks" title={full} disabled={disabled || choices.length === 0}>
           <span className={styles.triggerText}>{label}</span>
           <ChevronDown size={16} aria-hidden className={styles.chev} />
         </button>

@@ -7,6 +7,7 @@ const exporting = process.env.DREAM_EXPORT === '1';
 const nextConfig = exporting
   ? { output: 'export', images: { unoptimized: true } }
   : {
+      devIndicators: false,
       async rewrites() {
         return ['camera/:path*', 'media/:path*', 'status', 'tasks', 'tasks/:path*', 'snapshot', 'events', 'ag-ui/:path*', 'memory'].map((p) => ({
           source: `/${p}`,

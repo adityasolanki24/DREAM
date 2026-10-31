@@ -1,0 +1,103 @@
+/* ---------- Companion ---------- */
+.companion { position: relative; display: flex; min-height: 0; overflow: hidden; }
+.companion::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse 60% 46% at 50% 0%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 70%);
+}
+.companion > section { position: relative; flex: 1; min-width: 0; min-height: 0; }
+
+/* home: the orb, what DREAM is doing, and the composer, composed as one column */
+.companion-home { overflow-y: auto; }
+.home-column {
+  display: flex; flex-direction: column; align-items: center; width: min(680px, 100% - 32px); margin: 0 auto;
+  padding: 24px 0 28px; min-height: 100%;
+}
+/* short content sits at the optical centre; long content flows from the top */
+.home-spacer { flex: 1 1 0; min-height: 8px; }
+.home-spacer.top { flex-grow: 0.75; max-height: 18vh; }
+.home-spacer.bottom { flex-grow: 1.25; }
+.home-hints { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 28px; margin-top: 36px; }
+.home-hints .kbd { margin-left: 4px; }
+.home-orb { margin-bottom: 10px; }
+.presence-copy { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 26px; }
+.presence-title { font-size: clamp(28px, 3.2vw, 38px); line-height: 1.1; font-weight: 500; letter-spacing: -0.035em; }
+.presence-detail { font-size: 14.5px; color: var(--text-secondary); max-width: 52ch; overflow-wrap: anywhere; }
+
+.home-controls { margin: -12px 0 22px; }
+.home-composer { width: 100%; }
+.home-suggestions { justify-content: center; margin-top: 14px; }
+
+.latest, .recent { width: 100%; margin-top: 30px; }
+.latest-head, .recent-head { display: flex; align-items: center; justify-content: space-between; padding: 0 4px 8px; }
+.latest-head .kbd { margin-left: 2px; }
+.latest-body { padding: 16px 18px 16px; border-radius: 16px; background: var(--veil); border: 1px solid var(--hairline); display: flex; flex-direction: column; gap: 12px; }
+.latest-goal { font-size: 14px; font-weight: 500; }
+.latest-goal::before { content: '“'; color: var(--text-disabled); }
+.latest-goal::after { content: '”'; color: var(--text-disabled); }
+
+.recent ul { list-style: none; margin: 0; padding: 0; }
+.recent li button {
+  width: 100%; display: grid; grid-template-columns: 6px 1fr auto auto; align-items: center; gap: 12px; height: 38px; padding: 0 10px;
+  border-radius: 9px; text-align: left; transition: background var(--ease);
+}
+.recent li button:hover { background: var(--veil); }
+.recent-text { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recent-state { font-size: 12px; color: var(--text-secondary); }
+.recent-time { font-size: 12px; color: var(--text-disabled); min-width: 64px; text-align: right; }
+
+.facts-line { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 22px; margin: 0; padding-top: 32px; }
+.facts-line div { display: flex; gap: 7px; font-size: 12px; }
+.facts-line dt { color: var(--text-disabled); }
+.facts-line dd { margin: 0; color: var(--text-secondary); max-width: 26ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.facts-line dd.bad { color: var(--danger); }
+
+
+/* expanded: presence rail + conversation */
+.companion-conv { display: grid; grid-template-columns: 300px minmax(0, 1fr); }
+.presence-rail {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 16px; padding: 28px 24px; border-right: 1px solid var(--hairline);
+  overflow-y: auto; min-height: 0;
+}
+.rail-orb { margin: 0 0 4px -6px; }
+.rail-copy { display: flex; flex-direction: column; gap: 4px; }
+.rail-title { font-size: 22px; font-weight: 500; letter-spacing: -0.03em; line-height: 1.15; }
+.rail-detail { font-size: 13px; color: var(--text-secondary); line-height: 1.45; overflow-wrap: anywhere; }
+
+.presence-rail .facts-line { flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 8px; padding-top: 16px; margin-top: auto; width: 100%; border-top: 1px solid var(--hairline); }
+.presence-rail .facts-line div { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; }
+.presence-rail .facts-line dd { max-width: none; text-align: right; }
+.glance { display: flex; flex-direction: column; gap: 8px; width: 100%; text-align: left; border-radius: 12px; }
+.glance-frame { aspect-ratio: 16 / 10; border-radius: 12px; overflow: hidden; background: var(--stage); border: 1px solid var(--hairline); transition: border-color var(--ease); }
+.glance:hover .glance-frame { border-color: var(--hairline-strong); }
+.glance-label { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-secondary); }
+
+.conv-main { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.conv-head { display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 16px 0 24px; flex: none; }
+.conv-head h2 { font-size: 14px; font-weight: 550; letter-spacing: -0.01em; }
+.conv-spacer { flex: 1; }
+.conv-main .thread-inner { padding-top: 8px; }
+.conv-composer { flex: none; width: min(760px, 100% - 32px); margin: 0 auto; padding: 8px 0 18px; display: flex; flex-direction: column; gap: 8px; }
+
+@media (max-width: 860px) {
+  .home-column { width: calc(100% - 32px); padding-top: 20px; }
+  .presence-title { font-size: 28px; }
+  .presence-copy { margin-bottom: 20px; }
+  .latest, .recent { margin-top: 22px; }
+  .recent-state { display: none; }
+  .facts-line { gap: 4px 14px; padding-top: 28px; }
+  .companion-conv { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
+  .presence-rail { flex-direction: row; align-items: center; gap: 10px; padding: 8px 12px 8px 14px; border-right: 0; border-bottom: 1px solid var(--hairline); overflow: visible; }
+  .rail-orb { margin: 0; }
+  .rail-copy { flex: 1; min-width: 0; gap: 0; }
+  .rail-title { font-size: 15px; }
+  .rail-detail { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .presence-rail .task-controls .btn { padding: 0 8px; }
+  .conv-head { display: none; }
+  .conv-composer { width: calc(100% - 20px); padding-bottom: 10px; }
+  .thread-inner { padding: 14px 14px 8px; gap: 22px; }
+}
+
+.presence-line code { font: 500 0.92em var(--mono); color: var(--text-primary); }
+.presence-line .sep { color: var(--text-disabled); }
+.activity-copy .presence-line { font-size: 12px; color: var(--stage-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.activity-copy .presence-line code { color: var(--stage-text); }

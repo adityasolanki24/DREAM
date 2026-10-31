@@ -1,9 +1,12 @@
 "use client";
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
-/** Authenticated WHEP signalling; ICE/TCP is a private-IAP fallback, not native UDP. */
+/**
+ * Authenticated WHEP signalling; ICE/TCP is a private-IAP fallback, not native UDP.
+ * The received track is exposed as a MediaStream so any number of <video> surfaces can show it without renegotiating.
+ */
 export function useWebRTC(token: string) {
-  const video = useRef<HTMLVideoElement>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
   const [state, setState] = useState({ live: false, fps: 0, dropped: 0, jitterMs: 0 });
   useEffect(() => {
     if (!token) return;
@@ -18,8 +21,8 @@ export function useWebRTC(token: string) {
         if (!status.available) { retry = setTimeout(() => void run(), 3000); return; }
         pc = new RTCPeerConnection({ iceServers: [] });
         pc.addTransceiver('video', { direction: 'recvonly' });
-        pc.ontrack = e => { if (video.current) { video.current.srcObject = new MediaStream([e.track]); void video.current.play().catch(() => {}); } };
-        pc.onconnectionstatechange = () => { if (!stopped) setState(s => ({ ...s, live: pc?.connectionState === 'connected' })); if (!stopped && pc?.connectionState === 'failed') { pc.close(); clearInterval(timer); retry = setTimeout(() => void run(), 3000); } };
+        pc.ontrack = e => { if (!stopped) setStream(new MediaStream([e.track])); };
+        pc.onconnectionstatechange = () => { if (!stopped) setState(s => ({ ...s, live: pc?.connectionState === 'connected' })); if (!stopped && pc?.connectionState === 'failed') { pc.close(); setStream(null); clearInterval(timer); retry = setTimeout(() => void run(), 3000); } };
         await pc.setLocalDescription(await pc.createOffer());
         await new Promise<void>(resolve => {
           if (pc?.iceGatheringState === 'complete') return resolve();
@@ -45,11 +48,11 @@ export function useWebRTC(token: string) {
             setState(sample); previousFrames = frames; previousTime = now;
           });
         }, 1000);
-      } catch { if (!stopped) { pc?.close(); setState(s => ({ ...s, live: false })); retry = setTimeout(() => void run(), 3000); } }
+      } catch { if (!stopped) { pc?.close(); setStream(null); setState(s => ({ ...s, live: false })); retry = setTimeout(() => void run(), 3000); } }
     };
     void run();
     return () => { stopped = true; abort.abort(); clearInterval(timer); clearTimeout(retry); pc?.close();
       if (location.startsWith('/media/whep/')) void fetch(location, { method: 'DELETE', headers }).catch(() => {}); };
   }, [token]);
-  return { ...state, video };
+  return { ...state, stream };
 }

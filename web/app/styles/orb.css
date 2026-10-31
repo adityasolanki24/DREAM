@@ -1,0 +1,84 @@
+/* ---------- DREAM orb ---------- */
+.orb {
+  --tint: var(--accent);
+  position: relative; width: var(--s); height: var(--s); flex: none; display: grid; place-items: center;
+  isolation: isolate; contain: layout paint style;
+}
+.orb[data-mode="warn"] { --tint: var(--amber); }
+.orb[data-mode="stop"] { --tint: var(--danger); }
+.orb[data-mode="done"] { --tint: var(--success); }
+.orb[data-mode="off"] { --tint: var(--text-disabled); }
+.orb[data-mode="listen"] { --tint: var(--text-primary); }
+
+.orb-halo {
+  position: absolute; inset: 4%; border-radius: 50%; z-index: -1;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--tint) 30%, transparent), color-mix(in srgb, var(--tint) 8%, transparent) 62%, transparent);
+  opacity: 0.55; transform: scale(1.18); animation: halo 7s ease-in-out infinite;
+}
+.orb[data-mode="off"] .orb-halo { opacity: 0.12; animation: none; }
+
+.orb-core {
+  position: relative; width: 64%; height: 64%; border-radius: 50%; overflow: hidden;
+  background:
+    radial-gradient(circle at 34% 28%, color-mix(in srgb, var(--orb-core) 92%, var(--tint)) 0%, color-mix(in srgb, var(--orb-core) 30%, var(--tint)) 22%, color-mix(in srgb, var(--tint) 62%, var(--orb-deep)) 52%, var(--orb-deep) 78%, color-mix(in srgb, var(--orb-deep) 40%, var(--page)) 100%);
+  box-shadow: inset 0 -10px 30px -6px color-mix(in srgb, var(--page) 65%, transparent), inset 0 2px 1px color-mix(in srgb, var(--orb-core) 30%, transparent), 0 20px 50px -18px color-mix(in srgb, var(--tint) 45%, transparent);
+  animation: breathe 6.5s ease-in-out infinite;
+  transition: filter 400ms ease;
+}
+.orb[data-mode="off"] .orb-core { filter: grayscale(1) brightness(0.62); animation: none; }
+.orb[data-mode="stop"] .orb-core { filter: saturate(0.85); animation: none; }
+.orb-sheen {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: radial-gradient(ellipse 46% 30% at 38% 20%, color-mix(in srgb, white 46%, transparent), transparent 70%);
+  mix-blend-mode: soft-light;
+}
+.orb-iris {
+  position: absolute; inset: 24%; border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--orb-core) 26%, transparent);
+  opacity: 0; transition: inset 400ms var(--ease-out), opacity 400ms ease;
+}
+.orb[data-mode="observe"] .orb-iris { inset: 32%; opacity: 0.95; animation: iris 2.4s ease-in-out infinite; }
+.orb-scan {
+  position: absolute; left: -10%; right: -10%; height: 28%; top: -30%; opacity: 0;
+  background: linear-gradient(transparent, color-mix(in srgb, var(--orb-core) 38%, transparent) 50%, transparent);
+}
+.orb[data-mode="observe"] .orb-scan { opacity: 1; animation: scan 2.6s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
+
+.orb-rings { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.orb .ring { fill: none; stroke: var(--tint); vector-effect: non-scaling-stroke; transform-origin: 100px 100px; }
+.ring-base { stroke-opacity: 0.09; stroke-width: 1; }
+.ring-arc { stroke-width: 1.5; stroke-linecap: round; stroke-opacity: 0; stroke-dasharray: 16 84; transition: stroke-opacity 400ms ease; }
+.orb[data-mode="think"] .ring-arc { stroke-opacity: 0.85; }
+.orb[data-mode="think"] .arc-a { animation: rot 2.6s linear infinite; }
+.orb[data-mode="think"] .arc-b { stroke-dasharray: 8 42; animation: rot 3.8s linear infinite reverse; stroke-opacity: 0.5; }
+.orb[data-mode="warn"] .arc-a { stroke-opacity: 0.8; stroke-dasharray: 10 15; animation: rot 9s steps(24) infinite; }
+.orb[data-mode="stop"] .ring-base { stroke-opacity: 0.7; stroke-dasharray: 2 4; stroke-width: 1.2; }
+.orb[data-mode="done"] .ring-base { stroke-opacity: 0.5; }
+.orb[data-mode="act"] .arc-b { stroke-opacity: 0.35; stroke-dasharray: 100 0; }
+
+.orbiters { fill: var(--tint); opacity: 0; transform-origin: 100px 100px; transition: opacity 400ms ease; }
+.orb[data-mode="act"] .orbiters { opacity: 0.95; animation: rot 3.2s linear infinite; }
+
+.ripple { fill: none; stroke: var(--tint); stroke-width: 1; opacity: 0; transform-origin: 100px 100px; vector-effect: non-scaling-stroke; }
+.orb[data-mode="listen"] .ripple-1 { animation: ripple 1.8s var(--ease-out) infinite; }
+.orb[data-mode="listen"] .ripple-2 { animation: ripple 1.8s var(--ease-out) 0.9s infinite; }
+.orb[data-mode="listen"] .orb-core { animation-duration: 1.8s; }
+
+@keyframes breathe { 50% { transform: scale(1.022); } }
+@keyframes halo { 50% { opacity: 0.8; transform: scale(1.24); } }
+@keyframes rot { to { transform: rotate(360deg); } }
+@keyframes ripple { from { opacity: 0.55; transform: scale(1); } to { opacity: 0; transform: scale(1.5); } }
+@keyframes scan { 0% { top: -30%; } 100% { top: 102%; } }
+@keyframes iris { 50% { inset: 36%; } }
+
+/* small mark: a static pearl */
+.orb-glyph {
+  display: inline-block; flex: none; border-radius: 50%;
+  background: radial-gradient(circle at 34% 28%, var(--orb-core), color-mix(in srgb, var(--accent) 70%, var(--orb-deep)) 55%, var(--orb-deep));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orb *, .orb { animation: none !important; }
+  .orb[data-mode="think"] .ring-arc, .orb[data-mode="act"] .orbiters { opacity: 0.8; }
+}
