@@ -187,7 +187,7 @@ fun DreamRoot(app: DreamApp, voice: Voice) {
             if (s.link == Link.OFFLINE && s.everConnected) Text("Connection lost. Showing the last data received; retrying…", style = T.small.copy(color = D.amber), modifier = Modifier.fillMaxWidth().background(D.amber.copy(alpha = 0.08f)).padding(horizontal = 18.dp, vertical = 6.dp))
 
             Box(Modifier.weight(1f)) {
-                if (!s.hasToken) ConnectScreen(s, app.store.endpoint, reduced) { ep, tok -> app.session.connect(ep, tok) }
+                if (!s.hasToken) ConnectScreen(s, reduced) { prof, tok -> app.session.connect(prof, tok) }
                 else AnimatedContent(tab, transitionSpec = { fadeIn(androidx.compose.animation.core.tween(180)) togetherWith fadeOut(androidx.compose.animation.core.tween(120)) }, label = "tab") { t ->
                     when (t) {
                         Tab.COMPANION -> CompanionScreen(s, hooks, reduced, onAct) { tab = Tab.MISSION }
@@ -195,7 +195,7 @@ fun DreamRoot(app: DreamApp, voice: Voice) {
                         Tab.MISSION -> MissionScreen(s, onAct)
                         Tab.WORLD -> WorldScreen(s)
                         Tab.SETTINGS -> SettingsScreen(
-                            s, app.store.endpoint, { ep, tok -> if (tok.isNotBlank()) app.session.connect(ep, tok) else app.store.token?.let { app.session.connect(ep, it) } },
+                            s, { prof, tok -> app.session.connect(prof, tok) }, { app.session.switchTo(it) }, { app.session.removeProfile(it) },
                             { app.session.forget() }, speak, { speak = it; app.store.speakReplies = it }, reducedPref, { reducedPref = it; app.store.reducedMotion = it },
                             micGranted, { micLauncher.launch(Manifest.permission.RECORD_AUDIO) }, !notifyGranted, { if (Build.VERSION.SDK_INT >= 33) notifyLauncher.launch("android.permission.POST_NOTIFICATIONS") },
                             { if (app.speaker.isReady) app.speaker.say("DREAM voice replies are working.") else Toast.makeText(ctx, "Text-to-speech is still starting or unavailable.", Toast.LENGTH_SHORT).show() },

@@ -2,7 +2,8 @@ package dev.dream.companion.data
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -23,6 +24,11 @@ data class SessionState(
     val choice: ModelChoice? = null,
     val hasToken: Boolean = false,
     val endpoint: String = CredentialStore.DEFAULT_ENDPOINT,
+    /** Saved ways to reach robots, and which one this session uses. */
+    val profiles: List<ConnectionProfile> = emptyList(),
+    val activeId: String? = null,
+    /** What the connected robot really offers (probed once per connection). */
+    val capabilities: Capabilities = Capabilities.UNKNOWN,
     /** Phone time at which each task was first seen finished; tasks already finished at connect time are absent. */
     val endedAt: Map<String, Long> = emptyMap(),
 ) {
@@ -48,11 +54,28 @@ sealed interface SessionEvent {
  * In the background it keeps a slower poll only while a task is runnable, so notifications reach the phone, and stops
  * entirely otherwise: no wakelock, no foreground service. The robot keeps executing on the backend regardless.
  */
+private const val TAG = "DreamSession"
+
 class Session(private val store: CredentialStore, private val scope: CoroutineScope, private val onEvent: (SessionEvent) -> Unit) {
-    private val _state = MutableStateFlow(SessionState(choice = store.choice, hasToken = store.token != null, endpoint = store.endpoint))
+    private fun fresh(link: Link = Link.IDLE) = SessionState(
+        link = link, choice = store.choice, hasToken = store.token != null, endpoint = store.endpoint, profiles = store.profiles, activeId = store.activeId,
+    )
+    private val _state = MutableStateFlow(fresh())
     val state: StateFlow<SessionState> = _state
 
-    private var api: DreamApi? = store.token?.let { DreamApi(store.endpoint, it) }
+    private var api: RobotLink? = linkFor(store.active)
+    private val nudges = Channel<Unit>(Channel.CONFLATED)
+    private var failures = 0
+    /** Phone time of the last capability probe; optional features (e.g. a camera that starts with the simulation) can appear later. */
+    private var probedAt = 0L
+
+    /** The one place that decides how a profile is reached; another robot protocol plugs in here. */
+    private fun linkFor(p: ConnectionProfile?): RobotLink? = p?.let { prof -> store.tokenFor(prof.id)?.let { DreamApi(prof.endpoint, it) } }
+
+    /** Network regained, app reopened, or the user asked: poll now instead of waiting out the backoff. */
+    fun nudge() { nudges.trySend(Unit); start() }
+
+    private suspend fun pause(ms: Long) { withTimeoutOrNull(ms) { nudges.receive() } }
     private var cursor = 0
     private var streamId: String? = null
     private var loop: Job? = null
@@ -73,8 +96,10 @@ class Session(private val store: CredentialStore, private val scope: CoroutineSc
                 if (!foreground) {
                     // Background: follow an active task for at most 30 minutes, then stop until the app is reopened.
                     if (!active || System.currentTimeMillis() - backgroundSince > 30 * 60_000) break
-                    delay(5_000)
-                } else delay(if (s.link == Link.ONLINE) 1_200 else 3_500)
+                    pause(5_000)
+                } else if (s.link == Link.ONLINE) { failures = 0; pause(1_200) }
+                // Offline: back off 1.5 → 3 → 6 → 10 s so a robot that is away does not drain the battery.
+                else { failures++; pause(minOf(10_000L, 1_500L shl minOf(failures - 1, 3))) }
             }
         }
     }
@@ -85,19 +110,35 @@ class Session(private val store: CredentialStore, private val scope: CoroutineSc
         if (value) start()
     }
 
-    fun connect(endpoint: String, token: String) {
-        store.endpoint = endpoint
-        store.token = token
+    /** Save (or update) a profile, optionally with a new token, make it active and connect. */
+    fun connect(profile: ConnectionProfile, token: String?) {
+        store.save(profile)
+        if (!token.isNullOrBlank()) store.setToken(profile.id, token)
+        switchTo(profile.id)
+    }
+
+    /** Use another saved robot connection. Task state shown comes only from that robot's backend. */
+    fun switchTo(id: String) {
+        store.activeId = id
         loop?.cancel(); loop = null
-        api = DreamApi(endpoint, token)
-        cursor = 0; streamId = null
-        _state.update { SessionState(link = Link.CONNECTING, choice = store.choice, hasToken = true, endpoint = endpoint) }
+        api = linkFor(store.active)
+        cursor = 0; streamId = null; failures = 0; probedAt = 0L
+        _state.update { fresh(if (api != null) Link.CONNECTING else Link.IDLE) }
         start()
     }
 
+    fun removeProfile(id: String) {
+        val wasActive = store.activeId == id
+        store.remove(id)
+        if (wasActive) store.activeId?.let { switchTo(it) } ?: run { loop?.cancel(); loop = null; api = null; _state.update { fresh() } }
+        else _state.update { it.copy(profiles = store.profiles) }
+    }
+
+    /** Forget the active profile's token (the profile itself stays). */
     fun forget() {
-        loop?.cancel(); loop = null; api = null; store.token = null
-        _state.update { SessionState(choice = store.choice, endpoint = store.endpoint) }
+        store.activeId?.let { store.setToken(it, null) }
+        loop?.cancel(); loop = null; api = null
+        _state.update { fresh() }
     }
 
     fun select(choice: ModelChoice) { store.choice = choice; _state.update { it.copy(choice = choice) } }
@@ -147,6 +188,9 @@ class Session(private val store: CredentialStore, private val scope: CoroutineSc
             }
             if (before.snapshot?.stopReason == null && snap.stopReason != null && before.everConnected) onEvent(SessionEvent.SafetyStop(snap.stopReason))
             if (before.link == Link.OFFLINE) onEvent(SessionEvent.ConnectionChanged(true))
+            if (System.currentTimeMillis() - probedAt > 30_000) {
+                runCatching { a.capabilities() }.getOrNull()?.let { caps -> probedAt = System.currentTimeMillis(); _state.update { it.copy(capabilities = caps) } }
+            }
         } catch (e: ApiError) {
             val unauthorised = e.status == 401
             _state.update { it.copy(link = if (unauthorised) Link.UNAUTHORISED else Link.OFFLINE, error = if (unauthorised) "The access token was rejected. Check the token and try again." else e.message ?: "Connection failed.") }
@@ -164,12 +208,18 @@ class Session(private val store: CredentialStore, private val scope: CoroutineSc
 
     /** Pause / resume / cancel; they take effect at the robot's next safe boundary (the backend scheduler decides). */
     suspend fun act(id: String, action: String): String? {
-        val a = api ?: return "Not connected"
+        val a = api ?: return "Not connected".also { android.util.Log.w(TAG, "$action $id: no robot link") }
+        android.util.Log.i(TAG, "$action $id: sending")
         return try {
             val r = a.act(id, action)
+            // Interruptions are safety-relevant: always record what the robot answered.
+            android.util.Log.i(TAG, "$action $id: robot answered ${r.optString("result")}")
             if (r.optString("result") in setOf("pausing", "cancelling")) _state.update { it.copy(stopping = it.stopping + id) }
             poll(); null
-        } catch (e: ApiError) { "Could not $action the task: ${e.message}" }
+        } catch (e: ApiError) {
+            android.util.Log.w(TAG, "$action $id: failed (${e.status}) ${e.message}")
+            "Could not $action the task: ${e.message}"
+        }
     }
 
     fun clearNotice() = _state.update { it.copy(notice = "") }

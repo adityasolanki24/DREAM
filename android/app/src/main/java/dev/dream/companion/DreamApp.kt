@@ -18,6 +18,7 @@ import dev.dream.companion.data.SessionEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class DreamApp : Application() {
     lateinit var store: CredentialStore
@@ -32,8 +33,13 @@ class DreamApp : Application() {
         speaker = Speaker(this)
         session = Session(store, scope, ::onSessionEvent)
         createChannels()
+        // Reconnect as soon as a network comes back (Wi-Fi, mobile data or a VPN such as Tailscale) instead of waiting
+        // out the offline backoff. registerDefaultNetworkCallback is API 24+, below minSdk 28.
+        getSystemService(android.net.ConnectivityManager::class.java).registerDefaultNetworkCallback(object : android.net.ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: android.net.Network) { scope.launch { session.nudge() } }
+        })
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
-            override fun onStart(owner: LifecycleOwner) { visible = true; session.setForeground(true) }
+            override fun onStart(owner: LifecycleOwner) { visible = true; session.setForeground(true); session.nudge() }
             override fun onStop(owner: LifecycleOwner) { visible = false; session.setForeground(false) }
         })
     }

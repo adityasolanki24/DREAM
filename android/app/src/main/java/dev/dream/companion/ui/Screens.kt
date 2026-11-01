@@ -55,6 +55,9 @@ import androidx.compose.ui.unit.dp
 import dev.dream.companion.camera.CameraState
 import dev.dream.companion.camera.CameraStatus
 import dev.dream.companion.data.Link
+import dev.dream.companion.data.ConnectionProfile
+import dev.dream.companion.data.CredentialStore
+import dev.dream.companion.data.EndpointPolicy
 import dev.dream.companion.data.ModelChoice
 import dev.dream.companion.data.SessionState
 import dev.dream.companion.data.Snapshot
@@ -472,28 +475,48 @@ fun Field(label: String, value: String, onChange: (String) -> Unit, secret: Bool
 
 @Composable
 fun SettingsScreen(
-    s: SessionState, endpoint: String, onConnect: (String, String) -> Unit, onForget: () -> Unit, speak: Boolean, onSpeak: (Boolean) -> Unit,
+    s: SessionState, onConnect: (ConnectionProfile, String) -> Unit, onSwitch: (String) -> Unit, onRemove: (String) -> Unit, onForget: () -> Unit,
+    speak: Boolean, onSpeak: (Boolean) -> Unit,
     reducedPref: Boolean, onReduced: (Boolean) -> Unit, micGranted: Boolean, onRequestMic: () -> Unit, notifyNeedsGrant: Boolean, onRequestNotify: () -> Unit,
     onTestVoice: () -> Unit, onOpenModels: () -> Unit, modelLabel: String,
 ) {
-    var ep by remember { mutableStateOf(endpoint) }
-    var token by remember { mutableStateOf("") }
+    var editing by remember { mutableStateOf<String?>(null) } // a profile id, or "new"
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Heading("Connection", s.snapshot?.environment)
-            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(D.card).padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Dot(when (s.link) { Link.ONLINE -> D.success; Link.CONNECTING -> D.accent; else -> D.amber })
-                Text(when (s.link) { Link.ONLINE -> "Connected"; Link.CONNECTING -> "Connecting"; Link.OFFLINE -> "Backend unreachable"; Link.UNAUTHORISED -> "Token rejected"; Link.IDLE -> "Not connected" }, style = T.body, modifier = Modifier.padding(start = 10.dp).weight(1f))
-                Text(if (s.hasToken) "token in Keystore" else "no token", style = T.small)
+            Heading("Robots", "${s.profiles.size} saved")
+            s.profiles.forEach { p ->
+                val active = p.id == s.activeId
+                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (active) D.accent.copy(alpha = 0.10f) else D.card)
+                    .border(1.dp, if (active) D.accent.copy(alpha = 0.35f) else D.hairline, RoundedCornerShape(14.dp)).padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Dot(if (!active) D.text3 else when (s.link) { Link.ONLINE -> D.success; Link.CONNECTING -> D.accent; else -> D.amber })
+                        Column(Modifier.padding(start = 10.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(p.name, style = T.body)
+                            Text("${p.kind} · ${p.endpoint}", style = T.monoSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                        Text(if (!active) "saved" else when (s.link) { Link.ONLINE -> "connected"; Link.CONNECTING -> "connecting"; Link.OFFLINE -> "unreachable"; Link.UNAUTHORISED -> "token rejected"; Link.IDLE -> "no token" },
+                            style = T.label.copy(color = if (active && s.link == Link.ONLINE) D.success else D.text2))
+                    }
+                    if (active && s.link == Link.ONLINE) {
+                        val c = s.capabilities
+                        Text(listOf(if (c.camera) "camera" else "no camera", if (c.webrtc) "WebRTC video" else "MJPEG/JPEG video", if (c.homeMemory) "home memory" else "no home memory",
+                            "${c.providers} model provider${if (c.providers == 1) "" else "s"}").joinToString(" · "), style = T.small)
+                    }
+                    if (active && s.error.isNotEmpty()) Text(s.error, style = T.small.copy(color = D.amber))
+                    if (editing == p.id) ConnectionForm(p, s.link == Link.CONNECTING && active, "Save and connect", { prof, tok -> onConnect(prof, tok); editing = null }, { editing = null })
+                    else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        if (!active) ActionButton("Use", { onSwitch(p.id) }, Modifier.weight(1f))
+                        ActionButton("Edit", { editing = p.id }, Modifier.weight(1f))
+                        if (active) ActionButton("Forget token", onForget, Modifier.weight(1f))
+                        else ActionButton("Remove", { onRemove(p.id) }, Modifier.weight(1f), tone = D.danger, bg = D.danger.copy(alpha = 0.12f))
+                    }
+                }
             }
-            if (s.error.isNotEmpty()) Text(s.error, style = T.small.copy(color = D.amber), modifier = Modifier.padding(horizontal = 4.dp))
-            Field("Endpoint", ep, { ep = it })
-            Field(if (s.hasToken) "Replace access token" else "Access token", token, { token = it }, secret = true)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                ActionButton("Connect", { onConnect(ep.trim(), token.trim()); token = "" }, Modifier.weight(1f), enabled = ep.isNotBlank() && (token.isNotBlank() || s.hasToken), bg = D.text, tone = D.page)
-                if (s.hasToken) ActionButton("Forget token", onForget, Modifier.weight(1f))
-            }
-            Text("Over USB, map the phone's loopback to the laptop backend with adb reverse (for example tcp:8765 to the backend's port) and keep http://127.0.0.1:8765. Anywhere else use an HTTPS endpoint; plain HTTP is only allowed to the phone's own loopback.", style = T.small.copy(color = D.text3), modifier = Modifier.padding(horizontal = 4.dp))
+            if (editing == "new") Surface(Modifier.fillMaxWidth(), padding = PaddingValues(14.dp)) {
+                ConnectionForm(null, false, "Add and connect", { prof, tok -> onConnect(prof, tok); editing = null }, { editing = null })
+            } else ActionButton("Add a robot connection", { editing = "new" }, Modifier.fillMaxWidth())
+            Text("USB: adb reverse maps the phone's 127.0.0.1 to the laptop backend. Anywhere else: the robot's HTTPS endpoint, such as a private tailnet name published with tailscale serve. Plain http is refused off-device.",
+                style = T.small.copy(color = D.text3), modifier = Modifier.padding(horizontal = 4.dp))
         }
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Heading("Model for new tasks")
@@ -506,8 +529,8 @@ fun SettingsScreen(
             Heading("Voice")
             Toggle("Speak short task results aloud", speak, onSpeak)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                ActionButton(if (micGranted) "Microphone allowed" else "Allow microphone", onRequestMic, Modifier.weight(1f), dev.dream.companion.R.drawable.ic_mic, enabled = !micGranted)
-                ActionButton("Test spoken reply", onTestVoice, Modifier.weight(1f))
+                ActionButton(if (micGranted) "Mic allowed" else "Allow mic", onRequestMic, Modifier.weight(1f), dev.dream.companion.R.drawable.ic_mic, enabled = !micGranted)
+                ActionButton("Test voice", onTestVoice, Modifier.weight(1f))
             }
             Text("The microphone only listens while you hold, or have tapped, the mic button. There is no background listening.", style = T.small.copy(color = D.text3), modifier = Modifier.padding(horizontal = 4.dp))
         }
@@ -532,19 +555,44 @@ fun Toggle(label: String, value: Boolean, onChange: (Boolean) -> Unit) {
     }
 }
 
+/** Name, endpoint and token for one robot connection, validated against the app's transport policy. */
 @Composable
-fun ConnectScreen(s: SessionState, endpoint: String, reduced: Boolean, onConnect: (String, String) -> Unit) {
-    var ep by remember { mutableStateOf(endpoint) }
-    var token by remember { mutableStateOf("") }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Spacer(Modifier.height(60.dp))
-        Orb(if (s.link == Link.CONNECTING) dev.dream.companion.data.PresenceState.THINKING else dev.dream.companion.data.PresenceState.OFFLINE, 120.dp, reduced)
-        Text("Connect to DREAM", style = T.display)
-        Text(if (s.error.isNotEmpty()) s.error else "Enter the backend endpoint and the session access token. The token is encrypted with the Android Keystore and sent only as a request header.", style = T.small)
-        Field("DREAM endpoint", ep, { ep = it })
-        Field("Access token", token, { token = it }, secret = true)
-        Pill(if (s.link == Link.CONNECTING) "Connecting…" else "Connect", { onConnect(ep.trim(), token.trim()) }, modifier = Modifier.fillMaxWidth(), enabled = ep.isNotBlank() && token.isNotBlank(), bg = D.text, tone = D.page)
-        Text("USB: adb reverse tcp:8765 tcp:8765, then keep http://127.0.0.1:8765.", style = T.monoSmall)
+fun ConnectionForm(initial: ConnectionProfile?, busy: Boolean, actionLabel: String, onSubmit: (ConnectionProfile, String) -> Unit, onCancel: (() -> Unit)? = null, prefill: ConnectionProfile? = null) {
+    val start = initial ?: prefill
+    var name by remember(start?.id) { mutableStateOf(start?.name ?: "") }
+    var ep by remember(start?.id) { mutableStateOf(start?.endpoint ?: CredentialStore.DEFAULT_ENDPOINT) }
+    var token by remember(initial?.id) { mutableStateOf("") }
+    val problem = EndpointPolicy.check(ep)
+    val needsToken = initial == null
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Field("Name", name, { name = it })
+        Field("Endpoint", ep, { ep = it })
+        Text(problem ?: EndpointPolicy.kindOf(ep), style = T.small.copy(color = if (problem != null && ep.isNotBlank()) D.amber else D.text3), modifier = Modifier.padding(horizontal = 4.dp))
+        Field(if (needsToken) "Access token" else "Access token (leave empty to keep the stored one)", token, { token = it }, secret = true)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            ActionButton(if (busy) "Connecting…" else actionLabel, {
+                val id = initial?.id ?: "robot-${System.currentTimeMillis().toString(36)}"
+                onSubmit(ConnectionProfile(id, name.trim().ifEmpty { EndpointPolicy.kindOf(ep) }, ep.trim().trimEnd('/')), token.trim())
+            }, Modifier.weight(1f), enabled = problem == null && !busy && (!needsToken || token.isNotBlank()), bg = D.text, tone = D.page)
+            if (onCancel != null) ActionButton("Cancel", onCancel, Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+fun ConnectScreen(s: SessionState, reduced: Boolean, onConnect: (ConnectionProfile, String) -> Unit) {
+    // With saved profiles but no token for the active one, offer that profile; otherwise start a new one.
+    val active = s.profiles.find { it.id == s.activeId }
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Spacer(Modifier.height(40.dp))
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Orb(if (s.link == Link.CONNECTING) dev.dream.companion.data.PresenceState.THINKING else dev.dream.companion.data.PresenceState.OFFLINE, 132.dp, reduced)
+        }
+        Text("Connect to a robot", style = T.display, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Text(if (s.error.isNotEmpty()) s.error else "Over USB use http://127.0.0.1:<port> with adb reverse. From anywhere else use the robot's HTTPS endpoint, for example over a private tailnet. The token is encrypted by the Android Keystore and sent only as a request header.",
+            style = T.small, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.height(4.dp))
+        ConnectionForm(null, s.link == Link.CONNECTING, "Connect", { prof, tok -> onConnect(if (active != null) prof.copy(id = active.id) else prof, tok) }, prefill = active)
         Spacer(Modifier.size(24.dp))
     }
 }

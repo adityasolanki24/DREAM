@@ -2,7 +2,7 @@ package dev.dream.companion.camera
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import dev.dream.companion.data.DreamApi
+import dev.dream.companion.data.RobotLink
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -33,7 +33,7 @@ data class CameraState(
  * The phone never asks the simulator to step; when no new frame arrives while the session is online the stage reports
  * "simulation paused or not sensing", not a network failure. Runs only while a camera surface is on screen.
  */
-class CameraStream(private val api: DreamApi, private val scope: CoroutineScope) {
+class CameraStream(private val api: RobotLink, private val scope: CoroutineScope) {
     private val _state = MutableStateFlow(CameraState())
     val state: StateFlow<CameraState> = _state
     private var job: Job? = null

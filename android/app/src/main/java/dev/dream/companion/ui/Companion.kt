@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -201,7 +202,7 @@ fun Composer(s: SessionState, h: ComposerHooks) {
     Column(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 10.dp, top = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (s.notice.isNotEmpty()) Text(s.notice, style = T.small.copy(color = D.amber), modifier = Modifier.padding(horizontal = 6.dp))
         AnimatedVisibility(online && h.draft.isEmpty() && examples.isNotEmpty() && h.mic == MicState.IDLE, enter = fadeIn(), exit = fadeOut()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(horizontal = 4.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = 4.dp)) {
                 examples.forEach { x -> Text(x, style = T.small, modifier = Modifier.clip(RoundedCornerShape(50)).border(1.dp, D.hairline, RoundedCornerShape(50)).clickable { h.setDraft(if ('<' in x) x.substringBefore('<') else x) }.padding(horizontal = 12.dp, vertical = 6.dp)) }
             }
         }
@@ -214,8 +215,8 @@ fun Composer(s: SessionState, h: ComposerHooks) {
             MicState.IDLE -> h.micError.takeIf { it.isNotEmpty() }
         }
         micStatus?.let { Text(it, style = T.small.copy(color = if (h.mic == MicState.LISTENING) D.text else D.text2), modifier = Modifier.padding(horizontal = 6.dp), maxLines = 2) }
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Column(Modifier.weight(1f).clip(RoundedCornerShape(22.dp)).background(if (online) D.card else D.veil).border(1.dp, if (h.mic == MicState.LISTENING) D.accent.copy(alpha = 0.6f) else D.hairline, RoundedCornerShape(22.dp)).padding(start = 16.dp, end = 6.dp, top = 12.dp, bottom = 6.dp)) {
+        Column {
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(if (online) D.card else D.veil).border(1.dp, if (h.mic == MicState.LISTENING) D.accent.copy(alpha = 0.6f) else D.hairline, RoundedCornerShape(22.dp)).padding(start = 16.dp, end = 6.dp, top = 12.dp, bottom = 6.dp)) {
                 BasicTextField(
                     value = h.draft, onValueChange = { h.setDraft(it.take(500)) }, enabled = online, textStyle = T.body,
                     cursorBrush = SolidColor(D.accent), keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send), keyboardActions = KeyboardActions(onSend = { send() }),
@@ -225,14 +226,15 @@ fun Composer(s: SessionState, h: ComposerHooks) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("${h.modelLabel}  ▾", style = T.label, modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable(enabled = online) { h.openModels() }.padding(horizontal = 4.dp, vertical = 8.dp))
                     Spacer(Modifier.weight(1f))
+                    MicButton(h, online)
+                    Spacer(Modifier.width(8.dp))
                     val ready = online && h.draft.isNotBlank() && !busy
-                    Box(Modifier.size(34.dp).clip(CircleShape).background(if (ready) D.text else D.veilStrong).clickable(enabled = ready) { send() }.semantics { contentDescription = "Send task" }, contentAlignment = Alignment.Center) {
+                    Box(Modifier.size(36.dp).clip(CircleShape).background(if (ready) D.text else D.veilStrong).clickable(enabled = ready) { send() }.semantics { contentDescription = "Send task" }, contentAlignment = Alignment.Center) {
                         if (busy) CircularProgressIndicator(Modifier.size(16.dp), color = D.page, strokeWidth = 2.dp)
                         else androidx.compose.material3.Icon(androidx.compose.ui.res.painterResource(dev.dream.companion.R.drawable.ic_arrow_up), null, tint = if (ready) D.page else D.text3, modifier = Modifier.size(18.dp))
                     }
                 }
             }
-            MicButton(h, online)
         }
     }
 }
@@ -247,9 +249,8 @@ fun MicButton(h: ComposerHooks, online: Boolean) {
     val scale by animateFloatAsState(if (active) 1.08f + h.micLevel * 0.12f else 1f, label = "mic")
     val label = when { !usable -> "Voice input unavailable"; active -> "Stop listening"; else -> "Hold to talk, or tap to start listening" }
     Box(
-        Modifier.size(64.dp).scale(scale).clip(CircleShape)
-            .background(if (active) Brush.linearGradient(listOf(D.cyan, D.blue, D.violet)) else Brush.linearGradient(listOf(D.raised, D.raised)))
-            .border(1.dp, if (active) D.text.copy(alpha = 0.4f) else D.hairline, CircleShape)
+        Modifier.size(36.dp).scale(scale).clip(CircleShape)
+            .background(if (active) Brush.linearGradient(listOf(D.cyan, D.blue, D.violet)) else Brush.linearGradient(listOf(D.veilStrong, D.veilStrong)))
             .semantics { contentDescription = label }
             .pointerInput(usable, toggled) {
                 if (!usable) return@pointerInput
@@ -263,8 +264,8 @@ fun MicButton(h: ComposerHooks, online: Boolean) {
             },
         contentAlignment = Alignment.Center,
     ) {
-        if (h.mic == MicState.PROCESSING) CircularProgressIndicator(Modifier.size(22.dp), color = D.text, strokeWidth = 2.dp)
-        else androidx.compose.material3.Icon(androidx.compose.ui.res.painterResource(dev.dream.companion.R.drawable.ic_mic), null, tint = if (active) D.page else if (usable) D.text else D.text3, modifier = Modifier.size(26.dp))
+        if (h.mic == MicState.PROCESSING) CircularProgressIndicator(Modifier.size(16.dp), color = D.text, strokeWidth = 2.dp)
+        else androidx.compose.material3.Icon(androidx.compose.ui.res.painterResource(dev.dream.companion.R.drawable.ic_mic), null, tint = if (active) D.page else if (usable) D.text else D.text3, modifier = Modifier.size(18.dp))
     }
     LaunchedEffect(h.mic) { if (h.mic != MicState.LISTENING && h.mic != MicState.STARTING) toggled = false }
 }
