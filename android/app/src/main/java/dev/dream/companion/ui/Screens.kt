@@ -515,7 +515,7 @@ fun SettingsScreen(
             if (editing == "new") Surface(Modifier.fillMaxWidth(), padding = PaddingValues(14.dp)) {
                 ConnectionForm(null, false, "Add and connect", { prof, tok -> onConnect(prof, tok); editing = null }, { editing = null })
             } else ActionButton("Add a robot connection", { editing = "new" }, Modifier.fillMaxWidth())
-            Text("USB: adb reverse maps the phone's 127.0.0.1 to the laptop backend. Anywhere else: the robot's HTTPS endpoint, such as a private tailnet name published with tailscale serve. Plain http is refused off-device.",
+            Text("Wi-Fi or anywhere: the robot's private tailnet name (http://name.your-tailnet.ts.net:8765, encrypted by WireGuard) or an HTTPS endpoint. USB: adb reverse maps the phone's 127.0.0.1 to the laptop. Plain http to any other host is refused.",
                 style = T.small.copy(color = D.text3), modifier = Modifier.padding(horizontal = 4.dp))
         }
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
