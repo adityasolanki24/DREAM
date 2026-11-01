@@ -19,7 +19,7 @@ const LOOKS: Record<ReturnType<typeof modeOf>, Look> = {
   warn:    { colors: ['#E18BDF', '#DDB26A', '#2A1424'], speed: 0.6, glow: 1.0, wobble: 1.1, highlight: 0.8, trail: 1.0, awake: false, opacity: 1 },
   stop:    { colors: ['#EE8C80', '#E8705F', '#2A0E0E'], speed: 0.15, glow: 1.2, wobble: 0.2, highlight: 0.5, trail: 0.4, awake: false, opacity: 1 },
   done:    { colors: ['#8DC9A3', '#5DE4F4', '#0C2620'], speed: 0.5, glow: 1.3, wobble: 0.8, highlight: 1.0, trail: 1.0, awake: false, opacity: 1 },
-  off:     { colors: ['#5D6067', '#3A3F48', '#101114'], speed: 0.06, glow: 0.7, wobble: 0.3, highlight: 0.3, trail: 0.4, awake: false, opacity: 0.7 },
+  off:     { colors: ['#7E838F', '#4A5058', '#15161A'], speed: 0.06, glow: 1.0, wobble: 0.3, highlight: 0.55, trail: 0.4, awake: false, opacity: 0.8 },
 };
 function modeOf(state: PresenceState) { return ORB_MODE[state]; }
 
@@ -47,6 +47,7 @@ export function Orb({ state, size = 200, className = '' }: { state: PresenceStat
   const [flash, setFlash] = useState(false);
   const shown = useRef(look);
   const previous = useRef(state);
+  const small = size < 48;
 
   useEffect(() => {
     const from = shown.current;
@@ -72,9 +73,9 @@ export function Orb({ state, size = 200, className = '' }: { state: PresenceStat
         colors={look.colors}
         backgroundColor="#080a10"
         speed={look.speed}
-        glow={look.glow + (flash ? 0.8 : 0)}
+        glow={look.glow * (small ? 1.35 : 1) + (flash ? 0.8 : 0)}
         wobble={look.wobble}
-        highlight={look.highlight}
+        highlight={look.highlight * (small ? 1.2 : 1)}
         trail={look.trail}
         forceHoverState={look.awake || flash}
         hoverIntensity={0.8}
@@ -84,7 +85,8 @@ export function Orb({ state, size = 200, className = '' }: { state: PresenceStat
         rotateOnHover={false}
         clickPulse={false}
         intro
-        dpr={size < 80 ? 1.5 : undefined}
+        // Below 48px the ring loses contrast on the dark HUD; a denser backing and higher light transport keep it legible.
+        dpr={small ? 2 : undefined}
       />
     </div>
   );

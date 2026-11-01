@@ -45,7 +45,7 @@ function ModeSwitch({ mode, setMode }: { mode: Mode; setMode: (m: Mode) => void 
 }
 
 function ConnectionBadge() {
-  const { link, snapshot } = useSession();
+  const { link } = useSession();
   const tone = link === 'online' ? 'good' : link === 'connecting' ? 'info' : 'warn';
   return (
     <span className="status-cluster">
@@ -53,7 +53,6 @@ function ConnectionBadge() {
         <span className={`dot tone-${tone} ${link === 'connecting' ? 'pulse' : ''}`} aria-hidden />
         <span className="conn-text">{LINK_LABEL[link]}</span>
       </span>
-      {snapshot?.environment && <span className="env-text">{snapshot.environment}</span>}
     </span>
   );
 }
@@ -148,11 +147,17 @@ export function AppShell() {
               <div className="brand"><OrbGlyph size={16} /><span>DREAM</span></div>
               {!needsConnect && !mobile ? <ModeSwitch mode={mode} setMode={setMode} /> : <span />}
               <div className="top-right">
-                {fixture && <span className="fixture-badge" title="Deterministic local data for reviewing the layout; not robot data"><TestTube2 size={12} aria-hidden /> Preview fixture · {fixture.name}</span>}
+                {fixture && (
+                  <span className="fixture-badge" title="Deterministic local data for reviewing the layout; not robot data">
+                    <TestTube2 size={12} aria-hidden />
+                    <span className="fixture-kicker">Preview fixture</span>
+                    <span className="fixture-name">{fixture.name}</span>
+                  </span>
+                )}
                 <ConnectionBadge />
                 {!needsConnect && !mobile && (
                   <button className="palette-trigger" onClick={() => setPaletteOpen(true)} aria-label="Open command palette">
-                    <CommandIcon size={13} aria-hidden /><span>Commands</span><span className="kbd">⌘K</span>
+                    <CommandIcon size={13} aria-hidden /><span className="palette-text">Commands</span><span className="kbd">⌘K</span>
                   </button>
                 )}
                 <SettingsMenu />
@@ -188,7 +193,8 @@ export function AppShell() {
               </Dialog.Content>
             </Dialog.Portal>
           </Dialog.Root>
-          <Toaster position={mobile ? 'top-center' : 'bottom-right'} closeButton toastOptions={{ unstyled: false, className: 'dream-toast' }} offset={mobile ? 64 : 20} />
+          {/* Mobile: the topbar stacks two rows (~104px), so toasts go above the 60px safe-area-bordered tabbar instead. */}
+          <Toaster position={mobile ? 'bottom-center' : 'bottom-right'} closeButton toastOptions={{ unstyled: false, className: 'dream-toast' }} offset={mobile ? 76 : 20} />
         </CameraProvider>
       </Tooltip.Provider>
     </UiContext.Provider>

@@ -26,7 +26,9 @@ sys.path.insert(0, str(ROOT))
 QWEN_REVISION = "ebb281ec70b05090aa6165b016eac8ec08e71b17"
 
 
-def emit_tool_event(path: pathlib.Path, api, sim_time_s: float, kind: str, text: str, **data) -> None:
+def emit_tool_event(
+    path: pathlib.Path, api, sim_time_s: float, kind: str, text: str, **data
+) -> None:
     """Record one measured tool event: durable JSONL row plus a live phone-API push.
 
     The same row goes to both sinks so the session log and the phone feed stay

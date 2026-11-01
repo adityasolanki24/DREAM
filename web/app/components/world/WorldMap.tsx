@@ -40,7 +40,8 @@ export function WorldMap({ snapshot, legend = true, compact = false }: { snapsho
       ctx.fillStyle = fills[value] ?? fills[0];
       ctx.fillRect(x * S, y * S, S, S);
     }
-    const unit = Math.max(S * 1.6, Math.max(c.width, c.height) / 48);
+    // Marker scale: keep it readable, but never let it dwarf a small canvas (compact inset) — capped at a tenth of the short side.
+    const unit = Math.max(S * 1.6, Math.min(Math.max(c.width, c.height) / 48, Math.min(c.width, c.height) / 10));
     for (const o of snapshot?.objects ?? []) {
       const p = worldToPixel(map, o.position[0], o.position[1]);
       if (!p) continue;

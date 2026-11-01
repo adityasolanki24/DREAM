@@ -18,16 +18,17 @@ const SOFT_FAIL = ['#8C7BE0', '#B07BCB', '#D99AB5', '#986BFF'];
 type Look = { speed: number; amplitude: number; brightness: number; glow: number; height: number; blend: number; stops: string[] };
 
 const LOOKS: Record<PresenceState, Look> = {
-  idle:            { speed: 0.35, amplitude: 0.8, brightness: 0.68, glow: 0.55, height: 0.48, blend: 0.6, stops: DREAM_PALETTE },
-  waiting:         { speed: 0.25, amplitude: 0.7, brightness: 0.61, glow: 0.5, height: 0.46, blend: 0.6, stops: DREAM_PALETTE },
-  paused:          { speed: 0.12, amplitude: 0.6, brightness: 0.56, glow: 0.45, height: 0.44, blend: 0.6, stops: DREAM_PALETTE },
+  // Resting states stay quieter so the backdrop does not compete with content; active states keep their energy.
+  idle:            { speed: 0.35, amplitude: 0.8, brightness: 0.60, glow: 0.45, height: 0.48, blend: 0.6, stops: DREAM_PALETTE },
+  waiting:         { speed: 0.25, amplitude: 0.7, brightness: 0.55, glow: 0.42, height: 0.46, blend: 0.6, stops: DREAM_PALETTE },
+  paused:          { speed: 0.12, amplitude: 0.6, brightness: 0.52, glow: 0.4, height: 0.44, blend: 0.6, stops: DREAM_PALETTE },
   listening:       { speed: 0.5, amplitude: 0.9, brightness: 0.92, glow: 0.7, height: 0.54, blend: 0.55, stops: DREAM_PALETTE },
   thinking:        { speed: 0.85, amplitude: 1.05, brightness: 0.8, glow: 0.65, height: 0.5, blend: 0.5, stops: DREAM_PALETTE },
   navigating:      { speed: 1.15, amplitude: 1.3, brightness: 0.82, glow: 0.62, height: 0.52, blend: 0.45, stops: DREAM_PALETTE },
   interacting:     { speed: 1.0, amplitude: 1.2, brightness: 0.84, glow: 0.66, height: 0.52, blend: 0.45, stops: DREAM_PALETTE },
   observing:       { speed: 0.5, amplitude: 0.7, brightness: 0.8, glow: 0.7, height: 0.46, blend: 0.4, stops: ['#5DE4F4', '#648AFF', '#5DE4F4', '#986BFF'] },
   verifying:       { speed: 0.4, amplitude: 0.55, brightness: 0.78, glow: 0.72, height: 0.42, blend: 0.35, stops: DREAM_PALETTE },
-  completed:       { speed: 0.35, amplitude: 0.8, brightness: 0.74, glow: 0.6, height: 0.48, blend: 0.6, stops: DREAM_PALETTE },
+  completed:       { speed: 0.35, amplitude: 0.8, brightness: 0.66, glow: 0.52, height: 0.48, blend: 0.6, stops: DREAM_PALETTE },
   recovering:      { speed: 0.55, amplitude: 0.9, brightness: 0.66, glow: 0.55, height: 0.46, blend: 0.6, stops: SOFT_FAIL },
   failed:          { speed: 0.3, amplitude: 0.7, brightness: 0.58, glow: 0.5, height: 0.44, blend: 0.65, stops: SOFT_FAIL },
   'safety-stopped': { speed: 0.18, amplitude: 0.5, brightness: 0.72, glow: 0.6, height: 0.46, blend: 0.5, stops: WARNING },

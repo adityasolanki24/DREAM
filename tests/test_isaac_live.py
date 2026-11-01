@@ -74,6 +74,7 @@ def test_cached_model_reuse_requires_exact_ready_revision(monkeypatch, tmp_path,
 
 def test_tool_notifications_use_phone_api_and_preserve_measured_event(tmp_path):
     from dream.runtime.phone_api import PhoneAPI
+
     api = PhoneAPI(None, "test-session-token-value-that-is-long")
     path = tmp_path / "events.jsonl"
     live.emit_tool_event(path, api, 12.5, "inspection", "partial observation", candidate=2)
