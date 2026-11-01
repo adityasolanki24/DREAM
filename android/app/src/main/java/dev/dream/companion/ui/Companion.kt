@@ -141,9 +141,9 @@ fun modelLabel(s: SessionState, t: Task): String? = when {
 fun TaskControls(task: Task, stopping: Boolean, online: Boolean, onAct: (String, String) -> Unit, modifier: Modifier = Modifier) {
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         if (task.state == "suspended") ActionButton("Resume", { onAct(task.id, "resume") }, Modifier.weight(1f), dev.dream.companion.R.drawable.ic_play, enabled = online)
-        else ActionButton(if (stopping) "Pausing…" else "Pause", { onAct(task.id, "pause") }, Modifier.weight(1f), dev.dream.companion.R.drawable.ic_pause, enabled = online && task.state == "running" && !stopping)
+        else ActionButton("Pause", { onAct(task.id, "pause") }, Modifier.weight(1f), dev.dream.companion.R.drawable.ic_pause, enabled = online && task.state == "running" && !stopping)
         // Cancel stays enabled whatever the animations or voice are doing; it is the operator's interruption.
-        ActionButton(if (stopping) "Stopping at safe point…" else "Cancel", { onAct(task.id, "cancel") }, Modifier.weight(1f), dev.dream.companion.R.drawable.ic_stop, tone = D.danger, bg = D.danger.copy(alpha = 0.14f), enabled = online && !stopping)
+        ActionButton(if (stopping) "Stopping…" else "Cancel", { onAct(task.id, "cancel") }, Modifier.weight(1f), dev.dream.companion.R.drawable.ic_stop, tone = D.danger, bg = D.danger.copy(alpha = 0.14f), enabled = online && !stopping)
     }
 }
 
