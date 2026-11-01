@@ -388,6 +388,7 @@ def main() -> None:
     ap.add_argument("--manifest", type=Path)
     ap.add_argument("--allowance-usd", type=float, default=0.0)
     ap.add_argument("--iap-api-port", type=int)
+    ap.add_argument("--max-minutes", type=int, help="shorten the session (never past the config)")
     ap.add_argument("--timeout-s", type=int, default=1800)
     ap.add_argument("--env", choices=["isaac", "dream"], default="isaac")
     ap.add_argument("--yes", action="store_true")
@@ -399,6 +400,11 @@ def main() -> None:
     elif extra:
         ap.error("unrecognized arguments: " + " ".join(extra))
     cfg = json.loads(CONFIG.read_text())
+    if args.max_minutes is not None:
+        # Only ever shortens: a shorter lifetime lowers the estimate charged against the cap.
+        if not 30 <= args.max_minutes <= cfg["max_minutes"]:
+            ap.error(f"--max-minutes must be 30..{cfg['max_minutes']}")
+        cfg["max_minutes"] = args.max_minutes
     if args.command in ("plan", "start"):
         name = f"dream-qwen-isaac-{time.strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:6]}"
         p = plan(args.project, cfg, name, args.iap_api_port)
