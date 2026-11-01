@@ -13,7 +13,7 @@
   "image": "common-cu129-ubuntu-2204-nvidia-580-v20261019",
   "image_project": "deeplearning-platform-release",
   "per_session_ceiling_usd": 8.0,
-  "continuation_cap_usd": 100.0,
+  "continuation_cap_usd": 120.0,
   "gpu_choice": "NVIDIA L4 (Ada, 3rd-gen RT cores, 24 GB). Isaac Sim 6.x requirements: RT cores required (A100/H100 unsupported), >= 16 GB VRAM; tested tiers RTX 4080 / 5080 / RTX PRO 6000. L4 meets the RT-core and VRAM requirements but is not a tested tier, so sufficiency is measured (startup, render validity, real-time factor, VRAM) in the first session rather than assumed. RTX PRO 6000 (G4) is offered in us-central1-b/c/f but this project has no G4 GPU quota; L4 quota is 8.",
   "cost": {
     "checked_date": "2026-10-28",
@@ -30,6 +30,6 @@
     ],
     "note": "Asia-Southeast1 L4 rates checked 28 Oct 2026 against the existing DREAM G2 runtime-builder configuration. 50 GiB NAT reserve covers Isaac Sim 6.2 wheels, PyTorch, the 8.9 GiB Qwen checkpoint and streamed NVIDIA assets. Estimate, not a billing cap."
   },
-  "cap_note": "US Central had no L4 capacity in any approved zone on 28 Oct 2026. Switched to DREAM's already priced Asia-Southeast1 L4 region; the session ceiling tracks the resulting 180-minute estimate with modest headroom. The continuation guard remains US$100.",
+  "cap_note": "US Central had no L4 capacity in any approved zone on 28 Oct 2026. Switched to DREAM's already priced Asia-Southeast1 L4 region; the session ceiling tracks the resulting 180-minute estimate with modest headroom. The continuation guard was US$100; raised to US$120 on 1 Nov 2026 at the owner's request, since eleven 28 Oct Qwen runs still count at their full estimates.",
   "iap_media_port": 18189
 }
