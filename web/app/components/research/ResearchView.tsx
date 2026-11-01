@@ -18,6 +18,7 @@ import { Quiet, Segmented, StateChip, Tip } from '../ui';
 import { WorldMap } from '../world/WorldMap';
 import { Diagnostics, MemoryView } from './Inspectors';
 import { JsonView } from './JsonView';
+import { SceneGraph } from './SceneGraph';
 import { TaskGraph } from './TaskGraph';
 import { Timeline } from './Timeline';
 
@@ -190,7 +191,7 @@ function Observation({ focused, onFocus }: { focused: boolean; onFocus: (p: Pane
 
 function Context({ focused, onFocus }: { focused: boolean; onFocus: (p: PaneId | null) => void }) {
   const { snapshot } = useSession();
-  const [tab, setTab] = usePref<'world' | 'memory' | 'diagnostics'>('research-context', 'diagnostics', (v) => ['world', 'memory', 'diagnostics'].includes(v as string));
+  const [tab, setTab] = usePref<'world' | 'memory' | 'diagnostics' | 'graph'>('research-context', 'diagnostics', (v) => ['world', 'memory', 'diagnostics', 'graph'].includes(v as string));
   return (
     <section className="pane context">
       <Tabs.Root value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="context-tabs">
@@ -199,12 +200,14 @@ function Context({ focused, onFocus }: { focused: boolean; onFocus: (p: PaneId |
             <Tabs.Trigger value="diagnostics">Diagnostics</Tabs.Trigger>
             <Tabs.Trigger value="world">Map</Tabs.Trigger>
             <Tabs.Trigger value="memory">Memory</Tabs.Trigger>
+            <Tabs.Trigger value="graph" title="Semantic scene graph — memory entities and stored relationships">Graph</Tabs.Trigger>
           </Tabs.List>
         } />
         <div className="context-body scroll">
           <Tabs.Content value="diagnostics"><Diagnostics /></Tabs.Content>
           <Tabs.Content value="world" className="world-tab"><WorldMap snapshot={snapshot} legend /></Tabs.Content>
           <Tabs.Content value="memory"><MemoryView /></Tabs.Content>
+          <Tabs.Content value="graph" className="sgraph-tab"><SceneGraph /></Tabs.Content>
         </div>
       </Tabs.Root>
     </section>

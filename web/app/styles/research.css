@@ -158,6 +158,43 @@
 .mem-list li div { display: flex; flex-direction: column; gap: 2px; }
 .mem-list span { color: var(--text-secondary); font-size: 12px; }
 
+/* context: semantic scene graph (react-force-graph over memory entities) */
+.sgraph { display: flex; flex-direction: column; gap: 10px; height: 100%; min-height: 0; }
+.sgraph-tab { height: 100%; }
+.sgraph-head { display: flex; flex-direction: column; gap: 6px; flex: none; }
+.sgraph-source { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.sgraph-notes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.sgraph-notes li { font-size: 11.5px; color: var(--text-secondary); }
+.sgraph-notes li::before { content: '· '; color: var(--text-disabled); }
+.sgraph-filters { display: flex; flex-direction: column; gap: 6px; flex: none; }
+.chiprow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--hairline); background: var(--card); color: var(--text-secondary); font-size: 11.5px; cursor: pointer; max-width: 220px; }
+.chip:hover { border-color: var(--hairline-strong); color: var(--text-primary); }
+.chip[aria-pressed='true'] { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, transparent); }
+.chip:disabled { opacity: 0.45; cursor: default; }
+.chip-ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip-n { font-size: 10px; color: var(--text-disabled); }
+.chip[aria-pressed='true'] .chip-n { color: color-mix(in srgb, var(--accent) 70%, var(--text-secondary)); }
+.sgraph-stage { position: relative; flex: none; height: min(52vh, 430px); border-radius: 12px; background: var(--stage); box-shadow: 0 0 0 1px var(--hairline); overflow: hidden; }
+.sgraph-canvas { position: absolute; inset: 0; }
+.sgraph-canvas canvas { display: block; }
+.sgraph-loading, .sgraph-stage .quiet { position: absolute; inset: 0; display: grid; place-items: center; }
+.sgraph-tools { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 6px; }
+.sgraph-stage .graph-tooltip { max-width: 260px; white-space: normal; font: 11.5px/1.45 var(--sans); color: var(--text-primary); background: var(--camera-overlay-bg); border-radius: 8px; box-shadow: 0 0 0 1px var(--hairline); padding: 6px 9px; backdrop-filter: blur(10px); }
+.sgraph-stage .graph-tooltip b { font-weight: 600; }
+.sgraph-tip { display: block; color: var(--text-secondary); }
+.sgraph-hint { flex: none; }
+.sgraph-details { flex: 1; min-height: 0; overflow: auto; border: 1px solid var(--hairline); border-radius: 10px; padding: 10px 14px 12px; background: var(--veil); display: flex; flex-direction: column; gap: 10px; }
+.sgraph-details .rail-label { display: flex; align-items: center; gap: 8px; }
+.sgraph-details .rail-label .icon-btn { margin-left: auto; }
+.sgraph-details dl { margin: 0; }
+.sgraph-history ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.sgraph-history li { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; font-size: 12px; padding: 4px 0; border-bottom: 1px solid var(--hairline); }
+.sgraph-history li:last-child { border-bottom: 0; }
+.sgraph-history .tone-good { color: var(--success); }
+.sgraph-history .tone-bad { color: var(--danger); }
+.sgraph-history .faint { overflow-wrap: anywhere; }
+
 /* world map (shared) */
 .world-map { display: flex; flex-direction: column; gap: 10px; min-height: 0; width: 100%; height: 100%; }
 .world-canvas { flex: 1; min-height: 0; display: grid; place-items: center; }
@@ -187,5 +224,8 @@
 .research-mobile-pane .observe-body { min-height: 280px; }
 .research-mobile-pane .tl-args { display: none; }
 .research-mobile-pane .tl-message, .research-mobile-pane .tl-detail { padding-left: 48px; }
+/* graph: fixed stage height on phones (52vh of a short viewport is too little to steer) */
+.research-mobile-pane .sgraph-stage { height: min(66vh, 460px); }
+.research-mobile-pane .sgraph-details { flex: none; max-height: 46%; }
 .mission-compose { margin-top: auto; padding-top: 14px; border-top: 1px solid var(--hairline); }
 .mission-compose .suggestions { display: none; }

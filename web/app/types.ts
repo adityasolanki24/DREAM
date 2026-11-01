@@ -41,19 +41,71 @@ export type Candidate = {
   views: number;
 };
 
+export type HomeMemoryObservation = {
+  time: number;
+  position: number[];
+  sigma: number;
+  confidence: number;
+  source: string;
+  place_id?: string | null;
+};
+
+export type HomeMemoryAffordance = { skill: string; outcome: string; time: number };
+
+export type HomeMemoryObject = {
+  id: string;
+  label: string;
+  map_id: string;
+  last_seen: number;
+  position: number[];
+  confidence_at_observation: number;
+  observation_source: string;
+  place_id?: string | null;
+  sightings?: number;
+  history?: HomeMemoryObservation[];
+  affordances?: HomeMemoryAffordance[];
+};
+
+export type HomeMemoryPlace = {
+  id: string;
+  name: string;
+  kind: string;
+  x: number;
+  y: number;
+  map_id: string;
+  parent?: string | null;
+};
+
+export type HomeMemoryEdge = { a: string; b: string; kind: string };
+
 export type HomeMemory = {
   available: boolean;
   source?: string;
+  place_source?: string;
   error?: string;
-  objects?: {
-    id: string;
-    label: string;
-    map_id: string;
-    last_seen: number;
-    position: number[];
-    confidence_at_observation: number;
-    observation_source: string;
-  }[];
+  history_per_object?: number;
+  objects?: HomeMemoryObject[];
+  places?: HomeMemoryPlace[];
+  edges?: HomeMemoryEdge[];
+};
+
+/** One force-graph entity from lib/sceneGraph.mjs. `value` scales the rendered sphere. */
+export type GraphNode = {
+  id: string;
+  type: 'room' | 'place' | 'object';
+  label: string;
+  value?: number;
+  meta?: Record<string, unknown>;
+};
+
+export type GraphLink = { source: string; target: string; type: string };
+
+export type GraphDataLite = {
+  source: 'home-memory' | 'session-candidates' | 'home-empty' | 'none' | string;
+  mapId: string | null;
+  nodes: GraphNode[];
+  links: GraphLink[];
+  notes: string[];
 };
 
 export type Snapshot = {

@@ -219,23 +219,73 @@ def make_validator(providers, default):
     return validate
 
 
+HISTORY_PER_OBJECT = 6  # observations shown per object in graph details; keeps the payload bounded
+AFFORDANCES_PER_OBJECT = 4  # stored skill outcomes per object ("used the handle: succeeded at t")
+MAX_OBJECTS = 100  # the interface inspects memory; it is not a data export
+
+
 def read_home_memory(path):
-    """Read last stored sightings without creating or altering the home-memory database."""
+    """Read last stored sightings without creating or altering the home-memory database.
+
+    Read-only and additive over time: besides the last sighting per object this also
+    returns the registered places, their stored connectivity edges and a bounded
+    observation history per object, all straight from the same tables the runtime
+    writes. It never assesses current evidence state (observed/remembered/missing) —
+    that is the agent's job, not the interface's.
+    """
     if path is None:
         return None
     try:
         db = sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True)
         try:
             rows = db.execute(
-                "SELECT o.id,o.label,o.map_id,v.time,v.x,v.y,v.z,v.confidence,v.source "
+                "SELECT o.id,o.label,o.map_id,v.time,v.x,v.y,v.z,v.confidence,v.source,"
+                "v.place_id,(SELECT COUNT(*) FROM observations w WHERE w.object_id=o.id) "
                 "FROM objects o JOIN observations v ON v.id=(SELECT id FROM observations "
-                "WHERE object_id=o.id ORDER BY time DESC LIMIT 1) ORDER BY v.time DESC LIMIT 100"
+                "WHERE object_id=o.id ORDER BY time DESC LIMIT 1) ORDER BY v.time DESC LIMIT "
+                f"{MAX_OBJECTS}"
             ).fetchall()
+            maps = sorted({r[2] for r in rows})
+            fmt = ",".join("?" * len(maps)) or "''"
+            places = db.execute(
+                "SELECT id,name,kind,x,y,map_id,parent FROM places WHERE map_id IN"
+                f" ({fmt}) ORDER BY id", maps,
+            ).fetchall() if maps else []
+            pids = {p[0] for p in places}
+            edges = db.execute(
+                "SELECT a,b,kind FROM place_edges ORDER BY a,b"
+            ).fetchall() if pids else []
+            edges = [e for e in edges if e[0] in pids and e[1] in pids]
+            ids = [r[0] for r in rows]
+            history = {i: [] for i in ids}
+            affordances = {i: [] for i in ids}
+            if ids:
+                hq = ",".join("?" * len(ids))
+                for oid, t, x, y, z, sigma, conf, source, place in db.execute(
+                    "SELECT object_id,time,x,y,z,sigma,confidence,source,place_id FROM"
+                    " observations WHERE object_id IN ("
+                    f"{hq}) ORDER BY time DESC",
+                    ids,
+                ):
+                    h = history[oid]
+                    if len(h) < HISTORY_PER_OBJECT:
+                        h.append({"time": t, "position": [x, y, z], "sigma": sigma,
+                                  "confidence": conf, "source": source, "place_id": place})
+                for oid, skill, outcome, time_ in db.execute(
+                    "SELECT object_id,skill,outcome,time FROM affordances"
+                    f" WHERE object_id IN ({hq}) ORDER BY time DESC",
+                    ids,
+                ):
+                    a = affordances[oid]
+                    if len(a) < AFFORDANCES_PER_OBJECT:
+                        a.append({"skill": skill, "outcome": outcome, "time": time_})
         finally:
             db.close()
         return {
             "available": True,
             "source": "home memory: last recorded sightings; current state not assessed",
+            "place_source": "places and stored connectivity edges from the same home memory",
+            "history_per_object": HISTORY_PER_OBJECT,
             "objects": [
                 {
                     "id": r[0],
@@ -245,9 +295,19 @@ def read_home_memory(path):
                     "position": list(r[4:7]),
                     "confidence_at_observation": r[7],
                     "observation_source": r[8],
+                    "place_id": r[9] or None,
+                    "sightings": r[10],
+                    "history": history[r[0]],
+                    "affordances": affordances[r[0]],
                 }
                 for r in rows
             ],
+            "places": [
+                {"id": p[0], "name": p[1], "kind": p[2], "x": p[3], "y": p[4], "map_id": p[5],
+                 "parent": p[6]}
+                for p in places
+            ],
+            "edges": [{"a": e[0], "b": e[1], "kind": e[2]} for e in edges],
         }
     except sqlite3.Error:
         return {"available": False, "error": "home memory could not be read"}
