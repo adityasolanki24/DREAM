@@ -1,0 +1,37 @@
+/* ---------- React Bits strands layer ----------
+   Replaces styles/orb.css. Presences, the wordmark strip and the ambient backdrop use the vendored
+   React Bits components (app/components/reactbits), which keep their own component CSS files. */
+
+.strands-host { position: relative; flex: none; display: grid; place-items: stretch; }
+.strands-host .strands-container, .brand-strands .strands-container { width: 100%; height: 100%; }
+
+/* wordmark strip (bare strands, no glass) */
+.brand-strands { flex: none; overflow: hidden; border-radius: 5px; }
+
+/* the one ambient backdrop, mounted once in AppShell inside .app */
+.ambient { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.ambient-waves { position: absolute; inset: 0; }
+.ambient-rays {
+  position: absolute; inset: 0 0 auto 0; height: 68%;
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent 100%); mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
+}
+/* every real content layer stays above the ambient canvas */
+.app > main, .app > .banner, .app > .tabbar { position: relative; z-index: 2; }
+/* reduced motion: no animated canvases, a static equivalent glow instead */
+@media (prefers-reduced-motion: reduce) {
+  .ambient-waves, .ambient-rays { visibility: hidden; }
+  .ambient::before {
+    content: ''; position: absolute; inset: 0; background:
+    radial-gradient(120% 70% at 50% 0%, rgba(100, 138, 255, 0.12), transparent 70%),
+    radial-gradient(110% 60% at 50% 100%, rgba(19, 28, 70, 0.4), transparent 78%);
+  }
+}
+
+/* star borders wrap existing buttons without changing their shape or hierarchy */
+.send.star-border {
+  display: grid; place-items: center; width: 30px; height: 30px; padding: 0; gap: 0; border-radius: 50%;
+}
+.connect-form .star-border.connect-submit { height: 40px; padding: 0 14px; border-radius: 10px; font-size: 13.5px; font-weight: 550; flex: none; }
+
+/* thought line under DREAM's message while the first action is being planned */
+.agent-thought { padding-left: 22px; }

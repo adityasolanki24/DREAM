@@ -11,8 +11,7 @@ import { useUi } from '../../lib/ui';
 import { CameraFrame } from '../camera/CameraFrame';
 import { Composer, Suggestions } from '../chat/Composer';
 import { AgentTurn, ThreadView } from '../chat/Conversation';
-import { DreamAurora } from '../aurora/DreamAurora';
-import { Orb } from '../Orb';
+import { DreamStrands } from '../Strands';
 import { PresenceLine } from '../PresenceLine';
 import { TaskControls } from '../task/TaskControls';
 import { Tip } from '../ui';
@@ -75,7 +74,7 @@ function CameraGlance() {
 
 export function CompanionView() {
   const { shown, feed, snapshot, link, tasks, stopping, models, status } = useSession();
-  const { listening, companionExpanded, setCompanionExpanded, setMode } = useUi();
+  const { listening, companionExpanded, setCompanionExpanded } = useUi();
   const narrow = useMediaQuery('(max-width: 860px)');
   const online = link === 'online';
   const thread = shown ? feed.threads[shown.id] : undefined;
@@ -87,14 +86,13 @@ export function CompanionView() {
   return (
     <LayoutGroup>
       <div className={`companion ${expanded ? 'is-expanded' : 'is-home'}`}>
-        <DreamAurora state={presence.state} dim={expanded} className="companion-aurora" />
         <AnimatePresence mode="popLayout" initial={false}>
           {!expanded ? (
             <motion.section key="home" className="companion-home scroll" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
               <div className="home-column">
                 <div className="home-spacer top" aria-hidden />
-                <motion.div layoutId="presence-orb" transition={spring} className="home-orb">
-                  <Orb state={presence.state} size={narrow ? 140 : 184} />
+                <motion.div layoutId="presence-strands" transition={spring} className="home-strands">
+                  <DreamStrands state={presence.state} size={narrow ? 140 : 184} />
                 </motion.div>
                 <div className="presence-copy" role="status" aria-live="polite">
                   <motion.h1 layoutId="presence-title" transition={spring} className="presence-title">{headline(presence, online)}</motion.h1>
@@ -109,7 +107,7 @@ export function CompanionView() {
                   <div className="latest">
                     <div className="latest-head">
                       <span className="rail-label">Latest</span>
-                      <button className="text-btn" onClick={() => setCompanionExpanded(true)}><MessagesSquare size={12} aria-hidden /> Open conversation <span className="kbd">E</span></button>
+                      <button className="text-btn" onClick={() => setCompanionExpanded(true)}><MessagesSquare size={12} aria-hidden /> Open conversation</button>
                     </div>
                     <div className="latest-body">
                       <p className="latest-goal">{shown.text}</p>
@@ -118,12 +116,6 @@ export function CompanionView() {
                   </div>
                 )}
                 <Recent excludeId={featured?.id} onOpen={() => setCompanionExpanded(true)} />
-                {tasks.length === 0 && online && (
-                  <div className="home-hints">
-                    <button className="text-btn" onClick={() => setMode('live')}>Watch the robot in Live <span className="kbd">Alt 2</span></button>
-                    <button className="text-btn" onClick={() => setMode('research')}>Inspect every step in Research <span className="kbd">Alt 3</span></button>
-                  </div>
-                )}
                 <div className="home-spacer bottom" aria-hidden />
                 <SessionFacts />
               </div>
@@ -131,8 +123,8 @@ export function CompanionView() {
           ) : (
             <motion.section key="conv" className="companion-conv" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
               <aside className="presence-rail">
-                <motion.div layoutId="presence-orb" transition={spring} className="rail-orb">
-                  <Orb state={presence.state} size={narrow ? 40 : 128} />
+                <motion.div layoutId="presence-strands" transition={spring} className="rail-strands">
+                  <DreamStrands state={presence.state} size={narrow ? 40 : 128} />
                 </motion.div>
                 <div className="rail-copy" role="status" aria-live="polite">
                   <motion.h1 layoutId="presence-title" transition={spring} className="rail-title">{presence.title}</motion.h1>

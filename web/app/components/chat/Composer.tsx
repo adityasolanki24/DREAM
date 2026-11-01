@@ -6,6 +6,8 @@ import { ModelPicker } from '../../ModelPicker';
 import { useDraft } from '../../lib/draft';
 import { useSession } from '../../lib/session';
 import { useUi } from '../../lib/ui';
+import StarBorder from '../reactbits/StarBorder';
+import { useThemeIsLight } from '../Strands';
 import { Tip } from '../ui';
 
 type Recogniser = {
@@ -41,6 +43,7 @@ export function Composer({ variant = 'docked', autoFocus = false }: { variant?: 
   const { link, models, submit, chatNotice } = useSession();
   const { setListening } = useUi();
   const { draft, setDraft, register } = useDraft();
+  const light = useThemeIsLight();
   const [busy, setBusy] = useState(false);
   const [listening, setLocalListening] = useState(false);
   const [voiceNote, setVoiceNote] = useState('');
@@ -124,7 +127,6 @@ export function Composer({ variant = 'docked', autoFocus = false }: { variant?: 
         <div className="composer-bar">
           <ModelPicker choices={models.choices} value={models.choice} onChange={models.select} disabled={!online} />
           <span className="composer-spacer" />
-          {draft && online && <span className="composer-hint" aria-hidden><span className="kbd">↵</span> send · <span className="kbd">⇧↵</span> newline</span>}
           <Tip label={voiceSupported ? (listening ? 'Stop voice input' : 'Voice input') : 'Voice input is not supported in this browser'} side="top">
             <span>
               <button
@@ -139,9 +141,11 @@ export function Composer({ variant = 'docked', autoFocus = false }: { variant?: 
               </button>
             </span>
           </Tip>
-          <button type="button" className={`send ${canSend ? 'ready' : ''}`} aria-label="Send task" disabled={!canSend} onClick={() => void send()}>
+          <StarBorder as="button" type="button" radius={15} duration={6} theme={light ? 'light' : 'dark'}
+            className={`send ${canSend ? 'ready' : ''}`} borderColor={canSend ? '#648AFF' : undefined}
+            aria-label="Send task" disabled={!canSend} onClick={() => void send()}>
             {busy ? <Loader2 size={15} className="spin" aria-hidden /> : <ArrowUp size={16} strokeWidth={2.4} aria-hidden />}
-          </button>
+          </StarBorder>
         </div>
       </div>
       {voiceNote && <small className="composer-voice-note">{voiceNote}</small>}

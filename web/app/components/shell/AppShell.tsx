@@ -14,7 +14,8 @@ import { useSession } from '../../lib/session';
 import { MODES, UiContext, useUi, type Mode, type StageView, type Ui } from '../../lib/ui';
 import { CompanionView } from '../companion/CompanionView';
 import { LiveView } from '../live/LiveView';
-import { OrbGlyph } from '../Orb';
+import { AmbientBackdrop } from '../AmbientBackdrop';
+import { StrandsGlyph, StrandsMark } from '../Strands';
 import { ResearchView } from '../research/ResearchView';
 import { Tip } from '../ui';
 import { CommandPalette } from './CommandPalette';
@@ -143,8 +144,9 @@ export function AppShell() {
       <Tooltip.Provider delayDuration={350} skipDelayDuration={150}>
         <CameraProvider>
           <div className="app" data-mode={mode} data-focus={focusMode}>
+            <AmbientBackdrop />
             <header className="topbar">
-              <div className="brand"><OrbGlyph size={16} /><span>DREAM</span></div>
+              <div className="brand"><StrandsMark width={62} height={18} /><span>DREAM</span></div>
               {!needsConnect && !mobile ? <ModeSwitch mode={mode} setMode={setMode} /> : <span />}
               <div className="top-right">
                 {fixture && (

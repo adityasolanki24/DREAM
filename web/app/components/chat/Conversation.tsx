@@ -6,7 +6,8 @@ import { argSummary, endTitle, type Thread, type Tool } from '../../feed.mjs';
 import { describeMeta, type ProviderEntry } from '../../../modelChoice.mjs';
 import { RUNNABLE, TERMINAL, shortModelLabel, suspendCopy, text, toolTone } from '../../lib/format';
 import type { Task } from '../../types';
-import { OrbGlyph } from '../Orb';
+import ThoughtLine from '../reactbits/ThoughtLine';
+import { StrandsGlyph } from '../Strands';
 import { StateChip } from '../ui';
 
 export function ToolIcon({ status, size = 13 }: { status: string; size?: number }) {
@@ -41,7 +42,7 @@ export function AgentTurn({ task, thread, stopping, modelLabel, modelTitle, comp
   return (
     <div className={`msg-agent state-${state}`}>
       <div className="agent-head">
-        <OrbGlyph size={14} />
+        <StrandsGlyph size={14} />
         <span className="agent-name">DREAM</span>
         {modelLabel && <span className="agent-model" title={`Ran with ${modelTitle ?? modelLabel}`}>{modelLabel}</span>}
         <StateChip state={state} />
@@ -50,7 +51,11 @@ export function AgentTurn({ task, thread, stopping, modelLabel, modelTitle, comp
       {compact && tools.length > shownTools.length && <p className="steps-more">{tools.length - shownTools.length} earlier steps</p>}
       {shownTools.length > 0 && <ol className="steps">{shownTools.map((t) => <ToolStep key={t.id} tool={t} />)}</ol>}
       {task.state === 'queued' && <p className="agent-line muted">Waiting for the robot to be free.</p>}
-      {state === 'running' && !stopping && !tools.length && <p className="agent-line"><span className="shimmer">Planning the first action…</span></p>}
+      {state === 'running' && !stopping && !tools.length && (
+        <div className="agent-line agent-thought">
+          <ThoughtLine label="Planning the first action…" fontSize={13.5} color="var(--text-secondary)" glyphColor="var(--accent)" showTimer />
+        </div>
+      )}
       {done && (
         <p className={`outcome tone-${state === 'succeeded' ? 'good' : state === 'cancelled' ? 'warn' : 'bad'}`}>
           <b>{endTitle(state)}.</b> {reason}

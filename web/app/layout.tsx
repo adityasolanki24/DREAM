@@ -3,7 +3,7 @@ import { GeistMono } from 'geist/font/mono';
 import { GeistSans } from 'geist/font/sans';
 import './style.css';
 import './styles/shell.css';
-import './styles/orb.css';
+import './styles/strands.css';
 import './styles/chat.css';
 import './styles/companion.css';
 import './styles/live.css';

@@ -39,7 +39,7 @@ export function presenceFor(
   return { state: 'thinking', title: 'Thinking', detail: 'Planning the next action' };
 }
 
-/** The orb's visual family for each state. */
+/** The strands' visual family for each state. */
 export const ORB_MODE: Record<PresenceState, 'rest' | 'listen' | 'think' | 'act' | 'observe' | 'warn' | 'stop' | 'done' | 'off'> = {
   offline: 'off', idle: 'rest', listening: 'listen', thinking: 'think', verifying: 'think', navigating: 'act', interacting: 'act',
   observing: 'observe', recovering: 'warn', paused: 'rest', waiting: 'rest', completed: 'done', failed: 'warn', 'safety-stopped': 'stop',

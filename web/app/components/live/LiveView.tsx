@@ -13,7 +13,7 @@ import { useUi } from '../../lib/ui';
 import { CameraFrame, ageText } from '../camera/CameraFrame';
 import { Composer, Suggestions, fillExample, useExamples } from '../chat/Composer';
 import { ThreadView } from '../chat/Conversation';
-import { Orb } from '../Orb';
+import { DreamStrands } from '../Strands';
 import { PresenceLine } from '../PresenceLine';
 import { TaskControls } from '../task/TaskControls';
 import { Segmented, Tip } from '../ui';
@@ -40,8 +40,8 @@ function StageEmpty({ onOpenChat }: { onOpenChat: () => void }) {
   const online = link === 'online';
   const title = link === 'connecting' ? 'Connecting to the session' : !online ? 'The robot backend is unreachable' : 'Waiting for the first frame';
   const body = !online
-    ? 'No camera can be shown without a live session. The interface keeps retrying in the background.'
-    : 'The head camera has not produced a frame in this session yet. Frames stream continuously when the media server is running, or arrive with each observation a task makes.';
+    ? 'No frame without a live session; the interface keeps retrying in the background.'
+    : 'The head camera has not produced a frame yet. Frames stream when the media server runs, or arrive with each observation a task makes.';
   return (
     <div className="stage-empty">
       <div className="stage-floor" aria-hidden />
@@ -78,7 +78,7 @@ function ActivityBar() {
   const runnable = shown && ['running', 'suspended', 'queued'].includes(shown.state);
   return (
     <div className={`activity-hud state-${presence.state}`} role="status" aria-live="polite">
-      <Orb state={presence.state} size={34} />
+      <DreamStrands state={presence.state} size={34} />
       <div className="activity-copy">
         <b>{presence.title}</b>
         <PresenceLine presence={presence} task={runnable ? shown : undefined} />
