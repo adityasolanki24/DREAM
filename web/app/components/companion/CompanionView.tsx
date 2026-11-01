@@ -11,6 +11,7 @@ import { useUi } from '../../lib/ui';
 import { CameraFrame } from '../camera/CameraFrame';
 import { Composer, Suggestions } from '../chat/Composer';
 import { AgentTurn, ThreadView } from '../chat/Conversation';
+import { DreamAurora } from '../aurora/DreamAurora';
 import { Orb } from '../Orb';
 import { PresenceLine } from '../PresenceLine';
 import { TaskControls } from '../task/TaskControls';
@@ -86,6 +87,7 @@ export function CompanionView() {
   return (
     <LayoutGroup>
       <div className={`companion ${expanded ? 'is-expanded' : 'is-home'}`}>
+        <DreamAurora state={presence.state} dim={expanded} className="companion-aurora" />
         <AnimatePresence mode="popLayout" initial={false}>
           {!expanded ? (
             <motion.section key="home" className="companion-home scroll" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>

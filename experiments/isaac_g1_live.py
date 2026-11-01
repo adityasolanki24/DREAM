@@ -26,6 +26,20 @@ sys.path.insert(0, str(ROOT))
 QWEN_REVISION = "ebb281ec70b05090aa6165b016eac8ec08e71b17"
 
 
+def emit_tool_event(path: pathlib.Path, api, sim_time_s: float, kind: str, text: str, **data) -> None:
+    """Record one measured tool event: durable JSONL row plus a live phone-API push.
+
+    The same row goes to both sinks so the session log and the phone feed stay
+    consistent; `api` may be None when no phone session is running.
+    """
+    row: dict = {"sim_time_s": float(sim_time_s), "kind": kind, "text": text, **data}
+    with pathlib.Path(path).open("a", encoding="utf-8") as stream:
+        stream.write(json.dumps(row, default=str) + "\n")
+        stream.flush()
+    if api is not None:
+        api.notify(kind, row)
+
+
 class PairedPhoneAPI:
     """Allow one private-IAP bootstrap to bind the laptop's existing random API token."""
 
@@ -245,12 +259,7 @@ def serve(args, cfg):
         events_path = out / "tool_events.jsonl"
 
         def tool_event(kind, text, **data):
-            row = {"sim_time_s": env.time, "kind": kind, "text": text, **data}
-            with events_path.open("a", encoding="utf-8") as stream:
-                stream.write(json.dumps(row, default=str) + "\n")
-                stream.flush()
-            if api_server is not None:
-                api_server.notify(kind, row)
+            emit_tool_event(events_path, api_server, env.time, kind, text, **data)
 
         toolbox = MobileToolbox(base, memory, on_event=tool_event, navigator="rpp")
         from dream.eval.isaac_scene import labelled_objects

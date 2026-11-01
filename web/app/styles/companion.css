@@ -1,10 +1,29 @@
 /* ---------- Companion ---------- */
 .companion { position: relative; display: flex; min-height: 0; overflow: hidden; }
-.companion::before {
-  content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: radial-gradient(ellipse 60% 46% at 50% 0%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 70%);
+.companion > section { position: relative; z-index: 1; flex: 1; min-width: 0; min-height: 0; }
+
+/* ambient Aurora behind the companion (see components/aurora) */
+:root[data-theme="dark"] .app[data-mode="companion"] { background: #080a10; }
+.companion-aurora {
+  position: absolute; inset: 0 0 auto 0; height: 78%; z-index: 0; pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%); mask-image: linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%);
+  transition: opacity 600ms ease;
 }
-.companion > section { position: relative; flex: 1; min-width: 0; min-height: 0; }
+.companion.is-expanded .companion-aurora { height: 60%; }
+.dream-aurora-fallback {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 45% 55% at 20% 0%, rgba(93, 228, 244, 0.16), transparent 70%),
+    radial-gradient(ellipse 50% 60% at 50% 0%, rgba(100, 138, 255, 0.18), transparent 72%),
+    radial-gradient(ellipse 45% 55% at 82% 0%, rgba(225, 139, 223, 0.14), transparent 70%);
+}
+.dream-aurora .aurora-container { position: absolute; inset: 0; }
+/* the canvas paints over the fallback when WebGL2 works */
+.dream-aurora:has(canvas) .dream-aurora-fallback { opacity: 0.35; }
+.dream-aurora[data-state="offline"] .dream-aurora-fallback { filter: grayscale(1); opacity: 0.2; }
+.dream-aurora[data-state="safety-stopped"] .dream-aurora-fallback { filter: hue-rotate(150deg) saturate(1.4); }
+.presence-rail { background: color-mix(in srgb, #080a10 55%, transparent); }
+:root[data-theme="light"] .presence-rail { background: color-mix(in srgb, var(--page) 70%, transparent); }
 
 /* home: the orb, what DREAM is doing, and the composer, composed as one column */
 .companion-home { overflow-y: auto; }

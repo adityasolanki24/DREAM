@@ -70,3 +70,14 @@ def test_cached_model_reuse_requires_exact_ready_revision(monkeypatch, tmp_path,
         with pytest.raises(RuntimeError, match="new model process required"):
             live.start_qwen(args, tmp_path)
         assert not (tmp_path / "qwen_reused.json").exists()
+
+
+def test_tool_notifications_use_phone_api_and_preserve_measured_event(tmp_path):
+    from dream.runtime.phone_api import PhoneAPI
+    api = PhoneAPI(None, "test-session-token-value-that-is-long")
+    path = tmp_path / "events.jsonl"
+    live.emit_tool_event(path, api, 12.5, "inspection", "partial observation", candidate=2)
+    row = json.loads(path.read_text())
+    assert row["sim_time_s"] == 12.5 and row["candidate"] == 2
+    assert api.events[0]["kind"] == "inspection"
+    assert api.events[0]["text"] == "partial observation"
