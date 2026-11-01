@@ -47,7 +47,7 @@ export function CameraProvider({ children }: { children: ReactNode }) {
     const source: FrameSource = rtc.live ? 'webrtc' : media.url ? 'jpeg' : snapCamera ? 'snapshot' : 'none';
     const ageS = source === 'jpeg' ? media.ageMs / 1000 : source === 'snapshot' && snapshot && snapCamera ? Math.max(0, snapshot.robot_time_s - snapCamera.time_s) : null;
     const frozen = source === 'webrtc' ? rtc.fps === 0 : source === 'jpeg' ? media.status.startsWith('simulation frozen') : false;
-    const transportLabel = source === 'webrtc' ? 'WebRTC · ICE/TCP' : source === 'jpeg' ? 'JPEG stream' : source === 'snapshot' ? 'Snapshot frame' : 'No video';
+    const transportLabel = source === 'webrtc' ? 'WebRTC · ICE/TCP' : source === 'jpeg' ? (media.mode === 'poll' ? 'JPEG polling' : 'MJPEG push') : source === 'snapshot' ? 'Snapshot frame' : 'No video';
     const statusLabel = source === 'webrtc'
       ? (frozen ? 'Simulation paused or not sensing' : `${rtc.fps} fps`)
       : source === 'jpeg' ? (frozen ? 'Simulation paused or not sensing' : media.status === 'live' ? `${media.fps} fps` : media.status)

@@ -304,6 +304,12 @@ class PhoneAPI:
         api = self
 
         class Handler(BaseHTTPRequestHandler):
+            # Keep-alive: over a tunnel or tailnet every new connection costs a round trip
+            # (≈1.5 s per request through IAP in the 31 Oct cloud run), so clients reuse one.
+            # Every reply carries Content-Length; errors and the MJPEG stream close instead.
+            protocol_version = "HTTP/1.1"
+            timeout = 60  # an idle kept-alive client cannot hold a server thread forever
+
             def _reply(self, method):
                 try:
                     n = int(self.headers.get("Content-Length") or 0)
@@ -355,6 +361,9 @@ class PhoneAPI:
                         "Content-Type", "multipart/x-mixed-replace; boundary=dreamframe"
                     )
                     self.send_header("Cache-Control", "no-store")
+                    # An endless body has no length: end the connection with the stream.
+                    self.send_header("Connection", "close")
+                    self.close_connection = True
                     self.end_headers()
                     after = None
                     while not api.camera.metadata()["closed"]:
@@ -364,7 +373,13 @@ class PhoneAPI:
                         after = frame.id
                         head = (
                             f"--dreamframe\r\nContent-Type: image/jpeg\r\n"
-                            f"Content-Length: {len(frame.jpeg)}\r\nX-Frame-Id: {frame.id}\r\n\r\n"
+                            f"Content-Length: {len(frame.jpeg)}\r\nX-Frame-Id: {frame.id}\r\n"
+                            # Per-part timing: a pushed client shows honest frame age
+                            # without an extra request (same headers as /camera/frame).
+                            f"X-Frame-Sequence: {frame.sequence}\r\n"
+                            f"X-Stream-Id: {api.camera.epoch}\r\n"
+                            f"X-Captured-Unix-S: {frame.captured_unix_s}\r\n"
+                            f"X-Server-Unix-S: {time.time()}\r\n\r\n"
                         )
                         self.wfile.write(head.encode() + frame.jpeg + b"\r\n")
                         self.wfile.flush()

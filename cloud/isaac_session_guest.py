@@ -89,6 +89,7 @@ def run(job: str) -> None:
         if kind not in PYTHONS:
             raise ValueError(f"unknown job environment {kind!r}")
         env = {**os.environ, "DREAM_CODE_SHA": spec["git_sha"], "DREAM_CACHE": "/work/cache",
+               "DREAM_BUCKET": BUCKET,
                "DREAM_RECORDINGS_ROOT": str(out / "recordings")}  # fmt: skip
         env.pop("MUJOCO_GL", None)
         env.pop("PYOPENGL_PLATFORM", None)

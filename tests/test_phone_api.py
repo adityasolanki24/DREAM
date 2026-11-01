@@ -161,3 +161,25 @@ def test_provider_or_model_without_a_registry_is_refused(api):
     assert call(api, "POST", "/tasks", {"text": "tidy", "provider": 3})[0] == 400
     assert call(api, "POST", "/tasks", {"text": "tidy", "model": 3})[0] == 400
     assert call(api, "GET", "/tasks")[1] == []
+
+
+def test_api_requests_reuse_one_connection(api):
+    """Keep-alive: a tunnelled or tailnet client must not pay a new connection per poll."""
+    import http.client
+
+    server = api.serve(port=0)
+    try:
+        conn = http.client.HTTPConnection("127.0.0.1", server.server_address[1], timeout=5)
+        headers = {"Authorization": f"Bearer {TOKEN}"}
+        conn.request("GET", "/status", headers=headers)
+        first = conn.getresponse()
+        first.read()
+        sock = conn.sock
+        conn.request("GET", "/tasks", headers=headers)
+        second = conn.getresponse()
+        assert second.status == 200 and json.loads(second.read()) == []
+        assert first.status == 200 and conn.sock is sock  # same socket: nothing reconnected
+        assert first.version == 11
+        conn.close()
+    finally:
+        server.shutdown()

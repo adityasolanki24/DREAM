@@ -383,7 +383,7 @@ def stop(manifest: Path, yes: bool) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("command", choices=["plan", "start", "submit", "stop", "ledger"])
+    ap.add_argument("command", choices=["plan", "start", "submit", "stop", "ledger", "tailnet-key"])
     ap.add_argument("--project", default=os.environ.get("DREAM_GCP_PROJECT", ""))
     ap.add_argument("--manifest", type=Path)
     ap.add_argument("--allowance-usd", type=float, default=0.0)
@@ -391,6 +391,7 @@ def main() -> None:
     ap.add_argument("--timeout-s", type=int, default=1800)
     ap.add_argument("--env", choices=["isaac", "dream"], default="isaac")
     ap.add_argument("--yes", action="store_true")
+    ap.add_argument("--key-file", type=Path, help="tailnet-key: auth key file (outside Git)")
     ap.add_argument("job", nargs="*", help="after --: experiments/<name>.py and its arguments")
     args, extra = ap.parse_known_args()
     if args.command == "submit":
@@ -411,6 +412,13 @@ def main() -> None:
         submit(args.manifest, module, rest, args.timeout_s, args.env)
     elif args.command == "stop":
         stop(args.manifest, args.yes)
+    elif args.command == "tailnet-key":
+        # One-time key for a live job's --tailnet-hostname; read and deleted on the VM.
+        from cloud import tailnet
+
+        bucket = json.loads(args.manifest.read_text())["bucket"]
+        tailnet.upload_key(bucket, args.key_file)
+        print(json.dumps({"uploaded_to": tailnet.key_uri(bucket), "key": "not printed"}))
     else:
         print(json.dumps(read_ledger(), indent=2))
 

@@ -222,6 +222,7 @@ def serve(args, cfg):
     out.mkdir(parents=True, exist_ok=True)
     evidence = Evidence(out)
     qwen_process = qwen_log = api_server = scheduler = camera = media = None
+    tailnet_joined = False
     stopped = False
 
     def request_stop(*_):
@@ -467,6 +468,13 @@ def serve(args, cfg):
             flush=True,
         )
         evidence.stage("phone_api_ready", port=args.api_port)
+        if args.tailnet_hostname:
+            from cloud import tailnet
+
+            joined = tailnet.join(os.environ["DREAM_BUCKET"], args.tailnet_hostname, out)
+            tailnet_joined = True
+            print(f"Tailnet address: http://{joined['dns_name']}:{args.api_port}", flush=True)
+            evidence.stage("tailnet_ready", dns_name=joined["dns_name"])
         deadline = time.monotonic() + args.duration_s
         run_tasks(
             app,
@@ -495,6 +503,10 @@ def serve(args, cfg):
                     "control_tick_ms": env.control_timings_ms,
                 },
             )
+        if tailnet_joined:
+            from cloud import tailnet
+
+            tailnet.leave()
         if api_server is not None:
             evidence.write(
                 "camera_delivery.json",
@@ -535,6 +547,10 @@ def main():
     parser.add_argument("--duration-s", type=int, default=1200)
     parser.add_argument("--media", action="store_true")
     parser.add_argument("--single-task", action="store_true")
+    parser.add_argument(
+        "--tailnet-hostname",
+        help="join the owner's tailnet as this name (API keeps its token)",
+    )
     args = parser.parse_args()
     cfg = json.loads(args.config.read_text(encoding="utf-8"))
     if args.kitchen not in cfg["development_kitchens"]:
