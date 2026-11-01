@@ -82,3 +82,22 @@ def test_tool_notifications_use_phone_api_and_preserve_measured_event(tmp_path):
     assert row["sim_time_s"] == 12.5 and row["candidate"] == 2
     assert api.events[0]["kind"] == "inspection"
     assert api.events[0]["text"] == "partial observation"
+
+
+def test_tool_event_fields_may_share_names_with_the_emitter_arguments(tmp_path):
+    """1 Nov cloud run: an event carrying a 'path' field crashed the task."""
+    path = tmp_path / "events.jsonl"
+    live.emit_tool_event(path, None, 1.0, "navigation", "walked", path=[[0, 0], [1, 0]])
+    assert json.loads(path.read_text())["path"] == [[0, 0], [1, 0]]
+
+
+def test_goal_bound_to_an_observed_point_passes_tool_validation():
+    """1 Nov cloud run: Qwen bound a GoToObserved goal and verify_goal refused it."""
+    from dream.tools.goals import GoToObserved, UnsupportedGoal
+    from dream.tools.mobile import MOBILE_SPECS
+    from dream.tools.toolbox import _validate
+
+    spec = MOBILE_SPECS["verify_goal"]["parameters"]
+    assert _validate(spec, {"goal": GoToObserved(1.0, 2.0, "frontier:0")}) == ""
+    assert _validate(spec, {"goal": UnsupportedGoal("cannot grasp")}) == ""
+    assert _validate(spec, {"goal": 3}) == "'goal' must be a structured goal"
