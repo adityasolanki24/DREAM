@@ -260,9 +260,12 @@ def serve(args, cfg):
             raise RuntimeError(f"G1 failed standing gate: {base.stop_reason}")
         memory = SpatialMemory(np.random.default_rng([args.start, 2]))
         events_path = out / "tool_events.jsonl"
+        # The phone API object (not its HTTP server) once it exists; tool events before then
+        # are only written to the log.
+        api_ref = {"api": None}
 
         def tool_event(kind, text, **data):
-            emit_tool_event(events_path, api_server, env.time, kind, text, **data)
+            emit_tool_event(events_path, api_ref["api"], env.time, kind, text, **data)
 
         toolbox = MobileToolbox(base, memory, on_event=tool_event, navigator="rpp")
         from dream.eval.isaac_scene import labelled_objects
@@ -370,7 +373,6 @@ def serve(args, cfg):
             "qwen_ready", model=qwen_choice.default_model, revision=QWEN_REVISION, gpu="NVIDIA L4"
         )
 
-        api_ref = {"api": None}
         task_finished_at = None
 
         def run_task(task, history, preempt, cancel):
@@ -418,7 +420,7 @@ def serve(args, cfg):
                 history=history,
                 preempt=preempt,
             )
-            verdict = toolbox.call("verify_goal", goal=task.goal).data
+            verdict = toolbox.call("verify_goal", {"goal": task.goal}).data
             candidate = verdict.get("candidate")
             result = score(
                 env, toolbox, episode.success_claimed, truth_handles, candidate_id=candidate

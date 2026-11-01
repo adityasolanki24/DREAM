@@ -183,3 +183,35 @@ def test_api_requests_reuse_one_connection(api):
         conn.close()
     finally:
         server.shutdown()
+
+
+def test_idle_stream_client_that_leaves_frees_its_slot(api):
+    """No frames (robot idle) means no failed write; the slot must still come back."""
+    import socket
+    import time
+
+    from dream.runtime.camera_stream import CameraStream
+
+    api.camera = CameraStream()  # never submitted to: the stream stays idle
+    server = api.serve(host="127.0.0.1", port=0)
+    port = server.server_address[1]
+    request = f"GET /camera/stream HTTP/1.1\r\nHost: x\r\nAuthorization: Bearer {TOKEN}\r\n\r\n"
+
+    def status():
+        s = socket.create_connection(("127.0.0.1", port), timeout=5)
+        s.sendall(request.encode())
+        return s, s.recv(64).split(b" ")[1]
+
+    try:
+        first, second = status(), status()
+        assert first[1] == second[1] == b"200"
+        assert status()[1] == b"429"  # two clients maximum
+        first[0].close()
+        second[0].close()
+        deadline = time.monotonic() + 5
+        while (code := status()[1]) != b"200" and time.monotonic() < deadline:
+            time.sleep(0.2)
+        assert code == b"200"
+    finally:
+        api.camera.close()
+        server.shutdown()

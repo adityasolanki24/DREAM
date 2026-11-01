@@ -16,6 +16,8 @@ import hmac
 import json
 import mimetypes
 import secrets
+import select
+import socket
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -125,6 +127,17 @@ def load_or_create_token(path: Path | None = None) -> str:
     token = secrets.token_urlsafe(32)
     path.write_text(token)
     return token
+
+
+def _peer_closed(sock: socket.socket) -> bool:
+    """True once the client has closed its end (readable with nothing to read)."""
+    try:
+        readable, _, _ = select.select([sock], [], [], 0)
+        return bool(readable) and sock.recv(1, socket.MSG_PEEK) == b""
+    except (BlockingIOError, InterruptedError):
+        return False
+    except OSError:
+        return True
 
 
 class PhoneAPI:
@@ -369,6 +382,10 @@ class PhoneAPI:
                     while not api.camera.metadata()["closed"]:
                         frame = api.camera.wait(after)
                         if frame is None:
+                            # No frame to write means no write to fail: without this check a
+                            # client that left while the robot was idle would hold its slot.
+                            if _peer_closed(self.connection):
+                                break
                             continue
                         after = frame.id
                         head = (
