@@ -1,13 +1,16 @@
 'use client';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { ORB_MODE, type PresenceState } from '../lib/presence';
+import { detentsCrossed, dragStep, pointerAngle, SETTLE_V, stepSpin, TAP_RAD } from '../lib/orbSpin.mjs';
 import ReactBitsStrands from './reactbits/Strands';
 
 /**
- * DREAM's presence: the React Bits Strands (vendored unmodified in ./reactbits/Strands.tsx) driven only
- * through its own props. Each visual family maps to a real state from presenceFor(); pointer gimmicks
- * (follow cursor, click pulse) are off so the strands only ever reflect what the robot and the model
- * are actually doing. Ported from the previous Orb presence map with the same families and palettes.
+ * DREAM's presence: the React Bits Strands (vendored in ./reactbits/Strands.tsx) driven only through
+ * its own props. Each visual family maps to a real state from presenceFor(), so the strands always
+ * reflect what the robot and the model are actually doing. Instances marked `interactive` are also
+ * graspable: a drag spins the strands inside the glass (inertia, detent haptics and a tap pulse)
+ * while the sphere shading stays fixed, as with real glass. Ported from the previous Orb presence
+ * map with the same families and palettes.
  */
 type Mode = ReturnType<typeof modeOf>;
 type Look = { colors: [string, string]; energy: number; speed: number; listening: boolean; opacity: number };
@@ -59,14 +62,123 @@ export function useThemeIsLight() {
   return light;
 }
 
-/** The presence orb: one live Strands canvas per visible presence, not per message. */
-export function DreamStrands({ state, size = 200, className = '' }: { state: PresenceState; size?: number; className?: string }) {
+/** Haptics, guarded: desktop browsers ignore it, and iOS Safari ships no API — always best effort. */
+const buzz = (pattern: number | number[]) => {
+  try {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate(pattern);
+  } catch {
+    /* vibration is disallowed or unsupported; feedback stays visual */
+  }
+};
+
+/**
+ * The presence orb: one live Strands canvas per visible presence, not per message. With
+ * `interactive` the orb is graspable — drag to spin the strands inside the glass (with inertia,
+ * detent ticks and a tap pulse) while the sphere itself stays fixed, as with real glass. The
+ * state families keep reflecting the robot either way. Small rails and chips stay passive.
+ */
+export function DreamStrands({
+  state, size = 200, className = '', interactive = false,
+}: { state: PresenceState; size?: number; className?: string; interactive?: boolean }) {
   const [look, setLook] = useState<Look>(() => lookFor(state));
   const [flash, setFlash] = useState(false);
   const shown = useRef(look);
   const previous = useRef(state);
   const small = size < 48;
   const light = useThemeIsLight();
+
+  // Drag-to-spin. `spin` holds the truth (roll + angular velocity); the `roll` state only mirrors
+  // it into the renderer's prop. Pointers drive it per event, the released coast per rAF frame.
+  const hostRef = useRef<HTMLDivElement | null>(null);
+  const [roll, setRoll] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const spin = useRef({ roll: 0, vel: 0 });
+  const gesture = useRef<null | { id: number; pa: number | null; t0: number; total: number; moved: boolean }>(null);
+  const coastRaf = useRef(0);
+  const engaged = useRef(-1e9);  // last release (performance.now()); gates the completed-flash haptic
+
+  const stopCoast = () => { if (coastRaf.current) { cancelAnimationFrame(coastRaf.current); coastRaf.current = 0; } };
+  useEffect(() => () => { if (coastRaf.current) cancelAnimationFrame(coastRaf.current); }, []);
+
+  const centreOf = (e: { clientX: number; clientY: number }) => {
+    const el = hostRef.current;
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { cx: r.left + r.width / 2, cy: r.top + r.height / 2, radius: Math.min(r.width, r.height) / 2 };
+  };
+
+  const startCoast = () => {
+    stopCoast();
+    if (Math.abs(spin.current.vel) <= SETTLE_V) { spin.current.vel = 0; return; }
+    let last = performance.now();
+    const tick = (now: number) => {
+      const dt = Math.min(0.05, Math.max(0.001, (now - last) / 1000));  // a returned tab never teleports the spin
+      last = now;
+      const s = stepSpin(spin.current.roll, spin.current.vel, dt);
+      spin.current.roll = s.angle;
+      spin.current.vel = s.vel;
+      setRoll(s.angle);
+      coastRaf.current = s.settled ? 0 : requestAnimationFrame(tick);
+    };
+    coastRaf.current = requestAnimationFrame(tick);
+  };
+
+  const onDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    stopCoast();
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;  // reduced motion: the orb stays a passive presence
+    if (e.pointerType === 'mouse' && e.button !== 0) return;  // respond to the primary button only
+    if (gesture.current) return;  // a second pointer never steals the spin
+    const c = centreOf(e);
+    if (!c) return;
+    try { hostRef.current?.setPointerCapture(e.pointerId); } catch { /* capture is an enhancement */ }
+    gesture.current = { id: e.pointerId, pa: null, t0: e.timeStamp, total: 0, moved: false };
+    spin.current.vel = 0;  // catching the glass stops its momentum
+    setDragging(true);
+    buzz(5);  // light acknowledgment on first contact
+  };
+
+  const onMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const g = gesture.current;
+    if (!g || e.pointerId !== g.id) return;
+    const c = centreOf(e);
+    if (!c) return;
+    const pa = pointerAngle(e.clientX, e.clientY, c.cx, c.cy);
+    if (g.pa == null) {
+      // Near the core the angle is noise: wait for a usable handle direction before rolling.
+      if (Math.hypot(e.clientX - c.cx, e.clientY - c.cy) <= c.radius * 0.25) return;
+      g.pa = pa;
+      g.t0 = e.timeStamp;
+      return;
+    }
+    const step = dragStep({ angle: spin.current.roll, vel: spin.current.vel }, g.pa, pa, g.t0, e.timeStamp);
+    g.pa = pa;
+    g.t0 = e.timeStamp;
+    g.total += step.d;
+    spin.current.roll = step.angle;
+    spin.current.vel = step.vel;
+    if (!g.moved && Math.abs(g.total) > TAP_RAD) g.moved = true;
+    setRoll(step.angle);
+    if (detentsCrossed(g.total - step.d, g.total) > 0) buzz(2);  // a tick per quarter turn, like a physical detent
+  };
+
+  const endDrag = (e: ReactPointerEvent<HTMLDivElement>, lively: boolean) => {
+    const g = gesture.current;
+    if (!g || e.pointerId !== g.id) return;
+    gesture.current = null;
+    setDragging(false);
+    engaged.current = performance.now();
+    try {
+      if (hostRef.current?.hasPointerCapture(e.pointerId)) hostRef.current.releasePointerCapture(e.pointerId);
+    } catch { /* the capture may already be gone */ }
+    if (!lively) return;  // cancelled (palm rejection, teardown): no inertia, no haptic
+    if (!g.moved) { buzz(12); return; }  // a tap answers with one clear pulse
+    if (e.timeStamp - g.t0 > 100) spin.current.vel = 0;  // the pointer was parked; a stale flick speed must not fire
+    buzz(Math.abs(spin.current.vel) > 3 ? 10 : 6);  // a thrown release answers stronger than a slow one
+    startCoast();
+  };
+
+  const onUp = (e: ReactPointerEvent<HTMLDivElement>) => endDrag(e, true);
+  const onCancel = (e: ReactPointerEvent<HTMLDivElement>) => endDrag(e, false);
 
   useEffect(() => {
     const from = shown.current;
@@ -82,12 +194,28 @@ export function DreamStrands({ state, size = 200, className = '' }: { state: Pre
     const was = previous.current;
     previous.current = state;
     let off: ReturnType<typeof setTimeout> | undefined;
-    if (state === 'completed' && was !== 'completed') { setFlash(true); off = setTimeout(() => setFlash(false), 1400); }
+    if (state === 'completed' && was !== 'completed') {
+      setFlash(true);
+      off = setTimeout(() => setFlash(false), 1400);
+      // While the user is still with the orb (2.5 s), a success gets a three-beat haptic.
+      if (interactive && performance.now() - engaged.current < 2500) buzz([12, 60, 18]);
+    }
     return () => { clearInterval(timer); if (off) clearTimeout(off); };
-  }, [state]);
+  }, [state, interactive]);
 
   return (
-    <div className={`strands-host ${className}`} data-state={state} style={{ width: size, height: size }} aria-hidden>
+    <div
+      ref={hostRef}
+      className={`strands-host ${className}${interactive ? ' is-interactive' : ''}${dragging ? ' is-dragging' : ''}`}
+      data-state={state}
+      style={{ width: size, height: size }}
+      aria-hidden
+      onPointerDown={interactive ? onDown : undefined}
+      onPointerMove={interactive ? onMove : undefined}
+      onPointerUp={interactive ? onUp : undefined}
+      onPointerCancel={interactive ? onCancel : undefined}
+      onLostPointerCapture={interactive ? (e) => endDrag(e, false) : undefined}
+    >
       <ReactBitsStrands
         colors={look.colors}
         energy={Math.min(1, look.energy + (flash ? 0.35 : 0))}
@@ -95,8 +223,9 @@ export function DreamStrands({ state, size = 200, className = '' }: { state: Pre
         glass
         listening={look.listening}
         opacity={look.opacity}
-        interactive={false}
-        clickPulse={false}
+        roll={interactive ? roll : 0}
+        interactive={interactive}
+        clickPulse={interactive}
         intro
         lightMode={light}
         // Small slots need extra pixel density to stay crisp (the same rule the Orb host used).

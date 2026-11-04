@@ -44,7 +44,7 @@ export function ConnectScreen({ link, error, onConnect }: { link: Link; error: s
   return (
     <main className="connect-screen">
       <div className="connect-inner">
-        <DreamStrands state={link === 'connecting' ? 'thinking' : link === 'unauthorised' ? 'failed' : 'offline'} size={132} />
+        <DreamStrands state={link === 'connecting' ? 'thinking' : link === 'unauthorised' ? 'failed' : 'offline'} size={132} interactive />
         <h1>{link === 'offline' ? 'Cannot reach the robot backend' : link === 'connecting' ? 'Connecting…' : 'Connect to DREAM'}</h1>
         <ConnectForm link={link} error={error} onConnect={onConnect} />
       </div>

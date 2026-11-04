@@ -1,5 +1,15 @@
 'use client';
 
+/**
+ * Vendored from React Bits (reactbits.dev, 2026-11-01). One documented modification since then:
+ * the `roll` prop and the `uRoll` uniform. DREAM's presence orb is dragged to spin, and the roll
+ * is applied to the *sample space* of the strands (`pc` before `remap`/`light`) inside the glass
+ * sphere only — so the strands and their energy turn inside a sphere whose shading, rim and
+ * caustics stay fixed to the view (as they would on real glass). A slow idle roll is integrated
+ * internally in the animation loop so resting orbs also turn without React re-renders. The
+ * non-glass branch (the wordmark strip) is untouched.
+ */
+
 import React, { useEffect, useRef } from 'react';
 import './Strands.css';
 
@@ -23,6 +33,7 @@ interface StrandsProps {
   dispersion?: number;
   glassSize?: number;
   rim?: number;
+  roll?: number;
   energy?: number;
   listening?: boolean;
   level?: number;
@@ -55,6 +66,7 @@ interface StrandsConfig {
   dispersion: number;
   glassSize: number;
   rim: number;
+  roll: number;
   energy: number;
   listening: boolean;
   level?: number;
@@ -99,6 +111,7 @@ uniform float uRefraction;
 uniform float uDispersion;
 uniform float uRim;
 uniform vec2 uLean;
+uniform float uRoll;
 uniform float uIntro;
 uniform float uPulse;
 uniform float uLight;
@@ -283,9 +296,14 @@ void main() {
       fragColor = vec4(0.0, 0.0, 0.0, sh);
       return;
     }
+    // strands roll inside the fixed glass: rotate only the light() sample space; the sphere
+    // shading below (r, rho, d) stays computed from the unrotated pc, so lighting is view-fixed.
+    float cr = cos(uRoll);
+    float sr = sin(uRoll);
+    vec2 pcR = mat2(cr, sr, -sr, cr) * pc;
     float r;
     float bend;
-    vec2 u = remap(pc, 1.0, r, bend);
+    vec2 u = remap(pcR, 1.0, r, bend);
     float fp = 0.5 * max(length(dFdx(u)), length(dFdy(u)));
     float halo;
     float skip;
@@ -294,8 +312,8 @@ void main() {
     if (ca > 0.0015) {
       float r2;
       float b2;
-      L.r = light(remap(pc, 1.0 - ca, r2, b2), fp, bend, level, skip).r;
-      L.b = light(remap(pc, 1.0 + ca, r2, b2), fp, bend, level, skip).b;
+      L.r = light(remap(pcR, 1.0 - ca, r2, b2), fp, bend, level, skip).r;
+      L.b = light(remap(pcR, 1.0 + ca, r2, b2), fp, bend, level, skip).b;
     }
     vec3 col = 1.0 - exp(-L);
     vec2 d = pc / max(rho, 1e-6);
@@ -401,6 +419,7 @@ export default function Strands({
   dispersion = 1,
   glassSize = 1,
   rim = 1,
+  roll = 0,
   energy = 0.65,
   listening = false,
   level,
@@ -434,6 +453,7 @@ export default function Strands({
     dispersion,
     glassSize,
     rim,
+    roll,
     energy,
     listening,
     level,
@@ -480,6 +500,7 @@ export default function Strands({
       'uRefraction',
       'uDispersion',
       'uRim',
+      'uRoll',
       'uLean',
       'uIntro',
       'uPulse',
@@ -517,6 +538,7 @@ export default function Strands({
       burst: 0,
       lean: [0, 0] as number[],
       leanTarget: [0, 0] as number[],
+      idleRoll: 0,
       pulse: 0,
       pulseV: 0,
       introStart: -1,
@@ -596,6 +618,7 @@ export default function Strands({
       gl.uniform1f(loc.uDispersion, p.dispersion);
       gl.uniform1f(loc.uRim, p.rim);
       gl.uniform2f(loc.uLean, st.lean[0], st.lean[1]);
+      gl.uniform1f(loc.uRoll, st.idleRoll + p.roll);
       gl.uniform1f(loc.uIntro, st.intro);
       gl.uniform1f(loc.uPulse, st.pulse);
       gl.uniform1f(loc.uLight, p.lightMode ? 1 : 0);
@@ -630,6 +653,7 @@ export default function Strands({
       st.pace += (Math.min(1, st.activity) - st.pace) * (1 - Math.exp(-dt / 0.8));
       if (!reduced) {
         st.clock += dt * p.speed * (0.6 + 1.6 * st.pace);
+        st.idleRoll += dt * 0.14 * p.speed * (0.3 + 0.7 * st.pace);  // resting strands also turn
       }
       draw();
       const settled =

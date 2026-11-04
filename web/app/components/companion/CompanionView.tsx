@@ -92,7 +92,7 @@ export function CompanionView() {
               <div className="home-column">
                 <div className="home-spacer top" aria-hidden />
                 <motion.div layoutId="presence-strands" transition={spring} className="home-strands">
-                  <DreamStrands state={presence.state} size={narrow ? 140 : 184} />
+                  <DreamStrands state={presence.state} size={narrow ? 140 : 184} interactive />
                 </motion.div>
                 <div className="presence-copy" role="status" aria-live="polite">
                   <motion.h1 layoutId="presence-title" transition={spring} className="presence-title">{headline(presence, online)}</motion.h1>
