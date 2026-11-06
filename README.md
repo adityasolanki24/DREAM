@@ -75,10 +75,35 @@ or Qwen results. Conditions, paths, tool outcomes and negative media attempts ar
 in `results/mobile_recovery_20261031`. Historical search scores above remain historical;
 the changed viewpoint selection has not been re-evaluated on the old held-out distribution.
 
+### Closeout corrections after the 1 Nov genuine-Qwen sessions
+
+Four genuine Qwen sessions (31 Oct and three on 1 Nov; development, interactive, not
+predeclared, simulation, oracle-assisted odometry) are preserved in
+`results/isaac_qwen_live_20261101` with checksums and `summary.json`. They exposed two
+defects, now corrected and regression-tested (`tests/test_closeout_defects.py`,
+`tests/test_isaac_live_replay.py`): a "walk to the refrigerator" request bound to a frontier
+the robot already stood on was reported as success, and a viewpoint 1.37 m from a handle
+against a 1.40 m limit was chosen although arrival errors of 0.10-0.12 m were measured.
+Reaching a frontier is now an explicit incomplete outcome
+(`exploration_point_reached_target_unverified`, success false), the final reason text is
+generated from the typed verdict (the model's text is kept as `model_reason`), and viewpoints
+leave a 0.15 m arrival margin (the inspection predicate is unchanged). Live tasks are now scored
+by task type (`dream/eval/task_scoring.py`; the new scoring has not yet run in Isaac). The cloud
+cost guard now reads every desktop app's ledger, because the Claude and Codex apps virtualise
+`%LOCALAPPDATA%`. The deterministic CPU loop was re-run on the corrected code
+(`results/mobile_recovery_closeout_20261106`): seeds 0 and 2 both passed independent
+verification with zero contacts, zero safety stops and zero false claims; seed 0 is unchanged
+(37.52 s, 5.31 m) and seed 2 now finishes in 22.32 s over 2.39 m (was 39.82 s, 5.12 m) because
+the first viewpoint it reaches now satisfies the inspection predicate. These remain development
+cases, not held-out or Qwen results. No fresh cloud evaluation has been made.
+
 | Change | Classification | Evidence and remaining limit |
 |---|---|---|
 | Instance-bound goal verification and incomplete-inspection results | General algorithmic correction | Saved failures and regression tests; no physics or scene simplification |
 | Reachable inspection-cell selection with handle-side, heading and sightline checks | General algorithmic correction | Saved candidate 2/9 audit and two independent development physics cases; estimated-map geometry remains fallible |
+| Frontier reached is exploration, not task completion; no reached frontier offered | General algorithmic correction | 1 Nov session replay and unit tests; independent cases are the two development episodes above, not held-out |
+| Viewpoint arrival margin 0.15 m | General algorithmic correction | Saved 1 Nov map replay; seed 2 re-run; margin chosen from two measured arrival errors, not tuned on held-out data |
+| Cost guard reads all desktop apps' ledgers | General algorithmic correction | Offline regression tests; the combined ledger and earlier-run estimates now exceed the previous per-app view |
 | Latest-only JPEG and separate NVENC/WHEP publisher | Delivery engineering | Auth/cache/drop/reconnect tests; 40/40 frames encoded and recorded with local software codec after two preserved failed plumbing attempts; cloud NVENC and real browser playback pending |
 
 The final fast suite passed 503 tests (one skipped), and the 31 JavaScript tests and production

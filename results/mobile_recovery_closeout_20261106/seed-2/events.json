@@ -1,0 +1,281 @@
+[
+  {
+    "sim_s": 0.0,
+    "kind": "goal",
+    "text": "",
+    "goal": "Inspect(target='cabinet', candidate=None)",
+    "resumed_steps": 0
+  },
+  {
+    "sim_s": 0.0,
+    "kind": "verification",
+    "text": "",
+    "verdict": {
+      "satisfied": false,
+      "reason": "no box with a handle seen"
+    },
+    "goal": "Inspect(target='cabinet', candidate=None)"
+  },
+  {
+    "sim_s": 0.0,
+    "kind": "action",
+    "text": "",
+    "tool": "look_around",
+    "args": {}
+  },
+  {
+    "sim_s": 12.840000000000607,
+    "kind": "result",
+    "text": "",
+    "tool": "look_around",
+    "status": "succeeded",
+    "message": "",
+    "data": {
+      "frames": 10
+    }
+  },
+  {
+    "sim_s": 12.840000000000607,
+    "kind": "verification",
+    "text": "",
+    "verdict": {
+      "satisfied": false,
+      "candidate": 1,
+      "at_inspection_pose": false,
+      "reason": "1.66 m from the handle",
+      "instances": [
+        {
+          "satisfied": false,
+          "candidate": 1,
+          "at_inspection_pose": false,
+          "reason": "1.66 m from the handle"
+        }
+      ]
+    },
+    "goal": "Inspect(target='cabinet', candidate=None)"
+  },
+  {
+    "sim_s": 12.840000000000607,
+    "kind": "action",
+    "text": "",
+    "tool": "approach",
+    "args": {
+      "candidate": 1,
+      "side": 1
+    }
+  },
+  {
+    "sim_s": 12.840000000000607,
+    "kind": "viewpoint",
+    "text": "validated approach target",
+    "candidate": 1,
+    "side": 1,
+    "xy": [
+      -0.42499999999999927,
+      -0.2749999999999998
+    ],
+    "heading": -2.4782792748899527
+  },
+  {
+    "sim_s": 12.840000000000607,
+    "kind": "action",
+    "text": "approach candidate 1 (purple) side 1"
+  },
+  {
+    "sim_s": 12.840000000000607,
+    "kind": "navigation_path",
+    "text": "planned path",
+    "goal": [
+      -0.42499999999999927,
+      -0.2749999999999998
+    ],
+    "heading": -2.4782792748899527,
+    "path": [
+      [
+        -0.11843395555820042,
+        0.003753508406366036
+      ],
+      [
+        -0.15249684938506697,
+        -0.02721910363878572
+      ],
+      [
+        -0.1865597432119335,
+        -0.05819171568393747
+      ],
+      [
+        -0.22062263703880003,
+        -0.08916432772908922
+      ],
+      [
+        -0.2546855308656666,
+        -0.12013693977424099
+      ],
+      [
+        -0.28874842469253315,
+        -0.15110955181939273
+      ],
+      [
+        -0.32281131851939965,
+        -0.18208216386454448
+      ],
+      [
+        -0.35687421234626615,
+        -0.21305477590969624
+      ],
+      [
+        -0.3909371061731327,
+        -0.24402738795484802
+      ],
+      [
+        -0.42499999999999927,
+        -0.2749999999999998
+      ]
+    ]
+  },
+  {
+    "sim_s": 18.640000000000576,
+    "kind": "result",
+    "text": "",
+    "tool": "approach",
+    "status": "succeeded",
+    "message": "",
+    "data": {
+      "error_m": 0.14332713980995773,
+      "replans": 0,
+      "candidate": {
+        "id": 1,
+        "reference": "candidate:1",
+        "color": "purple",
+        "position": [
+          -1.479,
+          -1.191,
+          0.489
+        ],
+        "extent": [
+          0.316,
+          0.523,
+          0.98
+        ],
+        "views": 6,
+        "handle": [
+          -1.399,
+          -1.048,
+          0.725
+        ],
+        "handle_views": 5,
+        "handle_side": 1,
+        "sides_seen_close": [
+          0,
+          1,
+          2
+        ]
+      }
+    }
+  },
+  {
+    "sim_s": 18.640000000000576,
+    "kind": "verification",
+    "text": "",
+    "verdict": {
+      "satisfied": false,
+      "candidate": 1,
+      "at_inspection_pose": true,
+      "reason": "inspection from this pose still required",
+      "instances": [
+        {
+          "satisfied": false,
+          "candidate": 1,
+          "at_inspection_pose": true,
+          "reason": "inspection from this pose still required"
+        }
+      ]
+    },
+    "goal": "Inspect(target='cabinet', candidate=None)"
+  },
+  {
+    "sim_s": 18.640000000000576,
+    "kind": "action",
+    "text": "",
+    "tool": "inspect",
+    "args": {
+      "candidate": 1
+    }
+  },
+  {
+    "sim_s": 22.319999999999844,
+    "kind": "result",
+    "text": "",
+    "tool": "inspect",
+    "status": "succeeded",
+    "message": "inspection complete",
+    "data": {
+      "handle_observed": true,
+      "handle_confirmed_close": true,
+      "inspection_complete": true,
+      "candidate": {
+        "id": 1,
+        "reference": "candidate:1",
+        "color": "purple",
+        "position": [
+          -1.471,
+          -1.189,
+          0.489
+        ],
+        "extent": [
+          0.461,
+          0.558,
+          0.981
+        ],
+        "views": 12,
+        "handle": [
+          -1.402,
+          -1.049,
+          0.725
+        ],
+        "handle_views": 10,
+        "handle_side": 1,
+        "sides_seen_close": [
+          0,
+          1,
+          2
+        ]
+      },
+      "seen": "a box-like object with a handle on one face",
+      "inferred": "probably opens (a handle suggests a door, drawer or lid)",
+      "unknown": "how it moves: hinge side, sliding, lift or fixed; resistance; latches. Not observable without a physical interaction.",
+      "would_resolve_it": "a force-limited probe of the handle along candidate directions",
+      "at_inspection_pose": true,
+      "pose_note": ""
+    }
+  },
+  {
+    "sim_s": 22.319999999999844,
+    "kind": "verification",
+    "text": "",
+    "verdict": {
+      "satisfied": true,
+      "candidate": 1,
+      "at_inspection_pose": true,
+      "reason": "handle observed from a valid inspection pose",
+      "instances": [
+        {
+          "satisfied": true,
+          "candidate": 1,
+          "at_inspection_pose": true,
+          "reason": "handle observed from a valid inspection pose"
+        }
+      ]
+    },
+    "goal": "Inspect(target='cabinet', candidate=None)"
+  },
+  {
+    "sim_s": 22.319999999999844,
+    "kind": "finish",
+    "text": "",
+    "success": true,
+    "reason": "measured inspection complete",
+    "completion": null,
+    "model_reason": null
+  }
+]
