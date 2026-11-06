@@ -1,0 +1,25 @@
+{
+  "name": "g1_explore_room_bisect_closeout",
+  "status": "frozen",
+  "label": "diagnostic bisect; not held-out, not a replacement for any frozen result, no gate evaluated",
+  "_note": "Which commit between 44ab7c4 (results/g1_explore_room, nominal 20/20, shifted 8/10, no_cabinet 6/6) and a3b4304 (the code of results/g1_explore_room_regression_closeout/A1: 19/20, 6/10, 6/6) changes the three seeds that regressed: nominal 1013, shifted 2000 and 2004. Same room generators (dream.sim.room.sample_room with the kind's shifted/with_cabinet flags), same RoomSearchPlanner gain arm, same budgets as the historical run. Seeds are single values here, not half-open ranges.",
+  "seeds": {"nominal": [1013], "shifted": [2000, 2004]},
+  "methods": ["gain"],
+  "time_budget_s": 240,
+  "max_steps": 60,
+  "record": [],
+  "tested_commits": [
+    "44ab7c4", "5b6af0b", "cf47597", "55fce36", "0205480", "26ffcc0", "95506e3",
+    "82b11a3", "34167bc", "b8208bb", "12a9d15", "5b02731", "13e4c95", "a3b4304"
+  ],
+  "tested_commits_note": "Every commit in 44ab7c4..a3b4304 that changes a file the room runner imports (git log -- dream/robot/g1_wbc.py dream/runtime/agent.py dream/runtime/search.py dream/perception dream/tools dream/sim dream/navigation dream/eval) plus the endpoints, 5b02731's parent 12a9d15 and b8208bb. Each is run from a copy of its own dream/ tree and its own runner; dream/ is never edited (the tree hash of each copy is recorded and compared with git rev-parse <sha>:dream).",
+  "extra_arms": {
+    "control": "44ab7c4 on the cloud VM, compared with the historical rows (outcome, sim_s, path_m, tool calls).",
+    "A3_lite": "current code with ARRIVAL_MARGIN = 0.0 (claude/room-margin-diagnostic 1fce5c5) on the same three seeds.",
+    "perturbation": "start pose shifted by 1 mm in x, then 1 mm in y, at 44ab7c4 and a3b4304: a harmless change to see whether outcomes are sensitive to tiny route changes."
+  },
+  "gates": {"_note": "none; diagnostic"},
+  "expected_read": "Report, per seed, the first tested commit at which that seed's success changes relative to the 44ab7c4 control run on the same VM (not relative to history if the control does not reproduce history). Read the behavioural mechanism from the code diff of that commit and from the per-step records either side of it (tool calls, viewpoints, contacts, candidates). Classify each as deliberate trade-off (e.g. a stricter refusal), defect, or chaotic sensitivity (no logical relation between the change and the outcome, shown where possible by a perturbation flipping the outcome). Seeds may flip at different commits. No code is fixed here.",
+  "environment": "one cloud session, g2-standard-8, MuJoCo 3.16, MUJOCO_GL=egl. MuJoCo outcomes across machines are not guaranteed bit-exact.",
+  "operations": "one rerun only for a mechanical crash, logs kept"
+}
