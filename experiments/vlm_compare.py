@@ -17,7 +17,6 @@ import hashlib
 import json
 import pathlib
 import statistics
-import subprocess
 import sys
 import time
 
@@ -29,6 +28,7 @@ sys.path.insert(0, str(ROOT))
 
 from dream.runtime.agent import Finish, ToolCall  # noqa: E402
 from dream.runtime.mobile_model import MobileModelPlanner  # noqa: E402
+from experiments.code_version import code_sha  # noqa: E402
 
 OUT = ROOT / "results" / "phase1_vlm_compare"
 GOAL = "Inspect(kind='cabinet')"
@@ -239,9 +239,7 @@ def main():
     ]
     sources += [OUT / d["image"] for d in cfg["decisions"]]
     hashes = {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources}
-    source_commit = subprocess.check_output(
-        ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
-    ).strip()
+    source_commit = code_sha(ROOT)
     payload = json.dumps(
         {
             "summary": summary,

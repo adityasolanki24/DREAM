@@ -24,7 +24,6 @@ import json
 import os
 import pathlib
 import platform
-import subprocess
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor
@@ -50,6 +49,7 @@ from dream.sim.g1_mobile import G1MobileBase, G1MobileEnv, build_mobile_g1  # no
 from dream.sim.room import add_room, sample_room  # noqa: E402
 from dream.tools.goals import Inspect  # noqa: E402
 from dream.tools.mobile import MobileToolbox  # noqa: E402
+from experiments.code_version import code_dirty, code_sha  # noqa: E402
 
 
 class Budgeted:
@@ -402,8 +402,7 @@ def main() -> None:
     ap.add_argument("--out", help="output directory (default results/<name>)")
     args = ap.parse_args()
     cfg = json.loads(pathlib.Path(args.config).read_text())
-    sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
-    dirty = bool(subprocess.check_output(["git", "status", "--porcelain", "dream"], cwd=ROOT))
+    sha, dirty = code_sha(ROOT), code_dirty(ROOT)
     rec_root = os.environ.get("DREAM_RECORDINGS_ROOT", "/tmp/DREAM/recordings")
     record = {tuple(r) for r in cfg.get("record", [])}
     jobs = []
