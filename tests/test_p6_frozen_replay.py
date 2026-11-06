@@ -60,3 +60,16 @@ def test_replay_reproduces_chatgpt_scoring_and_prompt_digests():
         assert vlm_compare.correct(tool, args, dec["accept"]) == row["correct"], row["id"]
         assert rec.last["messages_sha256"] == recon_rows[row["id"]]["messages_sha256"], row["id"]
         assert rec.last["tools_sha256"] == recon_rows[row["id"]]["tools_sha256"], row["id"]
+
+
+def test_staged_inputs_are_byte_identical_to_the_frozen_set():
+    import hashlib
+
+    gpt = json.loads((GPT / "run_frozen11.json").read_text("utf-8"))
+    staged = ROOT / "experiments/p6_inputs"
+    for key, digest in gpt["sha256"].items():
+        if "frames" in key:
+            name = key.replace("\\", "/").split("phase1_vlm_compare/")[1]
+            assert hashlib.sha256((staged / name).read_bytes()).hexdigest() == digest, name
+    allowed = vlm_compare_p6_qwen.DECISIONS_SHA256
+    assert hashlib.sha256((staged / "decisions.json").read_bytes()).hexdigest() in allowed

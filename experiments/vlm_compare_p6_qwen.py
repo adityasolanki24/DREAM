@@ -17,6 +17,7 @@ import hashlib
 import json
 import os
 import pathlib
+import shutil
 import subprocess
 import sys
 
@@ -39,6 +40,14 @@ def sha_lf(path: pathlib.Path) -> str:
     return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
 
 
+def stage_inputs() -> None:
+    """Cloud archives exclude results/: restore byte-identical copies of the frozen decision
+    set and frames (experiments/p6_inputs) to where vlm_compare.py reads them."""
+    target = ROOT / "results/phase1_vlm_compare"
+    if not (target / "decisions.json").exists():
+        shutil.copytree(ROOT / "experiments/p6_inputs", target, dirs_exist_ok=True)
+
+
 def check_preconditions() -> None:
     if sha_lf(ROOT / "experiments/p6_frozen_mobile_model.py") != FROZEN_PLANNER_SHA256:
         raise SystemExit("frozen planner differs from mobile_model.py at ba5d547")
@@ -57,6 +66,7 @@ def check_preconditions() -> None:
 
 
 def main() -> None:
+    stage_inputs()
     check_preconditions()
     try:
         import torch  # noqa: F401
