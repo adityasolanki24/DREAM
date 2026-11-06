@@ -1,0 +1,32 @@
+{
+  "name": "p6_qwen_frozen11_closeout",
+  "status": "frozen",
+  "runner": "experiments/vlm_compare_p6_qwen.py",
+  "output": "results/p6_qwen_frozen11_closeout",
+  "model": {
+    "id": "Qwen/Qwen3-VL-4B-Instruct",
+    "revision": "ebb281ec70b05090aa6165b016eac8ec08e71b17",
+    "dtype": "bfloat16",
+    "device": "cuda",
+    "decoding": "greedy (do_sample false), max_new_tokens 384, one pass, no retries"
+  },
+  "reference_run": "results/phase1_gpt_luna_none_20261028/run_frozen11.json (ChatGPT gpt-6-luna, reasoning effort none: 11/11 valid, 6/11 correct)",
+  "decision_ids": ["nav_3", "nav_4", "nav_5", "nav_away", "obj_3", "obj_4", "obj_6", "obj_nocabinet", "info_unverified", "info_satisfied", "info_blind"],
+  "identical_to_reference": {
+    "frames_and_decisions": "results/phase1_vlm_compare/decisions.json and its frames, hash-checked against the reference run before inference (decisions.json: the reference hashed a CRLF checkout, the committed LF blob is accepted)",
+    "instruction_goal_scene_history_accept_lists": "taken from the same decisions.json",
+    "prompt_and_tool_schemas": "experiments/p6_frozen_mobile_model.py, a verbatim copy of dream/runtime/mobile_model.py at ba5d547 (sha256 22101770...; identical to the module at a080cac, the commit of the offline reconstruction). The live dream/runtime/mobile_model.py has since been rewritten and is not used. Verified by replay: tests/test_p6_frozen_replay.py feeds the recorded ChatGPT raw outputs through this planner and the scorer and reproduces all 11 reference rows (valid, tool, args, correct) and the per-decision messages_sha256/tools_sha256 of run_offline-provenance-reconstruction.json",
+    "scorer": "experiments/vlm_compare.py classify() and correct(), unchanged; reproduced the reference rows by the same replay"
+  },
+  "known_differences": [
+    "Backend adaptation: the same messages and schemas are rendered by the backend (ChatGPT Responses function tools versus the Qwen chat template with images processed by the Qwen processor). This is inherent to comparing two models and is not removable.",
+    "Decoding: reference used reasoning effort none at the provider's default sampling; Qwen is greedy. Not comparable settings.",
+    "The ChatGPT run's own experiments/vlm_compare.py and dream/runtime/openai_plan.py bytes (hashes 8657e2..., 8a159f...) match no committed version, so scorer identity is established by replay of the 11 recorded outputs, not by file identity.",
+    "The reference prompt/tool digests were reconstructed offline (not captured at inference time); the Qwen run captures its own digests live and they are required to equal the reconstruction's for every decision."
+  ],
+  "comparison_rules": {
+    "n": 11,
+    "report": "valid and correct per frame side by side; counts; paired disagreements (discordant pairs on correct); no test, no interval, no claim of general superiority",
+    "no_comparison_claim_if": "any per-decision messages_sha256 or tools_sha256 differs from the reconstruction (summarize_vlm_comparison.py raises), or frames differ"
+  }
+}
