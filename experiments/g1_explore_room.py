@@ -214,13 +214,29 @@ def _ancestor(m, b, root) -> bool:
     return False
 
 
+def scene_failure_row(kind: str, seed: int, method: str, error: str) -> dict:
+    """A seed whose room cannot be generated is recorded, never skipped: it counts as an
+    unsuccessful, non-claiming episode (a no_cabinet row would count as no refusal)."""
+    return {
+        "kind": kind, "seed": seed, "method": method, "success": False, "claimed": False,
+        "false_claim": False, "correct_refusal": False, "fell": False, "contact_steps": 0,
+        "sim_s": 0.0, "path_m": 0.0, "reason": f"scene generation failed: {error}",
+        "refusal_category": "scene_generation_failed", "scene_error": True,
+        "phantom_handles": 0, "contacts": [], "contact_classes": [], "strict_success": False,
+        "frontier_decisions": [], "frontier_divergences": 0, "frontier_steps": [],
+    }  # fmt: skip
+
+
 def episode(args: tuple) -> dict:
     kind, seed, method, cfg, record_root, sha = args
-    room = sample_room(
-        np.random.default_rng([seed, 0]),
-        shifted=kind == "shifted",
-        with_cabinet=kind != "no_cabinet",
-    )
+    try:
+        room = sample_room(
+            np.random.default_rng([seed, 0]),
+            shifted=kind == "shifted",
+            with_cabinet=kind != "no_cabinet",
+        )
+    except RuntimeError as error:  # the frozen generator has no valid scene for this seed
+        return scene_failure_row(kind, seed, method, str(error))
     env = G1MobileEnv(
         build_mobile_g1(scene=lambda s: add_room(s, room)), np.random.default_rng([seed, 1])
     )
