@@ -214,6 +214,12 @@ class Tunnel:
 
     def stop(self):
         if self.proc and self.proc.poll() is None:
+            if os.name == "nt":
+                # gcloud.cmd spawns the Python tunnel as a child; terminate() would leave it
+                # serving (the first outage test never cut the connection).
+                subprocess.run(
+                    ["taskkill", "/F", "/T", "/PID", str(self.proc.pid)], capture_output=True
+                )
             self.proc.terminate()
             try:
                 self.proc.wait(timeout=10)
