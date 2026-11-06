@@ -59,3 +59,12 @@ def test_robot_adapter_does_not_import_scene_or_evaluation():
     for path in _files("robot"):
         for name in _imports(path):
             assert not name.startswith(FORBIDDEN_FOR_ROBOT), f"robot/{path.name} imports {name}"
+
+
+def test_task_scoring_is_evaluation_only_and_no_decision_package_imports_it():
+    """dream/eval/task_scoring.py reads ground truth (true pose, labelled handles, scene boxes,
+    contacts); it may be imported only from evaluation and experiment code."""
+    assert (DREAM / "eval/task_scoring.py").is_file()
+    for package in DECISION_PACKAGES:
+        for path in _files(package):
+            assert not any("task_scoring" in name for name in _imports(path)), path

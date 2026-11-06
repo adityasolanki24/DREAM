@@ -250,6 +250,8 @@ class MobileModelPlanner:
 
     def __init__(self, backend, instruction, camera):
         self.backend, self.instruction, self.camera = backend, instruction, camera
+        # One record per decision that needed repair; read by evaluation, never by decisions.
+        self.repairs: list[dict] = []
 
     def next_action(self, goal, scene, verdict, history):
         if isinstance(goal, UnsupportedGoal):
@@ -320,6 +322,13 @@ class MobileModelPlanner:
             )
         ]
         last_error = ""
+        rejected: list[dict] = []
+
+        def settled(result, action):
+            if rejected:
+                self.repairs.append({"result": result, "rejected": rejected, "then": repr(action)})
+            return action
+
         for repair in range(3):
             output = self.backend.generate(messages, schemas)
             call, error = parse_tool_call(output)
@@ -329,17 +338,24 @@ class MobileModelPlanner:
                 if name == "finish" and set(args) == {"success", "reason"}:
                     if type(args["success"]) is bool and isinstance(args["reason"], str):
                         if args["success"] and verdict.get("satisfied"):
-                            return Finish(
-                                True,
-                                f"verified: {verdict.get('reason', 'goal satisfied')}",
-                                model_reason=args["reason"],
+                            return settled(
+                                "accepted_alternative",
+                                Finish(
+                                    True,
+                                    f"verified: {verdict.get('reason', 'goal satisfied')}",
+                                    model_reason=args["reason"],
+                                ),
                             )
                         if not args["success"] and not alternatives:
-                            return Finish(
-                                False,
-                                f"not completed: {verdict.get('reason', 'goal not verified')}; "
-                                "no admissible alternatives remain",
-                                model_reason=args["reason"],
+                            return settled(
+                                "accepted_alternative",
+                                Finish(
+                                    False,
+                                    "not completed: "
+                                    f"{verdict.get('reason', 'goal not verified')}; "
+                                    "no admissible alternatives remain",
+                                    model_reason=args["reason"],
+                                ),
                             )
                     error = "finish rejected: goal not verified or admissible alternatives remain"
                 else:
@@ -351,9 +367,10 @@ class MobileModelPlanner:
                     else:
                         action = ToolCall(name, args)
                     if action in alternatives:
-                        return action
+                        return settled("accepted_alternative", action)
                     error = "invalid, exhausted, unobserved, wrong-instance or unsafe tool target"
             last_error = error or "invalid model decision"
+            rejected.append({"model_output": output[:300], "reason": last_error})
             messages.extend(
                 [
                     {"role": "assistant", "content": [{"type": "text", "text": output}]},
@@ -379,4 +396,4 @@ class MobileModelPlanner:
                     },
                 ]
             )
-        return Finish(False, f"model repair budget exhausted: {last_error}")
+        return settled("exhausted", Finish(False, f"model repair budget exhausted: {last_error}"))

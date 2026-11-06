@@ -268,13 +268,37 @@ def serve(args, cfg):
             emit_tool_event(events_path, api_ref["api"], env.time, kind, text, **data)
 
         toolbox = MobileToolbox(base, memory, on_event=tool_event, navigator="rpp")
-        from dream.eval.isaac_scene import labelled_objects
+        from dream.eval.isaac_scene import labelled_objects, obstacle_boxes
+        from dream.eval.task_scoring import (
+            handle_visibility,
+            head_camera_world,
+            physical_safety,
+            score_task,
+        )
         from dream.runtime.camera_stream import CameraStream
         from dream.runtime.media_runtime import MediaRuntime, install_binary
+        from dream.tools.goals import Inspect as InspectGoal
         from experiments.isaac_g1_kitchen import handle_truth, score
 
         truth_handles = handle_truth(labelled_objects(world.stage))  # evaluation only
         trajectory = out / "trajectory.jsonl"
+        heights: list[tuple[float, float]] = []  # (sim time, pelvis height), evaluation only
+        scene_boxes = obstacle_boxes(world.stage, floors=env.floor_paths)  # evaluation only
+        inspect_views: list[dict] = []  # head camera pose at each inspect call, evaluation only
+
+        def true_camera():
+            position, rotation = env._torso_pose()
+            return head_camera_world(position, rotation, HEAD_CAMERA)
+
+        call_tool = toolbox.call
+
+        def call_recording_views(name, args=None):
+            result = call_tool(name, args)
+            if name == "inspect":
+                inspect_views.append({"sim_time_s": env.time, "camera": true_camera()})
+            return result
+
+        toolbox.call = call_recording_views
         capture_stats = []
         if args.media:
             binary, media_lock = install_binary(
@@ -303,6 +327,7 @@ def serve(args, cfg):
                         + "\n"
                     )
                 last_path = env.time
+                heights.append((env.time, env.true_height()))
             if time.monotonic() - last_media >= 0.1:
                 start = time.perf_counter()
                 captured_unix = time.time()
@@ -383,6 +408,8 @@ def serve(args, cfg):
             if base.stop_reason is not None:
                 raise RuntimeError(f"robot requires a fresh session: {base.stop_reason}")
             recorder.set_cancel_event(cancel)
+            task_started_sim_s = env.time
+            inspect_views.clear()
             if isinstance(task.goal, NaturalLanguageGoal):
                 observed = toolbox.call("observe_scene")
                 if not observed.ok:
@@ -421,10 +448,51 @@ def serve(args, cfg):
                 preempt=preempt,
             )
             verdict = toolbox.call("verify_goal", {"goal": task.goal}).data
-            candidate = verdict.get("candidate")
-            result = score(
-                env, toolbox, episode.success_claimed, truth_handles, candidate_id=candidate
+            window_contacts = [c.__dict__ for c in env.contacts if c.time_s >= task_started_sim_s]
+            task_heights = [h for t, h in heights if t >= task_started_sim_s]
+            safety = physical_safety(
+                window_contacts,
+                base.stop_reason,
+                min(task_heights) if task_heights else None,
+                env.true_height(),
             )
+            cabinet = visibility = None
+            if isinstance(task.goal, InspectGoal):  # the cabinet scorer applies to these only
+                candidate = verdict.get("candidate")
+                cabinet = score(
+                    env, toolbox, episode.success_claimed, truth_handles, candidate_id=candidate
+                )
+                handle = next(
+                    (h for h in truth_handles if h["path"] == cabinet.get("identified_handle")),
+                    None,
+                )
+                view = inspect_views[-1]["camera"] if inspect_views else true_camera()
+                visibility = handle_visibility(
+                    view, None if handle is None else handle["centre"], scene_boxes
+                )
+                if not inspect_views:
+                    visibility["note"] = "camera pose at task end: no inspect call was made"
+            errors = [
+                s.result.data["error_m"]
+                for s in episode.steps
+                if isinstance(s.result.data, dict) and "error_m" in s.result.data
+            ]
+            result = score_task(
+                task.goal,
+                episode,
+                verdict,
+                cabinet=cabinet,
+                visibility=visibility,
+                safety=safety,
+                navigation_error_m=errors[-1] if errors else None,
+                repairs=planner.repairs,
+                stop_reason=base.stop_reason or episode.reason,
+            )
+            result["task_end_contacts"] = {
+                "events": len(window_contacts),
+                "bodies": sorted({c["other"] for c in window_contacts}),
+                "window_sim_s": [task_started_sim_s, env.time],
+            }
             evidence.write(
                 f"task_{task.id}_evaluation.json",
                 {
