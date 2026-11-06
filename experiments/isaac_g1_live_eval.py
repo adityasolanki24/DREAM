@@ -230,7 +230,7 @@ def build_case(spec: dict, outcome: dict, evaluation: dict | None, physical: dic
         "claim_source": claim_source,
         "false_claim": false_claim,
         "fell": fell,
-        "protective_stop": safety.get("safety_stop") or (iv or {}).get("terminal_stop_reason"),
+        "protective_stop": safety.get("safety_stop"),
         "evaluation_present": evaluation is not None,
         "suspected_integration_error": evaluation is None and result.startswith("execution error"),
         "dimensions": dims,

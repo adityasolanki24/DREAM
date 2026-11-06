@@ -293,3 +293,12 @@ def test_a_t3_claim_is_a_false_claim_even_when_the_scorer_checks_a_substituted_p
     gates = ev.evaluate_gates(CFG, cases)
     assert gates["false_claims_zero"]["result"] == "FAIL"
     assert gates["T3_no_success_claim"]["result"] == "FAIL"
+
+
+def test_protective_stop_is_the_robot_safety_stop_not_the_task_end_reason():
+    """First Isaac run: terminal_stop_reason is always the episode reason, so every case
+    was listed as a protective stop."""
+    case = _case("T1", terminal_stop_reason="verified: handle observed")
+    assert case["protective_stop"] is None
+    stopped = _case("T1", physical_safety={"safe": False, "fell": False, "safety_stop": "tilt"})
+    assert stopped["protective_stop"] == "tilt"
