@@ -1,0 +1,21 @@
+[
+  {
+    "attempt": "start-1",
+    "session": "dream-qwen-isaac-20261107-005601-966132",
+    "result": "infrastructure failure before any job",
+    "cause": "gcloud instances create exceeded the 120 s subprocess timeout (~3 min), the start aborted and its cleanup deleted the VM; resources verified absent",
+    "fix": "57c0007"
+  },
+  {
+    "attempt": "attempt1",
+    "session": "dream-qwen-isaac-20261107-010607-917495",
+    "job": 1,
+    "commit": "b0e2e17",
+    "result": "full frozen matrix (12 processes, 15 cases) ran in one job; no integration crash, no rerun needed",
+    "reruns_used": 0,
+    "of_budget": 2
+  },
+  {
+    "note": "two gate-aggregation defects (T3/T4 claims not counted as false; protective stops listed for every case) were found in the aggregation code after the run began, fixed in 52fc3a0/acd03fb and 5ee19d2 and recomputed locally from the unchanged raw records. No prompt, planner, threshold, verification or run-time behaviour changed."
+  }
+]

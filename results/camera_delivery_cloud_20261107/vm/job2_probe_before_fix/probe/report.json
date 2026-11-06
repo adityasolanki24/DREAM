@@ -1,0 +1,969 @@
+{
+  "mediamtx": {
+    "version": "v1.21.3",
+    "license": "MIT",
+    "source": "https://github.com/bluenviron/mediamtx",
+    "archives": {
+      "Linux": {
+        "name": "mediamtx_v1.21.3_linux_amd64.tar.gz",
+        "sha256": "0a2ea7eba96023631efa1bea7804823a9145b043b6646a8a05798d4ac24ed635"
+      },
+      "Windows": {
+        "name": "mediamtx_v1.21.3_windows_amd64.zip",
+        "sha256": "b2f5246b07cb72961df03b8d5e8cad43dc657bcf3f49a87bb031bdf22721af74"
+      }
+    }
+  },
+  "ffmpeg": "ffmpeg version 4.4.2-0ubuntu0.22.04.1 Copyright (c) 2000-2021 the FFmpeg developers\nbuilt with gcc 11 (Ubuntu 11.2.0-19ubuntu1)\nconfiguration: --prefix=/usr --extra-version=0ubuntu0.22.04.1 --toolchai",
+  "nvenc_throughput": {
+    "nvidia_smi": {
+      "cmd": [
+        "nvidia-smi",
+        "--query-gpu=name,driver_version,utilization.encoder",
+        "--format=csv"
+      ],
+      "code": 0,
+      "stdout": "name, driver_version, utilization.encoder [%]\nNVIDIA L4, 580.178.04, 0 %\n",
+      "stderr": ""
+    },
+    "ffmpeg_encoders": {
+      "cmd": [
+        "bash",
+        "-c",
+        "ffmpeg -hide_banner -encoders | grep -i nvenc"
+      ],
+      "code": 0,
+      "stdout": " V....D h264_nvenc           NVIDIA NVENC H.264 encoder (codec h264)\n V..... nvenc                NVIDIA NVENC H.264 encoder (codec h264)\n V..... nvenc_h264           NVIDIA NVENC H.264 encoder (codec h264)\n V..... nvenc_hevc           NVIDIA NVENC hevc encoder (codec hevc)\n V....D hevc_nvenc           NVIDIA NVENC hevc encoder (codec hevc)\n",
+      "stderr": ""
+    },
+    "run": {
+      "cmd": [
+        "ffmpeg",
+        "-hide_banner",
+        "-loglevel",
+        "info",
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc2=size=320x240:rate=10",
+        "-frames:v",
+        "3000",
+        "-c:v",
+        "h264_nvenc",
+        "-preset",
+        "p1",
+        "-tune",
+        "ull",
+        "-rc",
+        "cbr",
+        "-pix_fmt",
+        "yuv420p",
+        "-profile:v",
+        "baseline",
+        "-bf",
+        "0",
+        "-g",
+        "10",
+        "-b:v",
+        "1000k",
+        "-f",
+        "null",
+        "-"
+      ],
+      "code": 0,
+      "stdout": "",
+      "stderr": "Input #0, lavfi, from 'testsrc2=size=320x240:rate=10':\n  Duration: N/A, start: 0.000000, bitrate: N/A\n  Stream #0:0: Video: rawvideo (I420 / 0x30323449), yuv420p, 320x240 [SAR 1:1 DAR 4:3], 10 tbr, 10 tbn, 10 tbc\nStream mapping:\n  Stream #0:0 -> #0:0 (rawvideo (native) -> h264 (h264_nvenc))\nPress [q] to stop, [?] for help\nOutput #0, null, to 'pipe:':\n  Metadata:\n    encoder         : Lavf58.76.100\n  Stream #0:0: Video: h264 (Baseline), yuv420p(progressive), 320x240 [SAR 1:1 DAR 4:3], q=2-31, 1000 kb/s, 10 fps, 10 tbn\n    Metadata:\n      encoder         : Lavc58.134.100 h264_nvenc\n    Side data:\n      cpb: bitrate max/min/avg: 0/0/1000000 buffer size: 2000000 vbv_delay: N/A\nframe=    1 fps=0.0 q=0.0 size=N/A time=00:00:00.00 bitrate=N/A speed=N/A    \nframe=  938 fps=0.0 q=1.0 size=N/A time=00:01:33.60 bitrate=N/A speed= 187x    \nframe= 2937 fps=2936 q=1.0 size=N/A time=00:04:53.50 bitrate=N/A speed= 293x    \nframe= 3000 fps=2948 q=1.0 Lsize=N/A time=00:05:00.00 bitrate=N/A speed= 295x    \nvideo:36597kB audio:0kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: unknown\n"
+    },
+    "frames": 3000,
+    "wall_s": 1.395,
+    "encode_fps_unthrottled": 2150.4,
+    "note": "includes ffmpeg start-up and lavfi source generation; an upper bound on per-frame cost (ms/frame below), not a latency measurement",
+    "ms_per_frame_upper_bound": 0.465
+  },
+  "steady_10fps": {
+    "final_status": {
+      "available": true,
+      "codec": "h264_nvenc",
+      "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+      "whep_url": "/media/whep",
+      "ice_tcp_port": 18189,
+      "submitted_frames": 300,
+      "written_frames": 300,
+      "dropped_frames": 0,
+      "average_fps": 9.403381252384055,
+      "latest": {
+        "frame_id": "p-299",
+        "sim_time_s": 29.900000000000002,
+        "captured_unix_s": 1793978084.373259,
+        "pipe_write_ms": 0.2691499998945801
+      },
+      "error": null,
+      "closed": false
+    },
+    "status_samples": [
+      {
+        "t": 0.0,
+        "status": {
+          "available": false,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 1,
+          "written_frames": 0,
+          "dropped_frames": 0,
+          "average_fps": 0.0,
+          "latest": null,
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 1.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 11,
+          "written_frames": 10,
+          "dropped_frames": 0,
+          "average_fps": 9.963152863276303,
+          "latest": {
+            "frame_id": "p-9",
+            "sim_time_s": 0.9,
+            "captured_unix_s": 1793978055.373294,
+            "pipe_write_ms": 0.34966000021086074
+          },
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 2.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 21,
+          "written_frames": 20,
+          "dropped_frames": 0,
+          "average_fps": 9.982810967159084,
+          "latest": {
+            "frame_id": "p-19",
+            "sim_time_s": 1.9000000000000001,
+            "captured_unix_s": 1793978056.3732674,
+            "pipe_write_ms": 0.28781299988622777
+          },
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 3.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 31,
+          "written_frames": 30,
+          "dropped_frames": 0,
+          "average_fps": 9.988424907137619,
+          "latest": {
+            "frame_id": "p-29",
+            "sim_time_s": 2.9000000000000004,
+            "captured_unix_s": 1793978057.3732705,
+            "pipe_write_ms": 0.2776209998955892
+          },
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 4.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 41,
+          "written_frames": 40,
+          "dropped_frames": 0,
+          "average_fps": 9.99119059490476,
+          "latest": {
+            "frame_id": "p-39",
+            "sim_time_s": 3.9000000000000004,
+            "captured_unix_s": 1793978058.3732653,
+            "pipe_write_ms": 0.31460099989999435
+          },
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 5.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 51,
+          "written_frames": 50,
+          "dropped_frames": 0,
+          "average_fps": 9.99287578506213,
+          "latest": {
+            "frame_id": "p-49",
+            "sim_time_s": 4.9,
+            "captured_unix_s": 1793978059.3732643,
+            "pipe_write_ms": 0.3338000001349428
+          },
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 6.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 61,
+          "written_frames": 60,
+          "dropped_frames": 0,
+          "average_fps": 9.994498476675146,
+          "latest": {
+            "frame_id": "p-59",
+            "sim_time_s": 5.9,
+            "captured_unix_s": 1793978060.3732653,
+            "pipe_write_ms": 0.29617800009873463
+          },
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 7.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 71,
+          "written_frames": 70,
+          "dropped_frames": 0,
+          "average_fps": 9.995205347115276,
+          "latest": {
+            "frame_id": "p-69",
+            "sim_time_s": 6.9,
+            "captured_unix_s": 1793978061.3732936,
+            "pipe_write_ms": 0.31261300000551273
+          },
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 8.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 81,
+          "written_frames": 80,
+          "dropped_frames": 0,
+          "average_fps": 9.995418007927254,
+          "latest": {
+            "frame_id": "p-79",
+            "sim_time_s": 7.9,
+            "captured_unix_s": 1793978062.3732984,
+            "pipe_write_ms": 0.3542549998201139
+          },
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 9.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 91,
+          "written_frames": 90,
+          "dropped_frames": 0,
+          "average_fps": 9.99592959416184,
+          "latest": {
+            "frame_id": "p-89",
+            "sim_time_s": 8.9,
+            "captured_unix_s": 1793978063.3732753,
+            "pipe_write_ms": 0.3162809998684679
+          },
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 10.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 101,
+          "written_frames": 100,
+          "dropped_frames": 0,
+          "average_fps": 9.996537147550296,
+          "latest": {
+            "frame_id": "p-99",
+            "sim_time_s": 9.9,
+            "captured_unix_s": 1793978064.3732712,
+            "pipe_write_ms": 0.33439600019846694
+          },
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 11.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 111,
+          "written_frames": 110,
+          "dropped_frames": 0,
+          "average_fps": 9.996824291560035,
+          "latest": {
+            "frame_id": "p-109",
+            "sim_time_s": 10.9,
+            "captured_unix_s": 1793978065.3732848,
+            "pipe_write_ms": 0.32361900002797483
+          },
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 12.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 121,
+          "written_frames": 120,
+          "dropped_frames": 0,
+          "average_fps": 9.996975217707666,
+          "latest": {
+            "frame_id": "p-119",
+            "sim_time_s": 11.9,
+            "captured_unix_s": 1793978066.3733017,
+            "pipe_write_ms": 0.37689999999201973
+          },
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 13.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 131,
+          "written_frames": 130,
+          "dropped_frames": 0,
+          "average_fps": 9.997429975287714,
+          "latest": {
+            "frame_id": "p-129",
+            "sim_time_s": 12.9,
+            "captured_unix_s": 1793978067.3732715,
+            "pipe_write_ms": 0.280254000244895
+          },
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 14.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 141,
+          "written_frames": 140,
+          "dropped_frames": 0,
+          "average_fps": 9.997587434330534,
+          "latest": {
+            "frame_id": "p-139",
+            "sim_time_s": 13.9,
+            "captured_unix_s": 1793978068.3732638,
+            "pipe_write_ms": 0.2867119997063128
+          },
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 15.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 151,
+          "written_frames": 150,
+          "dropped_frames": 0,
+          "average_fps": 9.997786635339986,
+          "latest": {
+            "frame_id": "p-149",
+            "sim_time_s": 14.9,
+            "captured_unix_s": 1793978069.373268,
+            "pipe_write_ms": 0.3483149998828594
+          },
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 16.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 161,
+          "written_frames": 160,
+          "dropped_frames": 0,
+          "average_fps": 9.997715834985083,
+          "latest": {
+            "frame_id": "p-159",
+            "sim_time_s": 15.9,
+            "captured_unix_s": 1793978070.3732984,
+            "pipe_write_ms": 0.3548489999047888
+          },
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 17.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 171,
+          "written_frames": 170,
+          "dropped_frames": 0,
+          "average_fps": 9.998003900285779,
+          "latest": {
+            "frame_id": "p-169",
+            "sim_time_s": 16.900000000000002,
+            "captured_unix_s": 1793978071.3732758,
+            "pipe_write_ms": 0.3270170000178041
+          },
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 18.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 181,
+          "written_frames": 180,
+          "dropped_frames": 0,
+          "average_fps": 9.998101441631878,
+          "latest": {
+            "frame_id": "p-179",
+            "sim_time_s": 17.900000000000002,
+            "captured_unix_s": 1793978072.3732748,
+            "pipe_write_ms": 0.31862900004853145
+          },
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 19.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 191,
+          "written_frames": 190,
+          "dropped_frames": 0,
+          "average_fps": 9.998195518305861,
+          "latest": {
+            "frame_id": "p-189",
+            "sim_time_s": 18.900000000000002,
+            "captured_unix_s": 1793978073.3732708,
+            "pipe_write_ms": 0.29860599988751346
+          },
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 20.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 201,
+          "written_frames": 200,
+          "dropped_frames": 0,
+          "average_fps": 9.99818967678644,
+          "latest": {
+            "frame_id": "p-199",
+            "sim_time_s": 19.900000000000002,
+            "captured_unix_s": 1793978074.3732986,
+            "pipe_write_ms": 0.35720400001082453
+          },
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 21.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 211,
+          "written_frames": 210,
+          "dropped_frames": 0,
+          "average_fps": 9.998334743544593,
+          "latest": {
+            "frame_id": "p-209",
+            "sim_time_s": 20.900000000000002,
+            "captured_unix_s": 1793978075.3732712,
+            "pipe_write_ms": 0.33010399965860415
+          },
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 22.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 221,
+          "written_frames": 220,
+          "dropped_frames": 0,
+          "average_fps": 9.998375941526692,
+          "latest": {
+            "frame_id": "p-219",
+            "sim_time_s": 21.900000000000002,
+            "captured_unix_s": 1793978076.3732665,
+            "pipe_write_ms": 0.3093010000156937
+          },
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 23.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 231,
+          "written_frames": 230,
+          "dropped_frames": 0,
+          "average_fps": 9.998437770181338,
+          "latest": {
+            "frame_id": "p-229",
+            "sim_time_s": 22.900000000000002,
+            "captured_unix_s": 1793978077.3732743,
+            "pipe_write_ms": 0.3681140001390304
+          },
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 24.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 241,
+          "written_frames": 240,
+          "dropped_frames": 0,
+          "average_fps": 9.998439121588921,
+          "latest": {
+            "frame_id": "p-239",
+            "sim_time_s": 23.900000000000002,
+            "captured_unix_s": 1793978078.3732953,
+            "pipe_write_ms": 0.3466049997769005
+          },
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 25.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 251,
+          "written_frames": 250,
+          "dropped_frames": 0,
+          "average_fps": 9.998667633543622,
+          "latest": {
+            "frame_id": "p-249",
+            "sim_time_s": 24.900000000000002,
+            "captured_unix_s": 1793978079.373269,
+            "pipe_write_ms": 0.2997800002049189
+          },
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 26.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 261,
+          "written_frames": 260,
+          "dropped_frames": 0,
+          "average_fps": 9.998669928086464,
+          "latest": {
+            "frame_id": "p-259",
+            "sim_time_s": 25.900000000000002,
+            "captured_unix_s": 1793978080.37328,
+            "pipe_write_ms": 0.32787800000733114
+          },
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 27.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 271,
+          "written_frames": 270,
+          "dropped_frames": 0,
+          "average_fps": 9.998738882024805,
+          "latest": {
+            "frame_id": "p-269",
+            "sim_time_s": 26.900000000000002,
+            "captured_unix_s": 1793978081.3732803,
+            "pipe_write_ms": 0.3184429997418192
+          },
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 28.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 281,
+          "written_frames": 280,
+          "dropped_frames": 0,
+          "average_fps": 9.99869860224284,
+          "latest": {
+            "frame_id": "p-279",
+            "sim_time_s": 27.900000000000002,
+            "captured_unix_s": 1793978082.3733006,
+            "pipe_write_ms": 0.326644999859127
+          },
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 29.0,
+        "status": {
+          "available": true,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 291,
+          "written_frames": 290,
+          "dropped_frames": 0,
+          "average_fps": 9.998821788145062,
+          "latest": {
+            "frame_id": "p-289",
+            "sim_time_s": 28.900000000000002,
+            "captured_unix_s": 1793978083.3732753,
+            "pipe_write_ms": 0.2923060001194244
+          },
+          "error": null,
+          "closed": false
+        }
+      }
+    ],
+    "mediamtx_log": "2026/11/06 15:14:14 INF MediaMTX v1.21.3, linux, amd64\n2026/11/06 15:14:14 INF configuration loaded from /work/out/jobs/2/probe/steady_10fps/mediamtx.json\n2026/11/06 15:14:14 INF [RTSP] started with listeners on 127.0.0.1:8554 (TCP/RTSP)\n2026/11/06 15:14:14 INF [WebRTC] started with listeners on 127.0.0.1:8889 (TCP/HTTP), :18189 (TCP/ICE)\n2026/11/06 15:14:14 INF [RTSP] [conn 127.0.0.1:52390] opened\n2026/11/06 15:14:14 INF [RTSP] [session b9c9dbee] created by 127.0.0.1:52390\n2026/11/06 15:14:14 INF [path dream] stream is available and online, 1 track (H264)\n2026/11/06 15:14:14 INF [RTSP] [session b9c9dbee] is publishing to path 'dream'\n2026/11/06 15:14:14 INF [path dream] RTP packets are too big (1460 > 1440), remuxing them into smaller ones\n2026/11/06 15:14:46 INF [RTSP] [session b9c9dbee] destroyed: torn down by 127.0.0.1:52390\n2026/11/06 15:14:46 INF [RTSP] [conn 127.0.0.1:52390] closed: EOF\n2026/11/06 15:14:46 INF shutting down gracefully\n2026/11/06 15:14:46 INF [WebRTC] closing\n2026/11/06 15:14:46 INF [RTSP] closing\n2026/11/06 15:14:46 INF waiting for running hooks\n",
+    "nvenc_log": ":0; previous: 283, current: 282; changing to 284. This may result in incorrect timestamps in the output file.\n[tee @ 0x60c6b6384d80] Non-monotonous DTS in output stream 0:0; previous: 284, current: 283; changing to 285. This may result in incorrect timestamps in the output file.\n[tee @ 0x60c6b6384d80] Non-monotonous DTS in output stream 0:0; previous: 285, current: 284; changing to 286. This may result in incorrect timestamps in the output file.\n[tee @ 0x60c6b6384d80] Non-monotonous DTS in output stream 0:0; previous: 286, current: 285; changing to 287. This may result in incorrect timestamps in the output file.\n[tee @ 0x60c6b6384d80] Non-monotonous DTS in output stream 0:0; previous: 287, current: 286; changing to 288. This may result in incorrect timestamps in the output file.\n[tee @ 0x60c6b6384d80] Non-monotonous DTS in output stream 0:0; previous: 288, current: 287; changing to 289. This may result in incorrect timestamps in the output file.\n[tee @ 0x60c6b6384d80] Non-monotonous DTS in output stream 0:0; previous: 289, current: 288; changing to 290. This may result in incorrect timestamps in the output file.\n[tee @ 0x60c6b6384d80] Non-monotonous DTS in output stream 0:0; previous: 290, current: 289; changing to 291. This may result in incorrect timestamps in the output file.\n[tee @ 0x60c6b6384d80] Non-monotonous DTS in output stream 0:0; previous: 291, current: 290; changing to 292. This may result in incorrect timestamps in the output file.\n[tee @ 0x60c6b6384d80] Non-monotonous DTS in output stream 0:0; previous: 292, current: 291; changing to 293. This may result in incorrect timestamps in the output file.\n[tee @ 0x60c6b6384d80] Non-monotonous DTS in output stream 0:0; previous: 293, current: 292; changing to 294. This may result in incorrect timestamps in the output file.\n[tee @ 0x60c6b6384d80] Non-monotonous DTS in output stream 0:0; previous: 294, current: 293; changing to 295. This may result in incorrect timestamps in the output file.\n[tee @ 0x60c6b6384d80] Non-monotonous DTS in output stream 0:0; previous: 295, current: 294; changing to 296. This may result in incorrect timestamps in the output file.\n[tee @ 0x60c6b6384d80] Non-monotonous DTS in output stream 0:0; previous: 296, current: 295; changing to 297. This may result in incorrect timestamps in the output file.\n[tee @ 0x60c6b6384d80] Non-monotonous DTS in output stream 0:0; previous: 297, current: 296; changing to 298. This may result in incorrect timestamps in the output file.\n[tee @ 0x60c6b6384d80] Non-monotonous DTS in output stream 0:0; previous: 298, current: 297; changing to 299. This may result in incorrect timestamps in the output file.\n[tee @ 0x60c6b6384d80] Non-monotonous DTS in output stream 0:0; previous: 299, current: 298; changing to 300. This may result in incorrect timestamps in the output file.\n[tee @ 0x60c6b6384d80] Non-monotonous DTS in output stream 0:0; previous: 300, current: 299; changing to 301. This may result in incorrect timestamps in the output file.\n",
+    "recorded_bytes": 3754095
+  },
+  "stall_then_resume": {
+    "final_status": {
+      "available": false,
+      "codec": "h264_nvenc",
+      "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+      "whep_url": "/media/whep",
+      "ice_tcp_port": 18189,
+      "submitted_frames": 55,
+      "written_frames": 6,
+      "dropped_frames": 47,
+      "average_fps": 0.27392868381639174,
+      "latest": {
+        "frame_id": "p-5",
+        "sim_time_s": 15.0,
+        "captured_unix_s": 1793978101.605164,
+        "pipe_write_ms": 0.330605000272044
+      },
+      "error": "[Errno 32] Broken pipe",
+      "closed": false
+    },
+    "status_samples": [
+      {
+        "t": 0.0,
+        "status": {
+          "available": false,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 1,
+          "written_frames": 0,
+          "dropped_frames": 0,
+          "average_fps": 0.0,
+          "latest": null,
+          "error": null,
+          "closed": false
+        }
+      },
+      {
+        "t": 15.5,
+        "status": {
+          "available": false,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 11,
+          "written_frames": 6,
+          "dropped_frames": 3,
+          "average_fps": 0.387010841632129,
+          "latest": {
+            "frame_id": "p-5",
+            "sim_time_s": 15.0,
+            "captured_unix_s": 1793978101.605164,
+            "pipe_write_ms": 0.330605000272044
+          },
+          "error": "[Errno 32] Broken pipe",
+          "closed": false
+        }
+      },
+      {
+        "t": 16.5,
+        "status": {
+          "available": false,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 21,
+          "written_frames": 6,
+          "dropped_frames": 13,
+          "average_fps": 0.3635633009198141,
+          "latest": {
+            "frame_id": "p-5",
+            "sim_time_s": 15.0,
+            "captured_unix_s": 1793978101.605164,
+            "pipe_write_ms": 0.330605000272044
+          },
+          "error": "[Errno 32] Broken pipe",
+          "closed": false
+        }
+      },
+      {
+        "t": 17.5,
+        "status": {
+          "available": false,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 31,
+          "written_frames": 6,
+          "dropped_frames": 23,
+          "average_fps": 0.342793470791645,
+          "latest": {
+            "frame_id": "p-5",
+            "sim_time_s": 15.0,
+            "captured_unix_s": 1793978101.605164,
+            "pipe_write_ms": 0.330605000272044
+          },
+          "error": "[Errno 32] Broken pipe",
+          "closed": false
+        }
+      },
+      {
+        "t": 18.5,
+        "status": {
+          "available": false,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 41,
+          "written_frames": 6,
+          "dropped_frames": 33,
+          "average_fps": 0.3242630599372531,
+          "latest": {
+            "frame_id": "p-5",
+            "sim_time_s": 15.0,
+            "captured_unix_s": 1793978101.605164,
+            "pipe_write_ms": 0.330605000272044
+          },
+          "error": "[Errno 32] Broken pipe",
+          "closed": false
+        }
+      },
+      {
+        "t": 19.5,
+        "status": {
+          "available": false,
+          "codec": "h264_nvenc",
+          "transport": "WebRTC ICE/TCP through private IAP (congestion-sensitive fallback)",
+          "whep_url": "/media/whep",
+          "ice_tcp_port": 18189,
+          "submitted_frames": 51,
+          "written_frames": 6,
+          "dropped_frames": 43,
+          "average_fps": 0.3076423497142441,
+          "latest": {
+            "frame_id": "p-5",
+            "sim_time_s": 15.0,
+            "captured_unix_s": 1793978101.605164,
+            "pipe_write_ms": 0.330605000272044
+          },
+          "error": "[Errno 32] Broken pipe",
+          "closed": false
+        }
+      }
+    ],
+    "mediamtx_log": "2026/11/06 15:14:46 INF MediaMTX v1.21.3, linux, amd64\n2026/11/06 15:14:46 INF configuration loaded from /work/out/jobs/2/probe/stall_then_resume/mediamtx.json\n2026/11/06 15:14:46 INF [RTSP] started with listeners on 127.0.0.1:8554 (TCP/RTSP)\n2026/11/06 15:14:46 INF [WebRTC] started with listeners on 127.0.0.1:8889 (TCP/HTTP), :18189 (TCP/ICE)\n2026/11/06 15:14:46 INF [RTSP] [conn 127.0.0.1:53986] opened\n2026/11/06 15:14:46 INF [RTSP] [session d272e43d] created by 127.0.0.1:53986\n2026/11/06 15:14:46 INF [path dream] stream is available and online, 1 track (H264)\n2026/11/06 15:14:46 INF [RTSP] [session d272e43d] is publishing to path 'dream'\n2026/11/06 15:14:46 INF [path dream] RTP packets are too big (1460 > 1440), remuxing them into smaller ones\n2026/11/06 15:14:57 INF [RTSP] [conn 127.0.0.1:53986] closed: read tcp 127.0.0.1:8554->127.0.0.1:53986: i/o timeout\n2026/11/06 15:14:57 INF [RTSP] [session d272e43d] destroyed: not in use\n2026/11/06 15:15:08 INF shutting down gracefully\n2026/11/06 15:15:08 INF [WebRTC] closing\n2026/11/06 15:15:08 INF [RTSP] closing\n2026/11/06 15:15:08 INF waiting for running hooks\n",
+    "nvenc_log": "[tee @ 0x5b26d5ccbd80] Non-monotonous DTS in output stream 0:0; previous: 2, current: 2; changing to 3. This may result in incorrect timestamps in the output file.\n[tee @ 0x5b26d5ccbd80] Non-monotonous DTS in output stream 0:0; previous: 3, current: 2; changing to 4. This may result in incorrect timestamps in the output file.\n[tee @ 0x5b26d5ccbd80] Slave muxer #0 failed, aborting.\nav_interleaved_write_frame(): Broken pipe\n",
+    "recorded_bytes": 50696
+  },
+  "encoder_command": [
+    "/usr/bin/ffmpeg",
+    "-hide_banner",
+    "-loglevel",
+    "warning",
+    "-y",
+    "-use_wallclock_as_timestamps",
+    "1",
+    "-f",
+    "rawvideo",
+    "-pixel_format",
+    "rgb24",
+    "-video_size",
+    "320x240",
+    "-framerate",
+    "10",
+    "-i",
+    "pipe:0",
+    "-an",
+    "-c:v",
+    "h264_nvenc",
+    "-preset",
+    "p1",
+    "-tune",
+    "ull",
+    "-rc",
+    "cbr",
+    "-pix_fmt",
+    "yuv420p",
+    "-profile:v",
+    "baseline",
+    "-bf",
+    "0",
+    "-g",
+    "10",
+    "-b:v",
+    "1000k",
+    "-maxrate",
+    "1000k",
+    "-bufsize",
+    "100k",
+    "-vsync",
+    "0",
+    "-flags:v",
+    "+global_header",
+    "-map",
+    "0:v",
+    "-f",
+    "tee",
+    "[f=rtsp:rtsp_transport=tcp]rtsp://127.0.0.1:8554/dream|[f=matroska]rec.mkv"
+  ]
+}

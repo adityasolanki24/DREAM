@@ -95,7 +95,21 @@ cost guard now reads every desktop app's ledger, because the Claude and Codex ap
 verification with zero contacts, zero safety stops and zero false claims; seed 0 is unchanged
 (37.52 s, 5.31 m) and seed 2 now finishes in 22.32 s over 2.39 m (was 39.82 s, 5.12 m) because
 the first viewpoint it reaches now satisfies the inspection predicate. These remain development
-cases, not held-out or Qwen results. No fresh cloud evaluation has been made.
+cases, not held-out or Qwen results. 
+
+### Qwen closeout evaluation and remote camera measurement (7 Nov 2026)
+
+`results/isaac_qwen_closeout_20261107`: genuine Qwen3-VL-4B on the Isaac G1, **development kitchen
+(l_shape), predeclared (frozen config), not held-out**, starts 7/8/9, tasks T1-T5, odometry
+oracle-assisted, physics frozen during inference. Gates: false claims 0 FAIL (3 claims on T3/T4),
+falls 0 PASS, T4 no claim FAIL (2/3), T3 no claim FAIL (1/3), T1 independent success 3/3 PASS,
+T2 3/3 PASS (two of three took zero steps: the chosen candidate was the one T1 had just inspected),
+T5 unverifiable (refused as unsupported in all three). "Walk to the refrigerator" was bound to the
+remembered place "entrance" and verified there, which is not a refrigerator.
+`results/camera_delivery_cloud_20261107`: IAP measurements of real Isaac frames. The 31 Oct WHEP
+failure was MediaMTX's 10 s read timeout closing the publisher while the synchronous simulation
+published nothing (fixed with readTimeout 3600 s, verified); WHEP latency and Tailnet were not
+measured. See each `summary.json` for numbers and labels.
 
 | Change | Classification | Evidence and remaining limit |
 |---|---|---|
