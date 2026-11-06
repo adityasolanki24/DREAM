@@ -1,0 +1,39 @@
+{
+  "name": "g1_explore_room_closeout",
+  "status": "frozen",
+  "_note": "Closeout revalidation of Milestone B (experiments/g1_explore_room.py) at the committed code, on fresh seeds. Same room generators, time budget and step budget as g1_explore_room.json. Seed ranges are half-open [a, b): nominal 1300-1319, shifted 2300-2309, no_cabinet 3100-3109; verified by grep to appear in no config, result, test or script (earlier: nominal 0-9, 1000-1019, 1100-1119, 1200-1219; shifted 2000-2009, 2100-2109, 2200-2209; no_cabinet 3000-3005). Nominal runs the 'gain' frontier policy only; shifted and no_cabinet run 'gain' and 'nearest' on the same rooms (paired). The revalidation claim is for the current code only; historical numbers in results/g1_explore_room* are separate and are not rescored. Nothing is tuned after seeing results.",
+  "seeds": {"nominal": [1300, 1320], "shifted": [2300, 2310], "no_cabinet": [3100, 3110]},
+  "methods": ["gain", "nearest"],
+  "methods_by_kind": {
+    "nominal": ["gain"],
+    "shifted": ["gain", "nearest"],
+    "no_cabinet": ["gain", "nearest"]
+  },
+  "time_budget_s": 240,
+  "max_steps": 60,
+  "record": [],
+  "gates": {
+    "nominal_success_min": 0.9,
+    "shifted_success_min": 0.7,
+    "no_cabinet_refusal_min": 0.9,
+    "max_false_claims": 0,
+    "max_falls": 0,
+    "_note": "Success and refusal gates are on the gain policy; false claims and falls count all rows. no_cabinet refusal is gated under the original scorer (no claim and no fall); it is additionally reported strictly, excluding phantom-driven refusals (refusal_category phantom_or_unreachable_candidate, or phantom_handles > 0), which do not count as correct."
+  },
+  "reported_not_gated": [
+    "contacts by body class (foot_furniture, hand_handle, hand_furniture, other): episodes, ticks, peak force, last-3-s flag",
+    "strict success: success with no contact other than hand_handle",
+    "phantom_handles per episode; refusal category counts"
+  ],
+  "frontier_comparison": {
+    "declared_before_run": true,
+    "pairs": "shifted and no_cabinet, same seed, gain vs nearest",
+    "primary_metric": "sim_s: simulated seconds to terminal outcome of the episode (claim, refusal or budget stop), mean of (gain - nearest); negative favours gain",
+    "secondary_metric": "success (0/1), mean of (gain - nearest)",
+    "interval": "paired bootstrap over pairs, 10000 resamples, rng seed 0, 95 percentile interval",
+    "divergence": "a go_to decision where gain and nearest policies, applied to the same state, choose different frontiers; counted from the gain arm's recorded decisions over all paired episodes (the nearest arm and pairs with at least one divergence are reported too)",
+    "min_divergent_decisions": 10,
+    "if_fewer_than_min": "insufficient divergence, no claim",
+    "claim_rule": "gain is claimed better only if the primary-metric interval excludes 0 in gain's favour (upper bound < 0); otherwise no claim"
+  }
+}
