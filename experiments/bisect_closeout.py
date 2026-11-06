@@ -50,15 +50,22 @@ def jsonable(v):
     return repr(v)[:200]
 
 
+def link_third_party(root: pathlib.Path) -> None:
+    link = root / "third_party"
+    if link.exists():
+        return
+    try:
+        os.symlink(ROOT / "third_party", link, target_is_directory=True)
+    except FileExistsError:
+        pass
+    except OSError:  # Windows without symlink rights: a directory junction
+        subprocess.run(["cmd", "/c", "mklink", "/J", str(link), str(ROOT / "third_party")],
+                       check=True, stdout=subprocess.DEVNULL)  # fmt: skip
+
+
 def child(tree: str, kind: str, seed: int, variant: str, out: pathlib.Path) -> None:
     root = TREES / tree
-    link = root / "third_party"
-    if not link.exists():
-        try:
-            os.symlink(ROOT / "third_party", link, target_is_directory=True)
-        except OSError:  # Windows without symlink rights: a directory junction
-            subprocess.run(["cmd", "/c", "mklink", "/J", str(link), str(ROOT / "third_party")],
-                           check=True, stdout=subprocess.DEVNULL)  # fmt: skip
+    link_third_party(root)
     sys.path[:] = [str(root)] + [
         p for p in sys.path if p and not pathlib.Path(p).resolve().is_relative_to(HERE)
     ]
@@ -164,6 +171,8 @@ def main() -> None:
         child(t, k, int(s), v, pathlib.Path(o))
         return
     jobs = json.loads(pathlib.Path(args.jobs).read_text())
+    for tree in {j["tree"] for j in jobs}:
+        link_third_party(TREES / tree)
     out = pathlib.Path(args.out)
     (out / "episodes").mkdir(parents=True, exist_ok=True)
     t0 = time.perf_counter()
