@@ -62,21 +62,75 @@ def ledger_path() -> Path:
     return local_root() / "cloud/isaac_ledger.json"
 
 
-def read_ledger() -> list[dict]:
+def dream_roots() -> list[Path]:
+    """Every DREAM state folder this machine may hold: the canonical one first, then the
+    per-app folders of Windows desktop apps that virtualise %LOCALAPPDATA% (the Claude and
+    Codex apps write under Packages/<app>/LocalCache/Local/DREAM). A guard that saw only one
+    of them undercounted spending (Claude US$25.67 against Codex US$30.32). Offline."""
+    bases = [Path(os.environ.get("LOCALAPPDATA", Path.home()))]
+    bases.append(Path.home() / "AppData/Local")
+    roots: list[Path] = []
+    for base in bases:
+        candidates = [base / "DREAM"]
+        # A virtualised view can itself sit inside Packages/<app>/LocalCache/Local.
+        for parent in (base, *base.parents):
+            if parent.name.lower() == "packages":
+                candidates += sorted(parent.glob("*/LocalCache/Local/DREAM"))
+        candidates += sorted((base / "Packages").glob("*/LocalCache/Local/DREAM"))
+        for root in candidates:
+            if root.is_dir() and root.resolve() not in [r.resolve() for r in roots]:
+                roots.append(root)
+    return roots
+
+
+def read_own_ledger() -> list[dict]:
+    """This app's own ledger, the one writes go to."""
     path = ledger_path()
     return json.loads(path.read_text()) if path.is_file() else []
 
 
+def read_ledger() -> list[dict]:
+    """The union of every app's ledger by session name, keeping the entry with the larger
+    charged amount: the cap can only rise from seeing more folders, never fall. An unreadable
+    foreign ledger raises rather than being skipped."""
+    best: dict[str, dict] = {}
+    paths = [ledger_path()] + [r / "cloud/isaac_ledger.json" for r in dream_roots()]
+    for path in dict.fromkeys(paths):
+        if not path.is_file():
+            continue
+        try:
+            entries = json.loads(path.read_text(encoding="utf-8"))
+        except ValueError as error:
+            raise ValueError(f"cannot read cost ledger {path}: {error}") from error
+        for entry in entries:
+            if entry["name"] not in best or charged(entry) > charged(best[entry["name"]]):
+                best[entry["name"]] = entry
+    return list(best.values())
+
+
 def prior_cloud_run_estimates() -> float:
-    """Conservatively include earlier DREAM cloud-run estimates in this continuation cap."""
-    root = local_root() / "cloud_runs"
-    total = 0.0
-    if root.is_dir():
-        for path in root.glob("*/manifest.json"):
+    """Conservatively include earlier DREAM cloud-run estimates in this continuation cap,
+    across every app's folder (largest estimate per session name)."""
+    best: dict[str, float] = {}
+    for root in dream_roots():
+        for path in (root / "cloud_runs").glob("*/manifest.json"):
             manifest = json.loads(path.read_text(encoding="utf-8"))
             if manifest.get("workload") != WORKLOAD:
-                total += float(manifest.get("estimated_usd", 0.0))
-    return round(total, 2)
+                best[path.parent.name] = max(
+                    best.get(path.parent.name, 0.0), float(manifest.get("estimated_usd", 0.0))
+                )
+    return round(sum(best.values()), 2)
+
+
+def runtime_receipt_path() -> Path:
+    """The cached-runtime receipt: the canonical copy if present, else the newest per-app copy.
+    It is verified against the live image before use, so which copy is read is not trusted."""
+    paths = [r / "g1_runtime_image.json" for r in dream_roots()]
+    paths = [p for p in paths if p.is_file()]
+    if not paths:
+        return Path(os.environ.get("LOCALAPPDATA", Path.home())) / "DREAM/g1_runtime_image.json"
+    canonical = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "DREAM/g1_runtime_image.json"
+    return canonical if canonical in paths else max(paths, key=lambda p: p.stat().st_mtime)
 
 
 def estimate(cfg: dict, minutes: int) -> float:
@@ -126,7 +180,7 @@ def plan(project: str, cfg: dict, name: str, iap_api_port: int | None = None) ->
         raise ValueError("sessions use one reviewed L4 configuration for 30..180 minutes")
     if iap_api_port is not None and not 1024 <= iap_api_port <= 65535:
         raise ValueError("IAP API port must be between 1024 and 65535")
-    receipt_path = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "DREAM/g1_runtime_image.json"
+    receipt_path = runtime_receipt_path()
     if not receipt_path.is_file():
         raise ValueError("Isaac sessions require a validated G1/Qwen runtime image receipt")
     runtime = json.loads(receipt_path.read_text(encoding="utf-8"))
@@ -195,7 +249,7 @@ def settle_failed_start(p: dict, dest: Path, errors: list) -> None:
     """A start that failed before any VM existed stops counting its full estimate."""
     if errors or not never_allocated(dest) or vm_present(p):
         return  # keep the full estimate: something may still be billing
-    ledger = read_ledger()
+    ledger = read_own_ledger()
     for entry in ledger:
         if entry["name"] == p["name"]:
             entry.update(ended_utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -227,7 +281,7 @@ def start(p: dict, allowance: float, yes: bool) -> Path:
     (dest / "manifest.json").write_text(json.dumps(p, indent=2), encoding="utf-8")
     project, region = f"--project={p['project']}", f"--region={p['region']}"
     account = f"{p['account']}@{p['project']}.iam.gserviceaccount.com"
-    ledger = read_ledger() + [
+    ledger = read_own_ledger() + [
         {
             "name": p["name"],
             "estimated_usd": p["estimated_usd"],
@@ -368,7 +422,7 @@ def stop(manifest: Path, yes: bool) -> None:
         ended = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         (dest / "cleanup_errors.json").write_text(json.dumps(errors, indent=2))
         (dest / "post_audit.json").write_text(json.dumps(audit(p["project"]), indent=2))
-        ledger = read_ledger()
+        ledger = read_own_ledger()
         for entry in ledger:
             if entry["name"] == p["name"]:
                 entry["ended_utc"] = ended

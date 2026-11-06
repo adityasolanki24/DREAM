@@ -172,9 +172,43 @@ def test_frozen_kitchen_config_keeps_development_and_evaluation_disjoint():
     assert cfg["explore"]["max_steps"] == milestone_b["max_steps"]
 
 
-def test_isaac_session_plan_is_capped_and_offline():
+def fake_runtime_receipt(tmp_path, monkeypatch):
+    """A receipt and image description that pass plan()'s checks, entirely offline."""
+    import hashlib
+
+    import cloud.isaac_session as S
+
+    lock = hashlib.sha256((ROOT / "cloud/requirements.lock.txt").read_bytes()).hexdigest()
+    revision = "ebb281ec70b05090aa6165b016eac8ec08e71b17"
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    (tmp_path / "DREAM").mkdir()
+    (tmp_path / "DREAM/g1_runtime_image.json").write_text(
+        json.dumps(
+            {
+                "image": {"name": "dream-g1-runtime-test", "id": "1234567890"},
+                "requirements_lock_sha256": lock,
+                "preflight_passed": True,
+                "inference_and_physics_validated": True,
+                "checkpoint": "Qwen/Qwen3-VL-4B-Instruct",
+                "checkpoint_revision": revision,
+                "mujoco": "3.16.0",
+            }
+        )
+    )
+    description = json.dumps({"requirements_lock_sha256": lock, "checkpoint_revision": revision})
+    monkeypatch.setattr(
+        S,
+        "gcloud",
+        lambda *a, **k: json.dumps(
+            {"id": "1234567890", "status": "READY", "description": description}
+        ),
+    )
+
+
+def test_isaac_session_plan_is_capped_and_offline(tmp_path, monkeypatch):
     from cloud.isaac_session import CONFIG, estimate, plan
 
+    fake_runtime_receipt(tmp_path, monkeypatch)  # no real receipt, no real gcloud
     cfg = json.loads(CONFIG.read_text())
     p = plan("nerva-adityapersonal", cfg, "dream-qwen-isaac-20261025-000000-abcdef")
     assert p["estimated_usd"] == estimate(cfg, cfg["max_minutes"])
@@ -183,6 +217,62 @@ def test_isaac_session_plan_is_capped_and_offline():
         plan("nerva-adityapersonal", {**cfg, "max_minutes": 600}, p["name"])
     with pytest.raises(ValueError):
         plan("nerva-adityapersonal", cfg, "nerva-something")
+
+
+def test_cost_guard_sees_every_apps_ledger_and_never_lowers_the_total(tmp_path, monkeypatch):
+    """Regression: desktop apps virtualise %LOCALAPPDATA%, so the Claude and Codex apps kept
+    separate ledgers and each cap saw only its own (US$25.67 against US$30.32)."""
+    import cloud.isaac_session as S
+
+    local = tmp_path / "Local"
+    own, other = local / "DREAM", local / "Packages/App_x/LocalCache/Local/DREAM"
+    for root in (own, other):
+        (root / "cloud").mkdir(parents=True)
+        (root / "cloud_runs").mkdir()
+    monkeypatch.setenv("LOCALAPPDATA", str(local))
+    monkeypatch.setattr(S.Path, "home", classmethod(lambda cls: tmp_path / "nohome"))
+
+    def entry(name, usd, reconciled=None):
+        return {"name": name, "estimated_usd": usd, "started_utc": "t",
+                **({} if reconciled is None else {"reconciled_usd": reconciled})}  # fmt: skip
+
+    (own / "cloud/isaac_ledger.json").write_text(
+        json.dumps([entry("dream-qwen-isaac-a", 5.7, 2.0), entry("dream-qwen-isaac-b", 5.7)])
+    )
+    (other / "cloud/isaac_ledger.json").write_text(
+        json.dumps([entry("dream-qwen-isaac-a", 5.7, 4.0), entry("dream-qwen-isaac-c", 6.0)])
+    )
+    for root, name, usd in ((own, "dream-t1-1", 3.0), (other, "dream-t1-1", 4.5)):
+        (root / "cloud_runs" / name).mkdir()
+        (root / "cloud_runs" / name / "manifest.json").write_text(
+            json.dumps({"workload": "t1", "estimated_usd": usd})
+        )
+    (other / "cloud_runs/dream-t1-2").mkdir()
+    (other / "cloud_runs/dream-t1-2/manifest.json").write_text(
+        json.dumps({"workload": "t1", "estimated_usd": 1.0})
+    )
+    by_name = {e["name"]: S.charged(e) for e in S.read_ledger()}
+    assert by_name == {"dream-qwen-isaac-a": 4.0, "dream-qwen-isaac-b": 5.7,
+                       "dream-qwen-isaac-c": 6.0}  # fmt: skip
+    assert S.prior_cloud_run_estimates() == 5.5  # larger per session name: 4.5 + 1.0
+    # Writes stay in this app's own ledger and do not copy the other app's entries.
+    assert [e["name"] for e in S.read_own_ledger()] == ["dream-qwen-isaac-a", "dream-qwen-isaac-b"]
+    # A foreign ledger that cannot be read raises the guard instead of lowering it.
+    (other / "cloud/isaac_ledger.json").write_text("{not json")
+    with pytest.raises(ValueError):
+        S.read_ledger()
+
+
+def test_runtime_receipt_is_found_in_another_apps_folder(tmp_path, monkeypatch):
+    import cloud.isaac_session as S
+
+    local = tmp_path / "Local"
+    other = local / "Packages/App_x/LocalCache/Local/DREAM"
+    other.mkdir(parents=True)
+    (other / "g1_runtime_image.json").write_text("{}")
+    monkeypatch.setenv("LOCALAPPDATA", str(local))
+    monkeypatch.setattr(S.Path, "home", classmethod(lambda cls: tmp_path / "nohome"))
+    assert S.runtime_receipt_path() == other / "g1_runtime_image.json"
 
 
 def test_session_vm_status_retries_control_plane_timeouts(monkeypatch):
@@ -288,6 +378,7 @@ def test_failed_start_without_a_vm_stops_charging_its_estimate(tmp_path, monkeyp
     from cloud import isaac_session as s
 
     monkeypatch.setattr(s, "ledger_path", lambda: tmp_path / "ledger.json")
+    monkeypatch.setattr(s, "dream_roots", lambda: [])  # hermetic: no other app's ledgers
     monkeypatch.setattr(s, "vm_present", lambda p: False)
     entry = {"name": "dream-qwen-isaac-x", "estimated_usd": 5.71, "started_utc": "t"}
     (tmp_path / "ledger.json").write_text(json.dumps([entry]))
