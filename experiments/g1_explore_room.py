@@ -410,14 +410,28 @@ def summarise(rows: list[dict], cfg: dict) -> dict:
     return {"by_condition": out, "gates": gates}
 
 
+def select_arm(cfg: dict, arm: str | None) -> dict:
+    """Overlay one named arm's seeds and methods on a config; configs without arms are unchanged."""
+    if not cfg.get("arms"):
+        if arm:
+            raise SystemExit(f"config has no arms, got --arm {arm}")
+        return cfg
+    if arm not in cfg["arms"]:
+        raise SystemExit(f"--arm is required, one of {sorted(cfg['arms'])}")
+    a = cfg["arms"][arm]
+    return cfg | {k: a[k] for k in ("seeds", "methods", "methods_by_kind") if k in a} | {"arm": arm}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("config")
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--resume", action="store_true", help="keep episodes already in out dir")
-    ap.add_argument("--out", help="output directory (default results/<name>)")
+    ap.add_argument("--out", help="output directory (default results/<name>[/<arm>])")
+    ap.add_argument("--arm", help="run one named arm of a config that defines 'arms'")
     args = ap.parse_args()
     cfg = json.loads(pathlib.Path(args.config).read_text())
+    cfg = select_arm(cfg, args.arm)
     sha, dirty = code_sha(ROOT), code_dirty(ROOT)
     rec_root = os.environ.get("DREAM_RECORDINGS_ROOT", "/tmp/DREAM/recordings")
     record = {tuple(r) for r in cfg.get("record", [])}
@@ -430,7 +444,8 @@ def main() -> None:
             for method in methods:
                 rr = rec_root if (kind, seed, method) in record else None
                 jobs.append((kind, seed, method, cfg, rr, sha))
-    out = pathlib.Path(args.out) if args.out else ROOT / "results" / cfg["name"]
+    default_out = ROOT / "results" / cfg["name"] / (args.arm or "")
+    out = pathlib.Path(args.out) if args.out else default_out
     out.mkdir(parents=True, exist_ok=True)
     rows, t0 = [], time.perf_counter()
     path = out / "episodes.jsonl"
