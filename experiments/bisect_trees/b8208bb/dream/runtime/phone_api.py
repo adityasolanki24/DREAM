@@ -1,0 +1,390 @@
+"""Authenticated phone interface to the task scheduler: submit, watch, reprioritise, cancel.
+
+Standard library only (http.server). Every request needs ``Authorization: Bearer <token>``,
+compared in constant time; the token is generated outside Git and never logged. The server
+binds to 127.0.0.1 unless a host is given explicitly: reach it from a phone through a private
+tunnel or VPN, never by exposing a robot-control endpoint to the public internet.
+
+Robot control goes only through ``TaskScheduler`` (queue, safe preemption, cancellation at a
+safe boundary): nothing here commands motion directly. Notifications are an event log the
+page polls (``GET /events?after=n``).
+"""
+
+from __future__ import annotations
+
+import hmac
+import json
+import mimetypes
+import secrets
+import threading
+import time
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from urllib.parse import parse_qs, urlparse
+
+PAGE = """<!doctype html><html><head>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>DREAM</title><style>body{font:16px system-ui;margin:16px;max-width:640px}
+input,button,select{font:inherit;padding:8px;margin:4px 0}textarea{width:100%;font:inherit}
+.t{border:1px solid #8886;border-radius:8px;padding:8px;margin:8px 0}</style></head><body>
+<h2>DREAM tasks</h2><input id=k type=password placeholder="access token" style="width:100%">
+<textarea id=x rows=2 placeholder="Bring me my water bottle in the bedroom"></textarea>
+<select id=p><option value=0>normal</option><option value=5>urgent</option></select>
+<button onclick=send()>Send</button><div id=s></div><h3>Tasks</h3><div id=l></div>
+<h3>Events</h3><div id=e></div><script>
+const E=v=>String(v).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
+const K=document.getElementById('k');K.value=sessionStorage.getItem('k')||'';
+const H=()=>({'Authorization':'Bearer '+K.value,'Content-Type':'application/json'});
+async function api(m,u,b){sessionStorage.setItem('k',K.value);
+const r=await fetch(u,{method:m,headers:H(),body:b?JSON.stringify(b):undefined});return r.json()}
+async function send(){const t=document.getElementById('x').value;
+await api('POST','/tasks',{text:t,priority:+document.getElementById('p').value});load()}
+async function act(id,a){await api('POST','/tasks/'+id+'/'+a,{});load()}
+let after=0;async function load(){try{const s=await api('GET','/status');
+document.getElementById('s').textContent='running: '+(s.running||'idle');
+const ts=await api('GET','/tasks');document.getElementById('l').innerHTML=ts.reverse().map(t=>
+`<div class=t><b>${E(t.state)}</b> p${E(t.priority)}: ${E(t.text)}<br>
+<small>${E(t.result||'')}</small><br><button onclick="act('${E(t.id)}','cancel')">cancel</button>
+<button onclick="act('${E(t.id)}','resume')">resume</button></div>`).join('');
+const ev=await api('GET','/events?after='+after);ev.forEach(x=>{after=x.n;
+const d=document.createElement('div');d.textContent=x.kind+' '+(x.text||'');
+document.getElementById('e').prepend(d)})
+}catch(err){document.getElementById('s').textContent='not connected'}}
+setInterval(load,2000);load()</script></body></html>"""
+
+
+def ag_ui_events(events: list[dict], after: int) -> dict:
+    """Translate retained scheduler events into AG-UI; cursor stays scheduler-based."""
+    output, runs, calls = [], {}, {}
+    for event in events:
+        n, kind = event["n"], event["kind"]
+        tid = event.get("id")
+        if kind in ("started", "resumed") and tid:
+            runs[tid] = f"{tid}-{n}"
+            translated = [{"type": "RUN_STARTED", "threadId": tid, "runId": runs[tid]}]
+        elif kind == "action" and tid:
+            call = f"{tid}-{n}"
+            calls[tid] = call
+            translated = [
+                {"type": "TOOL_CALL_START", "toolCallId": call, "toolCallName": event["tool"]},
+                {
+                    "type": "TOOL_CALL_ARGS",
+                    "toolCallId": call,
+                    "delta": json.dumps(event.get("args", {})),
+                },
+                {"type": "TOOL_CALL_END", "toolCallId": call},
+            ]
+        elif kind == "result" and tid in calls:
+            call = calls.pop(tid)
+            translated = [
+                {
+                    "type": "TOOL_CALL_RESULT",
+                    "messageId": f"result-{tid}-{n}",
+                    "toolCallId": call,
+                    "role": "tool",
+                    "content": json.dumps(
+                        {"status": event.get("status"), "message": event.get("message")}
+                    ),
+                }
+            ]
+        elif kind in ("succeeded", "failed", "cancelled", "suspended") and tid in runs:
+            run = runs.pop(tid)
+            reason = event.get("reason")
+            if kind == "failed":
+                translated = [
+                    {"type": "RUN_ERROR", "message": str(reason), "code": "failed", "runId": run}
+                ]
+            else:  # "succeeded" is the runtime's claim, not an independent verification
+                translated = [
+                    {
+                        "type": "RUN_FINISHED",
+                        "threadId": tid,
+                        "runId": run,
+                        "result": {"state": kind, "reason": reason},
+                    }
+                ]
+        else:
+            translated = [{"type": "CUSTOM", "name": "dream.scheduler", "value": event}]
+        if n > after:
+            output.extend(translated)
+    return {"cursor": max(after, events[-1]["n"]) if events else after, "events": output}
+
+
+def token_file() -> Path:
+    import os
+
+    root = Path(os.environ.get("LOCALAPPDATA", Path.home() / ".config")) / "DREAM"
+    return root / "phone_token"
+
+
+def load_or_create_token(path: Path | None = None) -> str:
+    path = path or token_file()
+    if path.is_file():
+        return path.read_text().strip()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    token = secrets.token_urlsafe(32)
+    path.write_text(token)
+    return token
+
+
+class PhoneAPI:
+    """Wire a scheduler (and optionally a memory query) to an authenticated HTTP server."""
+
+    def __init__(
+        self,
+        scheduler,
+        token: str,
+        status=None,
+        memory_query=None,
+        snapshot=None,
+        web_root: Path | None = None,
+        provider: str = "structured",
+        validate_task=None,
+        camera=None,
+        media=None,
+    ) -> None:
+        """``validate_task(text, provider, model) -> meta`` checks a submission against the
+        caller's provider registry and raises ValueError to refuse it (HTTP 422). Without it,
+        a request naming a provider or model is refused."""
+        if len(token) < 24:
+            raise ValueError("token too short")
+        self.scheduler, self.token = scheduler, token
+        self.status = status or (lambda: {})
+        self.memory_query = memory_query
+        self.snapshot = snapshot
+        self.web_root = web_root
+        self.provider = provider
+        self.validate_task = validate_task
+        self.camera = camera
+        self.media = media
+        self.client_metrics = []
+        self._media_slots = threading.BoundedSemaphore(2)
+        self.events: list[dict] = []
+        self._stream_id = secrets.token_hex(16)
+        self._event_number = 0
+        self._lock = threading.Lock()
+
+    def notify(self, kind: str, data: dict) -> None:
+        """Scheduler notification sink; also what the page shows as completion notices."""
+        with self._lock:
+            self._event_number += 1
+            self.events.append({"n": self._event_number, "kind": kind, **data})
+            del self.events[:-2000]
+
+    def handle(self, method: str, url: str, auth: str | None, body: bytes) -> tuple[int, object]:
+        """Pure request handler (tested without sockets)."""
+        parts = urlparse(url)
+        if (
+            method == "GET"
+            and self.web_root is not None
+            and (parts.path == "/" or parts.path.startswith(("/assets/", "/_next/")))
+        ):
+            relative = "index.html" if parts.path == "/" else parts.path.lstrip("/")
+            root = self.web_root.resolve()
+            candidate = (root / relative).resolve()
+            if candidate.is_relative_to(root) and candidate.is_file():
+                return 200, (
+                    mimetypes.guess_type(candidate.name)[0] or "application/octet-stream",
+                    candidate.read_bytes(),
+                )
+        if method == "GET" and parts.path == "/":
+            return 200, PAGE
+        if not auth or not hmac.compare_digest(auth.encode(), f"Bearer {self.token}".encode()):
+            return 401, {"error": "unauthorised"}
+        if parts.path.startswith("/media/whep") and self.media is not None:
+            return self.media.proxy(method, parts.path, body)
+        if method == "GET" and parts.path == "/media/status":
+            return 200, self.media.status() if self.media is not None else {"available": False}
+        try:
+            data = json.loads(body or b"{}")
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return 400, {"error": "invalid JSON"}
+        if not isinstance(data, dict):
+            return 400, {"error": "JSON object required"}
+        path = parts.path.rstrip("/").split("/")[1:]
+        s = self.scheduler
+        try:
+            if method == "POST" and path == ["camera", "client-metrics"]:
+                allowed = (
+                    "frame_id",
+                    "transport_ms",
+                    "decode_ms",
+                    "estimated_age_ms",
+                    "fps",
+                    "dropped",
+                )
+                clean = {
+                    k: v
+                    for k, v in data.items()
+                    if k in allowed
+                    and (
+                        isinstance(v, (int, float))
+                        or (k == "frame_id" and isinstance(v, str) and len(v) < 100)
+                    )
+                }
+                with self._lock:
+                    self.client_metrics.append({"server_unix_s": time.time(), **clean})
+                    del self.client_metrics[:-256]
+                return 200, {"accepted": True}
+            if method == "GET" and path == ["camera", "meta"] and self.camera is not None:
+                return 200, self.camera.metadata()
+            if method == "GET" and path == ["camera", "frame"] and self.camera is not None:
+                frame = self.camera.latest()
+                after = parse_qs(parts.query).get("after", [None])[0]
+                if frame is None or frame.id == after:
+                    return 204, ("image/jpeg", b"")
+                return 200, (
+                    "image/jpeg",
+                    frame.jpeg,
+                    {
+                        "X-Frame-Id": frame.id,
+                        "X-Frame-Sequence": str(frame.sequence),
+                        "X-Stream-Id": self.camera.epoch,
+                        "X-Captured-Unix-S": str(frame.captured_unix_s),
+                        "X-Server-Unix-S": str(time.time()),
+                    },
+                )
+            if method == "GET" and path == ["status"]:
+                return 200, {"running": s.running, **self.status()}
+            if method == "GET" and path == ["snapshot"] and self.snapshot:
+                return 200, self.snapshot()
+            if method == "GET" and path == ["tasks"]:
+                return 200, s.tasks()
+            if method == "GET" and path == ["events"]:
+                after = int(parse_qs(parts.query).get("after", ["0"])[0])
+                with self._lock:
+                    return 200, [e for e in self.events if e["n"] > after]
+            if method == "GET" and path == ["ag-ui", "events"]:
+                after = int(parse_qs(parts.query).get("after", ["0"])[0])
+                with self._lock:
+                    return 200, {**ag_ui_events(self.events, after), "stream_id": self._stream_id}
+            if method == "GET" and path == ["memory"] and self.memory_query:
+                label = parse_qs(parts.query).get("label", [""])[0]
+                return 200, self.memory_query(label)
+            if method == "POST" and path == ["tasks"]:
+                provider, model = data.get("provider"), data.get("model")
+                priority = data.get("priority", 0)
+                if provider is not None and not isinstance(provider, str):
+                    return 400, {"error": "provider must be a string"}
+                if model is not None and not isinstance(model, str):
+                    return 400, {"error": "model must be a string"}
+                if type(priority) is not int or not -1000 <= priority <= 1000:
+                    return 400, {"error": "priority must be an integer between -1000 and 1000"}
+                if not isinstance(data.get("text"), str):
+                    return 400, {"error": "task text must be a string"}
+                text = data["text"].strip()
+                if not text or len(text) > 500:
+                    return 400, {"error": "task text required (<= 500 characters)"}
+                if self.validate_task is not None:
+                    meta = self.validate_task(text, provider, model)  # ValueError -> 422
+                elif provider is not None or model is not None:
+                    raise ValueError(f"provider is not configured: {provider or model}")
+                else:
+                    meta = {}
+                return 201, {"id": s.submit(text, priority, meta=meta)}
+            if method == "POST" and len(path) == 3 and path[0] == "tasks":
+                tid, action = path[1], path[2]
+                if action == "cancel":
+                    return 200, {"result": s.cancel(tid)}
+                if action == "pause":
+                    return 200, {"result": s.pause(tid)}
+                if action == "resume":
+                    s.resume(tid)
+                    return 200, {"result": "resume allowed"}
+                if action == "priority":
+                    s.set_priority(tid, int(data["priority"]))
+                    return 200, {"result": "priority set"}
+        except (ValueError, TypeError) as error:  # e.g. a request the robot cannot represent
+            return 422, {"error": str(error)}
+        except KeyError:
+            return 404, {"error": "unknown task"}
+        return 404, {"error": "not found"}
+
+    def serve(self, host: str = "127.0.0.1", port: int = 8765) -> ThreadingHTTPServer:
+        api = self
+
+        class Handler(BaseHTTPRequestHandler):
+            def _reply(self, method):
+                try:
+                    n = int(self.headers.get("Content-Length") or 0)
+                    if n < 0 or n > 65536:
+                        raise ValueError("invalid length")
+                except ValueError:
+                    self.send_error(400, "invalid content length")
+                    return
+                if method == "GET" and urlparse(self.path).path == "/camera/stream":
+                    self._camera_stream()
+                    return
+                code, out = api.handle(method, self.path, self.headers.get("Authorization"),
+                                       self.rfile.read(n) if n else b"")  # fmt: skip
+                if isinstance(out, tuple):
+                    kind, raw = out[:2]
+                else:
+                    raw = out.encode() if isinstance(out, str) else json.dumps(out).encode()
+                    kind = "text/html" if isinstance(out, str) else "application/json"
+                self.send_response(code)
+                self.send_header("Content-Type", kind)
+                self.send_header("Cache-Control", "no-store")
+                if isinstance(out, tuple) and len(out) == 3:
+                    for key, value in out[2].items():
+                        self.send_header(key, value)
+                self.send_header("Content-Length", str(len(raw)))
+                self.end_headers()
+                try:
+                    self.wfile.write(raw)
+                except (BrokenPipeError, ConnectionResetError, TimeoutError):
+                    pass
+
+            def _camera_stream(self):
+                auth = self.headers.get("Authorization")
+                if not auth or not hmac.compare_digest(
+                    auth.encode(), f"Bearer {api.token}".encode()
+                ):
+                    self.send_error(401)
+                    return
+                if api.camera is None:
+                    self.send_error(404)
+                    return
+                if not api._media_slots.acquire(blocking=False):
+                    self.send_error(429, "two media clients maximum")
+                    return
+                self.connection.settimeout(3)
+                try:
+                    self.send_response(200)
+                    self.send_header(
+                        "Content-Type", "multipart/x-mixed-replace; boundary=dreamframe"
+                    )
+                    self.send_header("Cache-Control", "no-store")
+                    self.end_headers()
+                    after = None
+                    while not api.camera.metadata()["closed"]:
+                        frame = api.camera.wait(after)
+                        if frame is None:
+                            continue
+                        after = frame.id
+                        head = (
+                            f"--dreamframe\r\nContent-Type: image/jpeg\r\n"
+                            f"Content-Length: {len(frame.jpeg)}\r\nX-Frame-Id: {frame.id}\r\n\r\n"
+                        )
+                        self.wfile.write(head.encode() + frame.jpeg + b"\r\n")
+                        self.wfile.flush()
+                except (OSError, TimeoutError):
+                    pass
+                finally:
+                    api._media_slots.release()
+
+            def do_GET(self):  # noqa: N802
+                self._reply("GET")
+
+            def do_POST(self):  # noqa: N802
+                self._reply("POST")
+
+            def do_DELETE(self):  # noqa: N802
+                self._reply("DELETE")
+
+            def log_message(self, *args):  # requests are not logged: headers carry the token
+                pass
+
+        server = ThreadingHTTPServer((host, port), Handler)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        return server
