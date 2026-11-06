@@ -1,0 +1,17 @@
+Source: https://github.com/NVlabs/GR00T-WholeBodyControl
+Commit: 45c03facbf848e0c743091b7d9c17952096ff908 (main, 2026-10-25)
+Paths: decoupled_wbc/sim2mujoco/resources/robots/g1/g1_gear_wbc.xml
+       decoupled_wbc/sim2mujoco/resources/robots/g1/g1_gear_wbc.yaml
+       LICENSE (dual-licence notice: source Apache-2.0, model weights NVIDIA Open Model License)
+Downloaded: 2026-10-25. Bytes unmodified (SHA-256 in SHA256SUMS).
+Meshes: the 49 STL files this MJCF references are byte-identical to
+  third_party/unitree_g1/meshes (Unitree, BSD-3-Clause), so they are not duplicated;
+  dream/sim/g1_mobile.py points MjSpec's meshdir there at build time.
+Purpose: the MuJoCo model and control configuration paired with NVIDIA's released
+  Decoupled WBC G1 lower-body policies (GR00T-WholeBodyControl-Balance.onnx, -Walk.onnx).
+Weights are NOT vendored: experiments/fetch_wbc_policy.py downloads them from the pinned
+  commit's Git LFS objects into a local cache and verifies the SHA-256 from the LFS pointers
+  (experiments/configs/wbc_policy.json). They are licensed by NVIDIA Corporation under the
+  NVIDIA Open Model License.
+Runtime MjSpec changes: meshdir redirect; scene additions (rooms, furniture, a head camera)
+  for DREAM experiments. No robot inertia, joint, actuator or contact parameter edits.
