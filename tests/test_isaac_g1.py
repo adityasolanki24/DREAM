@@ -212,7 +212,8 @@ def test_isaac_session_plan_is_capped_and_offline(tmp_path, monkeypatch):
     cfg = json.loads(CONFIG.read_text())
     p = plan("nerva-adityapersonal", cfg, "dream-qwen-isaac-20261025-000000-abcdef")
     assert p["estimated_usd"] == estimate(cfg, cfg["max_minutes"])
-    assert p["estimated_usd"] <= p["per_session_ceiling_usd"] <= p["continuation_cap_usd"]
+    assert p["estimated_usd"] <= p["per_session_ceiling_usd"]
+    assert p["continuation_cap_usd"] is None  # removed by the owner, 7 Nov 2026
     with pytest.raises(ValueError):
         plan("nerva-adityapersonal", {**cfg, "max_minutes": 600}, p["name"])
     with pytest.raises(ValueError):

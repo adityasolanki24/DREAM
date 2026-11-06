@@ -1,4 +1,4 @@
-"""One capped Isaac Sim GPU session that runs committed DREAM snapshots as numbered jobs.
+"""One Isaac Sim GPU session that runs committed DREAM snapshots as numbered jobs.
 
     python cloud/isaac_session.py plan  --project <p>
     python cloud/isaac_session.py start --project <p> --allowance-usd 6 --yes
@@ -9,7 +9,8 @@ Same private-VM design as cloud/launch.py, whose helpers it reuses (resource nam
 fallback, scoped service account, temporary network/NAT, result checksums, cleanup, audit):
 the difference is that one cold install serves several jobs instead of one. Safeguards:
 - Google deletes the VM at ``max_minutes`` regardless of this process (max-run-duration);
-- a per-session ceiling and a cumulative ledger for the continuation, from the config;
+- a per-session ceiling from the config and a cumulative ledger of every session's estimate
+  (the ledger records spend; an optional cumulative cap applies only if the config sets one);
 - every job is ``git archive HEAD`` of a clean tracked tree, recorded by SHA;
 - outputs are retrieved and checksum-verified before the bucket is removed; on failure the
   bucket is preserved and ``stop`` can be rerun.
@@ -266,7 +267,8 @@ def start(p: dict, allowance: float, yes: bool) -> Path:
         raise ValueError("--yes and --allowance-usd covering the estimate are required")
     if allowance > p["per_session_ceiling_usd"]:
         raise ValueError("allowance exceeds the configured per-session ceiling")
-    if spent + p["estimated_usd"] > p["continuation_cap_usd"]:
+    cap = p["continuation_cap_usd"]  # None: the owner removed the cumulative cap
+    if cap is not None and spent + p["estimated_usd"] > cap:
         raise ValueError(f"cumulative estimate {spent:.2f} + this session exceeds the cap")
     state = audit(p["project"], p["region"])
     quota = {q["metric"]: q["limit"] - q["usage"] for q in state["quotas"]}
