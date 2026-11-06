@@ -247,14 +247,21 @@ def read_home_memory(path):
             ).fetchall()
             maps = sorted({r[2] for r in rows})
             fmt = ",".join("?" * len(maps)) or "''"
-            places = db.execute(
-                "SELECT id,name,kind,x,y,map_id,parent FROM places WHERE map_id IN"
-                f" ({fmt}) ORDER BY id", maps,
-            ).fetchall() if maps else []
+            places = (
+                db.execute(
+                    "SELECT id,name,kind,x,y,map_id,parent FROM places WHERE map_id IN"
+                    f" ({fmt}) ORDER BY id",
+                    maps,
+                ).fetchall()
+                if maps
+                else []
+            )
             pids = {p[0] for p in places}
-            edges = db.execute(
-                "SELECT a,b,kind FROM place_edges ORDER BY a,b"
-            ).fetchall() if pids else []
+            edges = (
+                db.execute("SELECT a,b,kind FROM place_edges ORDER BY a,b").fetchall()
+                if pids
+                else []
+            )
             edges = [e for e in edges if e[0] in pids and e[1] in pids]
             ids = [r[0] for r in rows]
             history = {i: [] for i in ids}
@@ -269,8 +276,16 @@ def read_home_memory(path):
                 ):
                     h = history[oid]
                     if len(h) < HISTORY_PER_OBJECT:
-                        h.append({"time": t, "position": [x, y, z], "sigma": sigma,
-                                  "confidence": conf, "source": source, "place_id": place})
+                        h.append(
+                            {
+                                "time": t,
+                                "position": [x, y, z],
+                                "sigma": sigma,
+                                "confidence": conf,
+                                "source": source,
+                                "place_id": place,
+                            }
+                        )
                 for oid, skill, outcome, time_ in db.execute(
                     "SELECT object_id,skill,outcome,time FROM affordances"
                     f" WHERE object_id IN ({hq}) ORDER BY time DESC",
@@ -303,8 +318,15 @@ def read_home_memory(path):
                 for r in rows
             ],
             "places": [
-                {"id": p[0], "name": p[1], "kind": p[2], "x": p[3], "y": p[4], "map_id": p[5],
-                 "parent": p[6]}
+                {
+                    "id": p[0],
+                    "name": p[1],
+                    "kind": p[2],
+                    "x": p[3],
+                    "y": p[4],
+                    "map_id": p[5],
+                    "parent": p[6],
+                }
                 for p in places
             ],
             "edges": [{"a": e[0], "b": e[1], "kind": e[2]} for e in edges],

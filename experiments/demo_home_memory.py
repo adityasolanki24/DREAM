@@ -52,43 +52,112 @@ def main() -> None:
     mem.add_place("counter", "place", map_id, (0.5, 0.8), parent=kitchen)
 
     # The kitchen cabinet handle: inspected three times, affordance models stored.
-    handle = mem.observe("cabinet_handle", (0.5, 0.8, 0.9), map_id, sigma=0.08,
-                         confidence=0.92, source="demo: head_rgbd inspection",
-                         time=now - 2 * HOUR)
-    mem.observe("cabinet_handle", (0.49, 0.82, 0.9), map_id, sigma=0.1, confidence=0.9,
-                source="demo: head_rgbd inspection", time=now - 26 * HOUR)
-    mem.observe("cabinet_handle", (0.52, 0.79, 0.92), map_id, sigma=0.12, confidence=0.88,
-                source="demo: head_rgbd inspection", time=now - 3 * DAY)
-    mem.record_affordance(handle, "reveal_close", {"use": "grip", "pull_hint": False},
-                          "succeeded",
-                          {"evidence": "demo: 3 probes, closed-loop pull, 0.12 m"},
-                          time=now - 2 * HOUR)
-    mem.record_affordance(handle, "reveal_close", {"use": "grip"}, "failed",
-                          {"evidence": "demo: grasp slipped before load"}, time=now - 5 * HOUR)
+    handle = mem.observe(
+        "cabinet_handle",
+        (0.5, 0.8, 0.9),
+        map_id,
+        sigma=0.08,
+        confidence=0.92,
+        source="demo: head_rgbd inspection",
+        time=now - 2 * HOUR,
+    )
+    mem.observe(
+        "cabinet_handle",
+        (0.49, 0.82, 0.9),
+        map_id,
+        sigma=0.1,
+        confidence=0.9,
+        source="demo: head_rgbd inspection",
+        time=now - 26 * HOUR,
+    )
+    mem.observe(
+        "cabinet_handle",
+        (0.52, 0.79, 0.92),
+        map_id,
+        sigma=0.12,
+        confidence=0.88,
+        source="demo: head_rgbd inspection",
+        time=now - 3 * DAY,
+    )
+    mem.record_affordance(
+        handle,
+        "reveal_close",
+        {"use": "grip", "pull_hint": False},
+        "succeeded",
+        {"evidence": "demo: 3 probes, closed-loop pull, 0.12 m"},
+        time=now - 2 * HOUR,
+    )
+    mem.record_affordance(
+        handle,
+        "reveal_close",
+        {"use": "grip"},
+        "failed",
+        {"evidence": "demo: grasp slipped before load"},
+        time=now - 5 * HOUR,
+    )
 
     # A second remembered handle in the hall, never operated.
-    mem.observe("door_handle", (3.1, 3.2, 0.95), map_id, sigma=0.1, confidence=0.85,
-                source="demo: head_rgbd inspection", time=now - 7 * HOUR)
+    mem.observe(
+        "door_handle",
+        (3.1, 3.2, 0.95),
+        map_id,
+        sigma=0.1,
+        confidence=0.85,
+        source="demo: head_rgbd inspection",
+        time=now - 7 * HOUR,
+    )
 
     # The bedroom charger: remembered, seen once yesterday.
-    mem.observe("charger", (6.2, 0.4, 0.5), map_id, sigma=0.1, confidence=0.8,
-                source="demo: head_rgbd", time=now - 30 * HOUR)
+    mem.observe(
+        "charger",
+        (6.2, 0.4, 0.5),
+        map_id,
+        sigma=0.1,
+        confidence=0.8,
+        source="demo: head_rgbd",
+        time=now - 30 * HOUR,
+    )
 
     # The kit crate in the hall, and a mug the robot then looked for and did not find:
     # the absence is recorded like the runtime records it (MemoryGuidedPlanner).
-    crate = mem.observe("crate", (2.4, 2.6, 0.2), map_id, sigma=0.15, confidence=0.7,
-                        source="demo: head_rgbd", time=now - 8 * HOUR)
-    mem.record_affordance(crate, "carry", {"use": "grip_top"}, "succeeded",
-                          {"evidence": "demo: carried 1.4 m and set down"},
-                          time=now - 8 * HOUR)
-    mug = mem.observe("mug", (0.2, -0.5, 0.9), map_id, sigma=0.1, confidence=0.75,
-                      source="demo: head_rgbd", time=now - 40 * HOUR)
-    mem.record_absence((0.2, -0.5), 0.4, map_id, source="demo: head_rgbd",
-                       time=now - 1 * HOUR)
-    mem.record_episode("inspect cabinet", now - 2 * HOUR, now - 2 * HOUR + 95,
-                       "succeeded",
-                       {"note": "demo: scripted episode attached to the handle sighting",
-                        "object": handle, "mug": mug})
+    crate = mem.observe(
+        "crate",
+        (2.4, 2.6, 0.2),
+        map_id,
+        sigma=0.15,
+        confidence=0.7,
+        source="demo: head_rgbd",
+        time=now - 8 * HOUR,
+    )
+    mem.record_affordance(
+        crate,
+        "carry",
+        {"use": "grip_top"},
+        "succeeded",
+        {"evidence": "demo: carried 1.4 m and set down"},
+        time=now - 8 * HOUR,
+    )
+    mug = mem.observe(
+        "mug",
+        (0.2, -0.5, 0.9),
+        map_id,
+        sigma=0.1,
+        confidence=0.75,
+        source="demo: head_rgbd",
+        time=now - 40 * HOUR,
+    )
+    mem.record_absence((0.2, -0.5), 0.4, map_id, source="demo: head_rgbd", time=now - 1 * HOUR)
+    mem.record_episode(
+        "inspect cabinet",
+        now - 2 * HOUR,
+        now - 2 * HOUR + 95,
+        "succeeded",
+        {
+            "note": "demo: scripted episode attached to the handle sighting",
+            "object": handle,
+            "mug": mug,
+        },
+    )
     mem.close()
     print(out)
 
