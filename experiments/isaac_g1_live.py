@@ -4,6 +4,11 @@ Isaac/PhysX owns the robot and scene. The pretrained WBC remains the bounded mot
 controller; Qwen selects one validated mobile tool per observation. Ground-truth kitchen
 geometry is used only for a collision-clear initial pose. Agent observations are RGB-D,
 proprioception, estimated odometry and camera-derived memory.
+
+Timing contract: physics is synchronous and advances only when the runtime steps it, so
+simulated time stands still while a model call is in flight (the robot is held for reasoning).
+This is documented, deliberate behaviour; a real-time deployment would instead have to keep
+the controller running during inference, and sessions here do not measure that case.
 """
 
 from __future__ import annotations
