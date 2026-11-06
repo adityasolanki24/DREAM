@@ -163,6 +163,14 @@ n = 11 this is a descriptive count only: no superiority claim either way. Differ
 be removed (backend rendering of the same messages, decoding settings, the ChatGPT run's own
 runner bytes) are listed in the config.
 
+**MolmoAct2 failure mode** (`results/molmo_failure_mode_closeout/summary.json`, saved
+evidence only, no new inference): the gripper channel stayed within [-0.006, 0.011] and DREAM
+maps it to fully open, the upstream DROID convention; the end effector stayed at least 0.43 m
+from the object because the pilot executed 6 single rows (0.4 s of policy time); the DREAM home
+pose is outside the DROID state range for two wrist joints. No contract defect found. Learned
+integration: partial. Task execution: no. Whether the policy can reach and grasp is still open;
+the test that would decide it needs a multi-row closed-loop harness and was not run.
+
 ## Branches and integration
 
 | Branch | Role |
