@@ -153,6 +153,19 @@ pairs): 7 divergent decisions, fewer than the declared 10, so insufficient diver
 episodes, hand-on-handle in 5, no foot contact; phantom handles in 11 episodes (15 total). Two
 failed cloud attempts are in `failed_attempts/`; the earlier local hang did not recur.
 
+**Room regression diagnostic** (`results/g1_explore_room_regression_closeout`, frozen config
+`g1_explore_room_regression_closeout.json`; a diagnostic, not held-out and not a replacement for
+the result above; gain arm only, one cloud session): with the current code on the historical
+seeds (A1) nominal is 19/20 against 20/20 in `results/g1_explore_room` and shifted 6/10 against
+8/10 (seeds 1013, 2000, 2004 changed, all refusals or budget stops, no false claims or falls),
+so by the declared rule there is a code regression since 44ab7c4, not located to a commit. With
+only the 0.15 m arrival margin removed on the frozen fresh seeds (A2, sibling branch never
+merged) all 40 outcomes are unchanged (15/20, 4/10, 10/10), including the five 'no reachable
+viewpoint' failures, so the margin is not what causes them; the margin was not tested on the
+three regression seeds. Seed difficulty also contributes: current code scores 19/20 and 6/10 on
+the historical seeds and 15/20 and 4/10 on the fresh ones, two of whose nominal failures are
+rooms with no valid start. No fix has been applied.
+
 **Qwen on the frozen provider frames** (`results/p6_qwen_frozen11_closeout`, frozen config
 `p6_qwen_frozen11_closeout.json`): the same 11 decisions, frames, prompt and tool schemas
 (hash-equal to the ChatGPT run's offline reconstruction) and scorer. Qwen3-VL-4B-Instruct at
