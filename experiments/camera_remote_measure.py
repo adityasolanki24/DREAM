@@ -172,8 +172,8 @@ def whep_summary(result: dict, window_s: float) -> dict:
     if len(cb) > 1:
         span = (cb[-1]["t"] - cb[0]["t"]) / 1000
         out["presented_fps"] = round((len(cb) - 1) / max(span, 1e-6), 2)
-        recv = [c["t"] - c["receiveTime"] for c in cb if c.get("receiveTime")]
-        out["frame_callback_minus_receive_ms"] = stats(recv) if recv else {"n": 0}
+        # requestVideoFrameCallback's receiveTime is on the page's performance.now() timeline, a
+        # different clock from the epoch times recorded here, so it is not differenced.
     out["window_s"] = window_s
     return out
 
