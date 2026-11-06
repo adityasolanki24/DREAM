@@ -30,3 +30,20 @@ def test_arm_required_when_config_has_arms_and_rejected_otherwise():
     assert select_arm(plain, None) is plain
     with pytest.raises(SystemExit):
         select_arm(plain, "A1")
+
+
+def test_compare_flags_pass_flips_per_seed():
+    from experiments.compare_room_regression import compare
+
+    def row(kind, seed, ok, **kw):
+        base = {"kind": kind, "seed": seed, "method": "gain", "claimed": ok, "false_claim": False,
+                "fell": False, "contact_steps": 0, "reason": "x", "sim_s": 1.0,
+                "success": ok,
+                "correct_refusal": (not ok) if kind == "no_cabinet" else None}  # fmt: skip
+        return base | kw
+
+    base = {("nominal", 1): row("nominal", 1, False), ("nominal", 2): row("nominal", 2, True)}
+    arm = {("nominal", 1): row("nominal", 1, True), ("nominal", 2): row("nominal", 2, True)}
+    out = compare(arm, base)
+    assert out["by_kind"]["nominal"]["fixed"] == [1] and out["seeds_changed_total"] == 1
+    assert out["by_kind"]["nominal"]["broken"] == []
