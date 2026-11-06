@@ -84,7 +84,10 @@ def gcloud(*args: str) -> str:
         raise RuntimeError("Google Cloud SDK is required")
     # The 41 MiB source upload exceeded 120 s on the development uplink, before
     # VM allocation. Allow a bounded ten-minute transfer; keep RPC limits short.
-    timeout = 600 if args[:2] in (("storage", "cp"), ("storage", "rsync")) else 120
+    # Creating the 200 GB L4 VM from the cached image took about three minutes on 7 Nov 2026
+    # (the 120 s limit aborted a start whose VM was then created); it is a bounded operation.
+    slow = (("storage", "cp"), ("storage", "rsync"), ("compute", "instances"))
+    timeout = 600 if args[:2] in slow and args[:3] != ("compute", "instances", "list") else 120
     return subprocess.run(
         [exe, *args, "--quiet"],
         text=True,
