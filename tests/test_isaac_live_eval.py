@@ -273,3 +273,14 @@ def test_driver_never_prints_or_stores_the_pairing_token():
     source = (ev.ROOT / "experiments/isaac_g1_live_eval.py").read_text(encoding="utf-8")
     assert "print(token" not in source and "write_text(token" not in source
     assert json.dumps(CFG).find("token") == -1
+
+
+def test_a_driver_exception_becomes_failed_cases_not_a_crashed_matrix(monkeypatch, tmp_path):
+    def boom(*args):
+        raise OSError("port in use")
+
+    monkeypatch.setattr(ev, "_run_group", boom)
+    group = ev.build_groups(CFG)[0]
+    result = ev.run_group(CFG, group, 7, tmp_path, None, True, None)
+    assert [c["task"] for c in result["cases"]] == ["T1", "T2"]
+    assert all(not c["submitted"] and "driver_exception" in c["refusal"] for c in result["cases"])

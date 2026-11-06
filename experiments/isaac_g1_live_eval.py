@@ -415,6 +415,25 @@ def read_json(path: pathlib.Path):
 
 
 def run_group(cfg, group, start, folder, args, model_ok: bool, model_error: str | None) -> dict:
+    """_run_group, with a driver exception recorded as failed cases instead of ending the matrix."""
+    try:
+        return _run_group(cfg, group, start, folder, args, model_ok, model_error)
+    except Exception as error:
+        failure = f"driver_exception: {error!r}"
+        specs = [
+            {"case_id": f"s{group['start']}_{t}", "group": group["id"], "start": group["start"],
+             "task": t, "text": cfg["tasks"][t].get("text")}
+            for t in group["tasks"]
+        ]  # fmt: skip
+        return {
+            "process": {"group": group["id"], "start": start, "driver_failure": failure},
+            "cases": [
+                build_case(s, {"submitted": False, "refusal": failure}, None, None) for s in specs
+            ],
+        }
+
+
+def _run_group(cfg, group, start, folder, args, model_ok: bool, model_error: str | None) -> dict:
     """One fresh live process and its tasks. Returns case dicts and process facts."""
     folder.mkdir(parents=True, exist_ok=True)
     specs = [
