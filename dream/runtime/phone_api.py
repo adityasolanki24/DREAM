@@ -18,6 +18,7 @@ import mimetypes
 import secrets
 import select
 import socket
+import sys
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -127,6 +128,16 @@ def load_or_create_token(path: Path | None = None) -> str:
     token = secrets.token_urlsafe(32)
     path.write_text(token)
     return token
+
+
+class _QuietServer(ThreadingHTTPServer):
+    """A client that resets its connection (phone sleeps, tunnel drops, refused stream client
+    gone) is not a server fault: the stdlib would print a traceback per request."""
+
+    def handle_error(self, request, client_address):
+        if isinstance(sys.exc_info()[1], (ConnectionError, TimeoutError)):
+            return
+        super().handle_error(request, client_address)
 
 
 def _peer_closed(sock: socket.socket) -> bool:
@@ -417,6 +428,6 @@ class PhoneAPI:
             def log_message(self, *args):  # requests are not logged: headers carry the token
                 pass
 
-        server = ThreadingHTTPServer((host, port), Handler)
+        server = _QuietServer((host, port), Handler)
         threading.Thread(target=server.serve_forever, daemon=True).start()
         return server
