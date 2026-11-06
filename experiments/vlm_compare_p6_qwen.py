@@ -46,6 +46,10 @@ def stage_inputs() -> None:
     target = ROOT / "results/phase1_vlm_compare"
     if not (target / "decisions.json").exists():
         shutil.copytree(ROOT / "experiments/p6_inputs", target, dirs_exist_ok=True)
+    reference = ROOT / "results/phase1_gpt_luna_none_20261028/run_frozen11.json"
+    if not reference.exists():
+        reference.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(ROOT / "experiments/p6_inputs/run_frozen11_reference.json", reference)
 
 
 def check_preconditions() -> None:
