@@ -1,0 +1,495 @@
+{
+  "labels": {
+    "evidence_class": "development, interactive, not predeclared; not a held-out evaluation",
+    "environment": "simulation (NVIDIA Isaac Sim 6.2 / PhysX, Unitree G1 under the unchanged NVIDIA Decoupled WBC)",
+    "model": "genuine Qwen3-VL-4B-Instruct, revision ebb281ec70b05090aa6165b016eac8ec08e71b17",
+    "odometry": "oracle-assisted (true increments plus noise); not perception or SLAM",
+    "scoring": "original evaluation JSONs are verbatim; this table does not rescore anything",
+    "scorer_caveat": "original_scorer is the cabinet-handle scorer of that commit. For a task that was not a cabinet inspection its false_claim reflects that scorer, not a measurement of the requested object."
+  },
+  "sessions": [
+    {
+      "session": "dream-qwen-isaac-20261031-021013-3eecde",
+      "git_sha": "b8208bb8a8fbb53f5af14e423be534b7736bf054",
+      "job_args": [
+        "--out",
+        "{out}/live",
+        "--kitchen",
+        "l_shape",
+        "--start",
+        "7",
+        "--media",
+        "--single-task",
+        "--duration-s",
+        "900",
+        "--model-start-timeout-s",
+        "300"
+      ],
+      "exit_code": "0",
+      "final_stage": "phone_api_ready",
+      "wall_s_to_last_stage": 737.5854047120001,
+      "qwen_decisions": 8,
+      "qwen_inference_s_mean": 2.23,
+      "physical_outcome_recorded": true,
+      "final_height_m": 0.7406131625175476,
+      "gpu_whole_run": {
+        "rows": 702,
+        "util_pct_mean": 0.04,
+        "util_pct_max": 20.0,
+        "memory_mib_max": 14162.0,
+        "power_w_mean": 19.17,
+        "power_w_max": 39.61
+      },
+      "tasks": [
+        {
+          "task_id": "48aae3f67e",
+          "request": "Please go and inspect a cabinet.",
+          "goal": "Inspect(target='cabinet', candidate=None)",
+          "bound_reference": null,
+          "scheduler_state": "failed",
+          "success_claimed": null,
+          "final_reason": "execution error: AttributeError(\"'ThreadingHTTPServer' object has no attribute 'notify'\")",
+          "failure_stage": "runtime exception before the agent finished",
+          "sim_start_s": 10.0,
+          "sim_end_s": null,
+          "sim_duration_s": null,
+          "tool_steps": [
+            {
+              "tool": "look_around",
+              "status": "succeeded",
+              "error_m": null
+            }
+          ],
+          "arrival_errors_m": null,
+          "agent_verdict": null,
+          "original_scorer": null,
+          "original_scorer_file": null,
+          "min_pelvis_height_m": null,
+          "contacts_in_session": 0
+        },
+        {
+          "task_id": "d53c019e71",
+          "request": "can you go and inspect candidate 7",
+          "goal": "Inspect(target='cabinet', candidate=7)",
+          "bound_reference": null,
+          "scheduler_state": "failed",
+          "success_claimed": null,
+          "final_reason": "execution error: AttributeError(\"'ThreadingHTTPServer' object has no attribute 'notify'\")",
+          "failure_stage": "runtime exception before the agent finished",
+          "sim_start_s": 22.84,
+          "sim_end_s": null,
+          "sim_duration_s": null,
+          "tool_steps": [
+            {
+              "tool": "look_around",
+              "status": "succeeded",
+              "error_m": null
+            }
+          ],
+          "arrival_errors_m": null,
+          "agent_verdict": null,
+          "original_scorer": null,
+          "original_scorer_file": null,
+          "min_pelvis_height_m": null,
+          "contacts_in_session": 0
+        }
+      ]
+    },
+    {
+      "session": "dream-qwen-isaac-20261101-212258-de1801",
+      "git_sha": "da4adaa20d5078bce0d573dda34838f20cb60926",
+      "job_args": [
+        "--out",
+        "{out}/live",
+        "--kitchen",
+        "l_shape",
+        "--start",
+        "7",
+        "--single-task",
+        "--duration-s",
+        "2400",
+        "--model-start-timeout-s",
+        "300"
+      ],
+      "exit_code": null,
+      "final_stage": "phone_api_ready",
+      "wall_s_to_last_stage": 881.140791911,
+      "qwen_decisions": 6,
+      "qwen_inference_s_mean": 2.6,
+      "physical_outcome_recorded": false,
+      "final_height_m": null,
+      "gpu_whole_run": {
+        "rows": 186,
+        "util_pct_mean": 0.6,
+        "util_pct_max": 47.0,
+        "memory_mib_max": 13722.0,
+        "power_w_mean": 24.74,
+        "power_w_max": 36.18
+      },
+      "tasks": [
+        {
+          "task_id": "bb1df0d72a",
+          "request": "0",
+          "goal": "Inspect(target='cabinet', candidate=1)",
+          "bound_reference": null,
+          "scheduler_state": "failed",
+          "success_claimed": null,
+          "final_reason": "execution error: AttributeError(\"'ThreadingHTTPServer' object has no attribute 'notify'\")",
+          "failure_stage": "runtime exception before the agent finished",
+          "sim_start_s": 10.0,
+          "sim_end_s": null,
+          "sim_duration_s": null,
+          "tool_steps": [
+            {
+              "tool": "look_around",
+              "status": "succeeded",
+              "error_m": null
+            }
+          ],
+          "arrival_errors_m": null,
+          "agent_verdict": null,
+          "original_scorer": null,
+          "original_scorer_file": null,
+          "min_pelvis_height_m": null,
+          "contacts_in_session": null
+        },
+        {
+          "task_id": "1d6c1494f9",
+          "request": "Walk to the far end of the kitchen, then come back to where you started.",
+          "goal": "GoToObserved(x=-1.575, y=2.075, reference='frontier:0')",
+          "bound_reference": "frontier:0",
+          "scheduler_state": "failed",
+          "success_claimed": false,
+          "final_reason": "verify_goal failed: 'goal' must be a structured goal",
+          "failure_stage": "runtime exception before the agent finished",
+          "sim_start_s": 22.84,
+          "sim_end_s": 22.84,
+          "sim_duration_s": 0.0,
+          "tool_steps": [],
+          "arrival_errors_m": null,
+          "agent_verdict": null,
+          "original_scorer": null,
+          "original_scorer_file": null,
+          "min_pelvis_height_m": null,
+          "contacts_in_session": null
+        },
+        {
+          "task_id": "cd05fdd898",
+          "request": "Walk to the refrigerator at the far end of the kitchen, look at it, then walk back to the sink.",
+          "goal": "UnsupportedGoal(reason='Unsupported request: The request to walk to the refrigerator at the far end of the kitchen and look at it is not supported by the available mobile skills, as there is no explicit instruction or capability to navigate to a specific location or inspect a refrigerator.. Available: inspect observed candidates, navigate to reachable observed targets or remembered places.')",
+          "bound_reference": null,
+          "scheduler_state": "failed",
+          "success_claimed": false,
+          "final_reason": "verify_goal failed: 'goal' must be a structured goal",
+          "failure_stage": "runtime exception before the agent finished",
+          "sim_start_s": 22.84,
+          "sim_end_s": 22.84,
+          "sim_duration_s": 0.0,
+          "tool_steps": [],
+          "arrival_errors_m": null,
+          "agent_verdict": null,
+          "original_scorer": null,
+          "original_scorer_file": null,
+          "min_pelvis_height_m": null,
+          "contacts_in_session": null
+        }
+      ]
+    },
+    {
+      "session": "dream-qwen-isaac-20261101-223043-9ebbeb",
+      "git_sha": "6887c879a8a01ff08b06a765208d961307d338f6",
+      "job_args": [
+        "--out",
+        "{out}/live",
+        "--kitchen",
+        "l_shape",
+        "--start",
+        "7",
+        "--duration-s",
+        "2700",
+        "--model-start-timeout-s",
+        "300"
+      ],
+      "exit_code": null,
+      "final_stage": "phone_api_ready",
+      "wall_s_to_last_stage": 697.0423303169999,
+      "qwen_decisions": 7,
+      "qwen_inference_s_mean": 2.52,
+      "physical_outcome_recorded": false,
+      "final_height_m": null,
+      "gpu_whole_run": {
+        "rows": 153,
+        "util_pct_mean": 0.69,
+        "util_pct_max": 41.0,
+        "memory_mib_max": 14710.0,
+        "power_w_mean": 27.33,
+        "power_w_max": 44.58
+      },
+      "tasks": [
+        {
+          "task_id": "387a6b0aa4",
+          "request": "Walk to the refrigerator at the far end of the kitchen, look at it, then walk back to the sink.",
+          "goal": "GoToObserved(x=-0.025, y=-0.075, reference='frontier:0')",
+          "bound_reference": "frontier:0",
+          "scheduler_state": "failed",
+          "success_claimed": false,
+          "final_reason": "verify_goal failed: 'goal' must be a structured goal",
+          "failure_stage": "goal verification rejected the bound goal",
+          "sim_start_s": 10.0,
+          "sim_end_s": 10.0,
+          "sim_duration_s": 0.0,
+          "tool_steps": [],
+          "arrival_errors_m": null,
+          "agent_verdict": {},
+          "original_scorer": {
+            "success": false,
+            "false_claim": false,
+            "identity_error_m": null,
+            "true_handle_distance_m": null,
+            "facing_error_deg": null,
+            "on_front_side": null,
+            "phantom_handles": 0,
+            "candidates": 1,
+            "candidates_with_handle": 0
+          },
+          "original_scorer_file": "task_387a6b0aa4_evaluation.json",
+          "min_pelvis_height_m": 0.7481598854064941,
+          "contacts_in_session": null
+        },
+        {
+          "task_id": "c52c9fc80b",
+          "request": "inspect cabinet",
+          "goal": "Inspect(target='cabinet', candidate=None)",
+          "bound_reference": null,
+          "scheduler_state": "failed",
+          "success_claimed": null,
+          "final_reason": "execution error: TypeError(\"emit_tool_event() got multiple values for argument 'path'\")",
+          "failure_stage": "runtime exception before the agent finished",
+          "sim_start_s": 10.0,
+          "sim_end_s": null,
+          "sim_duration_s": null,
+          "tool_steps": [
+            {
+              "tool": "look_around",
+              "status": "succeeded",
+              "error_m": null
+            }
+          ],
+          "arrival_errors_m": null,
+          "agent_verdict": null,
+          "original_scorer": null,
+          "original_scorer_file": null,
+          "min_pelvis_height_m": null,
+          "contacts_in_session": null
+        },
+        {
+          "task_id": "09b093e765",
+          "request": "inspect cabinet",
+          "goal": "Inspect(target='cabinet', candidate=None)",
+          "bound_reference": null,
+          "scheduler_state": "failed",
+          "success_claimed": null,
+          "final_reason": "execution error: TypeError(\"emit_tool_event() got multiple values for argument 'path'\")",
+          "failure_stage": "runtime exception before the agent finished",
+          "sim_start_s": 22.84,
+          "sim_end_s": null,
+          "sim_duration_s": null,
+          "tool_steps": [
+            {
+              "tool": "look_around",
+              "status": "succeeded",
+              "error_m": null
+            }
+          ],
+          "arrival_errors_m": null,
+          "agent_verdict": null,
+          "original_scorer": null,
+          "original_scorer_file": null,
+          "min_pelvis_height_m": null,
+          "contacts_in_session": null
+        }
+      ]
+    },
+    {
+      "session": "dream-qwen-isaac-20261102-001940-150528",
+      "git_sha": "12a9d15e69240a97ff31022865e47d986e2aa723",
+      "job_args": [
+        "--out",
+        "{out}/live",
+        "--kitchen",
+        "l_shape",
+        "--start",
+        "7",
+        "--duration-s",
+        "2700",
+        "--model-start-timeout-s",
+        "300"
+      ],
+      "exit_code": null,
+      "final_stage": "phone_api_ready",
+      "wall_s_to_last_stage": 716.345298487,
+      "qwen_decisions": 15,
+      "qwen_inference_s_mean": 2.58,
+      "physical_outcome_recorded": false,
+      "final_height_m": null,
+      "gpu_whole_run": {
+        "rows": 157,
+        "util_pct_mean": 2.5,
+        "util_pct_max": 100.0,
+        "memory_mib_max": 15918.0,
+        "power_w_mean": 31.42,
+        "power_w_max": 73.04
+      },
+      "tasks": [
+        {
+          "task_id": "6f0cd1c619",
+          "request": "Walk to the refrigerator at the far end of the kitchen, look at it, then walk back to the sink.",
+          "goal": "GoToObserved(x=-0.025, y=-0.075, reference='frontier:0')",
+          "bound_reference": "frontier:0",
+          "scheduler_state": "succeeded",
+          "success_claimed": true,
+          "final_reason": "The refrigerator at the far end of the kitchen has been inspected and the goal is satisfied.",
+          "failure_stage": null,
+          "sim_start_s": 10.0,
+          "sim_end_s": 10.0,
+          "sim_duration_s": 0.0,
+          "tool_steps": [
+            {
+              "tool": "go_to",
+              "status": "succeeded",
+              "error_m": 0.09021954594063712
+            }
+          ],
+          "arrival_errors_m": [
+            0.09021954594063712
+          ],
+          "agent_verdict": {
+            "satisfied": true,
+            "reason": "0.09 m away",
+            "place_xy": [
+              -0.025,
+              -0.075
+            ],
+            "reference": "frontier:0"
+          },
+          "original_scorer": {
+            "success": false,
+            "false_claim": true,
+            "identity_error_m": 1.0446386064433346,
+            "true_handle_distance_m": 1.1635325775270091,
+            "facing_error_deg": 76.87765055264485,
+            "on_front_side": true,
+            "phantom_handles": 1,
+            "candidates": 2,
+            "candidates_with_handle": 1
+          },
+          "original_scorer_file": "task_6f0cd1c619_evaluation.json",
+          "min_pelvis_height_m": 0.7481598854064941,
+          "contacts_in_session": null
+        },
+        {
+          "task_id": "876876db58",
+          "request": "inspect cabinet",
+          "goal": "Inspect(target='cabinet', candidate=None)",
+          "bound_reference": null,
+          "scheduler_state": "failed",
+          "success_claimed": false,
+          "final_reason": "model repair budget exhausted: invalid, exhausted, unobserved, wrong-instance or unsafe tool target",
+          "failure_stage": "model repair budget exhausted",
+          "sim_start_s": 10.0,
+          "sim_end_s": 47.7,
+          "sim_duration_s": 37.7,
+          "tool_steps": [
+            {
+              "tool": "look_around",
+              "status": "succeeded",
+              "error_m": null
+            },
+            {
+              "tool": "approach",
+              "status": "succeeded",
+              "error_m": 0.10047626257186681
+            },
+            {
+              "tool": "approach",
+              "status": "succeeded",
+              "error_m": 0.1241438342424027
+            },
+            {
+              "tool": "inspect",
+              "status": "failed",
+              "error_m": null
+            },
+            {
+              "tool": "inspect",
+              "status": "failed",
+              "error_m": null
+            }
+          ],
+          "arrival_errors_m": [
+            0.10047626257186681,
+            0.1241438342424027
+          ],
+          "agent_verdict": {
+            "satisfied": false,
+            "candidate": 1,
+            "at_inspection_pose": false,
+            "reason": "1.46 m from the handle",
+            "instances": [
+              {
+                "satisfied": false,
+                "candidate": 1,
+                "at_inspection_pose": false,
+                "reason": "1.46 m from the handle"
+              },
+              {
+                "satisfied": false,
+                "candidate": 2,
+                "at_inspection_pose": false,
+                "reason": "1.42 m from the handle"
+              },
+              {
+                "satisfied": false,
+                "candidate": 6,
+                "at_inspection_pose": false,
+                "reason": "2.05 m from the handle"
+              },
+              {
+                "satisfied": false,
+                "candidate": 9,
+                "at_inspection_pose": false,
+                "reason": "0.59 m from the handle"
+              },
+              {
+                "satisfied": false,
+                "candidate": 10,
+                "at_inspection_pose": false,
+                "reason": "1.53 m from the handle"
+              },
+              {
+                "satisfied": false,
+                "candidate": 12,
+                "at_inspection_pose": true,
+                "reason": "inspection from this pose still required"
+              }
+            ]
+          },
+          "original_scorer": {
+            "success": false,
+            "false_claim": false,
+            "identity_error_m": 0.9962506555396345,
+            "true_handle_distance_m": 0.7728905997731411,
+            "facing_error_deg": 18.249896109834406,
+            "on_front_side": true,
+            "phantom_handles": 2,
+            "candidates": 14,
+            "candidates_with_handle": 6
+          },
+          "original_scorer_file": "task_876876db58_evaluation.json",
+          "min_pelvis_height_m": 0.7383683323860168,
+          "contacts_in_session": null
+        }
+      ]
+    }
+  ]
+}

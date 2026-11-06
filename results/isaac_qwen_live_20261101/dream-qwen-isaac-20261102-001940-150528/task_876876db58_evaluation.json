@@ -1,0 +1,117 @@
+{
+  "episode": {
+    "goal": "Inspect(target='cabinet', candidate=None)",
+    "success_claimed": false,
+    "reason": "model repair budget exhausted: invalid, exhausted, unobserved, wrong-instance or unsafe tool target",
+    "tool_calls": 5,
+    "failed_actions": 2,
+    "steps": [
+      {
+        "tool": "look_around",
+        "args": {},
+        "status": "succeeded",
+        "message": "",
+        "sim_time": 12.84,
+        "wall_time": 56.066
+      },
+      {
+        "tool": "approach",
+        "args": {
+          "candidate": 2,
+          "side": 3
+        },
+        "status": "succeeded",
+        "message": "",
+        "sim_time": 7.9,
+        "wall_time": 28.389
+      },
+      {
+        "tool": "approach",
+        "args": {
+          "candidate": 1,
+          "side": 5
+        },
+        "status": "succeeded",
+        "message": "",
+        "sim_time": 9.6,
+        "wall_time": 69.129
+      },
+      {
+        "tool": "inspect",
+        "args": {
+          "candidate": 12
+        },
+        "status": "failed",
+        "message": "partial observation only: handle not re-observed",
+        "sim_time": 3.68,
+        "wall_time": 21.436
+      },
+      {
+        "tool": "inspect",
+        "args": {
+          "candidate": 12
+        },
+        "status": "failed",
+        "message": "partial observation only: handle not re-observed",
+        "sim_time": 3.68,
+        "wall_time": 21.892
+      }
+    ]
+  },
+  "agent_verdict": {
+    "satisfied": false,
+    "candidate": 1,
+    "at_inspection_pose": false,
+    "reason": "1.46 m from the handle",
+    "instances": [
+      {
+        "satisfied": false,
+        "candidate": 1,
+        "at_inspection_pose": false,
+        "reason": "1.46 m from the handle"
+      },
+      {
+        "satisfied": false,
+        "candidate": 2,
+        "at_inspection_pose": false,
+        "reason": "1.42 m from the handle"
+      },
+      {
+        "satisfied": false,
+        "candidate": 6,
+        "at_inspection_pose": false,
+        "reason": "2.05 m from the handle"
+      },
+      {
+        "satisfied": false,
+        "candidate": 9,
+        "at_inspection_pose": false,
+        "reason": "0.59 m from the handle"
+      },
+      {
+        "satisfied": false,
+        "candidate": 10,
+        "at_inspection_pose": false,
+        "reason": "1.53 m from the handle"
+      },
+      {
+        "satisfied": false,
+        "candidate": 12,
+        "at_inspection_pose": true,
+        "reason": "inspection from this pose still required"
+      }
+    ]
+  },
+  "independent_verification": {
+    "candidates": 14,
+    "candidates_with_handle": 6,
+    "phantom_handles": 2,
+    "success": false,
+    "false_claim": false,
+    "identity_error_m": 0.9962506555396345,
+    "identified_handle": "/World/Upper_west_00/Doors/Door_R/Handle_R",
+    "true_handle_distance_m": 0.7728905997731411,
+    "facing_error_deg": 18.249896109834406,
+    "on_front_side": true
+  }
+}
