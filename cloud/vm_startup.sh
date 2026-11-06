@@ -97,7 +97,7 @@ else
   source /work/venv/bin/activate
 fi
 LOCK=requirements.lock.txt
-case "$WORKLOAD" in molmo-openloop|molmo-closedloop) LOCK=molmo.requirements.lock.txt ;; esac
+case "$WORKLOAD" in molmo-openloop|molmo-closedloop|molmo-multichunk) LOCK=molmo.requirements.lock.txt ;; esac
 if [[ "$WORKLOAD" == groot-openloop ]]; then
   LOCK=groot.requirements.lock.txt
   unset HF_TOKEN HUGGING_FACE_HUB_TOKEN HF_TOKEN_PATH
@@ -140,5 +140,9 @@ case "$WORKLOAD" in
   molmo-closedloop)
     timeout --signal=TERM --kill-after=30s "${LEFT}s" \
       python experiments/cloud_molmo_closedloop.py --out /work/out ;;
+  molmo-multichunk)
+    timeout --signal=TERM --kill-after=30s "${LEFT}s" \
+      python experiments/cloud_molmo_closedloop.py --out /work/out \
+      --config experiments/configs/molmo_multichunk_closeout.json ;;
   *) echo "Unsupported workload: $WORKLOAD"; exit 2 ;;
 esac
