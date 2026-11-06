@@ -1,0 +1,4 @@
+bisect_closeout.py is the one-off runner (throwaway branch claude/bisect-throwaway-20261107 in DREAM-bisect; job snapshots d4b3894, 2898c7d, 7a5f2bd).
+Each tested commit ran from a byte copy of its own dream/ and experiments/g1_explore_room.py under experiments/bisect_trees/<sha>/; MANIFEST.json compares the git tree hash of each copy with git rev-parse <sha>:dream (all identical).
+The runner adds: sys.path pointing at the tree, a third_party symlink, a CPU default provider for onnxruntime sessions (the guest's onnxruntime may be a GPU build; cf47597 added this inside dream/), capture of steps/events/candidates, a 1 mm start shift (jx, jy) and an OSMesa switch (osm). Nothing under dream/ is edited.
+abl_* trees are NOT tested commits: b8208bb's mobile.py with one hunk group reverted (diffs here), analysis only.

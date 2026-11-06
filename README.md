@@ -166,6 +166,21 @@ three regression seeds. Seed difficulty also contributes: current code scores 19
 the historical seeds and 15/20 and 4/10 on the fresh ones, two of whose nominal failures are
 rooms with no valid start. No fix has been applied.
 
+**Room regression bisect** (`results/g1_explore_room_bisect_closeout`, frozen config
+`g1_explore_room_bisect_closeout.json`; a diagnostic, not held-out; seeds 1013, 2000, 2004, gain
+arm, 14 commits from 44ab7c4 to a3b4304, each run from a byte copy of its own `dream/`, one cloud
+session plus a supporting Windows run): the historical result reproduces on the cloud VM only
+with software rendering (`MUJOCO_GL=osmesa`: all three seeds bit-identical to history); with the
+guest's default `egl` seeds 2000 and 2004 already fail at the unchanged 44ab7c4, so those two
+A1 'regressions' are the renderer (and, under EGL, 1 mm start shifts flip them) rather than a
+commit. Seed 1013 is a real regression that flips at b8208bb in all three environments: its
+`side_point` rewrite picks the cheapest reachable cell in the 0.6-1.4 m band, the robot lands
+0.4-0.55 m from the handle (below the band) on every retry, and the stricter inspection rule
+(which the old success had bypassed through a stale confirmation flag) then rejects it until the
+240 s budget; reverting only that rewrite restores the success. The arrival margin changes
+nothing. Every cloud room result since the closeout used EGL, the historical one did not; how much
+of the frozen 15/20 and 4/10 that explains was not tested. No fix has been applied.
+
 **Qwen on the frozen provider frames** (`results/p6_qwen_frozen11_closeout`, frozen config
 `p6_qwen_frozen11_closeout.json`): the same 11 decisions, frames, prompt and tool schemas
 (hash-equal to the ChatGPT run's offline reconstruction) and scorer. Qwen3-VL-4B-Instruct at
