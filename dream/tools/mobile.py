@@ -61,7 +61,7 @@ APPROACH_RUN = 0.35
 # the robot's arrival error does not decide the verdict. Measured arrival errors in the 1 Nov
 # 2026 Isaac sessions were 0.100 m and 0.124 m (R3-b: a viewpoint 1.37 m from the handle
 # against a 1.40 m limit ended 1.49 m away). The inspection predicate itself is unchanged.
-ARRIVAL_MARGIN = 0.15
+ARRIVAL_MARGIN = 0.0
 
 
 def frontier_already_reached(xy, cost_m, pose_xy) -> bool:
