@@ -131,6 +131,17 @@ raw sensor snapshots, model inputs/outputs, paths, independent instance-specific
 and a recorded camera stream. The idle-balance correction, original dynamics and safety limits
 remain. No fresh cloud task success or live video latency is claimed yet.
 
+### Remaining closeout evaluations (7 Nov 2026)
+
+**Compartment, oracle reference** (`results/compartment_oracle_reference_closeout`): the same
+seeds 5200-5209 per kind as the frozen vision run, perception oracle, same code path.
+Oracle 20/20 openable and 10/10 fixed declined, no false claims; the vision run
+(`results/compartment_vision_closeout`) remains the camera-discovery result at 11/20 and
+fails its gate. On the same seeds, the 9 openable seeds the vision arm failed all succeeded
+with oracle perception (per-seed table in `vision_vs_oracle.json`). Observational: the arms
+differ in perception only, which is consistent with perception being the limiting component
+but is not a controlled ablation of why each seed failed.
+
 ## Branches and integration
 
 | Branch | Role |
