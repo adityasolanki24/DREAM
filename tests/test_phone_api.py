@@ -215,3 +215,31 @@ def test_idle_stream_client_that_leaves_frees_its_slot(api):
     finally:
         api.camera.close()
         server.shutdown()
+
+
+def test_clients_that_reset_while_refused_leave_no_traceback(api, capsys):
+    """Measured on 6 Nov: clients that reset around a 401/429 refusal printed a traceback per
+    request from the server thread. A client that has gone is not a server error."""
+    import socket
+    import struct
+    import time
+
+    from dream.runtime.camera_stream import CameraStream
+
+    api.camera = CameraStream()
+    server = api.serve(host="127.0.0.1", port=0)
+    port = server.server_address[1]
+    api._media_slots.acquire()
+    api._media_slots.acquire()  # both slots busy: the next stream request is refused with 429
+    try:
+        for auth in (f"Authorization: Bearer {TOKEN}\r\n", ""):  # 429, then 401
+            for _ in range(40):
+                s = socket.create_connection(("127.0.0.1", port), timeout=5)
+                s.sendall(f"GET /camera/stream HTTP/1.1\r\nHost: x\r\n{auth}\r\n".encode())
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack("ii", 1, 0))
+                s.close()  # RST before the refusal is written
+        time.sleep(0.5)
+        assert "Traceback" not in capsys.readouterr().err
+    finally:
+        api.camera.close()
+        server.shutdown()

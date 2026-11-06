@@ -1,15 +1,23 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { FrameOrder, MultipartJpeg } from './camera-client.mjs';
+import { createFrameStore } from './camera-view.mjs';
 
-type CameraHookState = {
+export type CameraHookState = {
   url: string; status: string; fps: number; dropped: number;
   ageMs: number; transportMs: number; decodeMs: number; encodeMs: number;
+  /** performance.now() when the shown frame arrived; 0 before any frame. */
+  at: number;
   /** 'push' (MJPEG stream, one long-lived connection) or 'poll' (fallback, one request per frame). */
   mode: 'push' | 'poll' | '';
 };
 
 const FROZEN_AFTER_MS = 1500;
+
+export type CameraMediaStore = ReturnType<typeof createFrameStore<CameraHookState>>;
+export const initialCameraMedia = (): CameraHookState => ({ url: '', status: 'waiting', fps: 0, dropped: 0,
+  ageMs: 0, transportMs: 0, decodeMs: 0, encodeMs: 0, at: 0, mode: '' });
+export const createCameraMediaStore = (): CameraMediaStore => createFrameStore(initialCameraMedia());
 
 /**
  * The robot head camera as binary JPEG. Prefers the backend's push stream (/camera/stream): frames
@@ -17,9 +25,10 @@ const FROZEN_AFTER_MS = 1500;
  * tailnet link near real time. Falls back to conditional polling (/camera/frame?after=) when the
  * stream is refused (for example the two-client limit) or drops, and retries the stream later.
  */
-export function useCamera(token: string, enabled = true) {
-  const [state, setState] = useState<CameraHookState>({ url: '', status: 'waiting', fps: 0, dropped: 0,
-    ageMs: 0, transportMs: 0, decodeMs: 0, encodeMs: 0, mode: '' });
+export function useCamera(token: string, enabled: boolean, store: CameraMediaStore) {
+  // Frame state goes to the store, not React state, so a frame re-renders only the components that display it.
+  const setState = (next: CameraHookState | ((old: CameraHookState) => CameraHookState)) =>
+    store.set(typeof next === 'function' ? next(store.get()) : next);
   useEffect(() => {
     if (!token || !enabled) return;
     const order = new FrameOrder();
@@ -43,7 +52,7 @@ export function useCamera(token: string, enabled = true) {
       // Server residence + half the measured round trip + decode: an estimate, not synchronized glass-to-glass.
       const residence = Math.max(0, (Number(h('X-Server-Unix-S')) - Number(h('X-Captured-Unix-S'))) * 1000) || 0;
       const ageMs = residence + (mode === 'push' ? rttMs / 2 : transportMs / 2) + decodeMs;
-      setState({ url, status: 'live', fps: rendered.length, dropped, ageMs, transportMs, decodeMs, encodeMs, mode });
+      setState({ url, status: 'live', fps: rendered.length, dropped, ageMs, transportMs, decodeMs, encodeMs, at: lastFrame, mode });
       requestAnimationFrame(() => { if (previous) URL.revokeObjectURL(previous); });
       if (lastFrame > nextReport) {
         nextReport = lastFrame + 1000;
@@ -118,5 +127,4 @@ export function useCamera(token: string, enabled = true) {
     void loop();
     return () => { stopped = true; abort.abort(); if (url) URL.revokeObjectURL(url); };
   }, [token, enabled]);
-  return state;
 }

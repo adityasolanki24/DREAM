@@ -10,7 +10,7 @@ import { presenceFor } from '../../lib/presence';
 import { layoutStorage, useMediaQuery } from '../../lib/prefs';
 import { useSession } from '../../lib/session';
 import { useUi } from '../../lib/ui';
-import { CameraFrame, ageText } from '../camera/CameraFrame';
+import { CameraAge, CameraFrame, CameraStatusLabel } from '../camera/CameraFrame';
 import { Composer, Suggestions, fillExample, useExamples } from '../chat/Composer';
 import { ThreadView } from '../chat/Conversation';
 import { DreamStrands } from '../Strands';
@@ -51,8 +51,8 @@ function StageEmpty({ onOpenChat }: { onOpenChat: () => void }) {
         <p>{body}</p>
         <ul className="checks" aria-label="Camera connection">
           <Check state={online ? 'ok' : link === 'connecting' ? 'wait' : 'bad'} label="Session" value={online ? 'connected' : link === 'connecting' ? 'connecting' : 'offline'} />
-          <Check state={cam.rtc.live ? 'ok' : 'off'} label="WebRTC stream" value={cam.rtc.live ? 'live' : online ? 'not connected · retrying every 3 s' : '—'} />
-          <Check state={cam.jpeg.active ? 'ok' : online ? 'wait' : 'off'} label="JPEG stream" value={online ? cam.jpeg.status : '—'} />
+          <Check state={cam.rtcLive ? 'ok' : 'off'} label="WebRTC stream" value={cam.rtcLive ? 'live' : online ? 'not connected · retrying every 3 s' : '—'} />
+          <Check state={cam.jpegActive ? 'ok' : online ? 'wait' : 'off'} label="JPEG stream" value={online ? cam.jpegStatus : '—'} />
           <Check state={snapshot?.camera ? 'ok' : 'off'} label="Observation frames" value={snapshot?.camera ? 'available' : 'appear when a tool observes'} />
         </ul>
         <div className="stage-empty-actions">
@@ -120,8 +120,8 @@ function Stage({ chatOpen, setChatOpen, compact }: { chatOpen: boolean; setChatO
         <span className="hud-chip">
           <span className={`dot ${cam.disconnected ? 'tone-warn' : cam.frozen ? 'tone-warn' : hasFrame ? 'tone-good pulse' : ''}`} aria-hidden />
           <span>{view === 'camera' ? cam.transportLabel : 'Spatial map'}</span>
-          {view === 'camera' && hasFrame && <span className="hud-faint">{cam.statusLabel}</span>}
-          {view === 'camera' && hasFrame && cam.source !== 'webrtc' && <span className="hud-faint num">· {ageText(cam.ageS)} old</span>}
+          {view === 'camera' && hasFrame && <span className="hud-faint"><CameraStatusLabel /></span>}
+          {view === 'camera' && hasFrame && cam.source !== 'webrtc' && <span className="hud-faint num">· <CameraAge /> old</span>}
         </span>
         {cam.testPattern && <span className="hud-chip hud-warn">Preview test pattern · not a camera frame</span>}
       </div>

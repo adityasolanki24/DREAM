@@ -11,7 +11,7 @@ import { layoutStorage, useMediaQuery, usePref } from '../../lib/prefs';
 import { useSession } from '../../lib/session';
 import { useUi } from '../../lib/ui';
 import type { Task } from '../../types';
-import { CameraFrame } from '../camera/CameraFrame';
+import { CameraFrame, CameraStatusLabel } from '../camera/CameraFrame';
 import { Composer } from '../chat/Composer';
 import { PriorityEdit, TaskControls, TaskQueue } from '../task/TaskControls';
 import { Quiet, Segmented, StateChip, Tip } from '../ui';
@@ -182,7 +182,7 @@ function Observation({ focused, onFocus }: { focused: boolean; onFocus: (p: Pane
         {view === 'camera' ? (
           cam.source === 'none'
             ? <Quiet icon={<Camera size={16} />} title="No camera frame">{cam.disconnected ? 'The session is not connected.' : 'Frames stream from the media server or arrive when a tool observes.'}</Quiet>
-            : <div className="observe-frame"><CameraFrame /><span className="observe-src mono">{cam.transportLabel} · {cam.statusLabel}</span></div>
+            : <div className="observe-frame"><CameraFrame /><span className="observe-src mono">{cam.transportLabel} · <CameraStatusLabel /></span></div>
         ) : <WorldMap snapshot={snapshot} legend />}
       </div>
     </section>

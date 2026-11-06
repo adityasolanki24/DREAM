@@ -1,6 +1,6 @@
 'use client';
 import { WifiOff } from 'lucide-react';
-import { StreamVideo, useCameraState } from '../../lib/camera';
+import { StreamVideo, useCameraAge, useCameraFrame } from '../../lib/camera';
 
 export const STALE_AFTER_S = 8;
 
@@ -14,9 +14,10 @@ export function ageText(ageS: number | null): string {
  * newest JPEG/snapshot frame; returns null when there is no frame so the caller can design its own empty state.
  */
 export function CameraFrame({ className = '', badges = true }: { className?: string; badges?: boolean }) {
-  const cam = useCameraState();
+  const cam = useCameraFrame();
+  const ageS = useCameraAge();
   if (cam.source === 'none') return null;
-  const stale = cam.source !== 'webrtc' && cam.ageS != null && cam.ageS > STALE_AFTER_S;
+  const stale = cam.source !== 'webrtc' && ageS != null && ageS > STALE_AFTER_S;
   return (
     <div className={`camera-frame ${className} ${cam.disconnected ? 'is-disconnected' : ''} ${stale ? 'is-stale' : ''}`}>
       {cam.source === 'webrtc' && cam.stream ? (
@@ -27,7 +28,17 @@ export function CameraFrame({ className = '', badges = true }: { className?: str
       )}
       {badges && cam.disconnected && <span className="frame-flag tone-warn"><WifiOff size={12} aria-hidden /> Disconnected · last frame received</span>}
       {/* "paused or not sensing" is stated by each surface's own source label, so it is not repeated over the frame */}
-      {badges && !cam.disconnected && !cam.frozen && stale && <span className="frame-flag tone-warn">Last observed {ageText(cam.ageS)} ago</span>}
+      {badges && !cam.disconnected && !cam.frozen && stale && <span className="frame-flag tone-warn">Last observed {ageText(ageS)} ago</span>}
     </div>
   );
+}
+
+/** The frame age as text; the only part of a status line that re-renders with the age. */
+export function CameraAge() {
+  return <>{ageText(useCameraAge())}</>;
+}
+
+/** The per-frame status text (frame rate, paused/waiting); a leaf so its parent does not re-render per frame. */
+export function CameraStatusLabel() {
+  return <>{useCameraFrame().statusLabel}</>;
 }
