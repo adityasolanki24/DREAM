@@ -1,0 +1,62 @@
+<!doctype html><html><head><meta charset="utf-8"><title>raw camera client</title></head><body>
+<img id="v" alt="raw frame" width="320" height="240"><div id="s"></div>
+<script>
+/*PARSER*/
+const q = new URLSearchParams(location.search), MODE = q.get('mode') || 'push';
+const token = sessionStorage.getItem('dream-token') || '';
+const headers = { Authorization: 'Bearer ' + token };
+const img = document.getElementById('v');
+let stopped = false, after = '', url = '', epoch = null, seqSeen = -1;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const P = window.__probe;
+async function show(blob, h, mode) {
+  const e = h('x-stream-id'), s = Number(h('x-frame-sequence'));
+  if (e !== epoch) { epoch = e; seqSeen = -1; }
+  if (s <= seqSeen) return;
+  seqSeen = s;
+  const tRecv = P.now();
+  const candidate = URL.createObjectURL(blob), probe = new Image();
+  probe.src = candidate;
+  try { await probe.decode(); } catch { URL.revokeObjectURL(candidate); return; }
+  const prev = url; url = candidate; after = h('x-frame-id') || after; img.src = url;
+  P.recv.push({ t: tRecv, hdr_seq: s, mode });
+  requestAnimationFrame(() => { if (prev) URL.revokeObjectURL(prev); });
+}
+async function push() {
+  const r = await fetch('/camera/stream', { headers, cache: 'no-store' });
+  P.events.push({ t: P.now(), e: 'stream_status', status: r.status });
+  if (!r.ok || !r.body) return false;
+  const reader = r.body.getReader(), parser = new MultipartJpeg();
+  let got = false;
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done || stopped) return got;
+    for (const part of parser.push(value)) {
+      got = true;
+      await show(new Blob([part.body], { type: 'image/jpeg' }), (n) => part.headers[n] ?? null, 'push');
+    }
+  }
+}
+async function poll(forMs) {
+  const until = performance.now() + forMs;
+  while (!stopped && performance.now() < until) {
+    const tick = performance.now();
+    try {
+      const r = await fetch('/camera/frame?after=' + encodeURIComponent(after), { headers, cache: 'no-store', signal: AbortSignal.timeout(3000) });
+      if (r.status !== 204) { if (!r.ok) throw new Error('bad'); await show(await r.blob(), (n) => r.headers.get(n), 'poll'); }
+    } catch {}
+    await sleep(Math.max(0, 100 - (performance.now() - tick)));
+  }
+}
+(async () => {
+  P.watchImg('#v');
+  if (MODE === 'poll') { await poll(1e9); return; }
+  if (MODE === 'push') { try { await push(); } catch (e) { P.events.push({ t: P.now(), e: 'push_error', msg: String(e) }); } return; }
+  for (;;) { // auto: same policy as web/app/useCamera.ts
+    let streamed = false;
+    try { streamed = await push(); } catch {}
+    P.events.push({ t: P.now(), e: 'push_ended', streamed });
+    await poll(streamed ? 2000 : 10000);
+  }
+})();
+</script></body></html>

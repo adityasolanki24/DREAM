@@ -1,6 +1,6 @@
 'use client';
 import { Box } from 'lucide-react';
-import { useCameraState } from '../../lib/camera';
+import { useCameraAge, useCameraFrame } from '../../lib/camera';
 import { clock, relativeAge } from '../../lib/format';
 import { useSession } from '../../lib/session';
 import { ageText } from '../camera/CameraFrame';
@@ -10,10 +10,28 @@ function Row({ k, v, tone }: { k: string; v: React.ReactNode; tone?: string }) {
   return <div className="diag-row"><dt>{k}</dt><dd className={tone}>{v}</dd></div>;
 }
 
+/** Camera telemetry; a leaf so only this section re-renders with each frame. */
+function CameraStreamSection() {
+  const cam = useCameraFrame();
+  const ageS = useCameraAge();
+  return (
+    <section>
+        <h3 className="rail-label">Camera stream</h3>
+        <dl>
+          <Row k="Shown source" v={cam.transportLabel} />
+          <Row k="WebRTC" v={cam.rtc.live ? `${cam.rtc.fps} fps · dropped ${cam.rtc.dropped} · jitter-buffer ${Math.round(cam.rtc.jitterMs)} ms (not end-to-end)` : 'not connected'} />
+          <Row k="JPEG" v={cam.jpeg.active ? `${cam.jpeg.status} · ${cam.jpeg.fps} fps · dropped ${cam.jpeg.dropped}` : cam.rtc.live ? 'idle (WebRTC active)' : cam.jpeg.status} />
+          {cam.jpeg.active && <Row k="JPEG timing" v={`age ≈${Math.round(cam.jpeg.ageMs)} ms · transport ${Math.round(cam.jpeg.transportMs)} · decode ${Math.round(cam.jpeg.decodeMs)} · encode ${Math.round(cam.jpeg.encodeMs)} ms`} />}
+          <Row k="Frame age" v={ageText(ageS)} />
+          <Row k="State" v={cam.disconnected ? 'disconnected' : cam.frozen ? 'paused or not sensing' : cam.source === 'none' ? 'no frame' : 'receiving'} tone={cam.disconnected || cam.frozen ? 'amber' : ''} />
+        </dl>
+      </section>
+  );
+}
+
 /** Simulation, session and streaming facts exactly as the backend and the browser measured them. */
 export function Diagnostics() {
   const { snapshot, link, stream, status, models, fixture } = useSession();
-  const cam = useCameraState();
   const odo = snapshot?.odometry;
   return (
     <div className="diagnostics">
@@ -28,17 +46,7 @@ export function Diagnostics() {
           <Row k="Running task" v={status?.running ?? 'none'} />
         </dl>
       </section>
-      <section>
-        <h3 className="rail-label">Camera stream</h3>
-        <dl>
-          <Row k="Shown source" v={cam.transportLabel} />
-          <Row k="WebRTC" v={cam.rtc.live ? `${cam.rtc.fps} fps · dropped ${cam.rtc.dropped} · jitter-buffer ${Math.round(cam.rtc.jitterMs)} ms (not end-to-end)` : 'not connected'} />
-          <Row k="JPEG" v={cam.jpeg.active ? `${cam.jpeg.status} · ${cam.jpeg.fps} fps · dropped ${cam.jpeg.dropped}` : cam.rtc.live ? 'idle (WebRTC active)' : cam.jpeg.status} />
-          {cam.jpeg.active && <Row k="JPEG timing" v={`age ≈${Math.round(cam.jpeg.ageMs)} ms · transport ${Math.round(cam.jpeg.transportMs)} · decode ${Math.round(cam.jpeg.decodeMs)} · encode ${Math.round(cam.jpeg.encodeMs)} ms`} />}
-          <Row k="Frame age" v={ageText(cam.ageS)} />
-          <Row k="State" v={cam.disconnected ? 'disconnected' : cam.frozen ? 'paused or not sensing' : cam.source === 'none' ? 'no frame' : 'receiving'} tone={cam.disconnected || cam.frozen ? 'amber' : ''} />
-        </dl>
-      </section>
+      <CameraStreamSection />
       <section>
         <h3 className="rail-label">Session</h3>
         <dl>

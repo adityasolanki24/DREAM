@@ -1,0 +1,14 @@
+{
+  "preregistered_utc": "2026-11-06",
+  "note": "Targets fixed before any measurement run; they are not tuned after seeing results.",
+  "network": "loopback (127.0.0.1) on one laptop. NOT a tailnet, WAN or IAP measurement.",
+  "targets": {
+    "median_source_to_screen_ms_max": 800,
+    "delivered_fps_min": 10,
+    "applies_to": "each transport at each source rate (5, 10, 15 fps), judged per client; a fixed-rate source of N fps cannot deliver more than N fps, so the 10 fps target is only judged at source rates 10 and 15",
+    "slot_leak_regressions_max": 0,
+    "stale_indicator_ms_max": 5000
+  },
+  "source": {"frame_h_w": [240, 320], "origin": "dream/sim/g1_mobile.py HEAD_CAMERA 320x240", "rates_fps": [5, 10, 15], "stamp": "19 blocks of 16 px: sync 1,0,1; 12-bit seq; 4-bit checksum"},
+  "duration_s_per_latency_run": 25
+}
