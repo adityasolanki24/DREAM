@@ -317,3 +317,12 @@ def test_the_v2_development_set_has_the_v1_dev_and_the_v1_heldout_scenes():
         keys = ("height", "distance", "lateral")
         assert [s[k] for k in keys] == [t[k] for k in keys]
     assert {s["seed"] for s in specs(V2, "heldout")} == set(range(6000, 6024))
+
+
+def test_an_undo_is_ok_only_if_the_measured_error_is_restored():
+    from dream.robot.g1_correction import MIN_IMPROVEMENT, rollback_restored
+
+    assert rollback_restored(True, 0.0242, 0.0242)
+    assert rollback_restored(True, 0.0242 + MIN_IMPROVEMENT / 2, 0.0242)
+    assert not rollback_restored(True, 0.0381, 0.0242)  # command completed, state not restored
+    assert not rollback_restored(False, 0.0200, 0.0242)  # an undo that did not complete

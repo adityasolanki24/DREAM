@@ -44,6 +44,13 @@ TORQUE_SOFT = 0.8  # fraction of the actuator limit a correction step may be pre
 ALPHAS = (1.0, 0.7, 0.5, 0.3, 0.15)  # step scalings tried, largest first
 
 
+def rollback_restored(completed: bool, error_after: float, error_before: float) -> bool:
+    """An undo counts as restoring the state only if the MEASURED hand error afterwards is no
+    worse than before the undone correction (within MIN_IMPROVEMENT); completing the command
+    is not evidence that the state came back (the controller has hysteresis)."""
+    return bool(completed) and error_after <= error_before + MIN_IMPROVEMENT
+
+
 def correct_reach(
     backend,
     supervisor: WholeBodySupervisor,
@@ -89,7 +96,11 @@ def correct_reach(
                 report.trace += undo.trace
                 report.stops += undo.stops
                 it["action"] = "no_improvement_rolled_back"
-                it["rollback_ok"] = undo.completed
+                after = float(np.linalg.norm(np.asarray(
+                    supervisor.measure(backend.observe())[f"ach_hand_{arm}"]) - point))  # fmt: skip
+                it["rollback_error"] = after
+                it["rollback_ok"] = rollback_restored(undo.completed, after, last_error)
+                report.achieved = {"hand_error": after}
                 report.final_target = before_last
             break
         if i == max_iterations:

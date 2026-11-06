@@ -239,6 +239,11 @@ def test_rollout_gate_then_monitored_real_execution_reaches_a_mid_height_target(
 
     # With the MEASURED capabilities the arm and torso have no room left (pitch is at its
     # measured maximum), so a harmful correction is rolled back, never kept.
+    # An undo is reported as restoring the state only if the measured error says so.
+    undone = [i for i in corrected.iterations if i["action"] == "no_improvement_rolled_back"]
+    for i in undone:
+        assert abs(i["rollback_error"] - after) < 0.002  # the report carries the measurement
+        assert i["rollback_ok"] == (i["rollback_error"] <= errs[0] + 0.001)
     assert after <= start + 0.005
 
     # Mechanism check with wider (test-only, NOT measured) limits: the correction converges.
