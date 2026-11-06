@@ -1,0 +1,89 @@
+{
+ "title": "W6 whole-body reach closeout (development evidence only)",
+ "date": "2026-11-06",
+ "overall_verdict": "NOT READY. Two of five agent gates failed in development; protocol status is draft; held-out not run.",
+ "integration_readiness": "no",
+ "gates": {
+  "frozen_thresholds_source": "experiments/configs/g1_reach_heights_v2.json (unchanged)",
+  "evaluated_on": "development set only: 60 episodes (dev seeds 100-105 x heights 0.35/0.75/1.10 x 2 layouts = 36; v1 held-out seeds 5000-5023 reused as development = 24); reference label (i) feasible n=38",
+  "agent": {
+   "zero_collapses": {
+    "verdict": "PASS",
+    "value": "0/60"
+   },
+   "zero_false_success_claims": {
+    "verdict": "PASS",
+    "value": "0/60"
+   },
+   "success_on_reference_feasible_ge_0.80": {
+    "verdict": "PASS",
+    "value": "31/38 = 0.816 (Wilson95 0.666-0.908)"
+   },
+   "success_off_band_feasible_ge_0.70": {
+    "verdict": "FAIL",
+    "value": "2/3 = 0.667 (n=3; Wilson95 0.208-0.939)"
+   },
+   "correct_refusal_on_infeasible_ge_0.90": {
+    "verdict": "FAIL",
+    "value": "19/22 = 0.864 (Wilson95 0.667-0.953)"
+   }
+  },
+  "held_out_gates": "NOT EVALUATED",
+  "source": "results/g1_reach_heights_v2_dev_strict_height/development_review.json"
+ },
+ "held_out": {
+  "status": "NOT EVALUATED",
+  "seeds_not_run": "6000-6023",
+  "reason": "Gates failed in development (off-band and refusal), and the protocol status is 'draft', not frozen. Freezing and running held-out after failed development gates would not be a valid gate test; the held-out seeds remain untouched. No result derived from them was read for this closeout."
+ },
+ "dev_rerun": {
+  "performed": false,
+  "reason": "The rollback change adds a measurement and a report field only; the slow test reproduces identical errors (24.2, 30.5, 38.1 mm) before and after it, no decision consumes rollback_ok or report.achieved, so executed behaviour on dev scenes is unchanged. results/g1_reach_heights_v2_dev_closeout_20261106 was not created."
+ },
+ "open_defects": [
+  "Correction undo does not restore state: slow test test_rollout_gate_then_monitored_real_execution_reaches_a_mid_height_target measures 24.2 mm (before), 30.5 mm (after correction), 38.1 mm (after undo reporting completed). Fails identically at 1be5130 (before the D19 commits). The test's original assertion still fails; cause of non-restoration (controller hysteresis / feed-forward state) not established.",
+  "Refusals at 19/22 and off-band feasible n=3 are below the frozen gates; n=3 is too small to be decisive either way."
+ ],
+ "attribution": {
+  "can_be_attributed": [
+   "Under the identical v2 evaluator, the agent reaches physical success on 31/60 episodes and the scripted baseline on 7/60 (7/38 on reference-feasible), so the v2 success definition alone does not explain the agent's result. Agent and baseline use different claim rules.",
+   "On the 41 reference-feasible scenes common to v1 and v2 the agent outcome moved from 6 successes (v1) to 29 (v2). Transitions: 9 torque-limit stops became success, 6 rollout refusals became success, 3 planner refusals became success, 3 perception/navigation failures became success; 1 success became perception/navigation failure.",
+   "Zero collapses and zero false claims under the rules actually used; 3 reference label (i)-only feasible scenes are reported separately from label (ii)."
+  ],
+  "cannot_be_attributed": [
+   "How much each of the simultaneous W6 changes contributed (closed-loop rollout gate, torque-aware correction, measured-torque ranking, canonical planning boxes, shoulder-torso limit, axis relaxation, dev-fitted target covariance, planner stance radii change, contact-based success, touch-plus-FK claim, strict height bounds). No ablation was run, so cause categories in attribution.json are heuristic labels, not established root causes.",
+   "Anything about generalisation: the v1 held-out seeds 5000-5023 were seen and used for development; the gates changed definition (success, claim, reference) between v1 and v2 while thresholds stayed the same; two stance-radius and height-bound changes were made after dev runs.",
+   "Any benefit of the SONIC backend: it was characterised in an envelope but the reach evaluation used backend 'wbc' only.",
+   "Odometry is oracle-assisted and perception is the classical baseline, so results are not end-to-end autonomy."
+  ],
+  "sources": [
+   "results/g1_reach_heights_v2_dev_strict_height/attribution.json",
+   "experiments/configs/g1_reach_heights_v2.json (changes_from_v1)",
+   "results/g1_reach_heights_v2_dev_strict_height/meta.json (planner note)"
+  ]
+ },
+ "provenance": {
+  "dev_run_code_sha": "5f9add2eaaa28a1a77ecd6c9a8e259bd6f98240c",
+  "dev_run_dir": "results/g1_reach_heights_v2_dev_strict_height",
+  "dev_run_config_sha256": "f85525af9e7d096a96573573d206e2315382bd353d0efb186203a6f234eb0f9e",
+  "envelope": "results/g1_wbc_envelope_v2/envelope.json sha256 c1dc9728205994fd3dbd10d17aaf160a6ff2ee063ffe55aa3c983a052d90f1b5",
+  "closeout_code_commits": [
+   "see git log on claude/wholebody-autonomy after b731d89: isolation move; measured rollback"
+  ],
+  "dev_seeds": {
+   "synthetic_dev": "100-105",
+   "v1_heldout_reused_as_dev": "5000-5023"
+  },
+  "heldout_seeds_untouched": "6000-6023",
+  "reproduction": [
+   "python experiments/g1_reach_heights.py experiments/configs/g1_reach_heights_v2.json --set dev   (agent arm about 35 min; code at 5f9add2)",
+   "python experiments/g1_reach_heights.py experiments/configs/g1_reach_heights_v2.json --set dev --summarize",
+   "python experiments/g1_reach_attribute.py --v2 results/g1_reach_heights_v2_dev_strict_height",
+   "PYTHONPATH=<worktree> pytest tests/test_isolation.py; pytest -m 'not slow'"
+  ],
+  "licences": {
+   "gr00t_wbc_g1 (NVIDIA Decoupled WBC MJCF/yaml; third_party/gr00t_wbc_g1, commit 45c03fa)": "Repository dual licence recorded in third_party/gr00t_wbc_g1/LICENSE: source code Apache-2.0; model weights NVIDIA Open Model License. Weights not vendored (experiments/fetch_wbc_policy.py, SHA-256 checked). Meshes: Unitree G1, BSD-3-Clause.",
+   "gear_sonic (third_party/gear_sonic, DREAM CPU port dream/robot/sonic.py)": "Dual licence recorded in third_party/gear_sonic/LICENSE: source Apache-2.0; weights NVIDIA Open Model License; ONNX weights not in Git (experiments/fetch_sonic_policy.py). The port is a derivative of Apache-2.0 source and is unofficial."
+  }
+ }
+}
