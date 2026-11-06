@@ -399,6 +399,7 @@ def main() -> None:
     ap.add_argument("config")
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--resume", action="store_true", help="keep episodes already in out dir")
+    ap.add_argument("--out", help="output directory (default results/<name>)")
     args = ap.parse_args()
     cfg = json.loads(pathlib.Path(args.config).read_text())
     sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
@@ -414,7 +415,7 @@ def main() -> None:
             for method in methods:
                 rr = rec_root if (kind, seed, method) in record else None
                 jobs.append((kind, seed, method, cfg, rr, sha))
-    out = ROOT / "results" / cfg["name"]
+    out = pathlib.Path(args.out) if args.out else ROOT / "results" / cfg["name"]
     out.mkdir(parents=True, exist_ok=True)
     rows, t0 = [], time.perf_counter()
     path = out / "episodes.jsonl"

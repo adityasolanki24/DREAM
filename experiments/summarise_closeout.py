@@ -260,7 +260,9 @@ def compartment_summary(rows: list[dict], cfg: dict) -> dict:
 def main() -> None:
     kind, d = sys.argv[1], pathlib.Path(sys.argv[2])
     d = d if d.is_absolute() else ROOT / d
-    cfg = json.loads((ROOT / "experiments/configs" / (d.name + ".json")).read_text())
+    cfg_path = pathlib.Path(sys.argv[3]) if len(sys.argv) > 3 else None
+    cfg_path = cfg_path or ROOT / "experiments/configs" / (d.name + ".json")
+    cfg = json.loads(cfg_path.read_text())
     rows = load_rows(d / "episodes.jsonl")
     fn = {"room": room_summary, "compartment": compartment_summary}[kind]
     out = {"config": d.name, "status": cfg.get("status"), "n_episodes": len(rows),

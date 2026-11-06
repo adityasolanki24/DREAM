@@ -272,6 +272,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("config")
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--out", help="output directory (default results/<name>)")
     args = ap.parse_args()
     cfg = json.loads(pathlib.Path(args.config).read_text())
     seeds = range(cfg["seed0"], cfg["seed0"] + cfg["n_per_kind"])
@@ -289,7 +290,7 @@ def main() -> None:
     dirty = bool(
         subprocess.check_output(["git", "status", "--porcelain", "dream"], cwd=ROOT, text=True)
     )
-    out = ROOT / "results" / cfg["name"]
+    out = pathlib.Path(args.out) if args.out else ROOT / "results" / cfg["name"]
     out.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
     eps = []
