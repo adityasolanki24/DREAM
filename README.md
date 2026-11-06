@@ -77,10 +77,10 @@ The interface branch was consolidated into the runtime branch. The main working 
 uses that combined branch, while the separate whole-body worktree remains intact.
 
 Retired branch heads are retained by annotated `archive/2026-10-29/...` tags. Do not merge
-unfinished research solely to remove a branch. Runtime/kitchen integration is currently
-blocked by the existing `dream/skills/g1_reach.py` import of `mujoco`, which violates the
-simulator-isolation test. The invariant must not be weakened. W6 is separately blocked by
-its development review. Work-in-progress commits preserve work; they do not certify it.
+unfinished research solely to remove a branch. The `mujoco` import that
+violated the simulator-isolation test was moved to `dream/robot/g1_reach_arm.py` on this
+branch; the isolation test is unchanged. W6 is blocked by its development review, so
+integration is not ready. Work-in-progress commits preserve work; they do not certify it.
 
 ## Setup and focused checks
 

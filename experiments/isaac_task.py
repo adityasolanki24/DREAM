@@ -146,7 +146,7 @@ class ArmIK:
         import mujoco
 
         from dream.sim.g1_mobile import build_mobile_g1
-        from dream.skills.g1_reach import RightArm
+        from dream.robot.g1_reach_arm import RightArm
 
         self.env, self.mj = env, mujoco
         self.model = build_mobile_g1(head_camera=None)

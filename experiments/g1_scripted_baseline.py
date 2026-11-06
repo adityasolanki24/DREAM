@@ -5,7 +5,7 @@ The current upright approach, kept as the comparison for the posture-planning sy
 - a FIXED 0.42 m stand-off in front of the perceived handle, along the perceived face normal;
 - pelvis height at the nominal 0.74 m, torso pitch 0, the RIGHT arm only;
 - position-only damped-least-squares IK of one arm, the algorithm of
-  ``dream.skills.g1_reach.RightArm.solve`` with its contact point moved to the fingertip reach
+  ``dream.robot.g1_reach_arm.RightArm.solve`` with its contact point moved to the fingertip reach
   point (otherwise this arm's hand could never touch a surface); ``attach()`` is not used;
 - a REFUSAL for perceived handle heights outside 0.55-1.15 m, as experiments/isaac_task.py does
   ("no crouch": 0.55 m is the bottom of the band that robot reaches without bending, 1.15 m the
@@ -24,7 +24,7 @@ import mujoco
 import numpy as np
 
 from dream.robot.wholebody import PostureCommand
-from dream.skills.g1_reach import RIGHT_ARM_SLICE, RightArm
+from dream.robot.g1_reach_arm import RIGHT_ARM_SLICE, RightArm
 from dream.tools.reach import (
     PRE_CONTACT_OFFSET,
     PRE_CONTACT_TOLERANCE,
