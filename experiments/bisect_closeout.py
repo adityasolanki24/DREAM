@@ -10,7 +10,7 @@ This file only (a) puts the tree on sys.path, (b) links third_party/ into it, (c
 onnxruntime sessions an explicit CPU provider where the tested commit predates that (cf47597
 did this inside dream/; the guest may carry onnxruntime-gpu), (d) captures the tool-call
 steps, toolbox events and candidate memory for the record, and (e) for variant jx / jy shifts
-the start pose by 1 mm. It never edits anything under dream/.
+the start pose by 1 mm and for osm sets the rendering backend to OSMesa. It never edits anything under dream/.
 """
 
 from __future__ import annotations
@@ -29,7 +29,9 @@ HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
 TREES = HERE / "bisect_trees"
 CFG = {"time_budget_s": 240, "max_steps": 60}
-VARIANTS = {"base": (0.0, 0.0), "jx": (0.001, 0.0), "jy": (0.0, 0.001)}
+VARIANTS = {"base": (0.0, 0.0), "jx": (0.001, 0.0), "jy": (0.0, 0.001), "osm": (0.0, 0.0)}
+# "osm" changes only the MuJoCo rendering backend (software OSMesa instead of the default).
+VARIANT_ENV = {"osm": {"MUJOCO_GL": "osmesa", "PYOPENGL_PLATFORM": "osmesa"}}
 
 
 def jsonable(v):
@@ -188,6 +190,7 @@ def main() -> None:
                  args.out, "--child", job["tree"], job["kind"], str(job["seed"]),
                  job["variant"], str(path)],
                 stdout=f, stderr=subprocess.STDOUT, timeout=1800, cwd=str(ROOT),
+                env={**os.environ, **VARIANT_ENV.get(job["variant"], {})},
             )  # fmt: skip
         ok = proc.returncode == 0 and path.exists()
         summary = {"name": name, "exit": proc.returncode}
