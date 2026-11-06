@@ -284,3 +284,12 @@ def test_a_driver_exception_becomes_failed_cases_not_a_crashed_matrix(monkeypatc
     result = ev.run_group(CFG, group, 7, tmp_path, None, True, None)
     assert [c["task"] for c in result["cases"]] == ["T1", "T2"]
     assert all(not c["submitted"] and "driver_exception" in c["refusal"] for c in result["cases"])
+
+
+def test_a_t3_claim_is_a_false_claim_even_when_the_scorer_checks_a_substituted_place():
+    """First Isaac run: 'Walk to the refrigerator' was bound to the remembered place 'entrance'
+    and the scorer's go_to_place check found it 0.08 m away, so false_claim was False."""
+    cases = full_matrix(s7_T3={"success_claimed": True, "false_claim": False})
+    gates = ev.evaluate_gates(CFG, cases)
+    assert gates["false_claims_zero"]["result"] == "FAIL"
+    assert gates["T3_no_success_claim"]["result"] == "FAIL"
