@@ -27,7 +27,14 @@ from dream.navigation.planning import (
 from dream.navigation.rpp import RegulatedPurePursuit, densify, line_of_sight, shortcut, smooth
 from dream.perception.occupancy import CELL
 from dream.perception.spatial import CLOSE_VIEW, HANDLE_GAP, SIDES, SpatialMemory
-from dream.tools.goals import GoToObserved, GoToPlace, Inspect, UnsupportedGoal, parse_goal
+from dream.tools.goals import (
+    EXPLORATION_REACHED,
+    GoToObserved,
+    GoToPlace,
+    Inspect,
+    UnsupportedGoal,
+    parse_goal,
+)
 from dream.tools.toolbox import ToolResult, _validate
 from dream.types import MobileBase
 
@@ -50,6 +57,22 @@ INSPECT_ANGLE = math.radians(35)
 COLLISION_RADIUS = 0.27
 PLACE_TOLERANCE = 0.3  # m: twice the go_to goal tolerance, for the pose estimate's noise
 APPROACH_RUN = 0.35
+# Viewpoints are chosen at least this far inside the inspection limit (INSPECT_RANGE[1]), so
+# the robot's arrival error does not decide the verdict. Measured arrival errors in the 1 Nov
+# 2026 Isaac sessions were 0.100 m and 0.124 m (R3-b: a viewpoint 1.37 m from the handle
+# against a 1.40 m limit ended 1.49 m away). The inspection predicate itself is unchanged.
+ARRIVAL_MARGIN = 0.15
+
+
+def frontier_already_reached(xy, cost_m, pose_xy) -> bool:
+    """A frontier whose planned cost or distance from the robot is within PLACE_TOLERANCE is
+    where the robot already stands: it is not a place to go to. ``pose_xy`` may be None."""
+    if cost_m is not None and float(cost_m) <= PLACE_TOLERANCE:
+        return True
+    if pose_xy is None:
+        return False
+    return bool(np.hypot(float(xy[0]) - pose_xy[0], float(xy[1]) - pose_xy[1]) <= PLACE_TOLERANCE)
+
 
 MOBILE_TOOL_SPECS: list[dict] = [
     {
@@ -201,7 +224,7 @@ class MobileToolbox:
                 ).astype(int)
                 % SIDES
             )
-            eligible = (length >= INSPECT_RANGE[0]) & (length <= INSPECT_RANGE[1])
+            eligible = (length >= INSPECT_RANGE[0]) & (length <= INSPECT_RANGE[1] - ARRIVAL_MARGIN)
             eligible &= (delta @ outward > 0) & (bearing == k)
             indices = np.flatnonzero(eligible)
             indices = sorted(
@@ -230,6 +253,8 @@ class MobileToolbox:
         passable, _, dist = self._passable()
         grid = self.memory.grid
         fr = frontiers(grid, passable, dist)
+        pose_xy = self.base.odometry()[:2]
+        fr = [f for f in fr if not frontier_already_reached(grid.centre(*f.cell), f.cost, pose_xy)]
         fr.sort(key=lambda f: -(f.gain - FRONTIER_COST_WEIGHT * f.cost))
         data = {
             "pose": np.round(self.base.odometry(), 3).tolist(),
@@ -265,6 +290,14 @@ class MobileToolbox:
                 for f in fr[:8]
             ],
             "inspected": {str(k): v for k, v in self.inspections.items()},
+            **(
+                {}
+                if fr
+                else {
+                    "frontiers_note": "no unexplored frontier farther than "
+                    f"{PLACE_TOLERANCE} m from the robot remains"
+                }
+            ),
             "holding": None,
             "holding_handle": None,
         }
@@ -294,6 +327,24 @@ class MobileToolbox:
             )
         if isinstance(goal, GoToObserved):
             distance = float(np.linalg.norm(self.base.odometry()[:2] - [goal.x, goal.y]))
+            if goal.is_exploration_point:
+                # Reaching a frontier is exploration, not completion of whatever the
+                # request named; nothing here observes that target.
+                reached = distance <= PLACE_TOLERANCE
+                return ToolResult(
+                    "verify_goal",
+                    "succeeded",
+                    "",
+                    {
+                        "satisfied": False,
+                        "reached": reached,
+                        "completion": EXPLORATION_REACHED if reached else None,
+                        "reason": f"{distance:.2f} m from an exploration point; the "
+                        "requested target is not verified by reaching it",
+                        "place_xy": [goal.x, goal.y],
+                        "reference": goal.reference,
+                    },
+                )
             return ToolResult(
                 "verify_goal",
                 "succeeded",

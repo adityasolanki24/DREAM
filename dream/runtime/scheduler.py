@@ -223,7 +223,15 @@ class TaskScheduler:
             t.result = "cancelled by user" if t.state == "cancelled" else ep.reason
             self._save(t)
             self.running = None
-        self.notify(t.state, {"id": t.id, "text": t.text, "reason": ep.reason})
+        self.notify(
+            t.state,
+            {
+                "id": t.id,
+                "text": t.text,
+                "reason": ep.reason,
+                "completion": getattr(ep, "completion", None),
+            },
+        )
         return t
 
     def run_until_idle(self, max_attempts: int = 50) -> None:

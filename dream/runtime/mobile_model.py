@@ -11,7 +11,14 @@ import re
 
 from dream.runtime.agent import Finish, ToolCall
 from dream.runtime.vlm import parse_tool_call
-from dream.tools.goals import GoToObserved, GoToPlace, Inspect, UnsupportedGoal
+from dream.tools.goals import (
+    EXPLORATION_REACHED,
+    GoToObserved,
+    GoToPlace,
+    Inspect,
+    UnsupportedGoal,
+)
+from dream.tools.mobile import frontier_already_reached
 
 
 def schema(name, description, properties=None, required=None):
@@ -92,6 +99,13 @@ GOAL_SCHEMAS = [
 ]
 
 
+def _reached(frontier, scene) -> bool:
+    pose = scene.get("pose")
+    return frontier_already_reached(
+        frontier["xy"], frontier.get("cost_m"), None if pose is None else pose[:2]
+    )
+
+
 def interpret_mobile_goal(backend, utterance, places, scene, camera):
     """Ask the selected VLM to map a spoken request to a supported typed mobile goal."""
     # Stable references supplied by the user are constraints, not a model-chosen replacement.
@@ -155,8 +169,13 @@ def interpret_mobile_goal(backend, utterance, places, scene, camera):
     if name == "go_to_frontier" and set(args) == {"index"}:
         index = args["index"]
         if type(index) is int and 0 <= index < len(scene.get("frontiers", [])):
-            xy = scene["frontiers"][index]["xy"]
-            return GoToObserved(float(xy[0]), float(xy[1]), f"frontier:{index}")
+            f = scene["frontiers"][index]
+            if _reached(f, scene):
+                return UnsupportedGoal(
+                    "Requested frontier is where the robot already stands (already reached); "
+                    "it is not a navigation target."
+                )
+            return GoToObserved(float(f["xy"][0]), float(f["xy"][1]), f"frontier:{index}")
         return UnsupportedGoal("Requested frontier is not observed and reachable.")
     if name == "go_to_viewpoint" and set(args) == {"candidate", "side"}:
         for v in scene.get("viewpoints", []):
@@ -218,6 +237,8 @@ def available_actions(goal, scene, verdict, history):
         if (pose is None or pose["valid"]) and attempts("inspect", args) < 2:
             actions.append(ToolCall("inspect", args))
     for _index, f in enumerate(scene.get("frontiers", [])):
+        if _reached(f, scene):
+            continue
         args = {"x": f["xy"][0], "y": f["xy"][1]}
         if attempts("go_to", args) < 2:
             actions.append(ToolCall("go_to", args))
@@ -233,6 +254,18 @@ class MobileModelPlanner:
     def next_action(self, goal, scene, verdict, history):
         if isinstance(goal, UnsupportedGoal):
             return Finish(False, goal.reason)
+        if (
+            isinstance(goal, GoToObserved)
+            and goal.is_exploration_point
+            and (verdict.get("reached") or verdict.get("satisfied"))
+        ):
+            # Typed outcome, decided without the model: nothing here observes the target.
+            return Finish(
+                False,
+                "reached an exploration point; the requested target was not observed, "
+                "so the task is not complete",
+                EXPLORATION_REACHED,
+            )
         alternatives = available_actions(goal, scene, verdict, history)
         prior = [
             {
@@ -296,9 +329,18 @@ class MobileModelPlanner:
                 if name == "finish" and set(args) == {"success", "reason"}:
                     if type(args["success"]) is bool and isinstance(args["reason"], str):
                         if args["success"] and verdict.get("satisfied"):
-                            return Finish(True, args["reason"])
+                            return Finish(
+                                True,
+                                f"verified: {verdict.get('reason', 'goal satisfied')}",
+                                model_reason=args["reason"],
+                            )
                         if not args["success"] and not alternatives:
-                            return Finish(False, args["reason"])
+                            return Finish(
+                                False,
+                                f"not completed: {verdict.get('reason', 'goal not verified')}; "
+                                "no admissible alternatives remain",
+                                model_reason=args["reason"],
+                            )
                     error = "finish rejected: goal not verified or admissible alternatives remain"
                 else:
                     if name == "explore_frontier" and set(args) == {"index"}:

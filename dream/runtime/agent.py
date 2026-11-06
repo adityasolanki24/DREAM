@@ -29,7 +29,7 @@ from typing import Protocol
 
 import numpy as np
 
-from dream.tools.goals import Goal, InRegion, OnTop, resting_on
+from dream.tools.goals import EXPLORATION_REACHED, Goal, InRegion, OnTop, resting_on
 from dream.tools.toolbox import WALL_CLEARANCE, Toolbox, ToolResult
 from dream.types import ObjectObservation
 
@@ -43,7 +43,9 @@ class ToolCall:
 @dataclass(frozen=True)
 class Finish:
     success: bool
-    reason: str
+    reason: str  # user-facing text, generated from the verified typed result
+    completion: str | None = None  # machine-readable outcome when success is not the whole story
+    model_reason: str | None = None  # the model's own free text, retained separately
 
 
 Action = ToolCall | Finish
@@ -212,6 +214,8 @@ class Episode:
     reason: str
     steps: list[Step]
     suspended: bool = False  # stopped at an action boundary for a higher-priority task
+    completion: str | None = None  # e.g. exploration_point_reached_target_unverified
+    model_reason: str | None = None  # a model's free text; never the user-facing reason
 
     @property
     def tool_calls(self) -> int:
@@ -231,6 +235,8 @@ class Episode:
             "goal": repr(self.goal),
             "success_claimed": self.success_claimed,
             "reason": self.reason,
+            "completion": self.completion,
+            "model_reason": self.model_reason,
             "tool_calls": self.tool_calls,
             "failed_actions": self.failed_actions,
             "steps": [
@@ -301,7 +307,16 @@ class TaskAgent:
                 emit("suspended", {"steps": len(steps)})
                 return Episode(goal, False, "suspended at an action boundary", steps, True)
             if isinstance(action, Finish):
-                return self._finish(goal, action.success, action.reason, steps, emit)
+                action = self._typed_outcome(goal, action)
+                return self._finish(
+                    goal,
+                    action.success,
+                    action.reason,
+                    steps,
+                    emit,
+                    action.completion,
+                    action.model_reason,
+                )
             emit("action", {"tool": action.name, "args": action.args})
             t0 = time.perf_counter()
             result = self.tools.call(action.name, action.args)
@@ -322,6 +337,30 @@ class TaskAgent:
         return self._finish(goal, False, f"step budget ({self.max_steps}) exhausted", steps, emit)
 
     @staticmethod
-    def _finish(goal, success, reason, steps, emit) -> Episode:
-        emit("finish", {"success": success, "reason": reason})
-        return Episode(goal, success, reason, steps)
+    def _typed_outcome(goal, action: Finish) -> Finish:
+        """Reaching an exploration point (a frontier) never completes a request about a
+        target, whoever claims it: the planner, the model or a verifier."""
+        if getattr(goal, "is_exploration_point", False) and action.success:
+            return Finish(
+                False,
+                "reached an exploration point; the requested target was not observed, "
+                "so the task is not complete",
+                EXPLORATION_REACHED,
+                action.model_reason if action.model_reason is not None else action.reason,
+            )
+        return action
+
+    @staticmethod
+    def _finish(goal, success, reason, steps, emit, completion=None, model_reason=None) -> Episode:
+        emit(
+            "finish",
+            {
+                "success": success,
+                "reason": reason,
+                "completion": completion,
+                "model_reason": model_reason,
+            },
+        )
+        return Episode(
+            goal, success, reason, steps, completion=completion, model_reason=model_reason
+        )

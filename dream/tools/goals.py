@@ -58,6 +58,9 @@ class GoToPlace:
     place: str
 
 
+EXPLORATION_REACHED = "exploration_point_reached_target_unverified"
+
+
 @dataclass(frozen=True)
 class GoToObserved:
     """A particular observed, reachable position bound during interpretation."""
@@ -65,6 +68,13 @@ class GoToObserved:
     x: float
     y: float
     reference: str
+
+    @property
+    def is_exploration_point(self) -> bool:
+        """A frontier is somewhere to look next, not a named object or remembered place:
+        reaching it can never verify a request about a target. Bound by the interpreter as
+        ``frontier:<index>``; candidate viewpoints are ``candidate:<id>:side:<k>``."""
+        return self.reference.startswith("frontier:")
 
 
 @dataclass(frozen=True)
