@@ -1,11 +1,11 @@
 {
   "machine": "g2-standard-8",
-  "zone": "us-central1-c",
+  "zone": "asia-southeast1-a",
   "max_minutes": 45,
   "image": "common-cu129-ubuntu-2204-nvidia-580-v20261019",
   "cost": {
-    "checked_date": "2026-10-23",
-    "vm_usd_per_hour": 0.853624312,
+    "checked_date": "2026-10-28",
+    "vm_usd_per_hour": 1.5,
     "disk_usd_per_hour": 0.014,
     "nat_gateway_and_ip_usd_per_hour": 0.0064,
     "nat_usd_per_gib": 0.045,
@@ -16,7 +16,13 @@
       "https://cloud.google.com/nat/pricing",
       "https://cloud.google.com/compute/disks-image-pricing"
     ],
-    "note": "Same VM, disk and download reserve as molmo-closedloop; 10 fresh predictions with 15 executed rows each plus the matched classical baseline. USD estimate, not billing cap. Owner authorised the spend for the closeout on 7 Nov 2026."
+    "note": "Same VM, disk and download reserve as molmo-closedloop; 10 fresh predictions with 15 executed rows each plus the matched classical baseline. USD estimate, not billing cap. Owner authorised the spend for the closeout on 7 Nov 2026. us-central1 had no L4 capacity in zones a, b or c on 7 Nov 2026 (attempt dream-qwen-20261107-071720-fbdf6f, nothing created), so this workload uses the asia-southeast1 L4 rate the Isaac session config already prices."
   },
-  "workload": "molmo-multichunk"
+  "workload": "molmo-multichunk",
+  "region": "asia-southeast1",
+  "zones": [
+    "asia-southeast1-a",
+    "asia-southeast1-b",
+    "asia-southeast1-c"
+  ]
 }

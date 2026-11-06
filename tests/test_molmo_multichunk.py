@@ -93,7 +93,7 @@ def test_multichunk_config_differs_from_the_dev_config_only_where_declared():
 def test_multichunk_workload_is_registered_with_the_same_guard_and_lifetime():
     cfg = json.loads(cloud.WORKLOAD_CONFIGS["molmo-multichunk"].read_text())
     p = cloud.plan("nerva-adityapersonal", cfg, "dream-qwen-test-multichunk")
-    assert p["workload"] == "molmo-multichunk" and p["max_minutes"] <= 45 and p["estimated_usd"] < 3
+    assert p["workload"] == "molmo-multichunk" and p["max_minutes"] <= 45 and p["estimated_usd"] < 4
     startup = (ROOT / "cloud/vm_startup.sh").read_text()
     assert "molmo-closedloop|molmo-multichunk) LOCK=molmo.requirements.lock.txt" in startup
     assert "--config experiments/configs/molmo_multichunk_closeout.json" in startup
