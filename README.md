@@ -181,8 +181,15 @@ evidence only, no new inference): the gripper channel stayed within [-0.006, 0.0
 maps it to fully open, the upstream DROID convention; the end effector stayed at least 0.43 m
 from the object because the pilot executed 6 single rows (0.4 s of policy time); the DREAM home
 pose is outside the DROID state range for two wrist joints. No contract defect found. Learned
-integration: partial. Task execution: no. Whether the policy can reach and grasp is still open;
-the test that would decide it needs a multi-row closed-loop harness and was not run.
+integration: partial. Task execution: no. The pre-registered multi-chunk test then ran
+(`results/molmo_multichunk_closeout`, frozen config `molmo_multichunk_closeout.json`, one cloud job,
+seed 223, 10 fresh inferences x 15 consecutive rows = 10 s of policy time, 150 of 150 targets
+reached with tracking within 0.002 rad and no safety stop): the end effector got no nearer than
+0.298 m (start 0.536 m, end 0.347 m) and the raw gripper channel never exceeded 0.011, so by the
+registered rule H4 (policy or embodiment gap) stands and the under-length evaluation (H1) is
+rejected as the cause. Task execution: no (0/1). The start-pose and camera contract factors (H3)
+were not varied and remain open; this is one development seed and one rollout. See
+`results/molmo_failure_mode_closeout/multichunk_conclusion.json`.
 
 ## Branches and integration
 
