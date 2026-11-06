@@ -153,6 +153,16 @@ pairs): 7 divergent decisions, fewer than the declared 10, so insufficient diver
 episodes, hand-on-handle in 5, no foot contact; phantom handles in 11 episodes (15 total). Two
 failed cloud attempts are in `failed_attempts/`; the earlier local hang did not recur.
 
+**Qwen on the frozen provider frames** (`results/p6_qwen_frozen11_closeout`, frozen config
+`p6_qwen_frozen11_closeout.json`): the same 11 decisions, frames, prompt and tool schemas
+(hash-equal to the ChatGPT run's offline reconstruction) and scorer. Qwen3-VL-4B-Instruct at
+revision ebb281ec, greedy, one pass: valid 11/11, correct 5/11. The ChatGPT run (gpt-6-luna,
+effort none) was valid 11/11, correct 6/11. They agree on the correctness of 10 of 11 frames; the
+single paired disagreement is `obj_6` (ChatGPT inspected candidate 0, Qwen looked around). With
+n = 11 this is a descriptive count only: no superiority claim either way. Differences that cannot
+be removed (backend rendering of the same messages, decoding settings, the ChatGPT run's own
+runner bytes) are listed in the config.
+
 ## Branches and integration
 
 | Branch | Role |
