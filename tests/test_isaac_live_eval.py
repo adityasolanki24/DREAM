@@ -302,3 +302,10 @@ def test_protective_stop_is_the_robot_safety_stop_not_the_task_end_reason():
     assert case["protective_stop"] is None
     stopped = _case("T1", physical_safety={"safe": False, "fell": False, "safety_stop": "tilt"})
     assert stopped["protective_stop"] == "tilt"
+
+
+def test_merge_recomputes_the_protective_stop_from_the_stored_scorer_fields():
+    old = _case("T1")
+    old["protective_stop"] = "verified: handle observed"  # as written by the first driver revision
+    merged = ev.merge_summaries(CFG, [{"cases": [old]}])
+    assert merged["cases"][0]["protective_stop"] is None

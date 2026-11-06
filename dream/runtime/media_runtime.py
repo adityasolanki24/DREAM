@@ -26,6 +26,10 @@ from pathlib import Path
 def media_config():
     return {
         "logLevel": "info",
+        # The simulation is synchronous: no frame is published while the model thinks or the
+        # session waits for a task. The 10 s default read timeout dropped the publisher then,
+        # ffmpeg died on a broken pipe and WHEP stayed unavailable (31 Oct and 7 Nov 2026).
+        "readTimeout": "3600s",
         "api": False,
         "metrics": False,
         "pprof": False,

@@ -40,3 +40,9 @@ def test_raw_sdp_signalling_requires_bearer_auth_before_proxy():
     assert seen == []
     assert api.handle("POST", "/media/whep", "Bearer " + "t" * 32, b"v=0")[0] == 201
     assert seen == [("POST", "/media/whep", b"v=0")]
+
+
+def test_publisher_is_not_dropped_while_the_synchronous_simulation_publishes_nothing():
+    """Stall > 10 s (model inference, idle wait) closed MediaMTX's RTSP session, killed ffmpeg
+    with a broken pipe and left WHEP unavailable for the rest of the session."""
+    assert float(media_config()["readTimeout"].rstrip("s")) >= 600

@@ -632,6 +632,9 @@ def merge_summaries(cfg: dict, summaries: list[dict]) -> dict:
     latest: dict[str, dict] = {}
     for summary in summaries:
         for case in summary["cases"]:
+            if not case.get("deferred"):  # records written by an earlier driver revision
+                safety = ((case.get("independent_verification") or {}).get("physical_safety")) or {}
+                case = {**case, "protective_stop": safety.get("safety_stop")}
             if case.get("deferred") and case["case_id"] in latest:
                 continue
             latest[case["case_id"]] = case

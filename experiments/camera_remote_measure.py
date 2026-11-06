@@ -221,6 +221,20 @@ class Tunnel:
                 self.proc.kill()
 
 
+def start_when_serving(tunnel: Tunnel, timeout_s: float) -> float:
+    """The VM port only opens once the live job (and its media runtime) is serving; IAP refuses
+    the tunnel's connectivity check until then (error 4003), so retry."""
+    t0 = time.monotonic()
+    while True:
+        try:
+            tunnel.start()
+            return time.monotonic() - t0
+        except RuntimeError:
+            if time.monotonic() - t0 > timeout_s:
+                raise
+            time.sleep(15)
+
+
 class Api:
     def __init__(self, port: int, token: str):
         self.base, self._token = f"http://127.0.0.1:{port}", token
@@ -318,8 +332,8 @@ def main() -> None:
     }
     submitted: list = []
     try:
-        report["api_tunnel_up_s"] = round(api_tunnel.start(), 1)
-        report["ice_tunnel_up_s"] = round(ice_tunnel.start(), 1)
+        report["api_tunnel_up_s"] = round(start_when_serving(api_tunnel, args.pair_timeout_s), 1)
+        report["ice_tunnel_up_s"] = round(start_when_serving(ice_tunnel, args.pair_timeout_s), 1)
         api = Api(API_LOCAL, token)
         report["pairing"] = wait_pair(api, token, args.pair_timeout_s)
         (out / "report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
