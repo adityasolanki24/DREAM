@@ -1,0 +1,157 @@
+{
+  "meta": {
+    "config": {
+      "name": "g1_explore_room_closeout",
+      "status": "frozen",
+      "_note": "Closeout revalidation of Milestone B (experiments/g1_explore_room.py) at the committed code, on fresh seeds. Same room generators, time budget and step budget as g1_explore_room.json. Seed ranges are half-open [a, b): nominal 1300-1319, shifted 2300-2309, no_cabinet 3100-3109; verified by grep to appear in no config, result, test or script (earlier: nominal 0-9, 1000-1019, 1100-1119, 1200-1219; shifted 2000-2009, 2100-2109, 2200-2209; no_cabinet 3000-3005). Nominal runs the 'gain' frontier policy only; shifted and no_cabinet run 'gain' and 'nearest' on the same rooms (paired). The revalidation claim is for the current code only; historical numbers in results/g1_explore_room* are separate and are not rescored. Nothing is tuned after seeing results.",
+      "seeds": {
+        "nominal": [
+          1300,
+          1320
+        ],
+        "shifted": [
+          2300,
+          2310
+        ],
+        "no_cabinet": [
+          3100,
+          3110
+        ]
+      },
+      "methods": [
+        "gain",
+        "nearest"
+      ],
+      "methods_by_kind": {
+        "nominal": [
+          "gain"
+        ],
+        "shifted": [
+          "gain",
+          "nearest"
+        ],
+        "no_cabinet": [
+          "gain",
+          "nearest"
+        ]
+      },
+      "time_budget_s": 240,
+      "max_steps": 60,
+      "record": [],
+      "gates": {
+        "nominal_success_min": 0.9,
+        "shifted_success_min": 0.7,
+        "no_cabinet_refusal_min": 0.9,
+        "max_false_claims": 0,
+        "max_falls": 0,
+        "_note": "Success and refusal gates are on the gain policy; false claims and falls count all rows. no_cabinet refusal is gated under the original scorer (no claim and no fall); it is additionally reported strictly, excluding phantom-driven refusals (refusal_category phantom_or_unreachable_candidate, or phantom_handles > 0), which do not count as correct."
+      },
+      "reported_not_gated": [
+        "contacts by body class (foot_furniture, hand_handle, hand_furniture, other): episodes, ticks, peak force, last-3-s flag",
+        "strict success: success with no contact other than hand_handle",
+        "phantom_handles per episode; refusal category counts"
+      ],
+      "frontier_comparison": {
+        "declared_before_run": true,
+        "pairs": "shifted and no_cabinet, same seed, gain vs nearest",
+        "primary_metric": "sim_s: simulated seconds to terminal outcome of the episode (claim, refusal or budget stop), mean of (gain - nearest); negative favours gain",
+        "secondary_metric": "success (0/1), mean of (gain - nearest)",
+        "interval": "paired bootstrap over pairs, 10000 resamples, rng seed 0, 95 percentile interval",
+        "divergence": "a go_to decision where gain and nearest policies, applied to the same state, choose different frontiers; counted from the gain arm's recorded decisions over all paired episodes (the nearest arm and pairs with at least one divergence are reported too)",
+        "min_divergent_decisions": 10,
+        "if_fewer_than_min": "insufficient divergence, no claim",
+        "claim_rule": "gain is claimed better only if the primary-metric interval excludes 0 in gain's favour (upper bound < 0); otherwise no claim"
+      }
+    },
+    "git_sha": "a3b430466691fdc1f0a807bc75677aea30e082bd",
+    "dream_dirty_at_start": false,
+    "mujoco": "3.16.0",
+    "machine": "Linux-6.8.0-1070-gcp-x86_64-with-glibc2.35",
+    "wall_s": 4817.565899364001,
+    "odometry": "oracle-assisted (true increments + noise), dream/sim/g1_mobile.py"
+  },
+  "by_condition": {
+    "nominal/gain": {
+      "n": 20,
+      "success": 15,
+      "success_ci95": [
+        0.5312949900419365,
+        0.888139947210597
+      ],
+      "false_claims": 0,
+      "correct_refusals": 0,
+      "falls": 0,
+      "episodes_with_contact": 3,
+      "median_sim_s": 47.52000000000586,
+      "median_path_m": 7.5905390538608515,
+      "median_success_sim_s": 47.0200000000056
+    },
+    "shifted/gain": {
+      "n": 10,
+      "success": 4,
+      "success_ci95": [
+        0.16817758120350967,
+        0.6873304525498135
+      ],
+      "false_claims": 0,
+      "correct_refusals": 0,
+      "falls": 0,
+      "episodes_with_contact": 7,
+      "median_sim_s": 233.93999999985974,
+      "median_path_m": 36.49902641753182,
+      "median_success_sim_s": 134.41999999995025
+    },
+    "shifted/nearest": {
+      "n": 10,
+      "success": 4,
+      "success_ci95": [
+        0.16817758120350967,
+        0.6873304525498135
+      ],
+      "false_claims": 0,
+      "correct_refusals": 0,
+      "falls": 0,
+      "episodes_with_contact": 8,
+      "median_sim_s": 231.57999999986188,
+      "median_path_m": 36.409655349475315,
+      "median_success_sim_s": 134.41999999995025
+    },
+    "no_cabinet/gain": {
+      "n": 10,
+      "success": 0,
+      "success_ci95": [
+        0.0,
+        0.2775401687666166
+      ],
+      "false_claims": 0,
+      "correct_refusals": 10,
+      "falls": 0,
+      "episodes_with_contact": 5,
+      "median_sim_s": 177.0399999999115,
+      "median_path_m": 29.40419511372101,
+      "median_success_sim_s": null
+    },
+    "no_cabinet/nearest": {
+      "n": 10,
+      "success": 0,
+      "success_ci95": [
+        0.0,
+        0.2775401687666166
+      ],
+      "false_claims": 0,
+      "correct_refusals": 10,
+      "falls": 0,
+      "episodes_with_contact": 5,
+      "median_sim_s": 177.0399999999115,
+      "median_path_m": 29.40419511372101,
+      "median_success_sim_s": null
+    }
+  },
+  "gates": {
+    "nominal_success": false,
+    "shifted_success": false,
+    "no_cabinet_refusal": true,
+    "false_claims": true,
+    "falls": true
+  }
+}

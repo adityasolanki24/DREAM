@@ -1,0 +1,623 @@
+{
+  "config": "g1_explore_room_closeout",
+  "status": "frozen",
+  "n_episodes": 60,
+  "python": "3.13.14",
+  "numpy": "2.5.4",
+  "gates": {
+    "nominal_success": {
+      "value": 0.75,
+      "n": 20,
+      "gate": 0.9,
+      "pass": false
+    },
+    "shifted_success": {
+      "value": 0.4,
+      "n": 10,
+      "gate": 0.7,
+      "pass": false
+    },
+    "no_cabinet_correct_refusal_original_scorer": {
+      "value": 1.0,
+      "n": 10,
+      "gate": 0.9,
+      "pass": true
+    },
+    "false_claims_all_rows": {
+      "value": 0,
+      "n": 60,
+      "gate": 0,
+      "pass": true
+    },
+    "falls_all_rows": {
+      "value": 0,
+      "n": 60,
+      "gate": 0,
+      "pass": true
+    }
+  },
+  "all_gates_pass": false,
+  "no_cabinet_strict": {
+    "n": 10,
+    "correct_refusals_original": 10,
+    "phantom_driven_refusals": 0,
+    "strict_correct_refusals_excluding_phantom_driven": 10,
+    "strict_rate_over_all": 1.0,
+    "strict_rate_over_non_phantom_episodes": 1.0,
+    "n_non_phantom_episodes": 10
+  },
+  "contacts_by_class": {
+    "foot_furniture": {
+      "episodes": 0,
+      "of": 60,
+      "ticks": 0,
+      "peak_force_n": 0.0,
+      "episodes_in_last_3s": 0
+    },
+    "hand_handle": {
+      "episodes": 5,
+      "of": 60,
+      "ticks": 419,
+      "peak_force_n": 40.58,
+      "episodes_in_last_3s": 0
+    },
+    "hand_furniture": {
+      "episodes": 23,
+      "of": 60,
+      "ticks": 2715,
+      "peak_force_n": 28.62,
+      "episodes_in_last_3s": 4
+    },
+    "other": {
+      "episodes": 5,
+      "of": 60,
+      "ticks": 9378,
+      "peak_force_n": 35.74,
+      "episodes_in_last_3s": 2
+    }
+  },
+  "contacts_by_pair_ticks_peak_force": {
+    "left_hand_index_1_link | wall_ny": [
+      4769,
+      35.74
+    ],
+    "right_hand_index_1_link | wall_ny": [
+      4607,
+      26.26
+    ],
+    "right_hand_index_1_link | cabinet": [
+      688,
+      20.51
+    ],
+    "left_hand_index_1_link | cabinet": [
+      455,
+      10.93
+    ],
+    "left_hand_middle_1_link | cabinet_handle": [
+      334,
+      40.58
+    ],
+    "left_hand_index_1_link | furniture_0": [
+      226,
+      13.34
+    ],
+    "right_hand_index_1_link | furniture_0": [
+      201,
+      12.91
+    ],
+    "left_hand_index_1_link | cabinet_door": [
+      191,
+      11.94
+    ],
+    "right_hand_middle_1_link | furniture_0": [
+      191,
+      23.34
+    ],
+    "right_hand_index_1_link | furniture_3": [
+      162,
+      19.69
+    ],
+    "right_hand_middle_1_link | cabinet": [
+      158,
+      19.75
+    ],
+    "left_hand_middle_1_link | cabinet_door": [
+      108,
+      13.0
+    ],
+    "left_hand_middle_1_link | cabinet": [
+      84,
+      13.01
+    ],
+    "right_hand_middle_1_link | cabinet_handle": [
+      70,
+      16.54
+    ],
+    "right_hand_index_1_link | cabinet_door": [
+      60,
+      15.45
+    ],
+    "right_hand_index_1_link | furniture_1": [
+      38,
+      15.51
+    ],
+    "left_hand_index_1_link | furniture_4": [
+      36,
+      18.56
+    ],
+    "left_hand_index_1_link | furniture_1": [
+      24,
+      8.49
+    ],
+    "left_hand_middle_1_link | cabinet_handle_post1": [
+      12,
+      11.87
+    ],
+    "left_wrist_yaw_link | furniture_4": [
+      11,
+      21.46
+    ],
+    "left_hand_index_1_link | furniture_3": [
+      10,
+      8.09
+    ],
+    "left_hand_index_0_link | furniture_4": [
+      10,
+      28.62
+    ],
+    "left_hand_middle_1_link | furniture_3": [
+      10,
+      3.4
+    ],
+    "right_hand_middle_1_link | cabinet_door": [
+      10,
+      12.92
+    ],
+    "right_hand_middle_1_link | furniture_3": [
+      8,
+      3.27
+    ],
+    "right_hand_index_1_link | furniture_2": [
+      8,
+      4.94
+    ],
+    "right_hand_middle_1_link | furniture_2": [
+      8,
+      5.07
+    ],
+    "left_hand_middle_1_link | furniture_0": [
+      6,
+      0.49
+    ],
+    "right_hand_index_0_link | furniture_0": [
+      6,
+      3.43
+    ],
+    "left_hand_middle_0_link | furniture_4": [
+      2,
+      15.25
+    ],
+    "left_hand_index_1_link | furniture_2": [
+      2,
+      2.23
+    ],
+    "left_hand_index_1_link | cabinet_handle": [
+      2,
+      0.78
+    ],
+    "right_hand_middle_1_link | wall_ny": [
+      2,
+      0.0
+    ],
+    "left_hand_middle_1_link | furniture_4": [
+      1,
+      2.0
+    ],
+    "right_hand_middle_1_link | cabinet_handle_post1": [
+      1,
+      0.0
+    ],
+    "right_hand_middle_0_link | furniture_0": [
+      1,
+      0.0
+    ]
+  },
+  "strict_success": {
+    "successes": 23,
+    "strict_successes": 19,
+    "successes_with_non_hand_handle_contact": 4,
+    "gain_nominal_strict": 0.75,
+    "gain_shifted_strict": 0.2
+  },
+  "phantoms": {
+    "episodes_with_phantom": 11,
+    "phantom_handles_total": 15,
+    "by_kind_method": {
+      "no_cabinet/gain": 0,
+      "no_cabinet/nearest": 0,
+      "nominal/gain": 2,
+      "shifted/gain": 7,
+      "shifted/nearest": 6
+    }
+  },
+  "refusal_categories": {
+    "nominal/gain: phantom_or_unreachable_candidate": 3,
+    "nominal/gain: scene_generation_failed": 2,
+    "shifted/gain: other": 4,
+    "shifted/nearest: phantom_or_unreachable_candidate": 3,
+    "shifted/nearest: other": 3,
+    "shifted/gain: phantom_or_unreachable_candidate": 2,
+    "no_cabinet/gain: exhausted_exploration": 9,
+    "no_cabinet/nearest: exhausted_exploration": 9,
+    "no_cabinet/gain: other": 1,
+    "no_cabinet/nearest: other": 1
+  },
+  "frontier_comparison": {
+    "n_pairs": 20,
+    "mean_sim_s_diff_gain_minus_nearest": 1.4999999999986358,
+    "sim_s_diff_ci95": [
+      -1.2399999999988722,
+      5.104999999995357
+    ],
+    "mean_success_diff_gain_minus_nearest": 0.0,
+    "success_diff_ci95": [
+      0.0,
+      0.0
+    ],
+    "divergent_decisions_gain_arm": 7,
+    "divergent_decisions_nearest_arm": 11,
+    "pairs_with_any_divergence": 4,
+    "decisions_gain_arm": 22,
+    "min_divergent_decisions": 10,
+    "conclusion": "insufficient divergence, no claim",
+    "by_kind": {
+      "shifted": {
+        "n": 10,
+        "mean_sim_s_diff": 2.9999999999972715
+      },
+      "no_cabinet": {
+        "n": 10,
+        "mean_sim_s_diff": 0.0
+      }
+    }
+  },
+  "failures": [
+    {
+      "kind": "nominal",
+      "seed": 1302,
+      "method": "gain",
+      "claimed": false,
+      "success": false,
+      "false_claim": false,
+      "fell": false,
+      "refusal_category": "phantom_or_unreachable_candidate",
+      "reason": "candidate 7 has a handle, but no reachable viewpoint",
+      "phantom_handles": 1,
+      "sim_s": 212.01999999987967,
+      "contact_classes": [
+        "hand_furniture",
+        "hand_handle"
+      ],
+      "identity_error_m": 0.7379861839660968,
+      "true_handle_distance_m": 3.9574631049176254,
+      "on_front_side": true,
+      "facing_error_deg": 43.75692955628259
+    },
+    {
+      "kind": "nominal",
+      "seed": 1305,
+      "method": "gain",
+      "claimed": false,
+      "success": false,
+      "false_claim": false,
+      "fell": false,
+      "refusal_category": "phantom_or_unreachable_candidate",
+      "reason": "candidate 7 has a handle, but no reachable viewpoint",
+      "phantom_handles": 0,
+      "sim_s": 183.2799999999058,
+      "contact_classes": [
+        "hand_furniture"
+      ],
+      "identity_error_m": 0.011972724631284628,
+      "true_handle_distance_m": 0.4637261516912537,
+      "on_front_side": true,
+      "facing_error_deg": 11.572922302899254
+    },
+    {
+      "kind": "nominal",
+      "seed": 1313,
+      "method": "gain",
+      "claimed": false,
+      "success": false,
+      "false_claim": false,
+      "fell": false,
+      "refusal_category": "scene_generation_failed",
+      "reason": "scene generation failed: no free start position",
+      "phantom_handles": 0,
+      "sim_s": 0.0,
+      "contact_classes": [],
+      "identity_error_m": null,
+      "true_handle_distance_m": null,
+      "on_front_side": null,
+      "facing_error_deg": null
+    },
+    {
+      "kind": "nominal",
+      "seed": 1316,
+      "method": "gain",
+      "claimed": false,
+      "success": false,
+      "false_claim": false,
+      "fell": false,
+      "refusal_category": "phantom_or_unreachable_candidate",
+      "reason": "candidate 2 has a handle, but no reachable viewpoint",
+      "phantom_handles": 1,
+      "sim_s": 193.7399999998963,
+      "contact_classes": [
+        "other"
+      ],
+      "identity_error_m": 3.945379844748451,
+      "true_handle_distance_m": 4.408057561885723,
+      "on_front_side": true,
+      "facing_error_deg": 62.220040460932296
+    },
+    {
+      "kind": "nominal",
+      "seed": 1319,
+      "method": "gain",
+      "claimed": false,
+      "success": false,
+      "false_claim": false,
+      "fell": false,
+      "refusal_category": "scene_generation_failed",
+      "reason": "scene generation failed: no free start position",
+      "phantom_handles": 0,
+      "sim_s": 0.0,
+      "contact_classes": [],
+      "identity_error_m": null,
+      "true_handle_distance_m": null,
+      "on_front_side": null,
+      "facing_error_deg": null
+    },
+    {
+      "kind": "shifted",
+      "seed": 2300,
+      "method": "gain",
+      "claimed": false,
+      "success": false,
+      "false_claim": false,
+      "fell": false,
+      "refusal_category": "other",
+      "reason": "time budget (240 s) spent",
+      "phantom_handles": 1,
+      "sim_s": 254.3199999998412,
+      "contact_classes": [
+        "hand_furniture"
+      ],
+      "identity_error_m": 0.5116299701688104,
+      "true_handle_distance_m": 4.44489759336555,
+      "on_front_side": true,
+      "facing_error_deg": 86.86134454951959
+    },
+    {
+      "kind": "shifted",
+      "seed": 2300,
+      "method": "nearest",
+      "claimed": false,
+      "success": false,
+      "false_claim": false,
+      "fell": false,
+      "refusal_category": "phantom_or_unreachable_candidate",
+      "reason": "candidate 8 has a handle, but no reachable viewpoint",
+      "phantom_handles": 0,
+      "sim_s": 236.21999999985766,
+      "contact_classes": [
+        "hand_furniture"
+      ],
+      "identity_error_m": 0.28751115835287555,
+      "true_handle_distance_m": 6.52164025580445,
+      "on_front_side": true,
+      "facing_error_deg": 141.0492811558011
+    },
+    {
+      "kind": "shifted",
+      "seed": 2302,
+      "method": "gain",
+      "claimed": false,
+      "success": false,
+      "false_claim": false,
+      "fell": false,
+      "refusal_category": "other",
+      "reason": "time budget (240 s) spent",
+      "phantom_handles": 1,
+      "sim_s": 243.0999999998514,
+      "contact_classes": [
+        "hand_furniture"
+      ],
+      "identity_error_m": 0.03569878309296798,
+      "true_handle_distance_m": 0.5316890903589807,
+      "on_front_side": true,
+      "facing_error_deg": 7.928762192685438
+    },
+    {
+      "kind": "shifted",
+      "seed": 2302,
+      "method": "nearest",
+      "claimed": false,
+      "success": false,
+      "false_claim": false,
+      "fell": false,
+      "refusal_category": "other",
+      "reason": "time budget (240 s) spent",
+      "phantom_handles": 1,
+      "sim_s": 243.0999999998514,
+      "contact_classes": [
+        "hand_furniture"
+      ],
+      "identity_error_m": 0.03569878309296798,
+      "true_handle_distance_m": 0.5316890903589807,
+      "on_front_side": true,
+      "facing_error_deg": 7.928762192685438
+    },
+    {
+      "kind": "shifted",
+      "seed": 2304,
+      "method": "gain",
+      "claimed": false,
+      "success": false,
+      "false_claim": false,
+      "fell": false,
+      "refusal_category": "phantom_or_unreachable_candidate",
+      "reason": "candidate 3 has a handle, but no reachable viewpoint",
+      "phantom_handles": 1,
+      "sim_s": 171.4199999999166,
+      "contact_classes": [],
+      "identity_error_m": 2.932159299129668,
+      "true_handle_distance_m": 6.332383018866291,
+      "on_front_side": true,
+      "facing_error_deg": 126.25575700384178
+    },
+    {
+      "kind": "shifted",
+      "seed": 2304,
+      "method": "nearest",
+      "claimed": false,
+      "success": false,
+      "false_claim": false,
+      "fell": false,
+      "refusal_category": "phantom_or_unreachable_candidate",
+      "reason": "candidate 3 has a handle, but no reachable viewpoint",
+      "phantom_handles": 1,
+      "sim_s": 171.21999999991678,
+      "contact_classes": [
+        "hand_furniture"
+      ],
+      "identity_error_m": 2.920554540597923,
+      "true_handle_distance_m": 6.3141519801209745,
+      "on_front_side": true,
+      "facing_error_deg": 125.82343968848718
+    },
+    {
+      "kind": "shifted",
+      "seed": 2306,
+      "method": "gain",
+      "claimed": false,
+      "success": false,
+      "false_claim": false,
+      "fell": false,
+      "refusal_category": "other",
+      "reason": "time budget (240 s) spent",
+      "phantom_handles": 3,
+      "sim_s": 251.03999999984418,
+      "contact_classes": [
+        "hand_furniture",
+        "hand_handle"
+      ],
+      "identity_error_m": 0.19341616987649976,
+      "true_handle_distance_m": 6.623799889145947,
+      "on_front_side": true,
+      "facing_error_deg": 159.1173770894397
+    },
+    {
+      "kind": "shifted",
+      "seed": 2306,
+      "method": "nearest",
+      "claimed": false,
+      "success": false,
+      "false_claim": false,
+      "fell": false,
+      "refusal_category": "phantom_or_unreachable_candidate",
+      "reason": "candidate 10 has a handle, but no reachable viewpoint",
+      "phantom_handles": 3,
+      "sim_s": 226.9399999998661,
+      "contact_classes": [
+        "hand_furniture",
+        "hand_handle"
+      ],
+      "identity_error_m": 0.33245243126717966,
+      "true_handle_distance_m": 5.866496195884366,
+      "on_front_side": true,
+      "facing_error_deg": 27.545285104549233
+    },
+    {
+      "kind": "shifted",
+      "seed": 2308,
+      "method": "gain",
+      "claimed": false,
+      "success": false,
+      "false_claim": false,
+      "fell": false,
+      "refusal_category": "phantom_or_unreachable_candidate",
+      "reason": "candidate 6 has a handle, but no reachable viewpoint",
+      "phantom_handles": 1,
+      "sim_s": 231.37999999986206,
+      "contact_classes": [
+        "hand_furniture"
+      ],
+      "identity_error_m": 0.4267582082545026,
+      "true_handle_distance_m": 2.580549257770076,
+      "on_front_side": true,
+      "facing_error_deg": 13.600609303548255
+    },
+    {
+      "kind": "shifted",
+      "seed": 2308,
+      "method": "nearest",
+      "claimed": false,
+      "success": false,
+      "false_claim": false,
+      "fell": false,
+      "refusal_category": "other",
+      "reason": "time budget (240 s) spent",
+      "phantom_handles": 1,
+      "sim_s": 243.7799999998508,
+      "contact_classes": [
+        "hand_furniture"
+      ],
+      "identity_error_m": 1.064263107269328,
+      "true_handle_distance_m": 5.557186693161147,
+      "on_front_side": true,
+      "facing_error_deg": 159.079747662754
+    },
+    {
+      "kind": "shifted",
+      "seed": 2309,
+      "method": "gain",
+      "claimed": false,
+      "success": false,
+      "false_claim": false,
+      "fell": false,
+      "refusal_category": "other",
+      "reason": "time budget (240 s) spent",
+      "phantom_handles": 0,
+      "sim_s": 247.13999999984773,
+      "contact_classes": [
+        "hand_furniture"
+      ],
+      "identity_error_m": 0.020779246712064364,
+      "true_handle_distance_m": 0.5862765110089818,
+      "on_front_side": true,
+      "facing_error_deg": 0.5827017766428877
+    },
+    {
+      "kind": "shifted",
+      "seed": 2309,
+      "method": "nearest",
+      "claimed": false,
+      "success": false,
+      "false_claim": false,
+      "fell": false,
+      "refusal_category": "other",
+      "reason": "time budget (240 s) spent",
+      "phantom_handles": 0,
+      "sim_s": 247.13999999984773,
+      "contact_classes": [
+        "hand_furniture"
+      ],
+      "identity_error_m": 0.020779246712064364,
+      "true_handle_distance_m": 0.5862765110089818,
+      "on_front_side": true,
+      "facing_error_deg": 0.5827017766428877
+    }
+  ]
+}

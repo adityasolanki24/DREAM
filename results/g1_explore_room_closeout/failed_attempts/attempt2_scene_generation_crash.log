@@ -1,0 +1,53 @@
+[1/60 49s] nominal 1300 gain: success=True claim=True found and inspected candidate 2: a box with a handle
+[2/60 49s] nominal 1301 gain: success=True claim=True found and inspected candidate 2: a box with a handle
+[3/60 491s] nominal 1302 gain: success=False claim=False candidate 7 has a handle, but no reachable viewpoint
+[4/60 491s] nominal 1303 gain: success=True claim=True found and inspected candidate 2: a box with a handle
+[5/60 491s] nominal 1304 gain: success=True claim=True found and inspected candidate 1: a box with a handle
+[6/60 491s] nominal 1305 gain: success=False claim=False candidate 7 has a handle, but no reachable viewpoint
+[7/60 491s] nominal 1306 gain: success=True claim=True found and inspected candidate 3: a box with a handle
+[8/60 491s] nominal 1307 gain: success=True claim=True found and inspected candidate 6: a box with a handle
+[9/60 491s] nominal 1308 gain: success=True claim=True found and inspected candidate 5: a box with a handle
+[10/60 491s] nominal 1309 gain: success=True claim=True found and inspected candidate 2: a box with a handle
+[11/60 491s] nominal 1310 gain: success=True claim=True found and inspected candidate 1: a box with a handle
+[12/60 535s] nominal 1311 gain: success=True claim=True found and inspected candidate 3: a box with a handle
+[13/60 574s] nominal 1312 gain: success=True claim=True found and inspected candidate 5: a box with a handle
+concurrent.futures.process._RemoteTraceback: 
+"""
+Traceback (most recent call last):
+  File "/root/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/concurrent/futures/process.py", line 264, in _process_worker
+    r = call_item.fn(*call_item.args, **call_item.kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/concurrent/futures/process.py", line 213, in _process_chunk
+    return [fn(*args) for args in chunk]
+            ^^^^^^^^^
+  File "/work/jobs/3/DREAM/experiments/g1_explore_room.py", line 219, in episode
+    room = sample_room(
+           ^^^^^^^^^^^^
+  File "/work/jobs/3/DREAM/dream/sim/room.py", line 147, in sample_room
+    raise RuntimeError("no free start position")
+RuntimeError: no free start position
+"""
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/work/jobs/3/DREAM/experiments/g1_explore_room.py", line 450, in <module>
+    main()
+  File "/work/jobs/3/DREAM/experiments/g1_explore_room.py", line 428, in main
+    for r in pool.map(episode, jobs):
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/concurrent/futures/process.py", line 636, in _chain_from_iterable_of_lists
+    for element in iterable:
+                   ^^^^^^^^
+  File "/root/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/concurrent/futures/_base.py", line 619, in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/concurrent/futures/_base.py", line 317, in _result_or_cancel
+    return fut.result(timeout)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/concurrent/futures/_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/root/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+RuntimeError: no free start position

@@ -142,6 +142,17 @@ with oracle perception (per-seed table in `vision_vs_oracle.json`). Observationa
 differ in perception only, which is consistent with perception being the limiting component
 but is not a controlled ablation of why each seed failed.
 
+**Room exploration revalidation** (`results/g1_explore_room_closeout`, frozen config
+`g1_explore_room_closeout.json`, 60 rows, cloud, code a3b4304): gates **FAIL**. Nominal gain
+success 15/20 = 0.75 (gate 0.9; 15/18 = 0.83 if the two seeds with no valid room, 1313 and
+1319, are excluded, still below), shifted gain 4/10 = 0.40 (gate 0.7), no_cabinet refusal 10/10
+(pass, 10/10 strict, none phantom-driven), false claims 0 and falls 0 (pass). Every failure is a
+refusal or budget stop, none a false claim. Frontier comparison (shifted and no_cabinet, 20
+pairs): 7 divergent decisions, fewer than the declared 10, so insufficient divergence, no claim
+(mean sim_s difference +1.5 s, interval -1.2 to +5.1). Hand-on-furniture contact in 23 of 60
+episodes, hand-on-handle in 5, no foot contact; phantom handles in 11 episodes (15 total). Two
+failed cloud attempts are in `failed_attempts/`; the earlier local hang did not recur.
+
 ## Branches and integration
 
 | Branch | Role |
