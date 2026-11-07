@@ -1,0 +1,53 @@
+`torch_dtype` is deprecated! Use `dtype` instead!
+Fetching 2 files:   0%|          | 0/2 [00:00<?, ?it/s]Fetching 2 files:  50%|█████     | 1/2 [00:39<00:39, 39.18s/it]Fetching 2 files: 100%|██████████| 2/2 [00:50<00:00, 25.19s/it]Fetching 2 files: 100%|██████████| 2/2 [00:50<00:00, 25.19s/it]
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:00<00:00, 23.47it/s]
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+nav_3 valid wrong explore_frontier {'index': 0} 3.566 
+nav_4 valid wrong look_around {} 0.973 
+nav_5 valid wrong explore_frontier {'index': 0} 1.204 
+nav_away valid correct look_around {} 0.969 
+obj_3 valid wrong look_around {} 0.961 
+obj_4 valid wrong look_around {} 0.929 
+obj_6 valid wrong look_around {} 0.922 
+obj_nocabinet valid correct look_around {} 0.943 
+info_unverified valid correct inspect {'candidate': 0} 1.03 
+info_satisfied valid correct finish {'success': True} 1.524 
+info_blind valid correct look_around {} 0.932 
+{
+ "backend": "qwen3-vl:Qwen/Qwen3-VL-4B-Instruct",
+ "model": "gpt-6-luna",
+ "reasoning_effort": null,
+ "provenance": {
+  "model_id": "Qwen/Qwen3-VL-4B-Instruct",
+  "model_revision": "ebb281ec70b05090aa6165b016eac8ec08e71b17",
+  "device": "cuda",
+  "dtype": "bfloat16",
+  "generation": {
+   "do_sample": false,
+   "max_new_tokens": 384
+  }
+ },
+ "n_attempted": 11,
+ "n_planned": 11,
+ "valid_rate": 1.0,
+ "correct_rate": 0.45454545454545453,
+ "latency_p50_s": 0.969,
+ "latency_max_s": 3.566,
+ "input_tokens": 7009,
+ "output_tokens": 211,
+ "errors": [],
+ "by_category": {
+  "information_gathering": {
+   "n": 3,
+   "correct": 3
+  },
+  "navigation": {
+   "n": 4,
+   "correct": 1
+  },
+  "object_identification": {
+   "n": 4,
+   "correct": 1
+  }
+ }
+}

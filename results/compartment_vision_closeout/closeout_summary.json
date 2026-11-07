@@ -1,0 +1,186 @@
+{
+  "config": "compartment_vision_closeout",
+  "status": "frozen",
+  "n_episodes": 30,
+  "python": "3.13.14",
+  "numpy": "2.5.4",
+  "gates": {
+    "dream_openable_success": {
+      "value": 0.55,
+      "n": 20,
+      "gate": 0.8,
+      "pass": false
+    },
+    "dream_fixed_declined": {
+      "value": 1.0,
+      "n": 10,
+      "gate": 0.9,
+      "pass": true
+    },
+    "false_claims": {
+      "value": 0,
+      "n": 30,
+      "gate": 0,
+      "pass": true
+    }
+  },
+  "all_gates_pass": false,
+  "by_kind": {
+    "drawer": {
+      "n": 10,
+      "success": 6,
+      "correct_rejection": 0
+    },
+    "lid": {
+      "n": 10,
+      "success": 5,
+      "correct_rejection": 0
+    },
+    "fixed": {
+      "n": 10,
+      "success": 0,
+      "correct_rejection": 10
+    }
+  },
+  "failures": [
+    {
+      "kind": "drawer",
+      "seed": 5203,
+      "category": "not_identified_correctly(status=model_inadequate)",
+      "claimed": false,
+      "reason": "'compartment' moves in a way none of my mechanism models explain (chi2/dof 0.68 after 3 probes); not attempting to open it",
+      "open_calls": 0,
+      "tool_calls": 1,
+      "failed_actions": 0,
+      "investigation_status": "model_inadequate",
+      "investigation_reason": "no hypothesis explains the probes (chi2/dof 0.68)",
+      "identified_correctly": false,
+      "protective_stop": false,
+      "link_collision": false
+    },
+    {
+      "kind": "drawer",
+      "seed": 5205,
+      "category": "identified_but_not_opened_or_placed",
+      "claimed": false,
+      "reason": "placement keeps failing",
+      "open_calls": 1,
+      "tool_calls": 6,
+      "failed_actions": 3,
+      "investigation_status": "identified",
+      "investigation_reason": "",
+      "identified_correctly": true,
+      "protective_stop": false,
+      "link_collision": false
+    },
+    {
+      "kind": "drawer",
+      "seed": 5207,
+      "category": "identified_but_not_opened_or_placed",
+      "claimed": false,
+      "reason": "placement keeps failing",
+      "open_calls": 1,
+      "tool_calls": 6,
+      "failed_actions": 3,
+      "investigation_status": "identified",
+      "investigation_reason": "",
+      "identified_correctly": true,
+      "protective_stop": false,
+      "link_collision": false
+    },
+    {
+      "kind": "drawer",
+      "seed": 5208,
+      "category": "identified_but_not_opened_or_placed",
+      "claimed": false,
+      "reason": "placement keeps failing",
+      "open_calls": 1,
+      "tool_calls": 6,
+      "failed_actions": 3,
+      "investigation_status": "identified",
+      "investigation_reason": "",
+      "identified_correctly": true,
+      "protective_stop": false,
+      "link_collision": false
+    },
+    {
+      "kind": "lid",
+      "seed": 5200,
+      "category": "not_identified_correctly(status=model_inadequate)",
+      "claimed": false,
+      "reason": "'compartment' moves in a way none of my mechanism models explain (chi2/dof 0.78 after 3 probes); not attempting to open it",
+      "open_calls": 0,
+      "tool_calls": 1,
+      "failed_actions": 0,
+      "investigation_status": "model_inadequate",
+      "investigation_reason": "no hypothesis explains the probes (chi2/dof 0.78)",
+      "identified_correctly": false,
+      "protective_stop": false,
+      "link_collision": false
+    },
+    {
+      "kind": "lid",
+      "seed": 5201,
+      "category": "identified_but_not_opened_or_placed",
+      "claimed": false,
+      "reason": "placement keeps failing",
+      "open_calls": 1,
+      "tool_calls": 6,
+      "failed_actions": 3,
+      "investigation_status": "identified",
+      "investigation_reason": "",
+      "identified_correctly": true,
+      "protective_stop": false,
+      "link_collision": false
+    },
+    {
+      "kind": "lid",
+      "seed": 5203,
+      "category": "identified_but_not_opened_or_placed",
+      "claimed": false,
+      "reason": "'red' is not visible",
+      "open_calls": 1,
+      "tool_calls": 6,
+      "failed_actions": 1,
+      "investigation_status": "identified",
+      "investigation_reason": "",
+      "identified_correctly": true,
+      "protective_stop": false,
+      "link_collision": false
+    },
+    {
+      "kind": "lid",
+      "seed": 5204,
+      "category": "identified_but_not_opened_or_placed",
+      "claimed": false,
+      "reason": "'compartment' still not accessible after 3 openings",
+      "open_calls": 3,
+      "tool_calls": 6,
+      "failed_actions": 2,
+      "investigation_status": "identified",
+      "investigation_reason": "",
+      "identified_correctly": true,
+      "protective_stop": false,
+      "link_collision": false
+    },
+    {
+      "kind": "lid",
+      "seed": 5206,
+      "category": "identified_but_not_opened_or_placed",
+      "claimed": false,
+      "reason": "goal still not verified after repeated placements",
+      "open_calls": 2,
+      "tool_calls": 11,
+      "failed_actions": 1,
+      "investigation_status": "identified",
+      "investigation_reason": "",
+      "identified_correctly": true,
+      "protective_stop": false,
+      "link_collision": false
+    }
+  ],
+  "failure_categories": {
+    "not_identified_correctly(status=model_inadequate)": 2,
+    "identified_but_not_opened_or_placed": 7
+  }
+}

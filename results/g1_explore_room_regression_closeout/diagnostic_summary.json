@@ -1,0 +1,36 @@
+{
+  "label": "regression diagnostic; not held-out and not a replacement for any frozen result",
+  "config": "experiments/configs/g1_explore_room_regression_closeout.json (frozen at 820c3a5, reading rule declared before any run)",
+  "session": "dream-qwen-isaac-20261107-053804-8b876b (GCP g2-standard-8, NVIDIA L4, asia-southeast1-a, MuJoCo 3.16.0, MUJOCO_GL=egl, workers 4, one session for both arms)",
+  "code": {"A1": "820c3a54956a93255858013a95d7141140d65d8d (branch claude/closeout-evals-20261106; dream/ identical to frozen a3b4304)", "A2": "1fce5c50e9a187192b51df87f529b59298e4d76b (branch claude/room-margin-diagnostic: A1's config commit plus ARRIVAL_MARGIN = 0.0 only; never merged)"},
+  "A1_vs_history": {
+    "baseline": "results/g1_explore_room (44ab7c4), gain rows, same seeds",
+    "nominal_1000_1019": {"history": "20/20", "A1": "19/20", "seeds_changed": [1013]},
+    "shifted_2000_2009": {"history": "8/10", "A1": "6/10", "seeds_changed": [2000, 2004]},
+    "no_cabinet_3000_3005": {"history": "6/6", "A1": "6/6", "seeds_changed": []},
+    "false_claims": "0 in both", "falls": "0 in both",
+    "seed_details": {
+      "1013": "history success; A1 time budget (240 s) spent, hand contact on furniture and handle plus 'other' for 1505 steps, no claim",
+      "2000": "history success; A1 'candidate 5 has a handle, but no reachable viewpoint', hand-furniture contact 58 steps, no claim",
+      "2004": "history success; A1 explored the reachable space, 6 candidates, none with a handle, no contact"
+    },
+    "caveat": "history ran on a different machine (cross-machine MuJoCo outcomes reproduce but are not guaranteed bit-exact); every changed seed is a refusal or budget stop, none a false claim"
+  },
+  "A2_vs_frozen_closeout": {
+    "baseline": "results/g1_explore_room_closeout (a3b4304), gain rows, same seeds",
+    "nominal_1300_1319": {"frozen": "15/20", "A2_margin_removed": "15/20", "seeds_changed": []},
+    "shifted_2300_2309": {"frozen": "4/10", "A2_margin_removed": "4/10", "seeds_changed": []},
+    "no_cabinet_3100_3109": {"frozen": "10/10", "A2_margin_removed": "10/10", "seeds_changed": []},
+    "outcomes_changed": 0,
+    "no_reachable_viewpoint_failures": "5 in the frozen run, the same 5 seeds (1302, 1305, 1316, 2304, 2308) fail identically with the margin removed",
+    "trajectories": "36 of 40 episodes bit-identical in sim_s and path_m to the frozen run on a different cloud VM; the 4 that differ (nominal 1304, 1307; shifted 2302, 2304) changed route length only, not outcome. This shows the margin edit took effect and that same-class-machine reproduction is exact for most seeds.",
+    "false_claims": "0", "falls": "0"
+  },
+  "A3": "not run: the pre-declared condition (A2 changes the outcome of at least 2 seeds) was not met (0 seeds).",
+  "read_under_pre_declared_rule": {
+    "regression": "YES by the declared definition: A1 passes fewer historical seeds than history (nominal 19 vs 20, shifted 6 vs 8; 3 seeds changed: 1013, 2000, 2004). Which commit between 44ab7c4 and a3b4304 caused it is not established: mobile.py and the runtime changed in many commits in that range.",
+    "margin_responsible": "NOT established, and for the fresh-seed shortfall refuted: removing the margin flipped no failure to a success on the 40 frozen seeds, including the 5 'no reachable viewpoint' seeds. The margin was not tested on the 3 historical regression seeds (A3 condition not met).",
+    "seed_difficulty": "Contributes to the frozen shortfall: the same current code scores 19/20 and 6/10 on the historical seeds and 15/20 and 4/10 on the fresh seeds; 2 of the 5 fresh nominal failures (1313, 1319) are rooms with no valid start position, not agent behaviour.",
+    "no_fix_applied": true
+  }
+}

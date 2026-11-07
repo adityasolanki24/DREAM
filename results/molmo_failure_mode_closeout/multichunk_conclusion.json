@@ -1,0 +1,33 @@
+{
+  "supersedes_conclusions_of": "results/molmo_failure_mode_closeout/summary.json (that file and analysis.json are unchanged)",
+  "run": "results/molmo_multichunk_closeout (frozen config experiments/configs/molmo_multichunk_closeout.json, workload molmo-multichunk, code ead812fdd3866547d766717d95d0a7e1229841f5, seed 223, inference seed 233, 10 fresh inferences x 15 consecutive rows = 150 rows = 10 s of policy time, retimed 1.13-18.4x, NVIDIA L4 asia-southeast1, torch 2.8.0, transformers 4.57.1, mujoco 3.16.0)",
+  "pre_registered_rule_applied": "H4 rejected if TCP within 0.05 m of the object with raw gripper above 0.5; H4 stands if TCP stays beyond 0.25 m with the gripper never above 0.1; otherwise inconclusive",
+  "measured": {
+    "inferences_completed": 10,
+    "rows_executed_and_target_reached": "150 of 150, tracking error at most 0.0019 rad, no protective stop, no collision, no classical fallback",
+    "tcp_object_distance_m": {"start": 0.536, "min": 0.298, "end": 0.347},
+    "raw_gripper_all_150_executed_rows_max": 0.0107,
+    "gripper_width_m_range": [0.0791, 0.0800],
+    "task_success_independent_scorer": false,
+    "object_displacement_m": 0.0,
+    "classical_reference_in_same_job": "success; TCP-object distance min 0.003 m, gripper width min 0.037 m"
+  },
+  "outcome": "H4 STANDS under the pre-registered rule: the TCP never came within 0.25 m (closest 0.298 m) and the raw gripper never exceeded 0.1 (max 0.011). Not an intermediate outcome.",
+  "hypotheses": {
+    "H1_harness_truncation": "REJECTED as the cause of the missing grasp: with 10 s of policy time instead of 0.4 s the end effector still got no nearer than 0.298 m and drifted back to 0.347 m, and no close command appeared. (The earlier statement that the 6 x 1-row pilot could not reach the object remains true.)",
+    "H2_gripper_contract_defect": "still not supported: the channel again stayed within [-0.007, 0.011] and DREAM maps it to open as upstream does; this run cannot find a defect, and it could not have revealed one because the policy never asked to close",
+    "H3_start_state_or_camera_contract": "STILL OPEN and not separable from H4 here: the pre-registered rule says H4 'or an untested H3 factor' stands; the out-of-distribution home pose, duplicated exterior image slot and uncalibrated cameras were not varied",
+    "H4_policy_or_embodiment_gap": "STANDS for this scene, prompt, seed and contract (development seed 223, one rollout, one pinned checkpoint, retimed execution); this is not a statement about the policy on its own training embodiment"
+  },
+  "conclusions": {
+    "learned_policy_integration_working": "partial: real pinned-checkpoint inference, 10 fresh observations, 150 absolute-joint targets executed with tracking within 0.002 rad and no safety stops, gripper mapping consistent with upstream; closed-loop task behaviour not achieved",
+    "task_execution": "N (0/1 on one development seed; failed task reported as measured, nothing tuned)",
+    "failure_mode": "The policy did not converge on the object in 10 s of policy time (closest 0.298 m, no close command). Whether the cause is the start pose, camera and image-slot contract, the 80 mm Panda hand and sim rendering, or the policy itself is not decided; untested factors are listed below.",
+    "unvalidated": [
+      "which of H3 factors, if any, causes the non-convergence (start pose, image slots, camera intrinsics and extrinsics, wrist mounting, joint-7 convention)",
+      "behaviour on held-out seeds or other prompts",
+      "effect of retimed rest-to-rest execution (1.1-18x slower than nominal, each row stops at rest) on closed-loop timing versus continuous 15 Hz tracking",
+      "horizons longer than 10 s"
+    ]
+  }
+}

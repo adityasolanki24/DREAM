@@ -1,0 +1,500 @@
+{
+ "instruction": "Find the cabinet and inspect it.",
+ "image_shape": [
+  240,
+  320,
+  3
+ ],
+ "decisions": [
+  {
+   "id": "nav_3",
+   "category": "navigation",
+   "image": "frames/nav_3.png",
+   "scene": {
+    "frontiers": [
+     {
+      "index": 0,
+      "xy": [
+       1.77,
+       -1.77
+      ],
+      "bearing_deg_left_positive": -45
+     },
+     {
+      "index": 1,
+      "xy": [
+       2.5,
+       0.0
+      ],
+      "bearing_deg_left_positive": 0
+     },
+     {
+      "index": 2,
+      "xy": [
+       1.77,
+       1.77
+      ],
+      "bearing_deg_left_positive": 45
+     }
+    ],
+    "candidates": [],
+    "viewpoints": []
+   },
+   "verdict": {
+    "satisfied": false
+   },
+   "history": [],
+   "accept": [
+    {
+     "tool": "explore_frontier",
+     "args": {
+      "index": 2
+     }
+    }
+   ],
+   "note": "cabinet visible; pick the frontier on its side",
+   "true_cabinet_bearing_deg": 38.0,
+   "true_cabinet_range_m": 2.98
+  },
+  {
+   "id": "nav_4",
+   "category": "navigation",
+   "image": "frames/nav_4.png",
+   "scene": {
+    "frontiers": [
+     {
+      "index": 0,
+      "xy": [
+       1.77,
+       -1.77
+      ],
+      "bearing_deg_left_positive": -45
+     },
+     {
+      "index": 1,
+      "xy": [
+       2.5,
+       0.0
+      ],
+      "bearing_deg_left_positive": 0
+     },
+     {
+      "index": 2,
+      "xy": [
+       1.77,
+       1.77
+      ],
+      "bearing_deg_left_positive": 45
+     }
+    ],
+    "candidates": [],
+    "viewpoints": []
+   },
+   "verdict": {
+    "satisfied": false
+   },
+   "history": [],
+   "accept": [
+    {
+     "tool": "explore_frontier",
+     "args": {
+      "index": 0
+     }
+    }
+   ],
+   "note": "cabinet visible; pick the frontier on its side",
+   "true_cabinet_bearing_deg": -38.0,
+   "true_cabinet_range_m": 3.75
+  },
+  {
+   "id": "nav_5",
+   "category": "navigation",
+   "image": "frames/nav_5.png",
+   "scene": {
+    "frontiers": [
+     {
+      "index": 0,
+      "xy": [
+       1.77,
+       -1.77
+      ],
+      "bearing_deg_left_positive": -45
+     },
+     {
+      "index": 1,
+      "xy": [
+       2.5,
+       0.0
+      ],
+      "bearing_deg_left_positive": 0
+     },
+     {
+      "index": 2,
+      "xy": [
+       1.77,
+       1.77
+      ],
+      "bearing_deg_left_positive": 45
+     }
+    ],
+    "candidates": [],
+    "viewpoints": []
+   },
+   "verdict": {
+    "satisfied": false
+   },
+   "history": [],
+   "accept": [
+    {
+     "tool": "explore_frontier",
+     "args": {
+      "index": 2
+     }
+    }
+   ],
+   "note": "cabinet visible; pick the frontier on its side",
+   "true_cabinet_bearing_deg": 30.0,
+   "true_cabinet_range_m": 2.5
+  },
+  {
+   "id": "nav_away",
+   "category": "navigation",
+   "image": "frames/nav_away.png",
+   "scene": {
+    "frontiers": [
+     {
+      "index": 0,
+      "xy": [
+       1.77,
+       -1.77
+      ],
+      "bearing_deg_left_positive": -45
+     },
+     {
+      "index": 1,
+      "xy": [
+       2.5,
+       0.0
+      ],
+      "bearing_deg_left_positive": 0
+     },
+     {
+      "index": 2,
+      "xy": [
+       1.77,
+       1.77
+      ],
+      "bearing_deg_left_positive": 45
+     }
+    ],
+    "candidates": [],
+    "viewpoints": []
+   },
+   "verdict": {
+    "satisfied": false
+   },
+   "history": [],
+   "accept": [
+    {
+     "tool": "look_around",
+     "args": {}
+    },
+    {
+     "tool": "explore_frontier",
+     "args": {
+      "index": 0
+     }
+    },
+    {
+     "tool": "explore_frontier",
+     "args": {
+      "index": 1
+     }
+    },
+    {
+     "tool": "explore_frontier",
+     "args": {
+      "index": 2
+     }
+    }
+   ],
+   "note": "cabinet behind the robot, none visible; search, never inspect/finish-success"
+  },
+  {
+   "id": "obj_3",
+   "category": "object_identification",
+   "image": "frames/obj_3.png",
+   "scene": {
+    "frontiers": [],
+    "candidates": [
+     {
+      "id": 0,
+      "bearing_deg_left_positive": 15.0,
+      "range_m": 2.98
+     },
+     {
+      "id": 1,
+      "bearing_deg_left_positive": -46.3,
+      "range_m": 1.68
+     }
+    ],
+    "viewpoints": []
+   },
+   "verdict": {
+    "satisfied": false
+   },
+   "history": [],
+   "accept": [
+    {
+     "tool": "inspect",
+     "args": {
+      "candidate": 0
+     }
+    }
+   ],
+   "note": "candidates are unlabeled detections; the image shows which is the cabinet"
+  },
+  {
+   "id": "obj_4",
+   "category": "object_identification",
+   "image": "frames/obj_4.png",
+   "scene": {
+    "frontiers": [],
+    "candidates": [
+     {
+      "id": 1,
+      "bearing_deg_left_positive": -80.0,
+      "range_m": 2.09
+     },
+     {
+      "id": 0,
+      "bearing_deg_left_positive": -20.0,
+      "range_m": 3.75
+     }
+    ],
+    "viewpoints": []
+   },
+   "verdict": {
+    "satisfied": false
+   },
+   "history": [],
+   "accept": [
+    {
+     "tool": "inspect",
+     "args": {
+      "candidate": 0
+     }
+    }
+   ],
+   "note": "candidates are unlabeled detections; the image shows which is the cabinet"
+  },
+  {
+   "id": "obj_6",
+   "category": "object_identification",
+   "image": "frames/obj_6.png",
+   "scene": {
+    "frontiers": [],
+    "candidates": [
+     {
+      "id": 0,
+      "bearing_deg_left_positive": 20.0,
+      "range_m": 2.62
+     },
+     {
+      "id": 1,
+      "bearing_deg_left_positive": -160.6,
+      "range_m": 1.43
+     }
+    ],
+    "viewpoints": []
+   },
+   "verdict": {
+    "satisfied": false
+   },
+   "history": [],
+   "accept": [
+    {
+     "tool": "inspect",
+     "args": {
+      "candidate": 0
+     }
+    }
+   ],
+   "note": "candidates are unlabeled detections; the image shows which is the cabinet"
+  },
+  {
+   "id": "obj_nocabinet",
+   "category": "object_identification",
+   "image": "frames/obj_nocabinet.png",
+   "scene": {
+    "frontiers": [
+     {
+      "index": 0,
+      "xy": [
+       1.77,
+       -1.77
+      ],
+      "bearing_deg_left_positive": -45
+     },
+     {
+      "index": 1,
+      "xy": [
+       2.5,
+       0.0
+      ],
+      "bearing_deg_left_positive": 0
+     },
+     {
+      "index": 2,
+      "xy": [
+       1.77,
+       1.77
+      ],
+      "bearing_deg_left_positive": 45
+     }
+    ],
+    "candidates": [],
+    "viewpoints": []
+   },
+   "verdict": {
+    "satisfied": false
+   },
+   "history": [],
+   "accept": [
+    {
+     "tool": "look_around",
+     "args": {}
+    },
+    {
+     "tool": "explore_frontier",
+     "args": {
+      "index": 0
+     }
+    },
+    {
+     "tool": "explore_frontier",
+     "args": {
+      "index": 1
+     }
+    },
+    {
+     "tool": "explore_frontier",
+     "args": {
+      "index": 2
+     }
+    },
+    {
+     "tool": "finish",
+     "args": {
+      "success": false
+     }
+    }
+   ],
+   "note": "no cabinet in view; finish success=true is wrong"
+  },
+  {
+   "id": "info_unverified",
+   "category": "information_gathering",
+   "image": "frames/info_unverified.png",
+   "scene": {
+    "frontiers": [],
+    "viewpoints": [
+     {
+      "candidate": 0,
+      "side": 0
+     }
+    ],
+    "candidates": [
+     {
+      "id": 0,
+      "bearing_deg_left_positive": 10.0,
+      "range_m": 2.98
+     }
+    ]
+   },
+   "verdict": {
+    "satisfied": false,
+    "reason": "candidate 0 not yet inspected"
+   },
+   "history": [],
+   "accept": [
+    {
+     "tool": "inspect",
+     "args": {
+      "candidate": 0
+     }
+    },
+    {
+     "tool": "approach",
+     "args": {
+      "candidate": 0,
+      "side": 0
+     }
+    }
+   ],
+   "note": "cabinet candidate seen but unverified; inspect/approach, not finish success"
+  },
+  {
+   "id": "info_satisfied",
+   "category": "information_gathering",
+   "image": "frames/info_unverified.png",
+   "scene": {
+    "frontiers": [],
+    "viewpoints": [],
+    "candidates": [
+     {
+      "id": 0,
+      "bearing_deg_left_positive": 10.0,
+      "range_m": 2.98,
+      "inspected": true,
+      "handle_found": true
+     }
+    ]
+   },
+   "verdict": {
+    "satisfied": true,
+    "reason": "cabinet inspected, handle located"
+   },
+   "history": [
+    {
+     "tool": "inspect",
+     "args": {
+      "candidate": 0
+     },
+     "status": "ok",
+     "message": "cabinet handle located"
+    }
+   ],
+   "accept": [
+    {
+     "tool": "finish",
+     "args": {
+      "success": true
+     }
+    }
+   ],
+   "note": "verdict satisfied: finish success"
+  },
+  {
+   "id": "info_blind",
+   "category": "information_gathering",
+   "image": "frames/info_blind.png",
+   "scene": {
+    "frontiers": [],
+    "candidates": [],
+    "viewpoints": []
+   },
+   "verdict": {
+    "satisfied": false
+   },
+   "history": [],
+   "accept": [
+    {
+     "tool": "look_around",
+     "args": {}
+    }
+   ],
+   "note": "nothing observed, no frontier: the only informative tool is look_around"
+  }
+ ]
+}

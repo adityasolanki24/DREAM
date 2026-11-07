@@ -95,7 +95,21 @@ cost guard now reads every desktop app's ledger, because the Claude and Codex ap
 verification with zero contacts, zero safety stops and zero false claims; seed 0 is unchanged
 (37.52 s, 5.31 m) and seed 2 now finishes in 22.32 s over 2.39 m (was 39.82 s, 5.12 m) because
 the first viewpoint it reaches now satisfies the inspection predicate. These remain development
-cases, not held-out or Qwen results. No fresh cloud evaluation has been made.
+cases, not held-out or Qwen results. 
+
+### Qwen closeout evaluation and remote camera measurement (7 Nov 2026)
+
+`results/isaac_qwen_closeout_20261107`: genuine Qwen3-VL-4B on the Isaac G1, **development kitchen
+(l_shape), predeclared (frozen config), not held-out**, starts 7/8/9, tasks T1-T5, odometry
+oracle-assisted, physics frozen during inference. Gates: false claims 0 FAIL (3 claims on T3/T4),
+falls 0 PASS, T4 no claim FAIL (2/3), T3 no claim FAIL (1/3), T1 independent success 3/3 PASS,
+T2 3/3 PASS (two of three took zero steps: the chosen candidate was the one T1 had just inspected),
+T5 unverifiable (refused as unsupported in all three). "Walk to the refrigerator" was bound to the
+remembered place "entrance" and verified there, which is not a refrigerator.
+`results/camera_delivery_cloud_20261107`: IAP measurements of real Isaac frames. The 31 Oct WHEP
+failure was MediaMTX's 10 s read timeout closing the publisher while the synchronous simulation
+published nothing (fixed with readTimeout 3600 s, verified); WHEP latency and Tailnet were not
+measured. See each `summary.json` for numbers and labels.
 
 | Change | Classification | Evidence and remaining limit |
 |---|---|---|
@@ -116,6 +130,81 @@ The next gate is one genuine Qwen evaluation in the unchanged existing Isaac kit
 raw sensor snapshots, model inputs/outputs, paths, independent instance-specific verification
 and a recorded camera stream. The idle-balance correction, original dynamics and safety limits
 remain. No fresh cloud task success or live video latency is claimed yet.
+
+### Remaining closeout evaluations (7 Nov 2026)
+
+**Compartment, oracle reference** (`results/compartment_oracle_reference_closeout`): the same
+seeds 5200-5209 per kind as the frozen vision run, perception oracle, same code path.
+Oracle 20/20 openable and 10/10 fixed declined, no false claims; the vision run
+(`results/compartment_vision_closeout`) remains the camera-discovery result at 11/20 and
+fails its gate. On the same seeds, the 9 openable seeds the vision arm failed all succeeded
+with oracle perception (per-seed table in `vision_vs_oracle.json`). Observational: the arms
+differ in perception only, which is consistent with perception being the limiting component
+but is not a controlled ablation of why each seed failed.
+
+**Room exploration revalidation** (`results/g1_explore_room_closeout`, frozen config
+`g1_explore_room_closeout.json`, 60 rows, cloud, code a3b4304): gates **FAIL**. Nominal gain
+success 15/20 = 0.75 (gate 0.9; 15/18 = 0.83 if the two seeds with no valid room, 1313 and
+1319, are excluded, still below), shifted gain 4/10 = 0.40 (gate 0.7), no_cabinet refusal 10/10
+(pass, 10/10 strict, none phantom-driven), false claims 0 and falls 0 (pass). Every failure is a
+refusal or budget stop, none a false claim. Frontier comparison (shifted and no_cabinet, 20
+pairs): 7 divergent decisions, fewer than the declared 10, so insufficient divergence, no claim
+(mean sim_s difference +1.5 s, interval -1.2 to +5.1). Hand-on-furniture contact in 23 of 60
+episodes, hand-on-handle in 5, no foot contact; phantom handles in 11 episodes (15 total). Two
+failed cloud attempts are in `failed_attempts/`; the earlier local hang did not recur.
+
+**Room regression diagnostic** (`results/g1_explore_room_regression_closeout`, frozen config
+`g1_explore_room_regression_closeout.json`; a diagnostic, not held-out and not a replacement for
+the result above; gain arm only, one cloud session): with the current code on the historical
+seeds (A1) nominal is 19/20 against 20/20 in `results/g1_explore_room` and shifted 6/10 against
+8/10 (seeds 1013, 2000, 2004 changed, all refusals or budget stops, no false claims or falls),
+so by the declared rule there is a code regression since 44ab7c4, not located to a commit. With
+only the 0.15 m arrival margin removed on the frozen fresh seeds (A2, sibling branch never
+merged) all 40 outcomes are unchanged (15/20, 4/10, 10/10), including the five 'no reachable
+viewpoint' failures, so the margin is not what causes them; the margin was not tested on the
+three regression seeds. Seed difficulty also contributes: current code scores 19/20 and 6/10 on
+the historical seeds and 15/20 and 4/10 on the fresh ones, two of whose nominal failures are
+rooms with no valid start. No fix has been applied.
+
+**Room regression bisect** (`results/g1_explore_room_bisect_closeout`, frozen config
+`g1_explore_room_bisect_closeout.json`; a diagnostic, not held-out; seeds 1013, 2000, 2004, gain
+arm, 14 commits from 44ab7c4 to a3b4304, each run from a byte copy of its own `dream/`, one cloud
+session plus a supporting Windows run): the historical result reproduces on the cloud VM only
+with software rendering (`MUJOCO_GL=osmesa`: all three seeds bit-identical to history); with the
+guest's default `egl` seeds 2000 and 2004 already fail at the unchanged 44ab7c4, so those two
+A1 'regressions' are the renderer (and, under EGL, 1 mm start shifts flip them) rather than a
+commit. Seed 1013 is a real regression that flips at b8208bb in all three environments: its
+`side_point` rewrite picks the cheapest reachable cell in the 0.6-1.4 m band, the robot lands
+0.4-0.55 m from the handle (below the band) on every retry, and the stricter inspection rule
+(which the old success had bypassed through a stale confirmation flag) then rejects it until the
+240 s budget; reverting only that rewrite restores the success. The arrival margin changes
+nothing. Every cloud room result since the closeout used EGL, the historical one did not; how much
+of the frozen 15/20 and 4/10 that explains was not tested. No fix has been applied.
+
+**Qwen on the frozen provider frames** (`results/p6_qwen_frozen11_closeout`, frozen config
+`p6_qwen_frozen11_closeout.json`): the same 11 decisions, frames, prompt and tool schemas
+(hash-equal to the ChatGPT run's offline reconstruction) and scorer. Qwen3-VL-4B-Instruct at
+revision ebb281ec, greedy, one pass: valid 11/11, correct 5/11. The ChatGPT run (gpt-6-luna,
+effort none) was valid 11/11, correct 6/11. They agree on the correctness of 10 of 11 frames; the
+single paired disagreement is `obj_6` (ChatGPT inspected candidate 0, Qwen looked around). With
+n = 11 this is a descriptive count only: no superiority claim either way. Differences that cannot
+be removed (backend rendering of the same messages, decoding settings, the ChatGPT run's own
+runner bytes) are listed in the config.
+
+**MolmoAct2 failure mode** (`results/molmo_failure_mode_closeout/summary.json`, saved
+evidence only, no new inference): the gripper channel stayed within [-0.006, 0.011] and DREAM
+maps it to fully open, the upstream DROID convention; the end effector stayed at least 0.43 m
+from the object because the pilot executed 6 single rows (0.4 s of policy time); the DREAM home
+pose is outside the DROID state range for two wrist joints. No contract defect found. Learned
+integration: partial. Task execution: no. The pre-registered multi-chunk test then ran
+(`results/molmo_multichunk_closeout`, frozen config `molmo_multichunk_closeout.json`, one cloud job,
+seed 223, 10 fresh inferences x 15 consecutive rows = 10 s of policy time, 150 of 150 targets
+reached with tracking within 0.002 rad and no safety stop): the end effector got no nearer than
+0.298 m (start 0.536 m, end 0.347 m) and the raw gripper channel never exceeded 0.011, so by the
+registered rule H4 (policy or embodiment gap) stands and the under-length evaluation (H1) is
+rejected as the cause. Task execution: no (0/1). The start-pose and camera contract factors (H3)
+were not varied and remain open; this is one development seed and one rollout. See
+`results/molmo_failure_mode_closeout/multichunk_conclusion.json`.
 
 ## Branches and integration
 

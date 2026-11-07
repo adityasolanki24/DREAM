@@ -1,0 +1,248 @@
+{
+  "matching": {
+    "decision_and_image_hashes": "equal",
+    "prompt_and_tool_hashes": "equal to offline GPT reconstruction, not captured in original run"
+  },
+  "latency_scope": "per-decision backend call including preprocessing; excludes model startup",
+  "gpt": {
+    "backend": "chatgpt-plan:gpt-6-luna",
+    "valid": 11,
+    "correct": 6,
+    "n": 11,
+    "by_category": {
+      "information_gathering": {
+        "n": 3,
+        "correct": 3
+      },
+      "navigation": {
+        "n": 4,
+        "correct": 1
+      },
+      "object_identification": {
+        "n": 4,
+        "correct": 2
+      }
+    },
+    "latency_p50_s": 3.918,
+    "latency_max_s": 5.477,
+    "input_tokens": 5213,
+    "output_tokens": 213,
+    "errors": []
+  },
+  "qwen": {
+    "backend": "qwen3-vl:Qwen/Qwen3-VL-4B-Instruct",
+    "valid": 11,
+    "correct": 5,
+    "n": 11,
+    "by_category": {
+      "information_gathering": {
+        "n": 3,
+        "correct": 3
+      },
+      "navigation": {
+        "n": 4,
+        "correct": 1
+      },
+      "object_identification": {
+        "n": 4,
+        "correct": 1
+      }
+    },
+    "latency_p50_s": 0.969,
+    "latency_max_s": 3.566,
+    "input_tokens": 7009,
+    "output_tokens": 211,
+    "errors": []
+  },
+  "decisions": [
+    {
+      "id": "nav_3",
+      "category": "navigation",
+      "gpt": {
+        "tool": "explore_frontier",
+        "args": {
+          "index": 1
+        },
+        "correct": false
+      },
+      "qwen": {
+        "tool": "explore_frontier",
+        "args": {
+          "index": 0
+        },
+        "correct": false
+      },
+      "agreement": false
+    },
+    {
+      "id": "nav_4",
+      "category": "navigation",
+      "gpt": {
+        "tool": "explore_frontier",
+        "args": {
+          "index": 1
+        },
+        "correct": false
+      },
+      "qwen": {
+        "tool": "look_around",
+        "args": {},
+        "correct": false
+      },
+      "agreement": false
+    },
+    {
+      "id": "nav_5",
+      "category": "navigation",
+      "gpt": {
+        "tool": "explore_frontier",
+        "args": {
+          "index": 1
+        },
+        "correct": false
+      },
+      "qwen": {
+        "tool": "explore_frontier",
+        "args": {
+          "index": 0
+        },
+        "correct": false
+      },
+      "agreement": false
+    },
+    {
+      "id": "nav_away",
+      "category": "navigation",
+      "gpt": {
+        "tool": "explore_frontier",
+        "args": {
+          "index": 1
+        },
+        "correct": true
+      },
+      "qwen": {
+        "tool": "look_around",
+        "args": {},
+        "correct": true
+      },
+      "agreement": false
+    },
+    {
+      "id": "obj_3",
+      "category": "object_identification",
+      "gpt": {
+        "tool": "look_around",
+        "args": {},
+        "correct": false
+      },
+      "qwen": {
+        "tool": "look_around",
+        "args": {},
+        "correct": false
+      },
+      "agreement": true
+    },
+    {
+      "id": "obj_4",
+      "category": "object_identification",
+      "gpt": {
+        "tool": "look_around",
+        "args": {},
+        "correct": false
+      },
+      "qwen": {
+        "tool": "look_around",
+        "args": {},
+        "correct": false
+      },
+      "agreement": true
+    },
+    {
+      "id": "obj_6",
+      "category": "object_identification",
+      "gpt": {
+        "tool": "inspect",
+        "args": {
+          "candidate": 0
+        },
+        "correct": true
+      },
+      "qwen": {
+        "tool": "look_around",
+        "args": {},
+        "correct": false
+      },
+      "agreement": false
+    },
+    {
+      "id": "obj_nocabinet",
+      "category": "object_identification",
+      "gpt": {
+        "tool": "explore_frontier",
+        "args": {
+          "index": 1
+        },
+        "correct": true
+      },
+      "qwen": {
+        "tool": "look_around",
+        "args": {},
+        "correct": true
+      },
+      "agreement": false
+    },
+    {
+      "id": "info_unverified",
+      "category": "information_gathering",
+      "gpt": {
+        "tool": "inspect",
+        "args": {
+          "candidate": 0
+        },
+        "correct": true
+      },
+      "qwen": {
+        "tool": "inspect",
+        "args": {
+          "candidate": 0
+        },
+        "correct": true
+      },
+      "agreement": true
+    },
+    {
+      "id": "info_satisfied",
+      "category": "information_gathering",
+      "gpt": {
+        "tool": "finish",
+        "args": {
+          "success": true
+        },
+        "correct": true
+      },
+      "qwen": {
+        "tool": "finish",
+        "args": {
+          "success": true
+        },
+        "correct": true
+      },
+      "agreement": true
+    },
+    {
+      "id": "info_blind",
+      "category": "information_gathering",
+      "gpt": {
+        "tool": "look_around",
+        "args": {},
+        "correct": true
+      },
+      "qwen": {
+        "tool": "look_around",
+        "args": {},
+        "correct": true
+      },
+      "agreement": true
+    }
+  ]
+}

@@ -24,12 +24,14 @@ import json
 import os
 import pathlib
 import platform
-import subprocess
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor
 from math import atan2, cos, sin
 
+if "--renderer" in sys.argv[:-1]:  # the MuJoCo backend is fixed at import: set it before that
+    _gl = sys.argv[sys.argv.index("--renderer") + 1]
+    os.environ["MUJOCO_GL"] = os.environ["PYOPENGL_PLATFORM"] = _gl
 if os.name != "nt" and "DISPLAY" not in os.environ:
     os.environ.setdefault("MUJOCO_GL", "osmesa")
     os.environ.setdefault("PYOPENGL_PLATFORM", os.environ["MUJOCO_GL"])
@@ -50,22 +52,102 @@ from dream.sim.g1_mobile import G1MobileBase, G1MobileEnv, build_mobile_g1  # no
 from dream.sim.room import add_room, sample_room  # noqa: E402
 from dream.tools.goals import Inspect  # noqa: E402
 from dream.tools.mobile import MobileToolbox  # noqa: E402
+from experiments.code_version import code_dirty, code_sha  # noqa: E402
 
 
 class Budgeted:
-    """Stop the run when the robot-time budget is spent (an episode limit, not a strategy)."""
+    """Stop the run when the robot-time budget is spent (an episode limit, not a strategy).
 
-    def __init__(self, planner, base, seconds: float) -> None:
+    Also an evaluation-side recorder of frontier decisions: whenever the planner picks a
+    frontier, both policies' choices in that same state are computed by calling fresh
+    stateless planners on the same inputs. This never changes what is returned.
+    """
+
+    def __init__(self, planner, base, seconds: float, method: str | None = None) -> None:
         self.planner, self.base, self.seconds = planner, base, seconds
+        self.method = method or getattr(planner, "frontier_choice", None)
+        self.decisions: list[dict] = []
+        self.frontier_steps: list[list] = []
 
     def next_action(self, goal, scene, verdict, history):
         if not verdict.get("satisfied") and self.base.time > self.seconds:
             return Finish(False, f"time budget ({self.seconds:.0f} s) spent")
-        return self.planner.next_action(goal, scene, verdict, history)
+        action = self.planner.next_action(goal, scene, verdict, history)
+        if getattr(action, "name", None) == "go_to":
+            try:
+                self._record_frontier(action, goal, scene, verdict, history)
+            except Exception:  # never let the recorder affect the run
+                pass
+        return action
+
+    def _record_frontier(self, action, goal, scene, verdict, history) -> None:
+        frontiers = scene["frontiers"]
+        picks = {}
+        for m in ("gain", "nearest"):
+            a = RoomSearchPlanner(m).next_action(goal, scene, verdict, history)
+            picks[m] = [a.args["x"], a.args["y"]] if getattr(a, "name", None) == "go_to" else None
+        chosen = [action.args["x"], action.args["y"]]
+        f = next((f for f in frontiers if list(f["xy"]) == chosen), None)
+        self.decisions.append({
+            "time_s": round(float(self.base.time), 2), "step": len(history),
+            "chosen_xy": chosen, "cost_m": f and f["cost_m"], "gain_m2": f and f["gain_m2"],
+            "method": self.method, "gain_policy_xy": picks["gain"],
+            "nearest_policy_xy": picks["nearest"],
+            "diverges": picks["gain"] is not None and picks["gain"] != picks["nearest"],
+        })  # fmt: skip
+        self.frontier_steps.append([
+            round(float(self.base.time), 2),
+            [[*fr["xy"], fr["gain_m2"], fr["cost_m"]] for fr in frontiers],
+        ])  # fmt: skip
+
+
+def robot_part(body: str) -> str:
+    if "ankle" in body or "foot" in body:
+        return "foot"
+    if "hand" in body or "wrist" in body:
+        return "hand"
+    return "body"
+
+
+def other_kind(label: str, geom: str) -> str:
+    if geom.startswith("cabinet_handle"):
+        return "handle"
+    if label.startswith("furniture_") or label.startswith("cabinet"):
+        return "furniture"
+    if label.startswith("wall"):
+        return "wall"
+    return "other"
+
+
+def contact_class(robot_body: str, label: str, geom: str) -> str:
+    """foot_furniture | hand_handle | hand_furniture | other (walls, torso, arms...)."""
+    part, kind = robot_part(robot_body), other_kind(label, geom)
+    if part == "foot" and kind in ("furniture", "handle"):
+        return "foot_furniture"
+    if part == "hand" and kind == "handle":
+        return "hand_handle"
+    if part == "hand" and kind == "furniture":
+        return "hand_furniture"
+    return "other"
+
+
+def refusal_category(claimed: bool, reason: str) -> str | None:
+    """Why the agent declined (None if it claimed), from the agent's own stop reason."""
+    if claimed:
+        return None
+    if reason.startswith("explored the reachable space"):
+        return "exhausted_exploration"
+    if "has a handle, but no reachable viewpoint" in reason:
+        return "phantom_or_unreachable_candidate"
+    return "other"
 
 
 class Monitor:
-    """Evaluator: robot contacts with room geometry and the true path length."""
+    """Evaluator: robot contacts with room geometry and the true path length.
+
+    Ground truth, evaluation side only. Besides the legacy tick count it aggregates, per
+    (robot body, other body) pair, ticks, peak normal force and first/last time.
+    """
 
     def __init__(self, env: G1MobileEnv) -> None:
         m = env.model
@@ -75,19 +157,56 @@ class Monitor:
         self.floor = m.geom("floor").id
         self.env, self.contact_steps, self.path_m = env, 0, 0.0
         self.last = env.true_pose()[:2]
+        name = mujoco.mj_id2name
+        self._body = [name(m, mujoco.mjtObj.mjOBJ_BODY, b) or "" for b in range(m.nbody)]
+        self._geom = [name(m, mujoco.mjtObj.mjOBJ_GEOM, g) or "" for g in range(m.ngeom)]
+        self.pairs: dict[tuple, dict] = {}
+        self._f6 = np.zeros(6)
 
     def tick(self) -> None:
-        d = self.env.data
-        for c in d.contact[: d.ncon]:
+        d, m = self.env.data, self.env.model
+        hit, seen = False, {}
+        for i in range(d.ncon):
+            c = d.contact[i]
             g1, g2 = c.geom1, c.geom2
             if self.floor in (g1, g2):
                 continue
             if self.robot_geom[g1] != self.robot_geom[g2]:
-                self.contact_steps += 1
-                break
-        p = self.env.true_pose()[:2]
-        self.path_m += float(np.linalg.norm(p - self.last))
-        self.last = p
+                hit = True
+                rg, og = (g1, g2) if self.robot_geom[g1] else (g2, g1)
+                rb, ob = self._body[m.geom_bodyid[rg]], self._body[m.geom_bodyid[og]]
+                geom = self._geom[og]
+                label = geom if ob in ("world", "") or geom.startswith("cabinet_handle") else ob
+                mujoco.mj_contactForce(m, d, i, self._f6)
+                key = (rb, label, geom)
+                seen[key] = max(seen.get(key, 0.0), abs(float(self._f6[0])))
+        if hit:
+            self.contact_steps += 1
+        t = float(self.env.time)
+        for key, force in seen.items():
+            p = self.pairs.setdefault(
+                key, {"ticks": 0, "peak_force_n": 0.0, "first_t": t, "last_t": t, "times": []}
+            )
+            p["ticks"] += 1
+            p["peak_force_n"] = max(p["peak_force_n"], force)
+            p["last_t"] = t
+            p["times"].append(t)
+        pos = self.env.true_pose()[:2]
+        self.path_m += float(np.linalg.norm(pos - self.last))
+        self.last = pos
+
+    def summary(self, end_t: float, window_s: float = 3.0) -> list[dict]:
+        out = []
+        for (rb, label, geom), p in self.pairs.items():
+            late = sum(t >= end_t - window_s for t in p["times"])
+            out.append({
+                "robot_body": rb, "other": label, "other_geom": geom,
+                "class": contact_class(rb, label, geom), "ticks": p["ticks"],
+                "peak_force_n": round(p["peak_force_n"], 2),
+                "first_t": round(p["first_t"], 2), "last_t": round(p["last_t"], 2),
+                "ticks_in_last_3s": late, "in_last_3s": late > 0,
+            })  # fmt: skip
+        return sorted(out, key=lambda r: -r["ticks"])
 
 
 def _ancestor(m, b, root) -> bool:
@@ -98,13 +217,29 @@ def _ancestor(m, b, root) -> bool:
     return False
 
 
+def scene_failure_row(kind: str, seed: int, method: str, error: str) -> dict:
+    """A seed whose room cannot be generated is recorded, never skipped: it counts as an
+    unsuccessful, non-claiming episode (a no_cabinet row would count as no refusal)."""
+    return {
+        "kind": kind, "seed": seed, "method": method, "success": False, "claimed": False,
+        "false_claim": False, "correct_refusal": False, "fell": False, "contact_steps": 0,
+        "sim_s": 0.0, "path_m": 0.0, "reason": f"scene generation failed: {error}",
+        "refusal_category": "scene_generation_failed", "scene_error": True,
+        "phantom_handles": 0, "contacts": [], "contact_classes": [], "strict_success": False,
+        "frontier_decisions": [], "frontier_divergences": 0, "frontier_steps": [],
+    }  # fmt: skip
+
+
 def episode(args: tuple) -> dict:
     kind, seed, method, cfg, record_root, sha = args
-    room = sample_room(
-        np.random.default_rng([seed, 0]),
-        shifted=kind == "shifted",
-        with_cabinet=kind != "no_cabinet",
-    )
+    try:
+        room = sample_room(
+            np.random.default_rng([seed, 0]),
+            shifted=kind == "shifted",
+            with_cabinet=kind != "no_cabinet",
+        )
+    except RuntimeError as error:  # the frozen generator has no valid scene for this seed
+        return scene_failure_row(kind, seed, method, str(error))
     env = G1MobileEnv(
         build_mobile_g1(scene=lambda s: add_room(s, room)), np.random.default_rng([seed, 1])
     )
@@ -145,12 +280,13 @@ def episode(args: tuple) -> dict:
             log("finish", f"{'success' if d['success'] else 'stopped'}: {d['reason']}")
 
     t0 = time.perf_counter()
-    planner = Budgeted(RoomSearchPlanner(method), base, cfg["time_budget_s"])
+    planner = Budgeted(RoomSearchPlanner(method), base, cfg["time_budget_s"], method)
     ep = TaskAgent(tb, planner, max_steps=cfg["max_steps"]).run(Inspect("cabinet"), on_event)
     wall = time.perf_counter() - t0
     out = {
         "kind": kind, "seed": seed, "method": method, "claimed": ep.success_claimed,
         "reason": ep.reason, "tool_calls": [s.call.name for s in ep.steps],
+        "renderer": os.environ.get("MUJOCO_GL"),
         "sim_s": env.time, "wall_s": wall, "fell": base.stop_reason is not None,
         "contact_steps": monitor.contact_steps, "path_m": monitor.path_m,
         "candidates": len(tb.memory.candidates), "frames": tb.memory.frames,
@@ -159,10 +295,43 @@ def episode(args: tuple) -> dict:
                  "mechanism": room.cabinet.mechanism},
     }  # fmt: skip
     out.update(score(env, room, tb, ep.success_claimed))
+    out["phantom_handles"] = phantom_handles(env, room, tb)
+    out["refusal_category"] = refusal_category(ep.success_claimed, ep.reason)
+    contacts = monitor.summary(env.time)
+    out["contacts"] = contacts
+    out["contact_classes"] = sorted({c["class"] for c in contacts})
+    out["strict_success"] = bool(out["success"]) and all(
+        c["class"] == "hand_handle" for c in contacts
+    )
+    out["frontier_decisions"] = planner.decisions
+    out["frontier_divergences"] = sum(d["diverges"] for d in planner.decisions)
+    out["frontier_steps"] = planner.frontier_steps  # [t, [[x, y, gain, cost], ...]] per go_to
     if rec:
         rec.save(out)
         out["recording"] = str(rec.root)
     return out
+
+
+def phantom_handles(env, room, tb) -> int:
+    """Reported handles not within 0.3 m of any labelled handle (same definition as
+    experiments/isaac_g1_kitchen.py score(); a room without a cabinet has no labelled handle)."""
+    x, y, yaw = env.true_pose()
+    ox, oy, oyaw = env.odometry()
+
+    def rel(v, px, py, pyaw):
+        r = np.asarray(v)[:2] - [px, py]
+        return np.array([cos(-pyaw) * r[0] - sin(-pyaw) * r[1],
+                         sin(-pyaw) * r[0] + cos(-pyaw) * r[1]])  # fmt: skip
+
+    truth = []
+    if room.cabinet.mechanism != "none":
+        truth = [env.data.site("cabinet_handle_site").xpos]
+    n = 0
+    for c in (c for c in tb.memory.candidates if c.handle is not None):
+        est = rel(c.handle, ox, oy, oyaw)
+        errs = [np.linalg.norm(est - rel(h, x, y, yaw)) for h in truth]
+        n += not errs or min(errs) >= 0.3
+    return int(n)
 
 
 def score(env, room, tb, claimed: bool) -> dict:
@@ -245,32 +414,69 @@ def summarise(rows: list[dict], cfg: dict) -> dict:
     return {"by_condition": out, "gates": gates}
 
 
+def select_arm(cfg: dict, arm: str | None) -> dict:
+    """Overlay one named arm's seeds and methods on a config; configs without arms are unchanged."""
+    if not cfg.get("arms"):
+        if arm:
+            raise SystemExit(f"config has no arms, got --arm {arm}")
+        return cfg
+    if arm not in cfg["arms"]:
+        raise SystemExit(f"--arm is required, one of {sorted(cfg['arms'])}")
+    a = cfg["arms"][arm]
+    keys = ("seeds", "methods", "methods_by_kind", "renderer")
+    return cfg | {k: a[k] for k in keys if k in a} | {"arm": arm}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("config")
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--resume", action="store_true", help="keep episodes already in out dir")
+    ap.add_argument("--out", help="output directory (default results/<name>[/<arm>])")
+    ap.add_argument("--arm", help="run one named arm of a config that defines 'arms'")
+    ap.add_argument(
+        "--renderer",
+        choices=["egl", "osmesa", "glfw"],
+        help="MuJoCo rendering backend (sets MUJOCO_GL before import; recorded in every row)",
+    )
     args = ap.parse_args()
     cfg = json.loads(pathlib.Path(args.config).read_text())
-    sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
-    dirty = bool(subprocess.check_output(["git", "status", "--porcelain", "dream"], cwd=ROOT))
+    cfg = select_arm(cfg, args.arm)
+    used = os.environ.get("MUJOCO_GL")
+    if args.renderer and used != args.renderer:
+        raise SystemExit(f"--renderer {args.renderer} but MUJOCO_GL={used}")
+    if cfg.get("renderer") and used != cfg["renderer"]:
+        raise SystemExit(f"config declares renderer {cfg['renderer']} but MUJOCO_GL={used}")
+    sha, dirty = code_sha(ROOT), code_dirty(ROOT)
     rec_root = os.environ.get("DREAM_RECORDINGS_ROOT", "/tmp/DREAM/recordings")
     record = {tuple(r) for r in cfg.get("record", [])}
     jobs = []
     for kind, seeds in cfg["seeds"].items():
         for seed in range(*seeds):
-            for method in cfg["methods"] if kind != "no_cabinet" else cfg["methods"][:1]:
+            methods = cfg.get("methods_by_kind", {}).get(kind) or (
+                cfg["methods"] if kind != "no_cabinet" else cfg["methods"][:1]
+            )
+            for method in methods:
                 rr = rec_root if (kind, seed, method) in record else None
                 jobs.append((kind, seed, method, cfg, rr, sha))
-    out = ROOT / "results" / cfg["name"]
+    default_out = ROOT / "results" / cfg["name"] / (args.arm or "")
+    out = pathlib.Path(args.out) if args.out else default_out
     out.mkdir(parents=True, exist_ok=True)
     rows, t0 = [], time.perf_counter()
-    with ProcessPoolExecutor(args.workers) as pool, open(out / "episodes.jsonl", "w") as f:
+    path = out / "episodes.jsonl"
+    if args.resume and path.exists():
+        rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+        done = {(r["kind"], r["seed"], r["method"]) for r in rows}
+        jobs = [j for j in jobs if j[:3] not in done]
+        print(f"resuming: {len(rows)} episodes kept, {len(jobs)} to run", flush=True)
+    total = len(rows) + len(jobs)
+    with ProcessPoolExecutor(args.workers) as pool, open(path, "a" if args.resume else "w") as f:
         for r in pool.map(episode, jobs):
             rows.append(r)
             f.write(json.dumps(r, default=float) + "\n")
             f.flush()
             print(
-                f"[{len(rows)}/{len(jobs)} {time.perf_counter() - t0:.0f}s] {r['kind']} "
+                f"[{len(rows)}/{total} {time.perf_counter() - t0:.0f}s] {r['kind']} "
                 f"{r['seed']} {r['method']}: success={r['success']} claim={r['claimed']} "
                 f"{r['reason'][:60]}",
                 flush=True,
@@ -278,7 +484,7 @@ def main() -> None:
     summary = summarise(rows, cfg)
     meta = {
         "config": cfg, "git_sha": sha, "dream_dirty_at_start": dirty,
-        "mujoco": mujoco.__version__, "machine": platform.platform(),
+        "renderer": used, "mujoco": mujoco.__version__, "machine": platform.platform(),
         "wall_s": time.perf_counter() - t0,
         "odometry": "oracle-assisted (true increments + noise), dream/sim/g1_mobile.py",
     }  # fmt: skip

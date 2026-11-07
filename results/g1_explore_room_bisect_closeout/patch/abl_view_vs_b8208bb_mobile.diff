@@ -1,0 +1,13 @@
+diff --git "a/C:\\Users\\24adi\\DREAM-evals\\results\\g1_explore_room_bisect_closeout\\patch\\_old.py" "b/C:\\Users\\24adi\\DREAM-bisect\\experiments\\bisect_trees\\abl_view\\dream\\tools\\mobile.py"
+index cb9e3b9..38e45f6 100644
+--- "a/C:\\Users\\24adi\\DREAM-evals\\results\\g1_explore_room_bisect_closeout\\patch\\_old.py"
++++ "b/C:\\Users\\24adi\\DREAM-bisect\\experiments\\bisect_trees\\abl_view\\dream\\tools\\mobile.py"
+@@ -167,7 +167,7 @@ class MobileToolbox:
+         out = []
+         for c in self.memory.candidates:
+             for k in range(SIDES):
+-                if c.handle is None and k in c.sides_close:
++                if k in c.sides_close and c.handle_side() != k:
+                     continue
+                 chosen = self.side_point(c, k, passable, dist)
+                 if chosen is None:

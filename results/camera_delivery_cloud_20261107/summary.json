@@ -1,0 +1,684 @@
+{
+  "labels": {
+    "what": "Real Isaac Sim G1 head-camera delivery from the g2-standard-8 + L4 VM (asia-southeast1) to this laptop over IAP TCP tunnels while a Qwen-controlled task ran; session dream-qwen-isaac-20261107-010607-917495.",
+    "not_measured": [
+      "Tailnet (needs an owner key; skipped)",
+      "WHEP glass-to-glass latency (Chrome exposed no estimatedPlayoutTimestamp, so no source-to-screen number exists for WHEP)",
+      "UDP WebRTC (the IAP path is ICE/TCP only)",
+      "any phone or mobile network"
+    ],
+    "latency_definition": "JPEG paths: VM wall-clock capture time of the frame (X-Captured-Unix-S) to the page's second animation frame after the decoded <img> was assigned, with the page clock mapped to the VM clock by a min-RTT handshake; half the best round trip is reported as the clock uncertainty in each run. Not an independent glass-to-glass measurement.",
+    "simulation_pacing": "Physics is synchronous and frames exist only while the simulator ticks; fps below is what the simulator produced and the client received while a task ran, with pauses while Qwen thinks. It is not the camera's nominal rate."
+  },
+  "vm_side": {
+    "capture_rate_and_cost": {
+      "live_run1_before_fix_job3": {
+        "samples": 2007,
+        "capture_ms_median": 28.06,
+        "capture_ms_p95": 32.01,
+        "capture_ms_max": 1175.3,
+        "sim_time_span_s": [
+          10.0,
+          128.1
+        ],
+        "camera_stream_server": {
+          "encode_ms": 1.7840919999798643,
+          "submitted_frames": 2007,
+          "encoded_frames": 2007,
+          "dropped_frames": 0,
+          "bytes": 29335
+        },
+        "media_status_at_exit": {
+          "available": false,
+          "submitted_frames": 2007,
+          "written_frames": 3,
+          "dropped_frames": 2002,
+          "error": "[Errno 32] Broken pipe"
+        }
+      },
+      "live_run2_after_fix_job5": {
+        "samples": 602,
+        "capture_ms_median": 28.53,
+        "capture_ms_p95": 31.71,
+        "capture_ms_max": 1211.1,
+        "sim_time_span_s": [
+          10.0,
+          45.18
+        ],
+        "camera_stream_server": {
+          "encode_ms": 35.514017999958014,
+          "submitted_frames": 602,
+          "encoded_frames": 602,
+          "dropped_frames": 0,
+          "bytes": 31030
+        },
+        "media_status_at_exit": {
+          "available": true,
+          "submitted_frames": 602,
+          "written_frames": 602,
+          "dropped_frames": 0,
+          "error": null
+        }
+      },
+      "live_run3_after_fix_job6": {
+        "samples": 456,
+        "capture_ms_median": 28.33,
+        "capture_ms_p95": 31.29,
+        "capture_ms_max": 1258.0,
+        "sim_time_span_s": [
+          10.0,
+          36.7
+        ],
+        "camera_stream_server": {
+          "encode_ms": 2.1309710000423365,
+          "submitted_frames": 456,
+          "encoded_frames": 456,
+          "dropped_frames": 0,
+          "bytes": 30223
+        },
+        "media_status_at_exit": {
+          "available": true,
+          "submitted_frames": 456,
+          "written_frames": 456,
+          "dropped_frames": 0,
+          "error": null
+        }
+      }
+    },
+    "nvenc_encode": {
+      "frames": 3000,
+      "wall_s": 1.367,
+      "encode_fps_unthrottled": 2194.1,
+      "ms_per_frame_upper_bound": 0.456,
+      "note": "includes ffmpeg start-up and lavfi source generation; an upper bound on per-frame cost (ms/frame below), not a latency measurement",
+      "gpu": "NVIDIA L4, 580.178.04, 0 %"
+    },
+    "nvenc_pipe_write_ms_live_job5_last": 0.8919799993236666,
+    "mediamtx": {
+      "version": "v1.21.3",
+      "status_before_fix": {
+        "probe_steady_10fps": {
+          "available": true,
+          "submitted_frames": 300,
+          "written_frames": 300,
+          "dropped_frames": 0,
+          "error": null
+        },
+        "probe_stall_then_resume": {
+          "available": false,
+          "submitted_frames": 55,
+          "written_frames": 6,
+          "dropped_frames": 47,
+          "error": "[Errno 32] Broken pipe"
+        },
+        "live_job3": {
+          "available": false,
+          "submitted_frames": 2007,
+          "written_frames": 3,
+          "dropped_frames": 2002,
+          "error": "[Errno 32] Broken pipe"
+        }
+      },
+      "status_after_fix": {
+        "probe_steady_10fps": {
+          "available": true,
+          "submitted_frames": 300,
+          "written_frames": 300,
+          "dropped_frames": 0,
+          "error": null
+        },
+        "probe_stall_then_resume": {
+          "available": true,
+          "submitted_frames": 55,
+          "written_frames": 55,
+          "dropped_frames": 0,
+          "error": null
+        },
+        "live_job5": {
+          "available": true,
+          "submitted_frames": 602,
+          "written_frames": 602,
+          "dropped_frames": 0,
+          "error": null
+        },
+        "live_job6": {
+          "available": true,
+          "submitted_frames": 456,
+          "written_frames": 456,
+          "dropped_frames": 0,
+          "error": null
+        }
+      }
+    }
+  },
+  "whep_failure_diagnosis": {
+    "symptom": "31 Oct 2026: WHEP unavailable, written 3 dropped 434. Reproduced in the live session of 7 Nov (job 3): written 3, dropped 2002, error '[Errno 32] Broken pipe', /media/whep 404.",
+    "root_cause": "The simulation is synchronous and publishes no frame while the model thinks or the session waits (startup, model load, waiting for pairing). MediaMTX's default RTSP read timeout is 10 s: it closed the ffmpeg publisher ('i/o timeout' in mediamtx.log 10 s after the first burst), ffmpeg's tee muxer aborted with a broken pipe, MediaRuntime recorded the error and never restarted the encoder, so 'available' stayed false and every later frame was dropped. Not the NVENC encoder and not IAP.",
+    "isolated_without_simulator": "probe job 2 (stall_then_resume: 5 frames, 15 s silence, 50 frames): written 6, dropped 47, error Broken pipe; the steady 10 Hz scenario was fine (300/300).",
+    "fix": "media_config readTimeout 3600 s (commit 5ee19d2). Verified: probe job 4 stall_then_resume 55/55 written, 0 dropped; live job 5 written == submitted (602/602) with no error across model-inference pauses; job 6 see vm_side."
+  },
+  "laptop_over_iap": {
+    "api_rtt_new_connection_ms": {
+      "run1_prefix": {
+        "n": 15,
+        "min": 962.9,
+        "median": 1024.8,
+        "mean": 1075.3,
+        "p95": 1228.7,
+        "max": 1229.1
+      },
+      "run2_postfix": {
+        "n": 15,
+        "min": 953.9,
+        "median": 996.7,
+        "mean": 1044.8,
+        "p95": 1205.2,
+        "max": 1228.8
+      },
+      "run3_postfix": {
+        "n": 15,
+        "min": 943.3,
+        "median": 980.2,
+        "mean": 988.7,
+        "p95": 1026.6,
+        "max": 1120.6
+      }
+    },
+    "api_rtt_keepalive_handshake_min_ms": {
+      "run1_prefix": 115.2001953125,
+      "run2_postfix": 124.699951171875
+    },
+    "jpeg_polling": {
+      "run1_prefix": {
+        "frames_shown": 100,
+        "window_s": 45,
+        "delivered_fps_over_window": 2.22,
+        "delivered_fps_while_frames_flowing": 2.21,
+        "capture_to_receive_ms": {
+          "n": 100,
+          "min": 137.5,
+          "median": 232.7,
+          "mean": 231.4,
+          "p95": 306.8,
+          "max": 410.8
+        },
+        "capture_to_screen_ms": {
+          "n": 100,
+          "min": 174.9,
+          "median": 271.5,
+          "mean": 286.4,
+          "p95": 461.9,
+          "max": 625.2
+        },
+        "server_residence_ms": {
+          "n": 100,
+          "min": 40.7,
+          "median": 125.2,
+          "mean": 122.9,
+          "p95": 196.4,
+          "max": 237.5
+        },
+        "bytes_per_frame": {
+          "n": 100,
+          "min": 15847,
+          "median": 25120.0,
+          "mean": 24742.2,
+          "p95": 29193,
+          "max": 29428
+        },
+        "mean_kbit_s_while_flowing": 442.5,
+        "sequence_span": 167,
+        "sequence_frames_never_shown": 67,
+        "clock": {
+          "offset_s": 0.04658246040344238,
+          "uncertainty_ms": 57.60009765625,
+          "min_rtt_ms": 115.2001953125,
+          "median_rtt_ms": 142.35009765625,
+          "samples": 30
+        }
+      },
+      "run2_postfix": {
+        "frames_shown": 108,
+        "window_s": 45,
+        "delivered_fps_over_window": 2.4,
+        "delivered_fps_while_frames_flowing": 2.38,
+        "capture_to_receive_ms": {
+          "n": 108,
+          "min": 134.4,
+          "median": 210.1,
+          "mean": 210.4,
+          "p95": 271.0,
+          "max": 323.8
+        },
+        "capture_to_screen_ms": {
+          "n": 108,
+          "min": 161.1,
+          "median": 247.4,
+          "mean": 247.3,
+          "p95": 307.7,
+          "max": 361.1
+        },
+        "server_residence_ms": {
+          "n": 108,
+          "min": 41.9,
+          "median": 101.5,
+          "mean": 106.1,
+          "p95": 156.5,
+          "max": 183.6
+        },
+        "bytes_per_frame": {
+          "n": 108,
+          "min": 12013,
+          "median": 24958.5,
+          "mean": 24177.7,
+          "p95": 29245,
+          "max": 29706
+        },
+        "mean_kbit_s_while_flowing": 464.4,
+        "sequence_span": 180,
+        "sequence_frames_never_shown": 72,
+        "clock": {
+          "offset_s": 0.05243349075317383,
+          "uncertainty_ms": 62.3499755859375,
+          "min_rtt_ms": 124.699951171875,
+          "median_rtt_ms": 149.75,
+          "samples": 30
+        }
+      }
+    },
+    "mjpeg_push": {
+      "run1_prefix": {
+        "frames_shown": 178,
+        "window_s": 45,
+        "delivered_fps_over_window": 3.96,
+        "delivered_fps_while_frames_flowing": 4.13,
+        "capture_to_receive_ms": {
+          "n": 178,
+          "min": 105.4,
+          "median": 145.1,
+          "mean": 161.9,
+          "p95": 235.6,
+          "max": 1547.1
+        },
+        "capture_to_screen_ms": {
+          "n": 178,
+          "min": 132.0,
+          "median": 182.1,
+          "mean": 204.6,
+          "p95": 321.7,
+          "max": 1584.6
+        },
+        "server_residence_ms": {
+          "n": 178,
+          "min": 28.2,
+          "median": 55.2,
+          "mean": 61.9,
+          "p95": 82.1,
+          "max": 1442.3
+        },
+        "bytes_per_frame": {
+          "n": 178,
+          "min": 8471,
+          "median": 13150.5,
+          "mean": 12919.4,
+          "p95": 18139,
+          "max": 21631
+        },
+        "mean_kbit_s_while_flowing": 428.8,
+        "sequence_span": 178,
+        "sequence_frames_never_shown": 0,
+        "clock": {
+          "offset_s": 0.05395960807800293,
+          "uncertainty_ms": 67.3499755859375,
+          "min_rtt_ms": 134.699951171875,
+          "median_rtt_ms": 154.2000732421875,
+          "samples": 30
+        }
+      },
+      "run2_postfix": {
+        "frames_shown": 117,
+        "window_s": 45,
+        "delivered_fps_over_window": 2.6,
+        "delivered_fps_while_frames_flowing": 3.08,
+        "capture_to_receive_ms": {
+          "n": 117,
+          "min": 101.0,
+          "median": 139.4,
+          "mean": 146.3,
+          "p95": 202.4,
+          "max": 363.6
+        },
+        "capture_to_screen_ms": {
+          "n": 117,
+          "min": 138.4,
+          "median": 176.6,
+          "mean": 187.5,
+          "p95": 254.4,
+          "max": 499.7
+        },
+        "server_residence_ms": {
+          "n": 117,
+          "min": 29.1,
+          "median": 55.0,
+          "mean": 54.0,
+          "p95": 75.5,
+          "max": 117.4
+        },
+        "bytes_per_frame": {
+          "n": 117,
+          "min": 9697,
+          "median": 15711,
+          "mean": 16024.5,
+          "p95": 25325,
+          "max": 25480
+        },
+        "mean_kbit_s_while_flowing": 398.4,
+        "sequence_span": 117,
+        "sequence_frames_never_shown": 0,
+        "clock": {
+          "offset_s": 0.05763983726501465,
+          "uncertainty_ms": 58.800048828125,
+          "min_rtt_ms": 117.60009765625,
+          "median_rtt_ms": 148.2999267578125,
+          "samples": 30
+        }
+      },
+      "run3_postfix": {
+        "frames_shown": 59,
+        "window_s": 45,
+        "delivered_fps_over_window": 1.31,
+        "delivered_fps_while_frames_flowing": 2.95,
+        "capture_to_receive_ms": {
+          "n": 59,
+          "min": 118.7,
+          "median": 157.8,
+          "mean": 198.4,
+          "p95": 286.4,
+          "max": 1802.0
+        },
+        "capture_to_screen_ms": {
+          "n": 59,
+          "min": 142.5,
+          "median": 195.0,
+          "mean": 235.2,
+          "p95": 323.6,
+          "max": 1839.5
+        },
+        "server_residence_ms": {
+          "n": 59,
+          "min": 29.0,
+          "median": 55.1,
+          "mean": 79.6,
+          "p95": 69.6,
+          "max": 1523.8
+        },
+        "bytes_per_frame": {
+          "n": 59,
+          "min": 27864,
+          "median": 31513,
+          "mean": 30906.7,
+          "p95": 33207,
+          "max": 33410
+        },
+        "mean_kbit_s_while_flowing": 741.5,
+        "sequence_span": 59,
+        "sequence_frames_never_shown": 0,
+        "clock": {
+          "offset_s": 0.0702061653137207,
+          "uncertainty_ms": 60.39990234375,
+          "min_rtt_ms": 120.7998046875,
+          "median_rtt_ms": 149.800048828125,
+          "samples": 30
+        }
+      }
+    },
+    "whep_over_iap_tcp": {
+      "before_fix_run1": {
+        "result": "unavailable: /media/whep answered 404 (no stream on path 'dream')",
+        "media_error": "[Errno 32] Broken pipe"
+      },
+      "after_fix_run2": {
+        "decoded_fps": 1.78,
+        "presented_fps": 1.44,
+        "frames_decoded": 73,
+        "frames_dropped": 19,
+        "packets_lost": 0,
+        "freeze_count": 7,
+        "mean_jitter_buffer_delay_ms": 560.0,
+        "mean_decode_ms": 20.91,
+        "frame_size": [
+          640,
+          360
+        ],
+        "round_trip_ms": [
+          0.214
+        ],
+        "bytes_received": 1176325,
+        "estimated_playout_lag_ms": {
+          "n": 0
+        },
+        "window_s": 45,
+        "clock": {
+          "offset_s": 0.06220674514770508,
+          "uncertainty_ms": 63.0499267578125,
+          "min_rtt_ms": 126.099853515625,
+          "median_rtt_ms": 145.4000244140625,
+          "samples": 30
+        },
+        "answer_lines": [
+          "m=video 9 UDP/TLS/RTP/SAVPF 108",
+          "c=IN IP4 0.0.0.0",
+          "a=ice-ufrag:OSCdfgMBFbVHbhCH",
+          "a=ice-pwd:uZFgZwrsyyKIBarxMfzYGKVENxzlrJrh",
+          "a=candidate:1745971510 1 tcp 1671430143 127.0.0.1 18189 typ host tcptype passive",
+          "a=candidate:1745971510 2 tcp 1671430143 127.0.0.1 18189 typ host tcptype passive"
+        ],
+        "connection_events": [
+          {
+            "t": 1793979522575.3,
+            "e": "media_status"
+          },
+          {
+            "t": 1793979523024.2,
+            "e": "ice_gathering_state",
+            "state": "gathering"
+          },
+          {
+            "t": 1793979523157.3,
+            "e": "ice_gathering_state",
+            "state": "complete"
+          },
+          {
+            "t": 1793979523356.9001,
+            "e": "whep_response",
+            "ms": 199.60009765625
+          },
+          {
+            "t": 1793979523360.6,
+            "e": "ice_connection_state",
+            "state": "checking"
+          },
+          {
+            "t": 1793979523362.4001,
+            "e": "connection_state",
+            "state": "connecting"
+          },
+          {
+            "t": 1793979524580.6,
+            "e": "ice_connection_state",
+            "state": "connected"
+          },
+          {
+            "t": 1793979524850.7,
+            "e": "connection_state",
+            "state": "connected"
+          }
+        ]
+      },
+      "after_fix_run3": {
+        "decoded_fps": 3.51,
+        "presented_fps": 3.4,
+        "frames_decoded": 137,
+        "frames_dropped": 10,
+        "packets_lost": 0,
+        "freeze_count": 7,
+        "mean_jitter_buffer_delay_ms": 409.3,
+        "mean_decode_ms": 4.69,
+        "frame_size": [
+          640,
+          360
+        ],
+        "round_trip_ms": [
+          0.135
+        ],
+        "bytes_received": 1964637,
+        "estimated_playout_lag_ms": {
+          "n": 0
+        },
+        "window_s": 45,
+        "clock": {
+          "offset_s": 0.07447648048400879,
+          "uncertainty_ms": 64.5999755859375,
+          "min_rtt_ms": 129.199951171875,
+          "median_rtt_ms": 152.8499755859375,
+          "samples": 30
+        },
+        "answer_lines": [
+          "m=video 9 UDP/TLS/RTP/SAVPF 108",
+          "c=IN IP4 0.0.0.0",
+          "a=ice-ufrag:oTPaexWWbKkYDgAm",
+          "a=ice-pwd:yNTKfptkPEkWvPKVRccrQrzlMAVflYKW",
+          "a=candidate:4194061607 1 tcp 1671430143 127.0.0.1 18189 typ host tcptype passive",
+          "a=candidate:4194061607 2 tcp 1671430143 127.0.0.1 18189 typ host tcptype passive"
+        ],
+        "connection_events": [
+          {
+            "t": 1793980494045,
+            "e": "media_status"
+          },
+          {
+            "t": 1793980494573.5,
+            "e": "ice_gathering_state",
+            "state": "gathering"
+          },
+          {
+            "t": 1793980494704.9,
+            "e": "ice_gathering_state",
+            "state": "complete"
+          },
+          {
+            "t": 1793980495061,
+            "e": "whep_response",
+            "ms": 356.10009765625
+          },
+          {
+            "t": 1793980495065.5,
+            "e": "ice_connection_state",
+            "state": "checking"
+          },
+          {
+            "t": 1793980495068.5,
+            "e": "connection_state",
+            "state": "connecting"
+          },
+          {
+            "t": 1793980496053.4,
+            "e": "ice_connection_state",
+            "state": "connected"
+          },
+          {
+            "t": 1793980496300.4,
+            "e": "connection_state",
+            "state": "connected"
+          }
+        ]
+      }
+    },
+    "fallback_and_reconnect_push_to_poll": {
+      "run1_prefix": "invalid: the tunnel's gcloud.cmd child process was not killed, so no outage occurred",
+      "run2_postfix": {
+        "tunnel_killed_at_s": 24.2,
+        "tunnel_restart_issued_at_s": 36.4,
+        "tunnel_listening_again_at_s": 39.4,
+        "push_error_at_s": [
+          24.4,
+          34.4
+        ],
+        "poll_fetch_errors_during_outage": 136,
+        "last_frame_shown_before_kill_s": 24.0,
+        "first_frame_after_listening": {
+          "at_s": 40.8,
+          "mode": "poll",
+          "s_after_tunnel_listening": 1.4
+        },
+        "push_stream_reconnected_at_s": [
+          44.8
+        ],
+        "first_push_frame_after_listening_s": null,
+        "frames_by_mode": {
+          "push": 14,
+          "poll": 1
+        }
+      },
+      "run3_postfix": {
+        "tunnel_killed_at_s": 24.2,
+        "tunnel_restart_issued_at_s": 36.4,
+        "tunnel_listening_again_at_s": 39.4,
+        "push_error_at_s": [
+          24.4,
+          34.4
+        ],
+        "poll_fetch_errors_during_outage": 135,
+        "last_frame_shown_before_kill_s": 22.3,
+        "first_frame_after_listening": {
+          "at_s": 40.7,
+          "mode": "poll",
+          "s_after_tunnel_listening": 1.3
+        },
+        "push_stream_reconnected_at_s": [
+          44.7
+        ],
+        "first_push_frame_after_listening_s": 52.7,
+        "frames_by_mode": {
+          "push": 104,
+          "poll": 1
+        }
+      }
+    },
+    "tunnel_setup": {
+      "run1_prefix": {
+        "api_tunnel_up_s": 110.3,
+        "pairing": {
+          "paired": true,
+          "attempts": 1,
+          "ms": 1066
+        }
+      },
+      "run2_postfix": {
+        "api_tunnel_up_s": 92.8,
+        "pairing": {
+          "paired": true,
+          "attempts": 1,
+          "ms": 1034
+        }
+      },
+      "run3_postfix": {
+        "api_tunnel_up_s": 22.6,
+        "pairing": {
+          "paired": true,
+          "attempts": 1,
+          "ms": 1024
+        }
+      }
+    }
+  },
+  "bottleneck": {
+    "iap_connection_setup": "A new TCP connection through IAP costs about 1 s (no keep-alive GET /status median in api_rtt_new_connection_ms) whereas a kept-alive connection round-trips in roughly 115-140 ms. A client that opened a new connection per frame would be limited to about 1 frame/s; the web client's long-lived stream and keep-alive avoid that.",
+    "delivered_fps": "Delivered rate follows the simulator's frame production while a task runs (a few frames per second with pauses during Qwen inference), not IAP: push delivered every sequence number (sequence_frames_never_shown 0) while polling skipped frames it could not request in time.",
+    "verdict": "No JPEG transport over IAP was found to be the limit at the simulator's rate. WHEP over ICE/TCP through IAP works after the MediaMTX fix but showed freezes, 0.4-0.56 s jitter-buffer delay and dropped frames (see whep_over_iap_tcp); its source-to-screen latency was not measurable."
+  },
+  "status": "PARTIAL: fps, JPEG capture-to-screen latency, loss, reconnect and fallback measured; WHEP latency not measured; Tailnet skipped.",
+  "sessions": [
+    "dream-qwen-isaac-20261107-010607-917495 (all measurements; 1 of the 2-session media budget)"
+  ]
+}

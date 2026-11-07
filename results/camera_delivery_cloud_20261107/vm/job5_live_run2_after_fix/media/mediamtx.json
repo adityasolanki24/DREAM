@@ -1,0 +1,55 @@
+{
+  "logLevel": "info",
+  "readTimeout": "3600s",
+  "api": false,
+  "metrics": false,
+  "pprof": false,
+  "playback": false,
+  "rtmp": false,
+  "hls": false,
+  "srt": false,
+  "moq": false,
+  "rtsp": true,
+  "rtspAddress": "127.0.0.1:8554",
+  "rtspTransports": [
+    "tcp"
+  ],
+  "webrtc": true,
+  "webrtcAddress": "127.0.0.1:8889",
+  "webrtcAllowOrigins": [
+    "http://127.0.0.1:3000",
+    "http://localhost:3000"
+  ],
+  "webrtcLocalUDPAddress": "",
+  "webrtcLocalTCPAddress": ":18189",
+  "webrtcIPsFromInterfaces": false,
+  "webrtcAdditionalHosts": [
+    "127.0.0.1"
+  ],
+  "webrtcICEServers2": [],
+  "authInternalUsers": [
+    {
+      "user": "any",
+      "pass": "",
+      "ips": [
+        "127.0.0.1",
+        "::1"
+      ],
+      "permissions": [
+        {
+          "action": "publish",
+          "path": "dream"
+        },
+        {
+          "action": "read",
+          "path": "dream"
+        }
+      ]
+    }
+  ],
+  "paths": {
+    "dream": {
+      "source": "publisher"
+    }
+  }
+}

@@ -21,7 +21,7 @@ sys.path.insert(0, str(ROOT))
 
 import numpy as np  # noqa: E402
 
-from dream.eval.joint import execute_target  # noqa: E402
+from dream.eval.joint import execute_chunk, execute_target  # noqa: E402
 from dream.eval.manipulation import object_in_tray, safety_summary  # noqa: E402
 from dream.robot.joint import JointTargetController  # noqa: E402
 from dream.runtime.agent import TaskAgent  # noqa: E402
@@ -44,6 +44,14 @@ def write(path: Path, value) -> None:
     )
 
 
+def resolve_config(path: Path) -> Path:
+    """The frozen run config, which must be a file under experiments/configs."""
+    resolved = (ROOT / path).resolve()
+    if not resolved.is_relative_to((ROOT / "experiments/configs").resolve()):
+        raise ValueError("config must live in experiments/configs")
+    return resolved
+
+
 def run_condition(backend, cfg: dict, sensor_cfg: dict, condition: str, out: Path) -> dict:
     """Same physical scene/cameras, explicit controller choice, never a learned fallback."""
     if condition not in ("classical", "learned_joint"):
@@ -55,8 +63,11 @@ def run_condition(backend, cfg: dict, sensor_cfg: dict, condition: str, out: Pat
         perception="vision",
         extra_cameras=(CameraSpec(**sensor_cfg["wrist_camera"]),),
     )
-    records, trace = [], []
+    records, trace, geometry = [], [], []
     inference_count = 0
+    rows = int(cfg.get("rows_per_inference", 1))
+    if not 1 <= rows <= 15:
+        raise ValueError("rows_per_inference must be in 1..15")
     if condition == "learned_joint":
         session.env.robot = JointTargetController(session.env.model, session.env.data)
 
@@ -72,6 +83,13 @@ def run_condition(backend, cfg: dict, sensor_cfg: dict, condition: str, out: Pat
                 float(state.protective_stop),
             ]
         )
+        if cfg.get("record_object_distance"):
+            # Analysis only: ground truth is logged here and never reaches the policy.
+            obj = np.asarray(session.env.privileged_object_pos(cfg["goal_object"]), dtype=float)
+            geometry.append(
+                [state.time, *obj, float(np.linalg.norm(np.asarray(state.tcp_pos) - obj)),
+                 state.gripper_width]
+            )  # fmt: skip
 
     session.env.step_hook = record
     session.start()
@@ -126,20 +144,47 @@ def run_condition(backend, cfg: dict, sensor_cfg: dict, condition: str, out: Pat
                     "gripper_saturated": bool(decoded.saturated[0]),
                     "controller": "learned_joint",
                 }
-                result.update(
-                    execute_target(
-                        session.env,
-                        decoded.joint_rad[0],
-                        float(decoded.width_m[0]),
-                        SAMPLE_PERIOD_S,
-                        session.toolbox.cancel,
+                if rows == 1:
+                    result.update(
+                        execute_target(
+                            session.env,
+                            decoded.joint_rad[0],
+                            float(decoded.width_m[0]),
+                            SAMPLE_PERIOD_S,
+                            session.toolbox.cancel,
+                        )
                     )
-                )
-                records.append(result)
-                write(out / "steps.json", records)
-                if not result.get("target_reached"):
-                    error = result["reason"]
-                    break
+                    records.append(result)
+                    write(out / "steps.json", records)
+                    if not result.get("target_reached"):
+                        error = result["reason"]
+                        break
+                else:
+                    # Consecutive rows of this one chunk, each a rest-to-rest bounded target
+                    # under the unchanged joint-controller limits; fresh inference follows.
+                    chunk = execute_chunk(
+                        session.env,
+                        decoded.joint_rad,
+                        decoded.width_m,
+                        SAMPLE_PERIOD_S,
+                        max_targets=rows,
+                        max_sim_s=float(cfg.get("max_chunk_sim_s", 30)),
+                        cancel=session.toolbox.cancel,
+                    )
+                    for row, step in enumerate(chunk["steps"]):
+                        records.append(
+                            result
+                            | {
+                                "row": row,
+                                "raw_gripper": float(raw[row, 7]),
+                                "gripper_saturated": bool(decoded.saturated[row]),
+                            }
+                            | step
+                        )
+                    write(out / "steps.json", records)
+                    if not chunk["completed"]:
+                        error = chunk["reason"]
+                        break
     except Exception as exception:
         error = f"{type(exception).__name__}: {exception}"
     finally:
@@ -158,6 +203,12 @@ def run_condition(backend, cfg: dict, sensor_cfg: dict, condition: str, out: Pat
             if camera is not None:
                 camera.close()
         np.savez_compressed(out / "physical_trace.npz", trace=np.asarray(trace))
+        if geometry:
+            np.savez_compressed(
+                out / "object_geometry.npz",
+                columns=np.array(["time", "obj_x", "obj_y", "obj_z", "tcp_object_m", "width_m"]),
+                geometry=np.asarray(geometry),
+            )
     result = {
         "condition": condition,
         "seed": cfg["seed"],
@@ -177,8 +228,15 @@ def run_condition(backend, cfg: dict, sensor_cfg: dict, condition: str, out: Pat
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=Path("experiments/configs/molmo_closedloop.json"),
+        help="frozen run config, relative to the repository root",
+    )
     args = parser.parse_args()
-    cfg = json.loads((ROOT / "experiments/configs/molmo_closedloop.json").read_text())
+    config_path = resolve_config(args.config)
+    cfg = json.loads(config_path.read_text())
     sensors = json.loads((ROOT / "experiments/configs/molmo_openloop.json").read_text())
     cache = Path(os.environ.get("HF_HOME", "/work/model-cache")).resolve()
     if ROOT in cache.parents or cache == ROOT or "onedrive" in str(cache).lower():
@@ -191,6 +249,7 @@ def main() -> None:
         "git_sha": os.environ.get("DREAM_CODE_SHA")
         or subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
         "config": cfg,
+        "config_path": str(config_path.relative_to(ROOT)),
         "sensor_config": sensors,
         "python": sys.version,
         "policy_seed": cfg["inference_seed"],

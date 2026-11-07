@@ -23,7 +23,6 @@ import argparse
 import json
 import os
 import pathlib
-import subprocess
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor
@@ -51,6 +50,7 @@ from dream.sim.tabletop import sample_compartment_scene  # noqa: E402
 from dream.sim.tabletop_env import TabletopEnv  # noqa: E402
 from dream.tools.goals import InRegion  # noqa: E402
 from dream.tools.toolbox import Toolbox  # noqa: E402
+from experiments.code_version import code_dirty, code_sha  # noqa: E402
 
 METHODS = {
     "dream_eig": {"exploration": "eig", "opening": "learned"},
@@ -272,6 +272,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("config")
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--out", help="output directory (default results/<name>)")
     args = ap.parse_args()
     cfg = json.loads(pathlib.Path(args.config).read_text())
     seeds = range(cfg["seed0"], cfg["seed0"] + cfg["n_per_kind"])
@@ -285,11 +286,8 @@ def main() -> None:
         for s in seeds
         for m in cfg["methods"]
     ]
-    sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
-    dirty = bool(
-        subprocess.check_output(["git", "status", "--porcelain", "dream"], cwd=ROOT, text=True)
-    )
-    out = ROOT / "results" / cfg["name"]
+    sha, dirty = code_sha(ROOT), code_dirty(ROOT)
+    out = pathlib.Path(args.out) if args.out else ROOT / "results" / cfg["name"]
     out.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
     eps = []

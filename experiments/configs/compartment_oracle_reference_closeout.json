@@ -1,0 +1,18 @@
+{
+  "name": "compartment_oracle_reference_closeout",
+  "status": "frozen",
+  "arm": "reference",
+  "seed0": 5200,
+  "n_per_kind": 10,
+  "kinds": ["drawer", "lid", "fixed"],
+  "methods": ["dream_eig"],
+  "probe_budget": 12,
+  "perception": "oracle",
+  "_label": "Oracle-perception reference arm for attribution of the frozen vision result in results/compartment_vision_closeout (11/20 openable at seeds 5200-5209 per kind). Identical to experiments/configs/compartment_vision_closeout.json except perception: oracle (the setting of experiments/configs/compartment.json, i.e. no perception key). It never replaces the vision result: the gates below are reported for completeness, but the closeout claim for camera-based discovery is the vision run's. Seeds 5200-5209 were already scored by the vision arm, so this arm is a same-seed comparison, not a fresh held-out evaluation, and nothing is tuned after seeing it. The comparison is observational: the arms differ in perception only, but any per-seed difference is not by itself proof of cause.",
+  "gates": {
+    "_note": "Same names and values as compartment_vision_closeout.json. Reported, never used to replace the vision result.",
+    "dream_openable_success_min": 0.8,
+    "dream_correct_rejection_min": 0.9,
+    "max_false_claims": 0
+  }
+}

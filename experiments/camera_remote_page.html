@@ -1,0 +1,144 @@
+<!doctype html><html><head><meta charset="utf-8"><title>remote camera measurement</title></head><body>
+<img id="v" alt="frame" width="320" height="240"><video id="w" autoplay muted playsinline width="320" height="240"></video>
+<script>
+/*PARSER*/
+// Measurement client for a REAL Isaac session reached over an IAP tunnel. It uses the same transports and the
+// same fetch/stream/WHEP logic as web/app/useCamera.ts and useWebRTC.ts, minus the React UI. Times are page-clock
+// epoch milliseconds; the Python side maps them to the VM clock with the round-trip handshakes recorded in `sync`.
+const M = (window.__m = { recv: [], shown: [], events: [], stats: [], sync: [], video: [], answer: null });
+const now = () => performance.timeOrigin + performance.now();
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const img = document.getElementById('v'), vid = document.getElementById('w');
+let abort = new AbortController(), base = '', headers = {}, stopped = false, after = '', url = '', epoch = null, seqSeen = -1;
+const ev = (e, extra = {}) => M.events.push({ t: now(), e, ...extra });
+
+async function handshake(n = 20) {
+  for (let i = 0; i < n; i++) {
+    const t0 = now();
+    try {
+      const r = await fetch(base + '/camera/meta', { headers, cache: 'no-store' });
+      const d = await r.json(), t1 = now();
+      M.sync.push({ t0, t1, server_unix_s: d.server_unix_s });
+    } catch (e) { ev('sync_error', { msg: String(e) }); }
+    await sleep(150);
+  }
+}
+
+async function show(blob, h, mode, transportMs) {
+  const tRecv = now(), e = h('x-stream-id'), s = Number(h('x-frame-sequence'));
+  if (e !== epoch) { epoch = e; seqSeen = -1; }
+  if (s <= seqSeen) return;
+  seqSeen = s;
+  const candidate = URL.createObjectURL(blob), probe = new Image();
+  probe.src = candidate;
+  try { await probe.decode(); } catch { URL.revokeObjectURL(candidate); return; }
+  const tDecoded = now(), prev = url;
+  url = candidate; after = h('x-frame-id') || after; img.src = url;
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  M.shown.push({ mode, seq: s, bytes: blob.size, captured: Number(h('x-captured-unix-s')),
+    server: Number(h('x-server-unix-s')), t_recv: tRecv, t_decoded: tDecoded, t_shown: now(), transport_ms: transportMs });
+  if (prev) URL.revokeObjectURL(prev);
+}
+
+async function push() {
+  const t0 = now();
+  const r = await fetch(base + '/camera/stream', { headers, cache: 'no-store', signal: abort.signal });
+  ev('stream_status', { status: r.status, connect_ms: now() - t0 });
+  if (!r.ok || !r.body) return false;
+  const reader = r.body.getReader(), parser = new MultipartJpeg();
+  let got = false;
+  for (;;) {
+    const started = now();
+    const { value, done } = await reader.read();
+    if (done || stopped) return got;
+    for (const part of parser.push(value)) {
+      got = true;
+      await show(new Blob([part.body], { type: 'image/jpeg' }), (n) => part.headers[n] ?? null, 'push', now() - started);
+    }
+  }
+}
+
+async function poll(forMs) {
+  const until = performance.now() + forMs;
+  while (!stopped && performance.now() < until) {
+    const tick = performance.now();
+    try {
+      const start = now();
+      const r = await fetch(base + '/camera/frame?after=' + encodeURIComponent(after), { headers, cache: 'no-store', signal: AbortSignal.timeout(5000) });
+      if (r.status !== 204) {
+        if (!r.ok) throw new Error('bad ' + r.status);
+        const blob = await r.blob();
+        await show(blob, (n) => r.headers.get(n), 'poll', now() - start);
+      } else M.recv.push({ t: now(), mode: 'poll', empty: true });
+    } catch (e) { ev('poll_error', { msg: String(e).slice(0, 120) }); }
+    await sleep(Math.max(0, 100 - (performance.now() - tick)));
+  }
+}
+
+async function whep(forMs) {
+  const st = await (await fetch(base + '/media/status', { headers, cache: 'no-store' })).json();
+  ev('media_status', { status: st });
+  M.media_status = st;
+  const pc = new RTCPeerConnection({ iceServers: [] });
+  pc.addTransceiver('video', { direction: 'recvonly' });
+  pc.onconnectionstatechange = () => ev('connection_state', { state: pc.connectionState });
+  pc.oniceconnectionstatechange = () => ev('ice_connection_state', { state: pc.iceConnectionState });
+  pc.onicegatheringstatechange = () => ev('ice_gathering_state', { state: pc.iceGatheringState });
+  pc.ontrack = (e) => { ev('track'); vid.srcObject = new MediaStream([e.track]); vid.play().catch(() => {}); };
+  await pc.setLocalDescription(await pc.createOffer());
+  await new Promise((resolve) => {
+    if (pc.iceGatheringState === 'complete') return resolve();
+    const timeout = setTimeout(resolve, 3000);
+    pc.onicegatheringstatechange = () => { ev('ice_gathering_state', { state: pc.iceGatheringState }); if (pc.iceGatheringState === 'complete') { clearTimeout(timeout); resolve(); } };
+  });
+  const t0 = now();
+  const resp = await fetch(base + '/media/whep', { method: 'POST', headers: { ...headers, 'Content-Type': 'application/sdp' }, body: pc.localDescription.sdp, signal: AbortSignal.timeout(10000) });
+  ev('whep_response', { status: resp.status, ms: now() - t0 });
+  if (!resp.ok) throw new Error('WHEP ' + resp.status);
+  const answer = await resp.text();
+  M.answer = answer.split('\n').filter((l) => /^a=candidate|^m=|^a=ice-|^c=/.test(l)).map((l) => l.trim());
+  await pc.setRemoteDescription({ type: 'answer', sdp: answer });
+  if ('requestVideoFrameCallback' in vid) {
+    const cb = (t, meta) => { M.video.push({ t: now(), ...meta }); if (!stopped) vid.requestVideoFrameCallback(cb); };
+    vid.requestVideoFrameCallback(cb);
+  }
+  const until = performance.now() + forMs;
+  while (!stopped && performance.now() < until) {
+    const stats = await pc.getStats(), row = { t: now() };
+    stats.forEach((r) => {
+      if (r.type === 'inbound-rtp' && r.kind === 'video') row.inbound = { framesReceived: r.framesReceived, framesDecoded: r.framesDecoded, framesDropped: r.framesDropped, packetsReceived: r.packetsReceived, packetsLost: r.packetsLost, bytesReceived: r.bytesReceived, jitter: r.jitter, jitterBufferDelay: r.jitterBufferDelay, jitterBufferEmittedCount: r.jitterBufferEmittedCount, estimatedPlayoutTimestamp: r.estimatedPlayoutTimestamp, totalDecodeTime: r.totalDecodeTime, freezeCount: r.freezeCount, pauseCount: r.pauseCount, framesPerSecond: r.framesPerSecond, frameWidth: r.frameWidth, frameHeight: r.frameHeight };
+      if (r.type === 'candidate-pair' && (r.nominated || r.state === 'succeeded')) row.pair = { state: r.state, currentRoundTripTime: r.currentRoundTripTime, bytesReceived: r.bytesReceived, localCandidateId: r.localCandidateId, remoteCandidateId: r.remoteCandidateId };
+      if (r.type === 'remote-candidate' || r.type === 'local-candidate') (row.candidates = row.candidates || []).push({ type: r.type, id: r.id, candidateType: r.candidateType, protocol: r.protocol, address: r.address, port: r.port, tcpType: r.tcpType });
+    });
+    M.stats.push(row);
+    await sleep(1000);
+  }
+  pc.close();
+}
+
+window.__m.run = async (mode, b, token, seconds) => {
+  base = b; headers = { Authorization: 'Bearer ' + token }; stopped = false; epoch = null; seqSeen = -1; after = '';
+  ev('start', { mode });
+  await handshake(15);  // before the stream: unloaded round trips give the cleanest clock offset
+  abort = new AbortController();
+  const timer = setTimeout(() => { stopped = true; abort.abort(); }, seconds * 1000);
+  try {
+    if (mode === 'push') { await push(); }
+    else if (mode === 'poll') { await poll(seconds * 1000); }
+    else if (mode === 'whep') { await whep(seconds * 1000); }
+    else if (mode === 'auto') {
+      while (!stopped) { // same policy as web/app/useCamera.ts
+        let streamed = false;
+        try { streamed = await push(); } catch (e) { ev('push_error', { msg: String(e).slice(0, 120) }); }
+        if (stopped) break;
+        ev('push_ended', { streamed });
+        await poll(streamed ? 2000 : 10000);
+      }
+    }
+  } catch (e) { ev('mode_error', { msg: String(e).slice(0, 200) }); }
+  clearTimeout(timer); stopped = true;
+  await handshake(15);
+  ev('end', { mode });
+  return { recv: M.recv, shown: M.shown, events: M.events, stats: M.stats, sync: M.sync, video: M.video, answer: M.answer, media_status: M.media_status || null };
+};
+</script></body></html>

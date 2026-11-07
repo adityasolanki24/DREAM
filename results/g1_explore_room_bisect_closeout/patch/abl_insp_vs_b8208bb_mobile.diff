@@ -1,0 +1,15 @@
+diff --git "a/C:\\Users\\24adi\\DREAM-evals\\results\\g1_explore_room_bisect_closeout\\patch\\_old.py" "b/C:\\Users\\24adi\\DREAM-bisect\\experiments\\bisect_trees\\abl_insp\\dream\\tools\\mobile.py"
+index cb9e3b9..5a22cc4 100644
+--- "a/C:\\Users\\24adi\\DREAM-evals\\results\\g1_explore_room_bisect_closeout\\patch\\_old.py"
++++ "b/C:\\Users\\24adi\\DREAM-bisect\\experiments\\bisect_trees\\abl_insp\\dream\\tools\\mobile.py"
+@@ -644,8 +644,8 @@ class MobileToolbox:
+         report = {
+             # Seen again in this close-range look, not just inferred from earlier views.
+             "handle_observed": c.handle_views > before,
+-            "handle_confirmed_close": at and c.handle_views > before,
+-            "inspection_complete": at and c.handle_views > before,
++            "handle_confirmed_close": c.handle_views > before,
++            "inspection_complete": c.handle_views > before,
+             "candidate": c.summary(),
+             "seen": "a box-like object"
+             + (" with a handle on one face" if c.handle is not None else " with no handle seen"),

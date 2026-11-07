@@ -43,6 +43,7 @@ WORKLOAD_CONFIGS = {
     "qwen-pilot": CONFIG,
     "molmo-openloop": ROOT / "experiments/configs/cloud_molmo_openloop.json",
     "molmo-closedloop": ROOT / "experiments/configs/cloud_molmo_closedloop.json",
+    "molmo-multichunk": ROOT / "experiments/configs/cloud_molmo_multichunk.json",
     "isaac-t1-walk": ROOT / "experiments/configs/cloud_isaac_t1_walk.json",
     "isaac-t1-stand": ROOT / "experiments/configs/cloud_isaac_t1_stand.json",
     "vlm-compare": ROOT / "experiments/configs/cloud_vlm_compare.json",
@@ -84,7 +85,10 @@ def gcloud(*args: str) -> str:
         raise RuntimeError("Google Cloud SDK is required")
     # The 41 MiB source upload exceeded 120 s on the development uplink, before
     # VM allocation. Allow a bounded ten-minute transfer; keep RPC limits short.
-    timeout = 600 if args[:2] in (("storage", "cp"), ("storage", "rsync")) else 120
+    # Creating the 200 GB L4 VM from the cached image took about three minutes on 7 Nov 2026
+    # (the 120 s limit aborted a start whose VM was then created); it is a bounded operation.
+    slow = (("storage", "cp"), ("storage", "rsync"), ("compute", "instances"))
+    timeout = 600 if args[:2] in slow and args[:3] != ("compute", "instances", "list") else 120
     return subprocess.run(
         [exe, *args, "--quiet"],
         text=True,
@@ -453,7 +457,7 @@ def check_pilot(out: Path, workload: str = "qwen-pilot") -> None:
                         raise RuntimeError("physical walking camera evidence invalid")
             validate_policy_steps(out / case, record)
         return
-    if workload == "molmo-closedloop":
+    if workload in ("molmo-closedloop", "molmo-multichunk"):
         import numpy as np
 
         path = out / "closedloop_summary.json"

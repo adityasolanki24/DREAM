@@ -1,0 +1,59 @@
+{
+  "name": "g1_explore_room_regression_closeout",
+  "status": "frozen",
+  "label": "regression diagnostic; not held-out and not a replacement for any frozen result",
+  "_note": "Diagnostic of the gap between results/g1_explore_room (historical, 44ab7c4: nominal 20/20, shifted 8/10) and results/g1_explore_room_closeout (frozen fresh seeds at a3b4304: nominal 15/20, shifted 4/10, gain arm). 5 of the 11 gain-arm failures in those two kinds read 'has a handle, but no reachable viewpoint'. Commit 5b02731 added ARRIVAL_MARGIN = 0.15 m in dream/tools/mobile.py (viewpoints must lie at most INSPECT_RANGE[1] - margin from the handle). Questions: code regression or seed difficulty, and is the margin responsible. Nothing here edits, rescores or overwrites a frozen config or result. Seed ranges are half-open [a, b). dream/ is byte-identical between a3b4304 (the frozen closeout code) and the code A1 runs.",
+  "arms": {
+    "A1": {
+      "description": "historical seeds, current code (margin 0.15). Compare per seed with results/g1_explore_room gain rows.",
+      "code": "branch claude/closeout-evals-20261106 at the commit that adds this config",
+      "seeds": {"nominal": [1000, 1020], "shifted": [2000, 2010], "no_cabinet": [3000, 3006]},
+      "methods": ["gain"],
+      "methods_by_kind": {"nominal": ["gain"], "shifted": ["gain"], "no_cabinet": ["gain"]},
+      "compare_with": "results/g1_explore_room"
+    },
+    "A2": {
+      "description": "frozen fresh seeds, ONLY the margin removed (ARRIVAL_MARGIN = 0.0). Compare per seed with results/g1_explore_room_closeout gain rows.",
+      "code": "branch claude/room-margin-diagnostic (worktree DREAM-margin): this branch's config commit plus one commit setting ARRIVAL_MARGIN = 0.0 and nothing else. Never merged.",
+      "seeds": {"nominal": [1300, 1320], "shifted": [2300, 2310], "no_cabinet": [3100, 3110]},
+      "methods": ["gain"],
+      "methods_by_kind": {"nominal": ["gain"], "shifted": ["gain"], "no_cabinet": ["gain"]},
+      "compare_with": "results/g1_explore_room_closeout"
+    },
+    "A3": {
+      "description": "conditional, completes the 2x2: historical seeds with the margin removed. Run only if A2 changes the outcome of at least 2 seeds.",
+      "code": "same margin-removed branch as A2",
+      "seeds": {"nominal": [1000, 1020], "shifted": [2000, 2010], "no_cabinet": [3000, 3006]},
+      "methods": ["gain"],
+      "methods_by_kind": {"nominal": ["gain"], "shifted": ["gain"], "no_cabinet": ["gain"]},
+      "compare_with": "results/g1_explore_room",
+      "condition": "A2 changes the outcome of >= 2 seeds"
+    }
+  },
+  "methods": ["gain"],
+  "seeds": {},
+  "time_budget_s": 240,
+  "max_steps": 60,
+  "record": [],
+  "gates": {
+    "_note": "Inherited unchanged from g1_explore_room_closeout so the runner can summarise; no gate is evaluated or claimed by this diagnostic.",
+    "nominal_success_min": 0.9,
+    "shifted_success_min": 0.7,
+    "no_cabinet_refusal_min": 0.9,
+    "max_false_claims": 0,
+    "max_falls": 0
+  },
+  "environment": "same cloud machine class and one session for all arms (g2-standard-8, MuJoCo 3.16, MUJOCO_GL=egl), --workers 4. MuJoCo outcomes across machines reproduce but are not guaranteed bit-exact, so per-seed differences are read with that caveat.",
+  "outcome_definitions": {
+    "pass": "nominal and shifted: success (claim at the handle, independently verified against ground truth by the scorer); no_cabinet: correct refusal under the original scorer (no claim, no fall)",
+    "changes_outcome": "pass flag of the same seed differs between the compared runs",
+    "reported_too": "claim, false_claim, fell, contact episodes by body class, strict_success, refusal_category, reason text"
+  },
+  "pre_declared_reading": {
+    "regression": "A1 is a code regression if its pass count on the historical seeds is lower than the historical gain-arm count on the same seeds (nominal 20/20, shifted 8/10, no_cabinet as recorded). Seeds changed are listed per seed. Not a regression if A1 equals history; then the frozen-run shortfall is read as seed difficulty (or noise), not code.",
+    "margin_responsible": "The margin is called responsible only if, in A2 against the frozen run, removal flips failures to successes that the scorer verifies independently, without introducing any false claim, fall or new non-handle contact. If A2 flips nothing, or flips with false claims, contacts or falls, the margin is not established as responsible.",
+    "a3_rule": "A3 runs only if A2 changes outcomes for at least 2 seeds.",
+    "caveats": "Cross-machine and cross-run MuJoCo reproducibility is not bit-exact; 20/10/6 seeds give wide intervals; code between 44ab7c4 and a3b4304 differs in more than the margin, so A1 vs history cannot by itself isolate the margin."
+  },
+  "operations": "one rerun (fresh or --resume) only for a mechanical crash, logs kept"
+}

@@ -1,0 +1,18 @@
+{
+  "name": "compartment_vision_closeout",
+  "status": "frozen",
+  "seed0": 5200,
+  "n_per_kind": 10,
+  "kinds": ["drawer", "lid", "fixed"],
+  "methods": ["dream_eig"],
+  "probe_budget": 12,
+  "perception": "vision",
+  "_label": "Camera-based discovery (two cameras, vision world model), first held-out evaluation. Seeds 5200-5209 per kind: verified by grep to appear in no config, result or test (the seen compartment set is 5000-5029; development used 0-11). The development results (0/12 on the first vision dev run, 2/4 on the continuation) were weak, so a failure here is an accepted, reportable result. Nothing is tuned after seeing these results; thresholds and noise models are the oracle-calibrated ones used in the development runs. Code is the committed tree at the recorded git SHA.",
+  "_seed_check": "grep of experiments/configs, results/*, tests, experiments/*.py, README for seeds 5100-5999: only 5000-5029 (results/compartment, results/compartment_regression_vision_fixes) occur.",
+  "gates": {
+    "_note": "Same names and form as experiments/configs/compartment.json held-out gates. Requested minimum for openable success was 0.70; compartment.json's gate of the same name is stricter (0.8) so 0.8 is used. fixed 'declined' is the runner's correct_rejection (no open_articulated call and no claim).",
+    "dream_openable_success_min": 0.8,
+    "dream_correct_rejection_min": 0.9,
+    "max_false_claims": 0
+  }
+}

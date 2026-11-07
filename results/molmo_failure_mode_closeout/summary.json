@@ -1,0 +1,68 @@
+{
+  "job": "P3 MolmoAct2 failure mode, saved-evidence analysis",
+  "analysis_script": "experiments/analyse_molmo_failure_mode.py (output analysis.json in this folder)",
+  "evidence": [
+    "results/molmo_cloud_feedback_dev (seed 223, dev, 6 inferences, row 0 only)",
+    "results/molmo_cloud_openloop",
+    "results/molmo_recorded_prefix_validated (1, 3, 15 recorded rows replayed)",
+    "results/molmo_contract_audit (pinned upstream hashes)"
+  ],
+  "answers": {
+    "gripper_channel": "Across all 90 values of the six chunks (and the open-loop chunk) the raw channel lies in [-0.0062, +0.0107]; none exceeds 0.1. DREAM maps it continuously, width = 0.08*(1-clip(closure,0,1)) with no threshold, so it commanded fully open (measured width 0.0800 m throughout). Upstream DROID robot.py uses the same convention (0 = open, 1 = closed, command clipped to [0,1], state = 1 - width/max_width) and the upstream host server applies no thresholding, binarisation or inversion. The model's input closure at start is 0 and its output tracks it. DROID's gripper action distribution has mean 0.44 (closure is common in training), so output near 0 means 'stay open', not a squashed or inverted close.",
+    "end_effector_near_object": "No. TCP distance to the object's initial centre: 0.536 m at start, 0.460 m at the end of the 6-row run (minimum = end), 0.430 m after the full 15-row replayed chunk. The classical condition in the same scene and cameras reached 0.003 m and grasped. Because the arm was never near the object, absence of a close command is not evidence about the policy's grasp behaviour.",
+    "executed_policy_horizon": "The pilot executed 1 of 15 rows per inference for 6 inferences, i.e. 6/15 = 0.4 s of policy trajectory out of 6 s predicted, stretched over 13.8 s of simulation by retiming (time dilation 4.3-18.4). The classical grasp needed 54.5 s and 0.42 m of TCP travel. Linear extrapolation (not evidence) from 0.105 m per 6 rows says the budget could not have reached the object.",
+    "plausible_reach": "Partly. TCP motion is mostly downward and toward the object (cosine between displacement and direction to object 0.76 for both the 6-row run and the 15-row chunk), no collisions, tracking error 0.0016-0.0018 rad. But the replayed chunk moved TCP x away from the object (0.554 to 0.625 vs object x 0.466) and y barely (0.005 vs 0.167): the lateral component is not toward the object. One 1 s chunk cannot say whether a reach would converge.",
+    "start_state_distribution": "Contract concern. DREAM's home pose (q6 = 1.571, q7 = -0.785) lies 0.167 and 0.277 rad below the DROID state q01 for those joints (1.738, -0.509). The policy's first target for those two joints lands on the DROID action q01 (1.742, -0.523; within 0.005 rad), so row 0 jumps 0.17 and 0.26 rad in one 1/15 s step. Later inferences have first-target offsets of 0.016-0.047 rad. Consistent with an out-of-distribution start pose (joint-7 zero convention and home pose differ from DROID) that the policy first pulls to the edge of its training range; whether that harms the later reach is not established.",
+    "contract_match": {
+      "matched_by_source": [
+        "7 absolute joint radians then gripper closure, 15 rows at 15 Hz (DROID_FPS)",
+        "gripper convention and state closure formula (DROID robot.py)",
+        "normalisation: predict_action unnormalises; outputs sit inside the DROID joint ranges",
+        "joint order q1..q7 then gripper"
+      ],
+      "differs_or_unverified": [
+        "DREAM sends three images [exterior, exterior duplicate, wrist]; the upstream host server example sends two [external, wrist]; the model card is cited as permitting the duplicate but this was not tested",
+        "camera intrinsics, extrinsics and wrist mounting are not matched to DROID",
+        "Panda 80 mm hand versus Robotiq aperture; joint-7 zero convention; home pose (above)",
+        "retimed execution (4-18x slower than nominal) changes closed-loop timing relative to training",
+        "upstream constants in this analysis were read through a summarising page fetch on 7 Nov 2026, not byte-verified downloads; hashes of the pinned files are in results/molmo_contract_audit/sources.json"
+      ]
+    }
+  },
+  "hypotheses": {
+    "H1_harness_truncation": {
+      "statement": "The 6x1-row budget cannot reach the object, so the missing grasp says nothing about the policy.",
+      "status": "supported: established for the saved run (EE >=0.43 m from the object in every saved condition); it explains the missing close command but does not show the policy would succeed with a longer horizon"
+    },
+    "H2_gripper_contract_defect": {
+      "statement": "DREAM inverts, squashes or thresholds the gripper channel.",
+      "status": "not supported by the saved evidence and the upstream sources read; no defect found"
+    },
+    "H3_start_state_or_camera_contract": {
+      "statement": "An out-of-distribution start pose, camera or image-slot mismatch degrades the policy's reach.",
+      "status": "open: start pose is outside the DROID range (measured), effect on reach not measured; image-slot and camera mismatches untested"
+    },
+    "H4_policy_or_embodiment_gap": {
+      "statement": "Even with sufficient horizon the policy does not reach and grasp in this simulation.",
+      "status": "open: cannot be decided from 6 rows"
+    }
+  },
+  "cloud_job": {
+    "run": false,
+    "reason": "Saved evidence discriminates H1 (supported) and H2 (no defect) but not H3 vs H4. The test that would is a long-horizon closed-loop rollout, but the existing cloud_molmo_closedloop.py hard-codes the frozen dev config path (experiments/configs/molmo_closedloop.json) and executes only row 0 per inference; using it needs either overwriting a frozen config or adding a config argument and a multi-row loop, and the Molmo environment is a separate launch.py workload. That is a harness change, so it is escalated rather than made here.",
+    "pre_registered_hypothesis": "H4 is false and H1 is the cause iff, with the first-chunk rows executed for N >= 10 consecutive fresh inferences (about 10 s of policy time) on seed 223, the TCP comes within 0.05 m of the object and the raw gripper exceeds 0.5 near it. If TCP stays beyond 0.25 m with the gripper never above 0.1, H4 (or an untested H3 factor) stands; intermediate outcomes are inconclusive. No training."
+  },
+  "conclusions": {
+    "learned_policy_integration_working": "partial: real pinned-checkpoint inference, finite in-range 15x8 chunks, absolute-joint execution with tracking 0.0016-0.0018 rad, no safety stops, gripper mapping consistent with upstream. Closed-loop task behaviour not shown.",
+    "task_execution": "N (0/1 on one development seed; the run was too short to test it)",
+    "failure_mode": "The missing gripper close is explained by an under-length evaluation (EE never within 0.43 m), not by a found contract defect. Whether the policy can reach and grasp in this sim is still open (H3/H4).",
+    "unvalidated": [
+      "any task success by the learned policy",
+      "multi-chunk closed loop and reach convergence",
+      "two- versus three-image input",
+      "camera and wrist geometry versus DROID",
+      "home pose and joint-7 convention",
+      "behaviour on held-out seeds (one development seed only)"
+    ]
+  }
+}

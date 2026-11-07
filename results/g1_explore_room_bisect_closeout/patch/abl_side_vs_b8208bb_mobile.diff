@@ -1,0 +1,46 @@
+diff --git "a/C:\\Users\\24adi\\DREAM-evals\\results\\g1_explore_room_bisect_closeout\\patch\\_old.py" "b/C:\\Users\\24adi\\DREAM-bisect\\experiments\\bisect_trees\\abl_side\\dream\\tools\\mobile.py"
+index cb9e3b9..3c4f0da 100644
+--- "a/C:\\Users\\24adi\\DREAM-evals\\results\\g1_explore_room_bisect_closeout\\patch\\_old.py"
++++ "b/C:\\Users\\24adi\\DREAM-bisect\\experiments\\bisect_trees\\abl_side\\dream\\tools\\mobile.py"
+@@ -185,36 +185,11 @@ class MobileToolbox:
+         obliquely, and the outward direction from a partial-view centre estimate is rough
+         (development room 4 put it against a wall)."""
+         grid = self.memory.grid
+-        if c.handle is not None:
+-            # Enumerate reachable map cells instead of five samples on a fixed circle.
+-            cells = np.argwhere(passable & np.isfinite(dist))
+-            if not len(cells):
+-                return None
+-            points = grid.centre(cells[:, 0], cells[:, 1])
+-            delta = points - c.handle[:2]
+-            length = np.linalg.norm(delta, axis=1)
+-            outward = c.handle[:2] - c.position[:2]
+-            bearing = (
+-                np.rint(
+-                    np.arctan2((points - c.position[:2])[:, 1], (points - c.position[:2])[:, 0])
+-                    / (2 * np.pi / SIDES)
+-                ).astype(int)
+-                % SIDES
+-            )
+-            eligible = (length >= INSPECT_RANGE[0]) & (length <= INSPECT_RANGE[1])
+-            eligible &= (delta @ outward > 0) & (bearing == k)
+-            indices = np.flatnonzero(eligible)
+-            indices = sorted(
+-                indices,
+-                key=lambda i: (float(dist[tuple(cells[i])]), abs(length[i] - VIEW_DISTANCE)),
+-            )
+-            for i in indices:
+-                xy = points[i]
+-                if self.visible_handle(c, xy):
+-                    n = (xy - c.handle[:2]) / length[i]
+-                    return xy, n, float(dist[tuple(cells[i])])
+-            return None
+-        anchor, base, reach = c.position[:2], c.side_direction(k), c.radius + VIEW_DISTANCE
++        if c.handle is not None and c.handle_side() == k:
++            anchor, base = c.handle[:2], c.handle[:2] - c.position[:2]
++            reach = VIEW_DISTANCE
++        else:
++            anchor, base, reach = c.position[:2], c.side_direction(k), c.radius + VIEW_DISTANCE
+         base = base / max(float(np.linalg.norm(base)), 1e-6)
+         for a in np.radians([0, 30, -30, 60, -60]):
+             ca, sa = math.cos(a), math.sin(a)

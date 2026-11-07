@@ -1,0 +1,160 @@
+{
+  "episode": {
+    "goal": "Inspect(target='cabinet', candidate=None)",
+    "success_claimed": true,
+    "reason": "verified: handle observed from a valid inspection pose",
+    "completion": null,
+    "model_reason": "handle observed from a valid inspection pose",
+    "tool_calls": 3,
+    "failed_actions": 0,
+    "steps": [
+      {
+        "tool": "look_around",
+        "args": {},
+        "status": "succeeded",
+        "message": "",
+        "sim_time": 12.84,
+        "wall_time": 57.365
+      },
+      {
+        "tool": "approach",
+        "args": {
+          "candidate": 9,
+          "side": 2
+        },
+        "status": "succeeded",
+        "message": "",
+        "sim_time": 2.4,
+        "wall_time": 14.34
+      },
+      {
+        "tool": "inspect",
+        "args": {
+          "candidate": 9
+        },
+        "status": "succeeded",
+        "message": "inspection complete",
+        "sim_time": 3.68,
+        "wall_time": 23.142
+      }
+    ]
+  },
+  "agent_verdict": {
+    "satisfied": true,
+    "candidate": 9,
+    "at_inspection_pose": true,
+    "reason": "handle observed from a valid inspection pose",
+    "instances": [
+      {
+        "satisfied": false,
+        "candidate": 6,
+        "at_inspection_pose": false,
+        "reason": "2.04 m from the handle"
+      },
+      {
+        "satisfied": false,
+        "candidate": 8,
+        "at_inspection_pose": false,
+        "reason": "1.67 m from the handle"
+      },
+      {
+        "satisfied": true,
+        "candidate": 9,
+        "at_inspection_pose": true,
+        "reason": "handle observed from a valid inspection pose"
+      }
+    ]
+  },
+  "independent_verification": {
+    "goal_kind": "inspect",
+    "success_claimed": true,
+    "completion": null,
+    "terminal_stop_reason": "verified: handle observed from a valid inspection pose",
+    "model_decision_valid": {
+      "valid": true,
+      "note": "False when the model could not produce an admissible decision within the repair budget; a justified refusal is valid."
+    },
+    "navigation_success": {
+      "success": true,
+      "error_m": 0.05015970515599844,
+      "source": "odometry estimate (oracle-assisted), not independent"
+    },
+    "identity_correct": {
+      "correct": true,
+      "error_m": 0.03031317614912733
+    },
+    "viewpoint_correct": {
+      "correct": true,
+      "distance_m": 1.0175057957164915,
+      "facing_error_deg": 9.744469474964792,
+      "on_front_side": true,
+      "bounds": {
+        "range_m": [
+          0.5,
+          1.5
+        ],
+        "facing_deg": 40.0
+      }
+    },
+    "handle_visible": {
+      "visible": true,
+      "in_frustum": true,
+      "occluded": false,
+      "depth_m": 1.008443552996395,
+      "bearing_deg": 9.222396889697643,
+      "elevation_deg": 10.246843937106929
+    },
+    "independent_task_success": {
+      "success": true,
+      "basis": "identity and viewpoint"
+    },
+    "false_claim": false,
+    "cabinet_scorer": {
+      "candidates": 10,
+      "candidates_with_handle": 3,
+      "phantom_handles": 0,
+      "success": true,
+      "false_claim": false,
+      "identity_error_m": 0.03031317614912733,
+      "identified_handle": "/World/Base_west_00/Drawers/Drawer_0/Handle_0",
+      "true_handle_distance_m": 1.0175057957164915,
+      "facing_error_deg": 9.744469474964792,
+      "on_front_side": true
+    },
+    "physical_safety": {
+      "contact_events": 0,
+      "contacted_bodies": {},
+      "max_contact_impulse_ns": 0.0,
+      "safety_stop": null,
+      "fell": false,
+      "min_height_m": 0.7388330698013306,
+      "final_height_m": 0.7438420653343201,
+      "safe": true
+    },
+    "repair_count": 1,
+    "repair_changed_outcome": {
+      "changed": true,
+      "events": [
+        {
+          "result": "accepted_alternative",
+          "rejected": [
+            {
+              "model_output": "<tool_call>\n{\"name\": \"look_around\", \"arguments\": {}}\n</tool_call>",
+              "reason": "invalid, exhausted, unobserved, wrong-instance or unsafe tool target"
+            }
+          ],
+          "then": "ToolCall(name='approach', args={'candidate': 9, 'side': 2})"
+        }
+      ],
+      "note": "a rejected model decision was replaced by another action, or the repair budget ended the task"
+    },
+    "task_end_contacts": {
+      "events": 0,
+      "bodies": [],
+      "window_sim_s": [
+        10.0,
+        28.92
+      ]
+    }
+  }
+}
