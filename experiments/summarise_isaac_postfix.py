@@ -78,7 +78,8 @@ def main() -> None:
             "attributed to the fix by this comparison. One run per case.",
         ],
     }
-    (out / "summary.json").write_text(json.dumps(summary, indent=2, default=float), encoding="utf-8")
+    text = json.dumps(summary, indent=2, default=float)
+    (out / "summary.json").write_text(text, encoding="utf-8")
     print(json.dumps({k: summary[k] for k in ("gates", "outcome_changed_from_frozen",
                                               "contact_cases")}, indent=1))  # fmt: skip
 
