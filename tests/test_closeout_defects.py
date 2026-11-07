@@ -202,7 +202,9 @@ def test_selected_viewpoint_leaves_an_arrival_margin():
             chosen_any = True
             d = float(np.linalg.norm(chosen[0] - c.handle[:2]))
             assert (
-                INSPECT_RANGE[0] + ARRIVAL_MARGIN - 1e-9 <= d <= INSPECT_RANGE[1] - ARRIVAL_MARGIN + 1e-9
+                INSPECT_RANGE[0] + ARRIVAL_MARGIN - 1e-9
+                <= d
+                <= INSPECT_RANGE[1] - ARRIVAL_MARGIN + 1e-9
             ), (k, d)
     assert chosen_any
 
