@@ -359,8 +359,8 @@ def remote_exists(url: str) -> bool:
     try:
         gcloud("storage", "objects", "describe", url, "--format=value(name)")
         return True
-    except subprocess.CalledProcessError:
-        return False
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+        return False  # a slow network must not kill the poller of a job that is still running
 
 
 def submit(
