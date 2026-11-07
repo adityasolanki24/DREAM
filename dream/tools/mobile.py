@@ -57,10 +57,13 @@ INSPECT_ANGLE = math.radians(35)
 COLLISION_RADIUS = 0.27
 PLACE_TOLERANCE = 0.3  # m: twice the go_to goal tolerance, for the pose estimate's noise
 APPROACH_RUN = 0.35
-# Viewpoints are chosen at least this far inside the inspection limit (INSPECT_RANGE[1]), so
-# the robot's arrival error does not decide the verdict. Measured arrival errors in the 1 Nov
-# 2026 Isaac sessions were 0.100 m and 0.124 m (R3-b: a viewpoint 1.37 m from the handle
-# against a 1.40 m limit ended 1.49 m away). The inspection predicate itself is unchanged.
+# Viewpoints are chosen at least this far inside BOTH edges of the inspection band
+# (INSPECT_RANGE), so the robot's arrival error does not decide the verdict. Measured arrival
+# errors in the 1 Nov 2026 Isaac sessions were 0.100 m and 0.124 m (R3-b: a viewpoint 1.37 m
+# from the handle against a 1.40 m limit ended 1.49 m away). The near edge matters equally:
+# a robot already beside the handle picks the cheapest cell, which is the near edge, and an
+# arrival error of that size lands it under the minimum range, so it loops approach and
+# inspect until the budget ends (seed 1013). The inspection predicate itself is unchanged.
 ARRIVAL_MARGIN = 0.15
 
 
@@ -224,7 +227,9 @@ class MobileToolbox:
                 ).astype(int)
                 % SIDES
             )
-            eligible = (length >= INSPECT_RANGE[0]) & (length <= INSPECT_RANGE[1] - ARRIVAL_MARGIN)
+            eligible = (length >= INSPECT_RANGE[0] + ARRIVAL_MARGIN) & (
+                length <= INSPECT_RANGE[1] - ARRIVAL_MARGIN
+            )
             eligible &= (delta @ outward > 0) & (bearing == k)
             indices = np.flatnonzero(eligible)
             indices = sorted(

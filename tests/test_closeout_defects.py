@@ -201,7 +201,9 @@ def test_selected_viewpoint_leaves_an_arrival_margin():
         if chosen is not None:
             chosen_any = True
             d = float(np.linalg.norm(chosen[0] - c.handle[:2]))
-            assert INSPECT_RANGE[0] <= d <= INSPECT_RANGE[1] - ARRIVAL_MARGIN + 1e-9, (k, d)
+            assert (
+                INSPECT_RANGE[0] + ARRIVAL_MARGIN - 1e-9 <= d <= INSPECT_RANGE[1] - ARRIVAL_MARGIN + 1e-9
+            ), (k, d)
     assert chosen_any
 
 
@@ -223,3 +225,38 @@ def test_old_boundary_viewpoint_is_not_selected_but_predicate_is_unchanged():
     # The inspection predicate is not weakened or tightened: a pose within 1.4 m still counts.
     facing = np.arctan2(*(c.handle[:2] - old)[::-1])
     assert tb.inspection_pose(c, np.array([*old, facing]))[0]
+
+
+def test_robot_beside_the_handle_does_not_target_the_near_edge():
+    # Seed 1013: a robot already near the handle picks the cheapest cell in the band, which is
+    # the near edge; an arrival error of ~0.1 m then lands it under INSPECT_RANGE[0] and it
+    # loops approach and inspect to the budget. The margin applies to the near edge too.
+    tb = open_room_toolbox([1.1, -0.1, -1.57])  # 0.58 m from the handle, on its outward side
+    ok, _, dist = tb._passable()
+    c = tb._candidate(1)
+    chosen_any = False
+    for k in range(8):
+        chosen = tb.side_point(c, k, ok, dist)
+        if chosen is not None:
+            chosen_any = True
+            d = float(np.linalg.norm(chosen[0] - c.handle[:2]))
+            assert d >= INSPECT_RANGE[0] + ARRIVAL_MARGIN - 1e-9, (k, d)
+            # an arrival error of the measured size cannot take it out of the band
+            assert INSPECT_RANGE[0] <= d - 0.124 and d + 0.124 <= INSPECT_RANGE[1]
+    assert chosen_any
+
+
+def test_near_edge_viewpoint_is_not_selected_but_predicate_is_unchanged():
+    tb = open_room_toolbox([1.1, -0.1, -1.57])
+    c = tb._candidate(1)
+    grid = tb.memory.grid
+    cells = np.argwhere(np.ones_like(grid.logodds, bool))
+    ring = np.zeros(grid.logodds.shape, bool)
+    d = np.linalg.norm(grid.centre(cells[:, 0], cells[:, 1]) - c.handle[:2], axis=1)
+    ring[cells[:, 0], cells[:, 1]] = (d >= INSPECT_RANGE[0]) & (d < INSPECT_RANGE[0] + 0.1)
+    dist = np.where(ring, 1.0, np.inf)
+    assert all(tb.side_point(c, k, ring, dist) is None for k in range(8))
+    # a pose at the near edge is still a valid inspection pose: the predicate is unchanged
+    near = c.handle[:2] - np.array([0.0, INSPECT_RANGE[0] + 0.01])
+    facing = np.arctan2(*(c.handle[:2] - near)[::-1])
+    assert tb.inspection_pose(c, np.array([*near, facing]))[0]
