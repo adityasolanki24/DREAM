@@ -1,0 +1,193 @@
+{
+  "episode": {
+    "goal": "Inspect(target='cabinet', candidate=None)",
+    "success_claimed": true,
+    "reason": "verified: handle observed from a valid inspection pose",
+    "completion": null,
+    "model_reason": "handle observed from a valid inspection pose (candidate:5)",
+    "tool_calls": 4,
+    "failed_actions": 0,
+    "steps": [
+      {
+        "tool": "look_around",
+        "args": {},
+        "status": "succeeded",
+        "message": "",
+        "sim_time": 12.84,
+        "wall_time": 65.955
+      },
+      {
+        "tool": "go_to",
+        "args": {
+          "x": -1.225,
+          "y": -2.625
+        },
+        "status": "succeeded",
+        "message": "",
+        "sim_time": 11.7,
+        "wall_time": 60.407
+      },
+      {
+        "tool": "approach",
+        "args": {
+          "candidate": 5,
+          "side": 6
+        },
+        "status": "succeeded",
+        "message": "",
+        "sim_time": 11.0,
+        "wall_time": 77.677
+      },
+      {
+        "tool": "inspect",
+        "args": {
+          "candidate": 5
+        },
+        "status": "succeeded",
+        "message": "inspection complete",
+        "sim_time": 3.68,
+        "wall_time": 28.986
+      }
+    ]
+  },
+  "agent_verdict": {
+    "satisfied": true,
+    "candidate": 5,
+    "at_inspection_pose": true,
+    "reason": "handle observed from a valid inspection pose",
+    "instances": [
+      {
+        "satisfied": false,
+        "candidate": 3,
+        "at_inspection_pose": false,
+        "reason": "2.24 m from the handle"
+      },
+      {
+        "satisfied": true,
+        "candidate": 5,
+        "at_inspection_pose": true,
+        "reason": "handle observed from a valid inspection pose"
+      },
+      {
+        "satisfied": false,
+        "candidate": 6,
+        "at_inspection_pose": false,
+        "reason": "not facing the handle"
+      },
+      {
+        "satisfied": false,
+        "candidate": 8,
+        "at_inspection_pose": false,
+        "reason": "not facing the handle"
+      },
+      {
+        "satisfied": false,
+        "candidate": 15,
+        "at_inspection_pose": true,
+        "reason": "inspection from this pose still required"
+      }
+    ]
+  },
+  "independent_verification": {
+    "goal_kind": "inspect",
+    "success_claimed": true,
+    "completion": null,
+    "terminal_stop_reason": "verified: handle observed from a valid inspection pose",
+    "model_decision_valid": {
+      "valid": true,
+      "note": "False when the model could not produce an admissible decision within the repair budget; a justified refusal is valid."
+    },
+    "navigation_success": {
+      "success": true,
+      "error_m": 0.1497359755414339,
+      "source": "odometry estimate (oracle-assisted), not independent"
+    },
+    "identity_correct": {
+      "correct": true,
+      "error_m": 0.18756612737659223
+    },
+    "viewpoint_correct": {
+      "correct": true,
+      "distance_m": 1.2096040765296021,
+      "facing_error_deg": 27.839012100777616,
+      "on_front_side": true,
+      "bounds": {
+        "range_m": [
+          0.5,
+          1.5
+        ],
+        "facing_deg": 40.0
+      }
+    },
+    "handle_visible": {
+      "visible": true,
+      "in_frustum": true,
+      "occluded": false,
+      "depth_m": 1.2158781905678624,
+      "bearing_deg": -25.370220177020133,
+      "elevation_deg": 0.5963615838515689
+    },
+    "independent_task_success": {
+      "success": true,
+      "basis": "identity and viewpoint"
+    },
+    "false_claim": false,
+    "cabinet_scorer": {
+      "candidates": 15,
+      "candidates_with_handle": 5,
+      "phantom_handles": 0,
+      "success": true,
+      "false_claim": false,
+      "identity_error_m": 0.18756612737659223,
+      "identified_handle": "/World/Base_north_00/Doors/Door_L/Handle_L",
+      "true_handle_distance_m": 1.2096040765296021,
+      "facing_error_deg": 27.839012100777616,
+      "on_front_side": true
+    },
+    "physical_safety": {
+      "contact_events": 0,
+      "contacted_bodies": {},
+      "max_contact_impulse_ns": 0.0,
+      "safety_stop": null,
+      "fell": false,
+      "min_height_m": 0.7391242980957031,
+      "final_height_m": 0.7437928318977356,
+      "safe": true
+    },
+    "repair_count": 2,
+    "repair_changed_outcome": {
+      "changed": true,
+      "events": [
+        {
+          "result": "accepted_alternative",
+          "rejected": [
+            {
+              "model_output": "<tool_call>\n{\"name\": \"look_around\", \"arguments\": {}}\n</tool_call>",
+              "reason": "invalid, exhausted, unobserved, wrong-instance or unsafe tool target"
+            }
+          ],
+          "then": "ToolCall(name='go_to', args={'x': -1.225, 'y': -2.625})"
+        },
+        {
+          "result": "accepted_alternative",
+          "rejected": [
+            {
+              "model_output": "<tool_call>\n{\"name\": \"look_around\", \"arguments\": {}}\n</tool_call>",
+              "reason": "invalid, exhausted, unobserved, wrong-instance or unsafe tool target"
+            }
+          ],
+          "then": "ToolCall(name='approach', args={'candidate': 5, 'side': 6})"
+        }
+      ],
+      "note": "a rejected model decision was replaced by another action, or the repair budget ended the task"
+    },
+    "task_end_contacts": {
+      "events": 0,
+      "bodies": [],
+      "window_sim_s": [
+        10.0,
+        49.22
+      ]
+    }
+  }
+}

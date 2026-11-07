@@ -1,0 +1,132 @@
+{
+  "index": 0,
+  "sim_time_s": 10.0,
+  "model": "Qwen/Qwen3-VL-4B-Instruct",
+  "revision": "ebb281ec70b05090aa6165b016eac8ec08e71b17",
+  "image_sha256": "906372ec2d5808e045a23f2eb4199d1c5073ee04c122ffdac44cbdcb492ecc33",
+  "messages": [
+    {
+      "role": "system",
+      "text": "Interpret the user's goal from the request and current robot observation. Select one typed goal only when it preserves the user's intent and is supported by the listed mobile skills. Never invent a place or capability; otherwise call unsupported."
+    },
+    {
+      "role": "user",
+      "text": "{\"request\": \"Walk to the refrigerator\", \"required_candidate_instance\": null, \"available_places\": [\"entrance\"], \"observed_scene\": {\"pose\": [-0.076, -0.002, 0.01], \"inspection_poses\": {\"1\": {\"valid\": false, \"reason\": \"no handle seen\"}, \"2\": {\"valid\": false, \"reason\": \"no handle seen\"}}, \"odometry_source\": \"robot odometry estimate\", \"explored_m2\": 7.6425, \"candidates\": [{\"id\": 1, \"reference\": \"candidate:1\", \"color\": \"orange\", \"position\": [2.867, 1.294, 0.358], \"extent\": [0.134, 0.686, 0.722], \"views\": 11, \"handle\": null, \"handle_views\": 0, \"handle_side\": null, \"sides_seen_close\": []}, {\"id\": 2, \"reference\": \"candidate:2\", \"color\": \"orange\", \"position\": [2.935, 0.604, 0.354], \"extent\": [0.087, 0.633, 0.708], \"views\": 3, \"handle\": null, \"handle_views\": 0, \"handle_side\": null, \"sides_seen_close\": []}], \"viewpoints\": [{\"candidate\": 1, \"side\": 3, \"xy\": [1.57, 0.947], \"heading\": 0.262, \"cost_m\": 2.04, \"purpose\": \"discovery\"}, {\"candidate\": 1, \"side\": 4, \"xy\": [1.524, 1.294], \"heading\": -0.0, \"cost_m\": 2.14, \"purpose\": \"discovery\"}, {\"candidate\": 1, \"side\": 5, \"xy\": [1.917, 0.345], \"heading\": 0.785, \"cost_m\": 2.14, \"purpose\": \"discovery\"}, {\"candidate\": 1, \"side\": 6, \"xy\": [2.867, -0.049], \"heading\": 1.571, \"cost_m\": 2.95, \"purpose\": \"discovery\"}, {\"candidate\": 1, \"side\": 7, \"xy\": [2.52, -0.003], \"heading\": 1.309, \"cost_m\": 2.6, \"purpose\": \"discovery\"}, {\"candidate\": 2, \"side\": 2, \"xy\": [2.277, 1.744], \"heading\": -1.047, \"cost_m\": 3.07, \"purpose\": \"discovery\"}, {\"candidate\": 2, \"side\": 3, \"xy\": [2.005, 1.535], \"heading\": -0.785, \"cost_m\": 2.74, \"purpose\": \"discovery\"}, {\"candidate\": 2, \"side\": 4, \"xy\": [1.619, 0.604], \"heading\": -0.0, \"cost_m\": 1.97, \"purpose\": \"discovery\"}, {\"candidate\": 2, \"side\": 5, \"xy\": [2.005, -0.327], \"heading\": 0.785, \"cost_m\": 2.22, \"purpose\": \"discovery\"}, {\"candidate\": 2, \"side\": 6, \"xy\": [2.277, -0.536], \"heading\": 1.047, \"cost_m\": 2.56, \"purpose\": \"discovery\"}, {\"candidate\": 2, \"side\": 7, \"xy\": [2.595, -0.668], \"heading\": 1.309, \"cost_m\": 2.92, \"purpose\": \"discovery\"}], \"frontiers\": [{\"xy\": [0.225, 0.325], \"gain_m2\": 18.41, \"cost_m\": 0.47}, {\"xy\": [2.875, -0.125], \"gain_m2\": 17.68, \"cost_m\": 2.99}], \"inspected\": {}, \"holding\": null, \"holding_handle\": null}, \"capabilities\": [\"inspect a cabinet\", \"inspect an observed candidate instance\", \"navigate to a remembered place or observed reachable frontier/viewpoint\"], \"unsupported_capabilities\": [\"grasp\", \"open\", \"carry\", \"manipulate\"]}"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "inspect_instance",
+        "description": "Inspect exactly this observed candidate track ID; do not substitute another instance.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "candidate": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "candidate"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "go_to_frontier",
+        "description": "Navigate to the index of an observed reachable frontier.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "index": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "index"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "go_to_viewpoint",
+        "description": "Navigate to a validated observed viewpoint.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "candidate": {
+              "type": "integer"
+            },
+            "side": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "candidate",
+            "side"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "inspect_cabinet",
+        "description": "Find the cabinet and stand where it can be examined.",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "go_to_place",
+        "description": "Go to a named place already present in home memory.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "place": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "place"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "unsupported",
+        "description": "The request cannot be represented by the available mobile skills.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "reason": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "reason"
+          ]
+        }
+      }
+    }
+  ],
+  "status": "completed",
+  "output": "<tool_call>\n{\"name\": \"go_to_frontier\", \"arguments\": {\"index\": 0}}\n</tool_call>",
+  "usage": {
+    "input_tokens": 1666,
+    "output_tokens": 22
+  },
+  "inference_s": 1.473
+}
