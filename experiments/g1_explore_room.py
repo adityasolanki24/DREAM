@@ -29,6 +29,9 @@ import time
 from concurrent.futures import ProcessPoolExecutor
 from math import atan2, cos, sin
 
+if "--renderer" in sys.argv[:-1]:  # the MuJoCo backend is fixed at import: set it before that
+    _gl = sys.argv[sys.argv.index("--renderer") + 1]
+    os.environ["MUJOCO_GL"] = os.environ["PYOPENGL_PLATFORM"] = _gl
 if os.name != "nt" and "DISPLAY" not in os.environ:
     os.environ.setdefault("MUJOCO_GL", "osmesa")
     os.environ.setdefault("PYOPENGL_PLATFORM", os.environ["MUJOCO_GL"])
@@ -283,6 +286,7 @@ def episode(args: tuple) -> dict:
     out = {
         "kind": kind, "seed": seed, "method": method, "claimed": ep.success_claimed,
         "reason": ep.reason, "tool_calls": [s.call.name for s in ep.steps],
+        "renderer": os.environ.get("MUJOCO_GL"),
         "sim_s": env.time, "wall_s": wall, "fell": base.stop_reason is not None,
         "contact_steps": monitor.contact_steps, "path_m": monitor.path_m,
         "candidates": len(tb.memory.candidates), "frames": tb.memory.frames,
@@ -419,7 +423,8 @@ def select_arm(cfg: dict, arm: str | None) -> dict:
     if arm not in cfg["arms"]:
         raise SystemExit(f"--arm is required, one of {sorted(cfg['arms'])}")
     a = cfg["arms"][arm]
-    return cfg | {k: a[k] for k in ("seeds", "methods", "methods_by_kind") if k in a} | {"arm": arm}
+    keys = ("seeds", "methods", "methods_by_kind", "renderer")
+    return cfg | {k: a[k] for k in keys if k in a} | {"arm": arm}
 
 
 def main() -> None:
@@ -429,9 +434,19 @@ def main() -> None:
     ap.add_argument("--resume", action="store_true", help="keep episodes already in out dir")
     ap.add_argument("--out", help="output directory (default results/<name>[/<arm>])")
     ap.add_argument("--arm", help="run one named arm of a config that defines 'arms'")
+    ap.add_argument(
+        "--renderer",
+        choices=["egl", "osmesa", "glfw"],
+        help="MuJoCo rendering backend (sets MUJOCO_GL before import; recorded in every row)",
+    )
     args = ap.parse_args()
     cfg = json.loads(pathlib.Path(args.config).read_text())
     cfg = select_arm(cfg, args.arm)
+    used = os.environ.get("MUJOCO_GL")
+    if args.renderer and used != args.renderer:
+        raise SystemExit(f"--renderer {args.renderer} but MUJOCO_GL={used}")
+    if cfg.get("renderer") and used != cfg["renderer"]:
+        raise SystemExit(f"config declares renderer {cfg['renderer']} but MUJOCO_GL={used}")
     sha, dirty = code_sha(ROOT), code_dirty(ROOT)
     rec_root = os.environ.get("DREAM_RECORDINGS_ROOT", "/tmp/DREAM/recordings")
     record = {tuple(r) for r in cfg.get("record", [])}
@@ -469,7 +484,7 @@ def main() -> None:
     summary = summarise(rows, cfg)
     meta = {
         "config": cfg, "git_sha": sha, "dream_dirty_at_start": dirty,
-        "mujoco": mujoco.__version__, "machine": platform.platform(),
+        "renderer": used, "mujoco": mujoco.__version__, "machine": platform.platform(),
         "wall_s": time.perf_counter() - t0,
         "odometry": "oracle-assisted (true increments + noise), dream/sim/g1_mobile.py",
     }  # fmt: skip
