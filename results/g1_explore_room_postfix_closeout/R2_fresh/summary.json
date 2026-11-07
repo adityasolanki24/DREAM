@@ -1,0 +1,260 @@
+{
+  "meta": {
+    "config": {
+      "name": "g1_explore_room_postfix_closeout",
+      "status": "frozen",
+      "label": "post-fix development and renderer diagnostic; NOT held-out (the fresh seeds 1300-1319, 2300-2309 and 3100-3109 have been seen in results/g1_explore_room_closeout); gain arm only; no frozen result is replaced and no historical result is rescored",
+      "_note": "Two questions after results/g1_explore_room_bisect_closeout. (a) Is the room outcome sensitive to the MuJoCo renderer (history matches OSMesa; the closeout cloud runs used EGL)? (b) Does the symmetric arrival margin in MobileToolbox.side_point (viewpoints at least ARRIVAL_MARGIN inside BOTH edges of INSPECT_RANGE; the validity predicate is unchanged) fix the near-edge loop of seed 1013 without harming anything else? Seed ranges are half-open [a, b). Same room generators, budgets and gain frontier policy as g1_explore_room_closeout. Nothing is tuned after seeing results.",
+      "seeds": {
+        "nominal": [
+          1300,
+          1320
+        ],
+        "shifted": [
+          2300,
+          2310
+        ],
+        "no_cabinet": [
+          3100,
+          3110
+        ]
+      },
+      "methods": [
+        "gain"
+      ],
+      "time_budget_s": 240,
+      "max_steps": 60,
+      "record": [],
+      "arms": {
+        "R1": {
+          "description": "renderer attribution: PRE-FIX code, MUJOCO_GL=osmesa, fresh seeds. Compare per seed with the frozen EGL result (results/g1_explore_room_closeout, gain rows). Count how many outcomes the renderer alone flips.",
+          "code": "branch claude/postfix-r1-prefix-20261107: e640ce9 plus only the renderer-argument commit and this config. dream/ tree hash equals git rev-parse e640ce9:dream (04afd9e74c8bc059eb8557e364b7f3f1b517d2d4, also the dream/ of a3b4304, the frozen closeout code).",
+          "renderer": "osmesa",
+          "seeds": {
+            "nominal": [
+              1300,
+              1320
+            ],
+            "shifted": [
+              2300,
+              2310
+            ],
+            "no_cabinet": [
+              3100,
+              3110
+            ]
+          },
+          "methods": [
+            "gain"
+          ],
+          "methods_by_kind": {
+            "nominal": [
+              "gain"
+            ],
+            "shifted": [
+              "gain"
+            ],
+            "no_cabinet": [
+              "gain"
+            ]
+          },
+          "compare_with": "results/g1_explore_room_closeout (gain rows)"
+        },
+        "R2_fresh": {
+          "description": "post-fix, EGL, fresh seeds. Compare per seed with the frozen result (results/g1_explore_room_closeout, gain rows).",
+          "code": "branch claude/closeout-evals-20261106 at the commit that adds this config (includes the fix)",
+          "renderer": "egl",
+          "seeds": {
+            "nominal": [
+              1300,
+              1320
+            ],
+            "shifted": [
+              2300,
+              2310
+            ],
+            "no_cabinet": [
+              3100,
+              3110
+            ]
+          },
+          "methods": [
+            "gain"
+          ],
+          "methods_by_kind": {
+            "nominal": [
+              "gain"
+            ],
+            "shifted": [
+              "gain"
+            ],
+            "no_cabinet": [
+              "gain"
+            ]
+          },
+          "compare_with": "results/g1_explore_room_closeout (gain rows)"
+        },
+        "R2_hist": {
+          "description": "post-fix, EGL, historical seeds. Compare per seed with A1 (results/g1_explore_room_regression_closeout/A1: pre-fix, EGL, same seeds).",
+          "code": "same as R2_fresh",
+          "renderer": "egl",
+          "seeds": {
+            "nominal": [
+              1000,
+              1020
+            ],
+            "shifted": [
+              2000,
+              2010
+            ],
+            "no_cabinet": [
+              3000,
+              3006
+            ]
+          },
+          "methods": [
+            "gain"
+          ],
+          "methods_by_kind": {
+            "nominal": [
+              "gain"
+            ],
+            "shifted": [
+              "gain"
+            ],
+            "no_cabinet": [
+              "gain"
+            ]
+          },
+          "compare_with": "results/g1_explore_room_regression_closeout/A1"
+        },
+        "R3": {
+          "description": "post-fix, OSMesa, historical seeds. Compare per seed with results/g1_explore_room gain rows (the historical 20/20, 8/10, 6/6 record, produced under OSMesa).",
+          "code": "same as R2_fresh",
+          "renderer": "osmesa",
+          "seeds": {
+            "nominal": [
+              1000,
+              1020
+            ],
+            "shifted": [
+              2000,
+              2010
+            ],
+            "no_cabinet": [
+              3000,
+              3006
+            ]
+          },
+          "methods": [
+            "gain"
+          ],
+          "methods_by_kind": {
+            "nominal": [
+              "gain"
+            ],
+            "shifted": [
+              "gain"
+            ],
+            "no_cabinet": [
+              "gain"
+            ]
+          },
+          "compare_with": "results/g1_explore_room (gain rows); contact classes compared with A1 because the historical rows carry none"
+        }
+      },
+      "gates": {
+        "_note": "Inherited unchanged from g1_explore_room_closeout so the runner can summarise; no gate is claimed by this diagnostic. The retention rule below is separate.",
+        "nominal_success_min": 0.9,
+        "shifted_success_min": 0.7,
+        "no_cabinet_refusal_min": 0.9,
+        "max_false_claims": 0,
+        "max_falls": 0
+      },
+      "pre_declared_reading": {
+        "outcome": "pass = nominal and shifted: success (claim at the handle, verified against ground truth by the scorer); no_cabinet: correct refusal under the original scorer (no claim, no fall). A flip is a seed whose pass flag differs between the two compared runs. strict success and refusal_category are reported too; neither redefines pass.",
+        "R1_renderer_sensitivity": "Number of seeds (of 40) whose pass flag in R1 differs from the frozen EGL row. Reported overall and per kind, with direction. Outcome differences with the same renderer are not attributed to the renderer by this arm alone; R1 isolates the renderer only to the extent that the machine class, code and seeds are identical, and the frozen run was a different session. Cross-run MuJoCo reproducibility is not bit-exact; the count is an upper estimate of the renderer effect, not an attribution of mechanism.",
+        "R2": "Per-seed pass change versus the frozen result (fresh seeds) and versus A1 (historical seeds), listing the seeds that go fail-to-pass and pass-to-fail.",
+        "R3": "Per-seed pass change versus the historical gain rows of results/g1_explore_room.",
+        "retention_rule": "The fix commit is retained only if ALL of: (1) no false claim in any post-fix row (R2_fresh, R2_hist, R3); (2) no fall in any post-fix row; (3) for each of R2_fresh, R2_hist and R3, the number of episodes with any hand or foot contact (contact_classes containing hand_handle, hand_furniture or foot_furniture) does not exceed its baseline by more than 2 episodes (baselines: frozen closeout rows, A1, and A1 respectively); (4) seed 1013 succeeds in R3 (OSMesa); (5) no net decrease in pass count within any arm: for each of R2_fresh, R2_hist and R3 the pass count over all three kinds is at least its baseline pass count. Per-kind pass counts are reported alongside; a per-kind decrease is reported and flagged and is read as a failure of (5) if the owner reads 'arm' as 'kind'. If any condition fails the owner will revert the fix. This job does not revert or retain it; it reports each condition.",
+        "not_claims": "No held-out claim is made. Passing the retention rule would not show the fix generalises beyond these seeds; the fresh seeds have been seen. Rule 3 class of the fix: general algorithmic correction (a defect in a general viewpoint-selection mechanism), whose independent cases from outside the development set remain outstanding."
+      },
+      "environment": "cloud g2-standard-8 (NVIDIA L4), MuJoCo 3.16. The runner takes --renderer egl|osmesa, sets MUJOCO_GL and PYOPENGL_PLATFORM before importing mujoco, aborts if the arm's declared renderer differs, and records the renderer used in every episode row and in summary.json meta. The guest default for the dream environment is egl; osmesa arms pass --renderer osmesa explicitly. Workers and job timeouts are set so no arm is cut off (OSMesa is about 3x slower than EGL: the bisect's OSMesa runs took about 3000 s for 21 of 26 episodes); a timed-out arm is completed with --resume, and logs are kept.",
+      "operations": "one session per arm group as budget requires; a timeout or mechanical crash is repaired by --resume on the remaining seeds only, logs kept",
+      "methods_by_kind": {
+        "nominal": [
+          "gain"
+        ],
+        "shifted": [
+          "gain"
+        ],
+        "no_cabinet": [
+          "gain"
+        ]
+      },
+      "renderer": "egl",
+      "arm": "R2_fresh"
+    },
+    "git_sha": "aba05d18b683977712ad10a32c7928cd7c23be63",
+    "dream_dirty_at_start": false,
+    "renderer": "egl",
+    "mujoco": "3.16.0",
+    "machine": "Linux-6.8.0-1070-gcp-x86_64-with-glibc2.35",
+    "wall_s": 2465.812084146999,
+    "odometry": "oracle-assisted (true increments + noise), dream/sim/g1_mobile.py"
+  },
+  "by_condition": {
+    "nominal/gain": {
+      "n": 20,
+      "success": 17,
+      "success_ci95": [
+        0.6395767041130426,
+        0.9476322080405041
+      ],
+      "false_claims": 0,
+      "correct_refusals": 0,
+      "falls": 0,
+      "episodes_with_contact": 1,
+      "median_sim_s": 47.52000000000586,
+      "median_path_m": 7.5905390538608515,
+      "median_success_sim_s": 48.020000000006114
+    },
+    "shifted/gain": {
+      "n": 10,
+      "success": 8,
+      "success_ci95": [
+        0.49015684672072335,
+        0.9433190520193067
+      ],
+      "false_claims": 0,
+      "correct_refusals": 0,
+      "falls": 0,
+      "episodes_with_contact": 4,
+      "median_sim_s": 162.81999999992442,
+      "median_path_m": 26.1669383679585,
+      "median_success_sim_s": 134.76999999994993
+    },
+    "no_cabinet/gain": {
+      "n": 10,
+      "success": 0,
+      "success_ci95": [
+        0.0,
+        0.2775401687666166
+      ],
+      "false_claims": 0,
+      "correct_refusals": 10,
+      "falls": 0,
+      "episodes_with_contact": 5,
+      "median_sim_s": 177.0399999999115,
+      "median_path_m": 29.40419511372101,
+      "median_success_sim_s": null
+    }
+  },
+  "gates": {
+    "nominal_success": false,
+    "shifted_success": true,
+    "no_cabinet_refusal": true,
+    "false_claims": true,
+    "falls": true
+  }
+}

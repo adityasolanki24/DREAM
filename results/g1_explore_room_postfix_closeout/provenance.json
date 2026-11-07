@@ -1,0 +1,18 @@
+{
+  "label": "post-fix development and renderer diagnostic; not held-out; does not replace results/g1_explore_room_closeout",
+  "frozen_config": "experiments/configs/g1_explore_room_postfix_closeout.json",
+  "fix_commit": "eaa313a (symmetric arrival margin at the near edge of the inspection band, validity predicate unchanged)",
+  "arms": {
+    "R1": {"session": "dream-qwen-isaac-20261107-111857-50f10e", "job": 1, "code": "117c97d (branch claude/postfix-r1-prefix-20261107; dream/ equals e640ce9:dream)", "renderer": "osmesa", "started_utc": "2026-11-07T00:25:40Z", "finished_utc": "2026-11-07T01:28:25Z"},
+    "R2_fresh": {"session": "dream-qwen-isaac-20261107-111857-50f10e", "job": 2, "code": "aba05d1", "renderer": "egl", "started_utc": "2026-11-07T02:05:34Z", "finished_utc": "2026-11-07T02:46:40Z"},
+    "R3": {"session": "dream-qwen-isaac-20261107-135221-dcf71e", "job": 1, "code": "aba05d1", "renderer": "osmesa"},
+    "R2_hist": {"session": "dream-qwen-isaac-20261107-135221-dcf71e", "job": 2, "code": "aba05d1", "renderer": "egl"}
+  },
+  "disclosures": [
+    "R1's local poller died on a 120 s gcloud timeout after the job had finished; the job itself exited 0 and its outputs were copied from the bucket by hand and checked against the job's MANIFEST.sha256 (6 of 6). The VM sat idle for about 37 minutes as a result.",
+    "aba05d1 differs from the frozen config's commit 39955b2 only in cloud/isaac_session.py (poller) and the summariser; dream/ and the config are the same.",
+    "A second session start was refused by the one-GPU-session guard while the first was running; it created no resources. The guard was not changed.",
+    "Rows for rooms with no valid start (1313, 1319) carry no renderer field in R1 because the scene failed before the renderer was recorded.",
+    "The fresh seeds were seen in the frozen run before the fix was written, so R2_fresh is development evidence."
+  ]
+}
