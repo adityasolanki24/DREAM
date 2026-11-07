@@ -95,8 +95,8 @@ def test_closeout_configs_are_frozen_and_gates_not_weaker_than_requested():
             continue
         s = json.loads(f.read_text()).get("seeds")
         if isinstance(s, dict):
-            for a, b in s.values():
-                used |= set(range(a, b))
+            for r in s.values():
+                used |= {r[0]} if len(r) == 1 else set(range(*r))  # single-seed lists exist
     for a, b in room["seeds"].values():
         assert not used & set(range(a, b))
     assert comp["seed0"] >= 5030  # the seen compartment set is 5000-5029
