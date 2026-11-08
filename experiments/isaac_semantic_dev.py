@@ -19,8 +19,10 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import pathlib
 import sys
+import traceback
 
 import numpy as np
 
@@ -33,9 +35,11 @@ CONVENTIONS = ("relative1000", "absolute")
 # at least this much higher than relative1000.
 SWITCH_MARGIN = 0.1
 MATCH_IOU = 0.5
-RING_DISTANCES_M = (1.6, 2.4, 3.2)
-RING_BEARINGS_DEG = tuple(range(0, 360, 45))
+RING_DISTANCES_M = (1.2, 1.6, 2.0, 2.5, 3.0)
+RING_BEARINGS_DEG = tuple(range(0, 360, 30))
 FRAMES_PER_TARGET = 6
+VISIBILITY_SAMPLES = (0.2, 0.35, 0.5, 0.65, 0.8)  # heights within the box, as a fraction
+MIN_VISIBLE_FRACTION = 0.2  # of the projected box inside the image
 STAND_S = 3.0
 
 
@@ -249,6 +253,7 @@ def measure(args, cfg) -> None:  # pragma: no cover - needs Isaac Sim
         "sink": [o for o in labelled if o.label in ("sink", "sink_rim", "sink_basin")],
     }
     records = []
+    failure = None
     try:
         for cls, prims in targets.items():
             lo = np.min([p.lo for p in prims], axis=0)
@@ -265,11 +270,19 @@ def measure(args, cfg) -> None:  # pragma: no cover - needs Isaac Sim
                     continue
                 position, rotation = env._torso_pose()
                 camera = head_camera_world(position, rotation, HEAD_CAMERA)
-                visible = handle_visibility(camera, ((lo + hi3) / 2).tolist(), scene_boxes)
+                # The head camera looks 35 degrees down, so a tall object is only partly in the
+                # image: accept a frame when a point inside the box is unoccluded and in the
+                # frustum, and score against the box clipped to the image.
+                visible = {"visible": False}
+                for fraction in VISIBILITY_SAMPLES:
+                    point = np.array([centre[0], centre[1], lo[2] + fraction * (hi3[2] - lo[2])])
+                    visible = handle_visibility(camera, point.tolist(), scene_boxes)
+                    if visible.get("visible"):
+                        break
                 projected = project_box(camera, lo, hi3, HEAD_CAMERA.width, HEAD_CAMERA.height)
                 if not visible.get("visible") or projected is None:
                     continue
-                if projected["visible_fraction"] < 0.5:
+                if projected["visible_fraction"] < MIN_VISIBLE_FRACTION:
                     continue
                 frame = base.capture()
                 name = f"{cls}_{i:02d}"
@@ -315,7 +328,8 @@ def measure(args, cfg) -> None:  # pragma: no cover - needs Isaac Sim
             "image_size": [HEAD_CAMERA.width, HEAD_CAMERA.height],
             "method": "robot reset to ring poses around the true object, head camera frame, "
             "VLMDetector prompt, true AABB projected with the true camera pose (occlusion by "
-            "other furniture not modelled, centre visibility checked). Evaluation only.",
+            "other furniture not modelled; unoccluded in-frustum sample point required). "
+            "Evaluation only.",
             "summary": summarise(records),
             "frames": records,
             "max_output_tokens": max(
@@ -326,10 +340,19 @@ def measure(args, cfg) -> None:  # pragma: no cover - needs Isaac Sim
             json.dumps(result, indent=2, default=str), encoding="utf-8"
         )
         print(json.dumps(result["summary"], indent=2))
+    except BaseException:
+        # SimulationApp.close(skip_cleanup=True) ends the process with status 0 and hides the
+        # traceback (the first attempt of this job exited 0 with no result), so record it first.
+        failure = traceback.format_exc()
+        print(failure, flush=True)
+        (args.out / "error.txt").write_text(failure, encoding="utf-8")
     finally:
         stop_process(server, 60, term=True)
         if server_log is not None:
             server_log.close()
+        if failure is not None:
+            sys.stdout.flush()
+            os._exit(1)
         app.close(wait_for_replicator=False, skip_cleanup=True)
 
 

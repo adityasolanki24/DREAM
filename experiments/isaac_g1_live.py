@@ -23,6 +23,7 @@ import signal
 import subprocess
 import sys
 import time
+import traceback
 import urllib.request
 from urllib.parse import urlparse
 
@@ -649,6 +650,12 @@ def serve(args, cfg):
                 )
             ),
         )
+    except BaseException:
+        # app.close(skip_cleanup=True) below ends the process with status 0; print the
+        # traceback first so a setup failure is visible in the job log.
+        traceback.print_exc()
+        sys.stderr.flush()
+        raise
     finally:
         if "env" in locals():
             evidence.write(
