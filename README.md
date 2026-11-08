@@ -26,6 +26,11 @@ The previous README is preserved in `archive/documentation-closeout-20261107.zip
   manipulation request without moving. It made **one false success claim** in 216 held-out
   episodes: a shower claimed as the bathtub, in a larger home with no bathtub. That fails the
   pre-registered zero-false-claim gate (G0). No baseline made one.
+- **Verifier fix, confirmed on fresh seeds.** A confidence check on label purity was added and confirmed on 384 fresh-seed episodes:
+  - it made 0 false claims in 192 episodes, against 1 for the frozen rule;
+  - it found the target in 94 of 96 homes, against 93;
+  - it is now the verifier default;
+  - the held-out record above is not rescored.
 - **No efficiency gain.** On the pre-registered primary comparison it was no faster than DREAM's
   existing frontier explorer: median paired difference 0 s, p = 0.73. Removing its semantic
   components changed nothing measurable. **G3 is not met.**
@@ -77,6 +82,7 @@ The previous README is preserved in `archive/documentation-closeout-20261107.zip
 | Object search, G1 whole-body controller (H4) | 14/15 vs A 13/15; 0/24 false claims; 0 falls | **PASS** G8 |
 | Object search, shifted homes and new targets (H2) | Proposed 31/32 vs A 29/32; **1/48 false claim** (shower claimed as bathtub) | **FAIL** G0, G7 |
 | Object search, degraded detector (H3) | Proposed 14/16 vs A 11/16; 0/24 false claims; single-view 10/16 false claims | Reported (G6) |
+| Verifier confidence fix, fresh seeds (V1) | 0/192 false claims vs 1/192 for the frozen rule; found 94 vs 93 of 96 | **PASS** V1, V2; now the default |
 | Room inference from objects | Top-1 61%; labelled 62/70; laundry and storage 0% | Measured, heuristic |
 | Qwen on Isaac G1, semantic re-test, held-out kitchens | New path 0/9 false successes, 4/4 unsupported requests refused; old path 4/6 false successes; 0 falls; `l_island` never loaded | Gates **INCOMPLETE** |
 | Qwen on Isaac G1, frozen matrix | 3 false claims, T3 1/3, T4 2/3; falls 0, T1 3/3, T2 3/3 | **FAIL** |
@@ -353,6 +359,39 @@ of frames. Target: refrigerator.
 - **Single-view verification fails badly here (G6).** It claimed a refrigerator in all 8 homes
   that had none, and claimed a storage shelf in 2 of the 8 that had one.
 
+**Verifier fix, confirmed on fresh seeds (V1; gates V1 and V2 PASS).**
+- **Where.** Results are in `results/semantic_search_verifier_v2`: 384 episodes on seeds 9200-9205, which no earlier config or result had used. The config was frozen at `4726ede` and the code ran from `2db3904`.
+- **What changed.** The verifier now also requires 95% one-sided confidence that the target is the track's majority label. In terms of the Wilson score lower bound on (target labels / all labels):
+  - the bound must exceed 0.5, on top of the existing point purity ≥ 0.6;
+  - 3 of 5 views gives 0.27 and is refused;
+  - 3 of 3 gives 0.53, and 4 of 4 gives 0.60, so both are accepted.
+
+  Nothing else changed.
+- **Design.** Both arms use the proposed planner. The target is present in shifted-generator scenario B and D homes (96 pairs) and absent in scenario E homes (shifted and nominal, 96).
+
+| Verifier | Found, target present | False claims | Correct refusal, absent | Median time to verified find |
+|---|---|---|---|---|
+| Frozen rule (point purity) | 93/96 | 1/192 | 96/96 | 76.6 s |
+| **With the confidence check** | **94/96** | **0/192** (≤ 1.6%) | 96/96 | 79.9 s |
+
+- **V1 passes: no false claims.**
+  - The frozen rule made one false claim, and it was a new kind: a stove claimed on a countertop after 29 s (shifted B, seed 9204).
+  - The confidence check refused that track and later found the real stove.
+  - That is the only home where the two arms differed (McNemar p = 1.0).
+- **V2 passes:** 94 vs 93 found, against a threshold of 90.
+- **The cost is time.** The confidence check accepted later in 21 of the 93 homes where both arms found the target:
+  - at most 12.9 s later, and 120 s in total;
+  - the median paired difference is 0 s, with Wilcoxon p < 0.001.
+- **Shadow log of look-alike acceptances.** The shadow log records every acceptance each rule would have made, judged against the nearest true object:
+  - the point rule accepted one look-alike in each arm, and the confidence rule none;
+  - replaying the H2 episode (development evidence, not part of V1), the point rule would have accepted the shower at 581.7 s, and the confidence rule accepted nothing.
+- **What V1 does and does not show.**
+  - Avoiding one false claim in 192 episodes is not a statistically demonstrated reduction.
+  - V1 does show that the stricter rule cost no successes on fresh homes.
+  - It also removes the weakness behind both look-alike claims seen so far: accepting on a handful of mixed labels.
+
+Under the pre-registered rule, the confidence check is now the verifier default (`6fffdac`). Every earlier result used the point rule and reproduces from its frozen commit. The H1-H4 gates are not rescored.
+
 **Room inference** (proposed arm, H1, 293 region instances with evidence). The top room type was
 right for 178 regions (61%). The cautious label committed 70 times and was right 62 times (89%);
 226 regions stayed "ambiguous". These are heuristic weights, so no calibration is claimed.
@@ -507,6 +546,7 @@ Rule 3 classes for everything that affects the object-search results.
 | Remembered sightings placed using the true start pose (scenario I) | Environment simplification | Oracle-assisted initial localisation. |
 | ConceptNet associations, room-label thresholds 0.5 and 0.2, verifier thresholds | Task-specific heuristic | Scope is stated in the code. Where they break is measured: laundry and storage rooms 0% top-1. |
 | κ = 3 and the planner constants | Task-specific heuristic, calibrated on development homes | Chosen by the dev3 rule, then frozen. |
+| Confidence check on label purity: Wilson lower bound with z = 1.645 must exceed 0.5 (`purity_rule`) | General algorithmic correction | Original failure: H2, E, seed 6001 (`H2_false_claim_diagnosis.json`). Independent cases: V1, fresh seeds 9200-9205. Tested only with the nominal detector model on the kinematic base. |
 | Depth-only rendering in the search benchmark | Speed change, not a task change | Nothing reads colour. The noise streams differ from colour runs, and all arms share them. |
 
 ## Safety and failure analysis
@@ -515,7 +555,7 @@ Rule 3 classes for everything that affects the object-search results.
 |---|---|---|
 | Request-to-goal substitution produces false claims | T3 and T4, both 7 Nov Qwen runs. Replayed outputs refused, and the fault-injection gate holds (0/40). Isaac held-out re-test: old path 4/6, new path 0/9 (gates incomplete) | **Fixed** in tested paths |
 | A single sighting of a look-alike accepted as the target | Single-view ablation: 17/50 false claims in H1, 10/16 in H3 | Reduced by the multi-view verifier, not prevented |
-| A look-alike accepted after many passive views | H2: a shower verified as the bathtub after 582 s (1/48) | **Open** |
+| A look-alike accepted on a few mixed labels | H2: a shower verified as the bathtub after 582 s (1/48). V1, frozen rule: a stove claimed on a countertop (1/192) | **Fixed** in tested paths: confidence check, 0/192 in V1 |
 | Isaac kitchens lack the refrigerator and oven (404 assets) | `results/isaac_semantic_dev/scene_probe_5_kitchens.json` | Environment fact; refrigerator tasks are absent-target |
 | Hand contact during inspection | Room: hand on furniture 23 of 60 frozen episodes. Isaac: 2 of 15 after the fix, peak 0.36 N s, scorer marks unsafe | **Open** |
 | Foot contact and falls | 0 in every closeout room and Qwen case | Measured |
@@ -539,8 +579,10 @@ Rule 3 classes for everything that affects the object-search results.
 - The benchmark homes are small rectangular grids of rooms. Their furnishing tables and the
   scoring were written by the same author, which risks shared assumptions. The agent's knowledge
   comes from ConceptNet, not from those tables.
-- The H1-H4 seeds are now seen. Any change to the planner, verifier or knowledge needs fresh
-  held-out seeds.
+- The H1-H4 seeds and the V1 seeds (9200-9205) are now seen. Any further change to the planner,
+  verifier or knowledge needs fresh held-out seeds.
+- The verifier's confidence check is confirmed only with the nominal detector model on the
+  kinematic base. It is untested with the degraded detector, the G1 controller and in Isaac.
 - `web/interface-e2e.cjs` was not run. The Android app was not exercised on a device in this closeout.
 
 ## Unsuccessful outcomes, preserved
@@ -569,7 +611,7 @@ fragments that called the same surface "shower" were not consulted. Pooling neig
 safe fix, because the shower's fragments also touch an armchair's tracks.
 
 The frozen result is not rescored. The fix and its confirmation on fresh seeds are under "Verifier
-fix" once run.
+fix" in Results.
 
 ## Reproduction
 
@@ -616,11 +658,25 @@ $PY = ".venv/Scripts/python.exe"; $C = "experiments/configs/semantic_search_held
 H4 runs on the cloud's `dream` environment through `experiments/cloud_bootstrap.py`, which installs
 the hash-pinned scipy from `cloud/semantic.requirements.lock.txt`.
 
-**Final verification:** not yet rerun on this branch. On the 7 November tree: Python fast 595 passed
-and 1 skipped; slow 30 passed; isolation 17 passed; web types, 57/57 tests and production build;
-Android unit tests and build. Ruff is clean on
-tracked Python except inside `results/` and two camera measurement harnesses, left byte-identical to
-the code that produced their results.
+Verifier fix (V1): run from a checkout of `2db3904`. From `6fffdac` on, the default rule is the confidence check, so both arms would be identical. The episode diagnosis replays the frozen H2 code from `9d08c27`.
+
+```powershell
+& $PY experiments/semantic_search_eval.py experiments/configs/semantic_search_verifier_v2.json --split V1 --workers 3 --out results/semantic_search_verifier_v2/V1
+& $PY experiments/verifier_v2_gates.py results/semantic_search_verifier_v2/V1 --out results/semantic_search_verifier_v2/gates.json
+& $PY experiments/diagnose_search_episode.py experiments/configs/semantic_search_heldout.json --split H2 --scenario E --target bathtub --seed 6001 --code-root <checkout of 9d08c27> --focus-tracks 88,124 --out results/semantic_search_heldout/H2_false_claim_diagnosis.json
+```
+
+**Final verification**, on this branch at `6fffdac`:
+- Python fast suite: 772 passed, 1 skipped.
+- Slow suite: 61 passed.
+- Isolation: 19 passed.
+- Web: type check, 60/60 tests and the production build.
+- Android: unchanged since the 7 November tree, where unit tests and build passed. Not rerun.
+
+Ruff is clean on tracked Python, apart from files left byte-identical to the code that produced their results:
+- everything inside `results/`;
+- the two camera measurement harnesses;
+- `experiments/extract_household_knowledge.py`, which produced the ConceptNet extract the frozen evaluations used.
 
 ## Git references
 
@@ -634,7 +690,8 @@ the code that produced their results.
 | `claude/wholebody-autonomy` (8f47475) | W6 | **Not merged**: failed gates |
 | `claude/room-margin-diagnostic` (1fce5c5), `claude/postfix-r1-prefix-20261107` (117c97d), `claude/bisect-throwaway-20261107` | Diagnostics | Never merge |
 
-Key commits: `eaa313a` the fix; `b8208bb` the regression; `b0e2e17` frozen Qwen run; `a3b4304` frozen
+Key commits: `2db3904` the verifier confidence check, V1 ran from it; `6fffdac` it becomes the
+default; `eaa313a` the room fix; `b8208bb` the regression; `b0e2e17` frozen Qwen run; `a3b4304` frozen
 room run; `aba05d1` post-fix runs. Earlier heads are retained by `archive/2026-10-29/...` tags.
 
 ## Cloud cost and cleanup

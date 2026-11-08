@@ -164,8 +164,11 @@ def main() -> None:
     cond["retain_arm_per_kind"] = bool(cond["retain_arm_pooled"] and cond["5_ok_per_kind"])
     summary = {
         "label": "post-fix development and renderer diagnostic; not held-out",
-        "R1_renderer_flips": None if r1 is None else {
-            "of": r1["n"], "flipped": r1["flips_total"],
+        "R1_renderer_flips": None
+        if r1 is None
+        else {
+            "of": r1["n"],
+            "flipped": r1["flips_total"],
             "fail_to_pass_under_osmesa": r1["fail_to_pass"],
             "pass_to_fail_under_osmesa": r1["pass_to_fail"],
             "by_kind": {k: v["flips"] for k, v in r1["by_kind"].items()},
