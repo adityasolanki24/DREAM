@@ -1,0 +1,38 @@
+household_knowledge: room-type and synonym priors for household objects (DREAM)
+Generated (UTC): 2026-11-08T04:04:23Z (knowledge.json "generated_utc")
+Licence: knowledge.json is a derived work under CC BY-SA 4.0; WordNet 3.0 licence applies to WordNet-derived
+fields. See LICENSE.txt. Not hand-tuned: every edge/synonym comes from the sources below.
+
+Sources (downloaded into %LOCALAPPDATA%\DREAM\knowledge_cache, not into the repo; treated as untrusted data)
+1. ConceptNet 5.7.0 assertions dump (CC BY-SA 4.0), 497963447 bytes
+   URL: https://s3.amazonaws.com/conceptnet/downloads/2019/edges/conceptnet-assertions-5.7.0.csv.gz
+   SHA-256: accd65fe94038584295574ddc26e1500c1919c8c4532bf771811cafd0948af7e
+   S3 Last-Modified 2019-07-03; gzip integrity verified; 34,074,917 lines scanned.
+   The API (api.conceptnet.io) returned 502 Bad Gateway on 2026-11-08, so the dump was used.
+2. WordNet 3.0 (Princeton), plain dict files from the NLTK data package
+   URL: https://raw.githubusercontent.com/nltk/nltk_data/gh-pages/packages/corpora/wordnet.zip
+   SHA-256: cbda5ea6eef7f36a97a43d4a75f85e07fccbb4f23657d27b4ccbc93e2646ab59 (parsed from data.noun,
+   index.noun, index.verb; no NLTK dependency)
+
+Reproduce (stdlib only; paths are the cache locations; run from the repo root; ~2 minutes):
+  .venv/Scripts/python.exe -I experiments/extract_household_knowledge.py \
+    --conceptnet-dump "$LOCALAPPDATA/DREAM/knowledge_cache/conceptnet-assertions-5.7.0.csv.gz" \
+    --wordnet-dir "$LOCALAPPDATA/DREAM/knowledge_cache/wn/x/wordnet" \
+    --out-dir third_party/household_knowledge \
+    --wordnet-zip-sha256 cbda5ea6eef7f36a97a43d4a75f85e07fccbb4f23657d27b4ccbc93e2646ab59
+  (wordnet.zip was unzipped into .../wn/x/)
+
+Contents
+- knowledge.json  (schema version 3): per object, "places" (edges with relation, direction, weight, surface,
+  source, concept_uri, object_variant, place_variant; relations AtLocation, LocatedNear, HasA, PartOf,
+  RelatedTo, both directions, English only, unweighted by relation), "synonyms" (with grammar_safe and
+  reason), "rejected_synonyms", plus "target_synsets" (WordNet household sense used per object).
+- COVERAGE.txt    objects x places table, per-relation counts, objects with no evidence.
+- grammar_safe = lemma of the target WordNet 3.0 synset (or a multiword ConceptNet synonym sharing it), the
+  synset is the word's dominant noun sense, and the text is not safe/named for any other object.
+  SENSE_OVERRIDE in the script corrects two synsets (television, toilet).
+- Schema v3 additions: grammar_safe also holds for lemmas of DIRECT (one-level) hyponym synsets of the target
+  synset, when that hyponym is the lemma's dominant noun sense and the form is unambiguous across objects;
+  each safe synonym has relation_to_target = "same_sense" | "direct_hyponym" and matched_synset. Each place edge
+  has variant_same_sense = (object_variant is the object's own name or a grammar_safe synonym).
+  Same command as above (re-run 2026-11-08T04:04:23Z, same dump).

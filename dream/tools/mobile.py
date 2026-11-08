@@ -29,6 +29,7 @@ from dream.perception.occupancy import CELL
 from dream.perception.spatial import CLOSE_VIEW, HANDLE_GAP, SIDES, SpatialMemory
 from dream.tools.goals import (
     EXPLORATION_REACHED,
+    FindObject,
     GoToObserved,
     GoToPlace,
     Inspect,
@@ -123,6 +124,15 @@ MOBILE_TOOL_SPECS: list[dict] = [
         "was seen and what remains unknown.",
         "parameters": {"candidate": {"type": "number", "required": True}},
     },
+    {
+        "name": "look_at",
+        "description": "Turn in place to face an odometry-frame position and look at it from "
+        "three nearby headings.",
+        "parameters": {
+            "x": {"type": "number", "required": True},
+            "y": {"type": "number", "required": True},
+        },
+    },
 ]
 MOBILE_SPECS = {s["name"]: s for s in MOBILE_TOOL_SPECS}
 
@@ -138,14 +148,22 @@ class Viewpoint:
 
 class MobileToolbox:
     def __init__(
-        self, base: MobileBase, memory: SpatialMemory, on_event=None, navigator: str = "classic"
+        self,
+        base: MobileBase,
+        memory: SpatialMemory,
+        on_event=None,
+        navigator: str = "classic",
+        semantic=None,
     ) -> None:
         """``navigator``: "classic" (the validated Milestone B follower, kept as the baseline)
         or "rpp" (smoothed path, Regulated Pure Pursuit, continuous scanning, safe
-        preemption; dream/navigation/rpp.py)."""
+        preemption; dream/navigation/rpp.py). ``semantic``: a SemanticWorld
+        (dream/semantics/world.py) fed every frame, for object search; None leaves the
+        toolbox exactly as before."""
         if navigator not in ("classic", "rpp"):
             raise ValueError(f"unknown navigator {navigator!r}")
         self.base, self.memory, self.navigator = base, memory, navigator
+        self.semantic = semantic
         self.places: dict[str, np.ndarray] = {}  # name -> (x, y), from home memory
         self.inspections: dict[int, dict] = {}  # candidate id -> last inspection report
         self.cancel = threading.Event()  # TaskAgent checks it between actions
@@ -170,7 +188,14 @@ class MobileToolbox:
 
     # ----- perception ------------------------------------------------------------------
     def _look(self) -> None:
-        self.memory.update(self.base.capture())
+        frame = self.base.capture()
+        self.memory.update(frame)
+        if self.semantic is not None:
+            self.semantic.observe(frame)
+
+    def reachability(self) -> tuple[np.ndarray, tuple[int, int], np.ndarray]:
+        """(passable cells, robot cell, walking distance in m to every cell) on the map."""
+        return self._passable()
 
     def _passable(self) -> tuple[np.ndarray, tuple[int, int], np.ndarray]:
         grid = self.memory.grid
@@ -306,6 +331,9 @@ class MobileToolbox:
             "holding": None,
             "holding_handle": None,
         }
+        if self.semantic is not None:
+            self.semantic.refresh()
+            data["semantic"] = self.semantic.summary()
         return ToolResult("observe_scene", "succeeded", "", data)
 
     def _get_robot_state(self) -> ToolResult:
@@ -370,6 +398,17 @@ class MobileToolbox:
             return ToolResult("verify_goal", "succeeded", "",
                               {"satisfied": d <= PLACE_TOLERANCE, "reason": f"{d:.2f} m away",
                                "place_xy": self.places[goal.place].tolist()})  # fmt: skip
+        if isinstance(goal, FindObject):
+            if self.semantic is None:
+                return ToolResult(
+                    "verify_goal", "succeeded", "",
+                    {"satisfied": False, "unsupported": True,
+                     "reason": "no semantic object perception is configured"},
+                )  # fmt: skip
+            verdict = self.semantic.verify(
+                goal.target, goal.outcome, self.base.odometry(), self.base.time
+            )
+            return ToolResult("verify_goal", "succeeded", "", verdict)
         if not isinstance(goal, Inspect):
             return ToolResult("verify_goal", "rejected", "this robot verifies 'inspect' goals")
         found = [c for c in self.memory.candidates if c.handle is not None]
@@ -685,6 +724,23 @@ class MobileToolbox:
         r = self._go_to(float(xy[0]), float(xy[1]), math.atan2(-n[1], -n[0]))
         self._look()
         return ToolResult("approach", r.status, r.message, {**r.data, "candidate": c.summary()})
+
+    def _look_at(self, x: float, y: float) -> ToolResult:
+        """Face (x, y), then look straight, a little left and a little right."""
+        pose = self.base.odometry()
+        err = wrap(math.atan2(y - pose[1], x - pose[0]) - pose[2])
+        if abs(err) > 0.05 and not self.base.walk(0, 0, math.copysign(0.5, err), abs(err) / 0.5):
+            return ToolResult("look_at", "stopped", self.base.stop_reason or "")
+        for turn in (0.0, 0.25, -0.5, 0.25):
+            if turn and not self.base.walk(0, 0, math.copysign(0.4, turn), abs(turn) / 0.4):
+                return ToolResult("look_at", "stopped", self.base.stop_reason or "")
+            self.base.walk(0, 0, 0, 0.3)
+            self._look()
+        pose = self.base.odometry()
+        return ToolResult(
+            "look_at", "succeeded", "",
+            {"distance_m": round(float(np.hypot(x - pose[0], y - pose[1])), 2)},
+        )  # fmt: skip
 
     def _inspect(self, candidate: float) -> ToolResult:
         c = self._candidate(candidate)

@@ -139,12 +139,31 @@ class CameraCalibration:
 
 
 @dataclass(frozen=True)
+class SemanticDetection:
+    """One labelled image region from a semantic detector, in the pixels of its frame.
+
+    The detector may be a vision-language model (``source`` names it), or the simulator's
+    oracle-assisted detector, which renders true segmentation and corrupts it with an assumed
+    noise model (dream/sim/semantic_sensor.py). Either way this is a fallible observation:
+    ``score`` is the detector's own number, not a calibrated probability, and the label may be
+    wrong. Downstream code turns regions into 3-D evidence with the frame's depth.
+    """
+
+    label: str
+    score: float  # detector's own score in [0, 1]; not calibrated
+    mask: np.ndarray  # (H, W) bool, pixels of the region
+    source: str  # e.g. "oracle_segmentation_noisy", "qwen3vl_grounding"
+
+
+@dataclass(frozen=True)
 class RGBDFrame:
     """One synchronised RGB-D image pair, as a depth camera driver delivers it.
 
     ``depth`` is the distance along the optical axis (m), NaN where there is no return.
     ``self_mask`` marks pixels on the robot's own body, predicted from its kinematic model and
     joint encoders (the standard robot self-filter). It carries no information about the scene.
+    ``detections`` holds a semantic detector's output for this frame: None when no detector
+    ran on it, an empty tuple when one ran and found nothing. Fallible labels, never truth.
     """
 
     time: float  # s
@@ -152,6 +171,7 @@ class RGBDFrame:
     depth: np.ndarray  # (H, W) float32, m
     self_mask: np.ndarray  # (H, W) bool
     calibration: CameraCalibration
+    detections: tuple[SemanticDetection, ...] | None = None
 
 
 class Embodiment(Protocol):

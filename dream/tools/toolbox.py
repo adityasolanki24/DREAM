@@ -19,6 +19,7 @@ import dream.skills.articulation as art
 from dream.skills import manipulation as skills
 from dream.tools import discovery
 from dream.tools.goals import (
+    FindObject,
     GoToObserved,
     GoToPlace,
     InRegion,
@@ -580,7 +581,8 @@ def _validate(params: dict, args: dict) -> str:
                 return f"'{key}' must be 3 finite numbers"
         # Every typed goal a caller or interpreter can bind, including a bound observed point
         # and an explicit refusal; the tool itself decides what it can verify.
-        goal_types = (InRegion, OnTop, Inspect, GoToPlace, GoToObserved, UnsupportedGoal)
+        goal_types = (InRegion, OnTop, Inspect, GoToPlace, GoToObserved, FindObject,
+                      UnsupportedGoal)  # fmt: skip
         if t == "goal" and not isinstance(v, (str, dict, *goal_types)):
             return f"'{key}' must be a structured goal"
     return ""

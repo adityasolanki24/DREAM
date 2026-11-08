@@ -87,8 +87,14 @@ class Candidate:
 
 
 class SpatialMemory:
-    def __init__(self, rng: np.random.Generator) -> None:
-        self.grid = OccupancyGrid()
+    def __init__(
+        self, rng: np.random.Generator, grid_size: float = 16.0, boxes: bool = True
+    ) -> None:
+        """``grid_size``: m, homes larger than a room need more. ``boxes=False`` skips the
+        classical box/handle detector (the cabinet task's perception): object search uses a
+        semantic detector instead, and the box detector dominated its run time."""
+        self.grid = OccupancyGrid(size=grid_size)
+        self.boxes = boxes
         self.candidates: list[Candidate] = []
         self.rng = rng
         self.frames = 0
@@ -97,6 +103,10 @@ class SpatialMemory:
 
     def update(self, frame: RGBDFrame) -> list[Detection]:
         self.grid.integrate(frame)
+        if not self.boxes:
+            self.frames += 1
+            self.last_frame = frame
+            return []
         dets, _ = detect(frame, self.rng, FLOOR_PLANE, DEPTH_NOISE)
         cam = frame.calibration.position
         boxes = [
