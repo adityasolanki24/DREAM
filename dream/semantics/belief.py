@@ -21,9 +21,15 @@ review of search with uncertain detection):
   look. The absolute values are not calibrated; only their ratios drive decisions.
 - A look from viewpoint ``v`` (a full turn in place) raises coverage on the cells its rays
   reach before the first occupied cell, unknown cells transparent for at most
-  ``UNKNOWN_SEE_THROUGH``. Its expected detection value is the fraction of current mass it
-  would explain: ``sum m(c) * (q' - q) / (1 - q) / sum m``. Its information gain is the
-  unknown area its rays reach (m^2).
+  ``UNKNOWN_SEE_THROUGH``. Its expected detection value is the mass it would explain,
+  ``sum m(c) * (q' - q) / (1 - q)``, in units of ``DETECTION_UNIT`` neutral cells (about one
+  room's surfaces at factor 1). Not a share of the total: much of the total sits in unknown
+  space no reachable view can see (outside unobserved stretches of outer wall), and dividing
+  by it made every semantic difference vanish on development home 100-B. Its information
+  gain is the unknown area its rays reach (m^2).
+
+``unobserved_pockets`` measures what the search could not see: unknown space inside the
+explored area large enough to hide an object. A search is only "exhausted" without it.
 """
 
 from __future__ import annotations
@@ -45,6 +51,8 @@ RAYS = 180  # one ray per 2 degrees of a full turn
 NEAR_OBJECTS = 2.5  # m: neighbourhood used instead of regions when room_inference=False
 MEMORY_PEAK = 5.0  # prior density at a remembered sighting relative to a neutral cell
 MEMORY_SIGMA = 0.5  # m
+DETECTION_UNIT = 1000.0  # neutral cells (~2.5 m^2 at 5 cm): a room's walls and furniture faces
+POCKET_RADIUS = 0.2  # m: an unseen region must fit a 0.4 m object (a toilet's width) to count
 
 
 @dataclass(frozen=True)
@@ -59,7 +67,7 @@ class BeliefConfig:
 @dataclass
 class ViewValue:
     xy: np.ndarray
-    detection: float  # expected fraction of current target mass explained (0..1)
+    detection: float  # expected target mass explained, in DETECTION_UNITs
     gain_m2: float  # unknown area reached
     cells: int
 
@@ -144,8 +152,7 @@ class TargetBelief:
         q = semantic.coverage[i, j]
         q_new = np.maximum(q, detection_quality(rng))
         gained = np.where(q < 1.0, (q_new - q) / np.maximum(1.0 - q, 1e-6), 0.0)
-        total = self.total()
-        detection = float((self.mass[i, j] * gained).sum() / total) if total > 0 else 0.0
+        detection = float((self.mass[i, j] * gained).sum() / DETECTION_UNIT)
         gain = float(grid.unknown()[i, j].sum() * CELL * CELL)
         return ViewValue(np.asarray(xy, float), detection, gain, len(cells))
 
@@ -208,3 +215,31 @@ def _visible_cells(grid: OccupancyGrid, xy: np.ndarray) -> tuple[np.ndarray, np.
     flat = i[seen] * grid.n + j[seen]
     uniq, first = np.unique(flat, return_index=True)
     return np.stack([uniq // grid.n, uniq % grid.n], 1), r[first]
+
+
+def unobserved_pockets(grid: OccupancyGrid, radius: float = POCKET_RADIUS) -> dict:
+    """Unknown space inside the convex hull of the known free floor that could hide an object
+    of width 2 * radius (an opening of the unknown mask with a disk of that radius)."""
+    from scipy.spatial import Delaunay
+
+    free = np.argwhere(grid.free())
+    if len(free) < 4:
+        return {"area_m2": 0.0, "pockets": 0}
+    try:
+        hull = Delaunay(free[:: max(1, len(free) // 4000)].astype(float))
+    except Exception:  # degenerate (collinear) free space
+        return {"area_m2": 0.0, "pockets": 0}
+    unknown = grid.unknown()
+    lo, hi = free.min(0), free.max(0) + 1
+    sub = unknown[lo[0] : hi[0], lo[1] : hi[1]]
+    ii, jj = np.nonzero(sub)
+    inside = np.zeros_like(sub)
+    if len(ii):
+        pts = np.stack([ii + lo[0], jj + lo[1]], 1).astype(float)
+        inside[ii, jj] = hull.find_simplex(pts) >= 0
+    r = int(np.ceil(radius / CELL))
+    yy, xx = np.ogrid[-r : r + 1, -r : r + 1]
+    disk = yy * yy + xx * xx <= r * r
+    opened = ndimage.binary_opening(inside, structure=disk)
+    labels, n = ndimage.label(opened)
+    return {"area_m2": round(float(opened.sum()) * CELL * CELL, 2), "pockets": int(n)}

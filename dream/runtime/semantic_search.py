@@ -4,18 +4,27 @@ Every arm shares perception, the object tracker, the verifier (dream/semantics/v
 candidate verification and navigation (Dijkstra on the robot's map, the toolbox's follower).
 They differ only in how they choose where to look next:
 
-- ``utility`` (proposed): receding-horizon choice of the next viewpoint by expected value
-  per second,
-      U(v) = (alpha * detection(v) + lam * gain(v) / A_REF) / (T_LOOK + cost(v) / SPEED)
+- ``utility`` (proposed): DREAM's frontier explorer extended with semantic search value.
+  Candidates are the explorer's frontiers plus in-room inspection points (a lattice of
+  reachable cells, for surfaces the sweep missed: occluded alcoves, the far side of
+  furniture). Each is scored in the explorer's own units (m^2 of expected new floor minus
+  metres walked):
+      U(v) = gain(v) + kappa * detection(v) - FRONTIER_COST_WEIGHT * (cost(v) + turn(v))
              - gamma * risk(v)
-  where detection(v) is the share of the current target belief a full turn at v would
-  explain, gain(v) the unknown area it would reach (dream/semantics/belief.py), cost(v) the
-  walking distance and risk(v) a clearance penalty at v. Walk there, turn in place, update,
-  choose again. No exact POMDP: one step of lookahead over a few hundred candidates.
-  The additive form alpha*detection + lam*gain - beta*cost first tried mixes units: on
-  development home 100-B every useful view scored below a worthless one beside the robot,
-  and the search stopped early. A rate is the classical greedy rule for search with travel
-  cost (value per unit effort), and needs no exchange rate between metres and probability.
+  gain(v) is the explorer's unknown-area estimate (frontiers) or the unknown area a turn at
+  v would reach (inspection points); detection(v) is the target belief a full turn at v
+  would explain, in neutral-room units (dream/semantics/belief.py), so a region whose
+  inferred room type points to the target raises it; turn(v) charges an inspection point the
+  walking-equivalent of a full turn (T_LOOK * SPEED); risk(v) is a clearance penalty.
+  With kappa = 0 and no inspection points this is exactly Baseline A, so the comparison
+  isolates the semantic term. Receding horizon: one choice, act, update, choose again. On
+  arrival the robot turns only if at least ARRIVAL_KEEP of the chosen value is still
+  unexplained (frames taken while walking often cover it); destinations already chosen are
+  not chosen again.
+  Development history (dev homes, documented so the record is honest): a rate form and an
+  additive form over lattice viewpoints with a turn at every stop were tried first; both were
+  slower than Baseline A on most development homes (dev2a: 24 paired homes), because a
+  frontier sweep with continuous scanning sees most of a small home on the way.
 - ``frontier_gain`` (Baseline A: DREAM's existing explorer, dream/runtime/search.py): the
   frontier with the largest gain - FRONTIER_COST_WEIGHT * cost; no semantic knowledge.
 - ``frontier_nearest`` (Baseline B: classical nearest-frontier exploration, Yamauchi 1997).
@@ -42,6 +51,7 @@ from dream.navigation.rpp import line_of_sight
 from dream.perception.occupancy import CELL
 from dream.perception.semantic import Track
 from dream.runtime.agent import Finish, Step, ToolCall
+from dream.semantics.belief import unobserved_pockets
 from dream.tools.goals import FindObject
 from dream.tools.mobile import FRONTIER_COST_WEIGHT, PLACE_TOLERANCE
 
@@ -54,10 +64,13 @@ REACH_RING = (0.7, 1.0)  # m from a verified object's footprint, to stand at it
 MAX_REACH = 2
 DROP_RADIUS = 0.5  # m: viewpoints this close to two failed go_to targets are skipped
 LOOK_HERE_RADIUS = 0.5  # m: a full turn within this of an earlier one adds little
-EXHAUSTED_DETECTION = 0.01  # share of belief: below this, no reachable look is worth taking
+EXHAUSTED_DETECTION = 0.02  # DETECTION_UNITs (~20 neutral cells): no look worth taking
 EXHAUSTED_GAIN = 0.5  # m^2 of unknown area
 T_LOOK = 10.4  # s: one full turn in place (8 x 45 degrees at 0.5 rad/s plus settling)
 SPEED = 0.35  # m/s: typical walking speed under the navigator's 0.4 m/s cruise
+TURN_M = T_LOOK * SPEED  # m: a full turn costs as much time as walking this far
+ARRIVAL_KEEP = 0.5  # share of a move's expected value left on arrival to justify the turn
+VISITED_RADIUS = 0.5  # m: earlier exploration destinations and verification sites
 REJECT_VIEWS = 6  # views of a candidate before its label purity can refute it
 REJECT_PURITY = 0.3
 
@@ -66,9 +79,9 @@ REJECT_PURITY = 0.3
 class UtilityWeights:
     """Design starting point; values were chosen on development homes (configs record them)."""
 
-    alpha: float = 1.0
-    lam: float = 0.3
-    gamma: float = 0.2
+    kappa: float = 10.0  # m^2 of new floor one neutral room's surfaces are worth to the search
+    ig: float = 1.0  # weight of the information-gain term (0: the "no information gain" ablation)
+    gamma: float = 1.0  # m-equivalent penalty at zero clearance margin
 
 
 @dataclass
@@ -83,12 +96,14 @@ class SemanticSearchPlanner:
     _verify_tries: dict = field(default_factory=dict)
     _reach_tries: int = 0
     _looked: list = field(default_factory=list)  # odometry xy of every full turn issued
+    _visited: list = field(default_factory=list)  # exploration destinations chosen
+    _verify_sites: dict = field(default_factory=dict)  # track id -> standing points used
 
     def __post_init__(self) -> None:
         if self.policy not in POLICIES:
             raise ValueError(f"unknown policy {self.policy!r}")
         if self.look_after_move is None:
-            self.look_after_move = self.policy in ("utility", "room_priority")
+            self.look_after_move = self.policy == "room_priority"
 
     # ----- protocol ----------------------------------------------------------------------------
     def next_action(self, goal, scene: dict, verdict: dict, history: list[Step]):
@@ -136,6 +151,14 @@ class SemanticSearchPlanner:
                              track=self._purpose.get("track"))  # fmt: skip
         if purpose == "explore" and self.look_after_move:
             return self._act(ToolCall("look_around"), "explore_look")
+        if purpose == "explore" and self.policy == "utility":
+            world = self.toolbox.semantic
+            world.refresh()
+            here = world.target.view(world.grid, world.map, self.toolbox.base.odometry()[:2])
+            left = self.weights.ig * here.gain_m2 + self.weights.kappa * here.detection
+            if left >= ARRIVAL_KEEP * self._purpose.get("value", 0.0) and left > TURN_M:
+                return self._act(ToolCall("look_around"), "explore_look",
+                                 value_left=round(left, 4))  # fmt: skip
         return None
 
     def _candidate(self, world, target, passable, dist, history):
@@ -152,6 +175,7 @@ class SemanticSearchPlanner:
             return None
         _, tr, (xy, cost, heading) = best
         self._verify_tries[tr.id] = self._verify_tries.get(tr.id, 0) + 1
+        self._verify_sites.setdefault(tr.id, []).append(np.asarray(xy, float))
         return self._act(
             ToolCall("go_to", {"x": float(xy[0]), "y": float(xy[1]), "heading": heading}),
             "verify", track=tr.id, object_xy=[float(tr.position[0]), float(tr.position[1])],
@@ -183,8 +207,9 @@ class SemanticSearchPlanner:
             d = np.linalg.norm(pts - tr.position[:2], axis=1)
         ok = (d >= ring[0]) & (d <= ring[1])
         if not footprint:  # a new position, or the same views would just repeat
-            for c in (c for views in tr.label_views.values() for c in views):
-                ok &= np.linalg.norm(pts - c, axis=1) >= 0.5
+            used = [c for views in tr.label_views.values() for c in views]
+            for c in used + self._verify_sites.get(tr.id, []):
+                ok &= np.linalg.norm(pts - c, axis=1) >= VISITED_RADIUS
         idx = np.flatnonzero(ok)
         if not len(idx):
             return None
@@ -257,8 +282,11 @@ class SemanticSearchPlanner:
         else:
             w = self.weights
             for v in views:
-                value = w.alpha * v["detection"] + w.lam * v["gain_m2"] / A_REF
-                v["utility"] = value / (T_LOOK + v["cost_m"] / SPEED) - w.gamma * v["risk"]
+                v["value"] = w.ig * v["gain_m2"] + w.kappa * v["detection"]
+                turn = 0.0 if v["frontier"] else TURN_M
+                v["utility"] = (
+                    v["value"] - FRONTIER_COST_WEIGHT * (v["cost_m"] + turn) - (w.gamma * v["risk"])
+                )
             choice = max(views, key=lambda v: v["utility"])
         if choice is None:
             return self._stop(world, target, "no reachable look is expected to reveal more")
@@ -266,7 +294,9 @@ class SemanticSearchPlanner:
                 if k != "xy"}  # fmt: skip
         if choice["here"]:
             return self._act(ToolCall("look_around"), "explore_look", **info)
+        info["value"] = round(float(choice.get("value", 0.0)), 4)
         xy = choice["xy"]
+        self._visited.append(np.asarray(xy, float))
         return self._act(ToolCall("go_to", {"x": float(xy[0]), "y": float(xy[1])}),
                          "explore", **info)  # fmt: skip
 
@@ -277,7 +307,8 @@ class SemanticSearchPlanner:
         lattice = np.zeros_like(ok)
         lattice[::step, ::step] = True
         cells = [tuple(c) for c in np.argwhere(ok & lattice)]
-        cells += [f.cell for f in fr]
+        frontier_gain = {tuple(int(x) for x in f.cell): f.gain for f in fr}
+        cells += list(frontier_gain)
         looked = self._looked
         here = tuple(int(v) for v in grid.cell(pose[:2]))
         clearance = ndimage.distance_transform_edt(~grid.occupied()) * CELL
@@ -289,9 +320,13 @@ class SemanticSearchPlanner:
                 continue
             if is_here and any(np.linalg.norm(xy - p) < LOOK_HERE_RADIUS for p in looked):
                 continue
+            if not is_here and any(np.linalg.norm(xy - p) < VISITED_RADIUS for p in self._visited):
+                continue
             v = world.target.view(grid, world.map, xy)
+            is_frontier = cell in frontier_gain and not is_here
             out.append({
-                "xy": xy, "here": is_here, "detection": v.detection, "gain_m2": v.gain_m2,
+                "xy": xy, "here": is_here, "frontier": is_frontier, "detection": v.detection,
+                "gain_m2": frontier_gain[cell] if is_frontier else v.gain_m2,
                 "cost_m": 0.0 if is_here else float(dist[cell]),
                 "risk": float(np.clip((0.6 - clearance[cell]) / 0.25, 0.0, 1.0)),
                 "region": world.segmenter.region_of(grid, xy),
@@ -319,12 +354,21 @@ class SemanticSearchPlanner:
         return rest[0] if rest else None
 
     def _stop(self, world, target, why: str) -> Finish:
-        pending = [t for t in world.map.candidates(target) if not self._rejected(t, target)]
-        unconfirmed = world.map.candidates(target)
-        if pending or unconfirmed:
+        """Typed stop: unconfirmed candidate, unobservable space left, or exhausted."""
+        if world.map.candidates(target):
             return Finish(False, f"{why}; a possible {target} was seen but not verified",
                           "possible_target_unconfirmed")  # fmt: skip
-        return Finish(False, f"{why}; no {target} found", "search_exhausted")
+        pockets = unobserved_pockets(world.grid)
+        self.trace.append({"call": "stop", "unobserved": pockets})
+        if pockets["pockets"]:
+            return Finish(
+                False,
+                f"{why}; no {target} found, but {pockets['area_m2']} m^2 inside the explored "
+                f"area ({pockets['pockets']} region(s)) could not be seen from any reachable "
+                "place, so the search is not exhaustive",
+                "target_not_yet_found",
+            )
+        return Finish(False, f"{why}; no {target} found in the reachable space", "search_exhausted")
 
 
 def stop_outcome(toolbox, target: str, episode_completion: str | None, reason: str) -> str:
