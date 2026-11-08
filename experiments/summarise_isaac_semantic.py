@@ -45,12 +45,12 @@ def table_row(case: dict) -> dict:
     return {k: case.get(k) for k in keys}
 
 
-def copy_evidence(run_dir: pathlib.Path, case_id: str, out: pathlib.Path) -> int:
+def copy_evidence(run_dir: pathlib.Path, case_id: str, out: pathlib.Path, tag: str) -> int:
     """Compact evidence of one case. Returns the bytes copied."""
     src = run_dir / case_id
     if not src.is_dir():
         return 0
-    dst = out / "cases" / case_id
+    dst = out / "cases" / tag / case_id
     dst.mkdir(parents=True, exist_ok=True)
     total = 0
     live = src / "live"
@@ -136,7 +136,9 @@ def main() -> None:
         )
         for case in summary["cases"]:
             if not case.get("deferred"):
-                copied += copy_evidence(run_dir, case["case_id"], args.out)
+                copied += copy_evidence(
+                    run_dir, case["case_id"], args.out, f"{session[-6:]}_job{job}"
+                )
     merged = merge_summaries(cfg, summaries)
     sessions = [session_row(s) for s in dict.fromkeys(j["session"] for j in jobs)]
     sessions += [session_row(s) for s in args.extra_sessions]

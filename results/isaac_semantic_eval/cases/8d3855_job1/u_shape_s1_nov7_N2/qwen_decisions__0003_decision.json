@@ -1,0 +1,148 @@
+{
+  "index": 3,
+  "sim_time_s": 22.84,
+  "model": "Qwen/Qwen3-VL-4B-Instruct",
+  "revision": "ebb281ec70b05090aa6165b016eac8ec08e71b17",
+  "image_sha256": "fc8264b647ddcba96758b4f1ba981f6339554b39b85355cf58fb715913146277",
+  "messages": [
+    {
+      "role": "system",
+      "text": "Choose exactly one admissible typed tool using the observations. Tool execution success is not goal completion. A partial inspection requires a valid reachable inspection viewpoint, then another inspection. Instance- bound goals must never substitute a different candidate. If verification fails, consider the admissible alternatives. Finish true only if verdict.satisfied; finish false when no safe admissible alternatives remain. No raw motor commands. Repeated actions are bounded."
+    },
+    {
+      "role": "user",
+      "text": "{\"instruction\": \"Pick up the kettle\", \"bound_goal\": \"Inspect(target='cabinet', candidate=1)\", \"observation\": {\"pose\": [-0.071, 0.015, -0.157], \"inspection_poses\": {\"1\": {\"valid\": false, \"reason\": \"not on the handle's side of the object\"}, \"2\": {\"valid\": false, \"reason\": \"not on the handle's side of the object\"}, \"3\": {\"valid\": false, \"reason\": \"not on the handle's side of the object\"}, \"4\": {\"valid\": false, \"reason\": \"no handle seen\"}, \"5\": {\"valid\": false, \"reason\": \"not facing the handle\"}, \"6\": {\"valid\": false, \"reason\": \"no handle seen\"}, \"7\": {\"valid\": false, \"reason\": \"no handle seen\"}, \"8\": {\"valid\": false, \"reason\": \"no handle seen\"}, \"9\": {\"valid\": false, \"reason\": \"no handle seen\"}, \"10\": {\"valid\": false, \"reason\": \"no handle seen\"}, \"11\": {\"valid\": false, \"reason\": \"no handle seen\"}, \"12\": {\"valid\": false, \"reason\": \"no handle seen\"}, \"13\": {\"valid\": false, \"reason\": \"no handle seen\"}, \"14\": {\"valid\": false, \"reason\": \"no handle seen\"}, \"15\": {\"valid\": false, \"reason\": \"no handle seen\"}, \"16\": {\"valid\": false, \"reason\": \"no handle seen\"}, \"17\": {\"valid\": false, \"reason\": \"no handle seen\"}, \"18\": {\"valid\": false, \"reason\": \"no handle seen\"}, \"19\": {\"valid\": false, \"reason\": \"no handle seen\"}}, \"odometry_source\": \"robot odometry estimate\", \"explored_m2\": 14.265, \"candidates\": [{\"id\": 1, \"reference\": \"candidate:1\", \"color\": \"orange\", \"position\": [1.204, -0.1, 0.446], \"extent\": [1.605, 1.592, 0.897], \"views\": 18, \"handle\": [0.989, 0.566, 0.888], \"handle_views\": 1, \"handle_side\": 2, \"sides_seen_close\": [3, 4, 5]}, {\"id\": 2, \"reference\": \"candidate:2\", \"color\": \"orange\", \"position\": [0.843, -0.882, 0.453], \"extent\": [1.768, 0.478, 1.018], \"views\": 7, \"handle\": [0.347, -1.211, 0.444], \"handle_views\": 1, \"handle_side\": 5, \"sides_seen_close\": [2, 3, 4]}, {\"id\": 3, \"reference\": \"candidate:3\", \"color\": \"orange\", \"position\": [0.775, 0.675, 0.44], \"extent\": [0.132, 1.774, 0.889], \"views\": 10, \"handle\": [0.93, 0.65, 0.889], \"handle_views\": 1, \"handle_side\": 0, \"sides_seen_close\": [4, 5, 6]}, {\"id\": 4, \"reference\": \"candidate:4\", \"color\": \"yellow\", \"position\": [1.413, -0.661, 0.475], \"extent\": [0.734, 0.542, 1.041], \"views\": 10, \"handle\": null, \"handle_views\": 0, \"handle_side\": null, \"sides_seen_close\": [2, 3, 4, 5]}, {\"id\": 5, \"reference\": \"candidate:5\", \"color\": \"orange\", \"position\": [0.043, 1.439, 0.442], \"extent\": [0.441, 1.887, 0.982], \"views\": 4, \"handle\": [0.309, 1.021, 0.538], \"handle_views\": 1, \"handle_side\": 7, \"sides_seen_close\": [5, 6, 7]}, {\"id\": 6, \"reference\": \"candidate:6\", \"color\": \"orange\", \"position\": [-0.642, 2.01, 0.447], \"extent\": [0.349, 0.978, 0.896], \"views\": 5, \"handle\": null, \"handle_views\": 0, \"handle_side\": null, \"sides_seen_close\": []}, {\"id\": 7, \"reference\": \"candidate:7\", \"color\": \"orange\", \"position\": [-1.633, 2.4, 0.445], \"extent\": [0.684, 0.386, 0.896], \"views\": 5, \"handle\": null, \"handle_views\": 0, \"handle_side\": null, \"sides_seen_close\": []}, {\"id\": 8, \"reference\": \"candidate:8\", \"color\": \"orange\", \"position\": [-2.914, 1.0, 0.447], \"extent\": [0.588, 0.281, 0.895], \"views\": 2, \"handle\": null, \"handle_views\": 0, \"handle_side\": null, \"sides_seen_close\": []}, {\"id\": 9, \"reference\": \"candidate:9\", \"color\": \"yellow\", \"position\": [-2.958, 1.823, 0.43], \"extent\": [0.684, 0.07, 0.861], \"views\": 2, \"handle\": null, \"handle_views\": 0, \"handle_side\": null, \"sides_seen_close\": []}, {\"id\": 10, \"reference\": \"candidate:10\", \"color\": \"orange\", \"position\": [-2.16, 1.908, 0.457], \"extent\": [0.662, 0.274, 0.929], \"views\": 2, \"handle\": null, \"handle_views\": 0, \"handle_side\": null, \"sides_seen_close\": []}, {\"id\": 11, \"reference\": \"candidate:11\", \"color\": \"orange\", \"position\": [-2.772, -1.209, 0.464], \"extent\": [0.056, 0.687, 0.942], \"views\": 10, \"handle\": null, \"handle_views\": 0, \"handle_side\": null, \"sides_seen_close\": []}, {\"id\": 12, \"reference\": \"candidate:12\", \"color\": \"orange\", \"position\": [-1.448, -2.347, 0.482], \"extent\": [0.053, 1.604, 0.984], \"views\": 14, \"handle\": null, \"handle_views\": 0, \"handle_side\": null, \"sides_seen_close\": []}, {\"id\": 13, \"reference\": \"candidate:13\", \"color\": \"orange\", \"position\": [-2.174, -1.722, 0.471], \"extent\": [0.056, 0.686, 0.953], \"views\": 3, \"handle\": null, \"handle_views\": 0, \"handle_side\": null, \"sides_seen_close\": []}, {\"id\": 14, \"reference\": \"candidate:14\", \"color\": \"yellow\", \"position\": [-3.12, -0.912, 0.452], \"extent\": [0.056, 0.684, 0.905], \"views\": 1, \"handle\": null, \"handle_views\": 0, \"handle_side\": null, \"sides_seen_close\": []}, {\"id\": 15, \"reference\": \"candidate:15\", \"color\": \"orange\", \"position\": [0.443, -1.335, 0.448], \"extent\": [0.88, 0.291, 0.896], \"views\": 1, \"handle\": null, \"handle_views\": 0, \"handle_side\": null, \"sides_seen_close\": [2, 3, 4]}, {\"id\": 16, \"reference\": \"candidate:16\", \"color\": \"orange\", \"position\": [-0.902, -2.812, 0.454], \"extent\": [0.057, 0.682, 0.914], \"views\": 2, \"handle\": null, \"handle_views\": 0, \"handle_side\": null, \"sides_seen_close\": []}, {\"id\": 17, \"reference\": \"candidate:17\", \"color\": \"orange\", \"position\": [0.154, -2.474, 0.488], \"extent\": [0.709, 0.036, 1.004], \"views\": 5, \"handle\": null, \"handle_views\": 0, \"handle_side\": null, \"sides_seen_close\": []}, {\"id\": 18, \"reference\": \"candidate:18\", \"color\": \"yellow\", \"position\": [0.489, -1.798, 0.511], \"extent\": [0.619, 0.365, 1.023], \"views\": 1, \"handle\": null, \"handle_views\": 0, \"handle_side\": null, \"sides_seen_close\": []}, {\"id\": 19, \"reference\": \"candidate:19\", \"color\": \"yellow\", \"position\": [0.898, -1.335, 0.51], \"extent\": [1.484, 0.313, 1.019], \"views\": 1, \"handle\": null, \"handle_views\": 0, \"handle_side\": null, \"sides_seen_close\": [2, 3, 4]}], \"viewpoints\": [{\"candidate\": 2, \"side\": 3, \"xy\": [-0.325, -0.225], \"heading\": -0.972, \"cost_m\": 0.35, \"purpose\": \"inspection\"}, {\"candidate\": 2, \"side\": 4, \"xy\": [-0.275, -0.425], \"heading\": -0.901, \"cost_m\": 0.53, \"purpose\": \"inspection\"}, {\"candidate\": 2, \"side\": 5, \"xy\": [-0.375, -1.425], \"heading\": 0.289, \"cost_m\": 1.57, \"purpose\": \"inspection\"}, {\"candidate\": 5, \"side\": 5, \"xy\": [-0.425, 0.325], \"heading\": 0.759, \"cost_m\": 0.47, \"purpose\": \"inspection\"}, {\"candidate\": 5, \"side\": 6, \"xy\": [-0.075, 0.025], \"heading\": 1.203, \"cost_m\": 0.0, \"purpose\": \"inspection\"}, {\"candidate\": 5, \"side\": 7, \"xy\": [0.575, 0.175], \"heading\": 1.876, \"cost_m\": 0.71, \"purpose\": \"inspection\"}, {\"candidate\": 6, \"side\": 4, \"xy\": [-1.931, 1.265], \"heading\": 0.524, \"cost_m\": 2.37, \"purpose\": \"discovery\"}, {\"candidate\": 6, \"side\": 5, \"xy\": [-1.695, 0.957], \"heading\": 0.785, \"cost_m\": 1.99, \"purpose\": \"discovery\"}, {\"candidate\": 6, \"side\": 6, \"xy\": [-0.642, 0.52], \"heading\": 1.571, \"cost_m\": 0.76, \"purpose\": \"discovery\"}, {\"candidate\": 6, \"side\": 7, \"xy\": [-0.256, 0.571], \"heading\": 1.833, \"cost_m\": 0.63, \"purpose\": \"discovery\"}, {\"candidate\": 7, \"side\": 0, \"xy\": [-0.962, 1.238], \"heading\": 2.094, \"cost_m\": 1.57, \"purpose\": \"discovery\"}, {\"candidate\": 7, \"side\": 4, \"xy\": [-2.304, 1.238], \"heading\": 1.047, \"cost_m\": 2.75, \"purpose\": \"discovery\"}, {\"candidate\": 7, \"side\": 5, \"xy\": [-2.582, 1.451], \"heading\": 0.785, \"cost_m\": 3.1, \"purpose\": \"discovery\"}, {\"candidate\": 7, \"side\": 6, \"xy\": [-1.633, 1.058], \"heading\": 1.571, \"cost_m\": 1.98, \"purpose\": \"discovery\"}, {\"candidate\": 7, \"side\": 7, \"xy\": [-1.286, 1.103], \"heading\": 1.833, \"cost_m\": 1.66, \"purpose\": \"discovery\"}, {\"candidate\": 8, \"side\": 0, \"xy\": [-1.62, 1.0], \"heading\": -3.142, \"cost_m\": 1.94, \"purpose\": \"discovery\"}, {\"candidate\": 8, \"side\": 1, \"xy\": [-1.664, 1.335], \"heading\": -2.88, \"cost_m\": 2.14, \"purpose\": \"discovery\"}, {\"candidate\": 8, \"side\": 5, \"xy\": [-2.579, -0.25], \"heading\": 1.833, \"cost_m\": 2.6, \"purpose\": \"discovery\"}, {\"candidate\": 8, \"side\": 6, \"xy\": [-2.914, -0.294], \"heading\": 1.571, \"cost_m\": 2.97, \"purpose\": \"discovery\"}, {\"candidate\": 8, \"side\": 7, \"xy\": [-1.999, 0.085], \"heading\": 2.356, \"cost_m\": 1.92, \"purpose\": \"discovery\"}, {\"candidate\": 9, \"side\": 0, \"xy\": [-1.796, 1.152], \"heading\": 2.618, \"cost_m\": 2.18, \"purpose\": \"discovery\"}, {\"candidate\": 9, \"side\": 1, \"xy\": [-1.662, 1.476], \"heading\": 2.88, \"cost_m\": 2.2, \"purpose\": \"discovery\"}, {\"candidate\": 9, \"side\": 5, \"xy\": [-2.61, 0.527], \"heading\": 1.833, \"cost_m\": 2.76, \"purpose\": \"discovery\"}, {\"candidate\": 9, \"side\": 6, \"xy\": [-2.287, 0.661], \"heading\": 2.094, \"cost_m\": 2.47, \"purpose\": \"discovery\"}, {\"candidate\": 9, \"side\": 7, \"xy\": [-2.009, 0.875], \"heading\": 2.356, \"cost_m\": 2.3, \"purpose\": \"discovery\"}, {\"candidate\": 10, \"side\": 0, \"xy\": [-1.007, 1.242], \"heading\": 2.618, \"cost_m\": 1.59, \"purpose\": \"discovery\"}, {\"candidate\": 10, \"side\": 1, \"xy\": [-0.874, 1.563], \"heading\": 2.88, \"cost_m\": 1.88, \"purpose\": \"discovery\"}, {\"candidate\": 10, \"side\": 5, \"xy\": [-2.504, 0.622], \"heading\": 1.309, \"cost_m\": 2.7, \"purpose\": \"discovery\"}, {\"candidate\": 10, \"side\": 6, \"xy\": [-2.16, 0.577], \"heading\": 1.571, \"cost_m\": 2.33, \"purpose\": \"discovery\"}, {\"candidate\": 10, \"side\": 7, \"xy\": [-1.218, 0.967], \"heading\": 2.356, \"cost_m\": 1.54, \"purpose\": \"discovery\"}, {\"candidate\": 11, \"side\": 0, \"xy\": [-1.428, -1.209], \"heading\": -3.142, \"cost_m\": 1.87, \"purpose\": \"discovery\"}, {\"candidate\": 11, \"side\": 1, \"xy\": [-1.822, -0.259], \"heading\": -2.356, \"cost_m\": 1.87, \"purpose\": \"discovery\"}, {\"candidate\": 11, \"side\": 2, \"xy\": [-2.772, 0.135], \"heading\": -1.571, \"cost_m\": 2.74, \"purpose\": \"discovery\"}, {\"candidate\": 11, \"side\": 3, \"xy\": [-2.424, 0.089], \"heading\": -1.833, \"cost_m\": 2.37, \"purpose\": \"discovery\"}, {\"candidate\": 11, \"side\": 7, \"xy\": [-1.474, -1.556], \"heading\": 2.88, \"cost_m\": 2.18, \"purpose\": \"discovery\"}, {\"candidate\": 12, \"side\": 0, \"xy\": [-0.547, -0.786], \"heading\": -2.094, \"cost_m\": 0.99, \"purpose\": \"discovery\"}, {\"candidate\": 12, \"side\": 1, \"xy\": [-0.174, -1.073], \"heading\": -2.356, \"cost_m\": 1.14, \"purpose\": \"discovery\"}, {\"candidate\": 12, \"side\": 2, \"xy\": [-1.448, -0.545], \"heading\": -1.571, \"cost_m\": 1.58, \"purpose\": \"discovery\"}, {\"candidate\": 12, \"side\": 3, \"xy\": [-1.915, -0.606], \"heading\": -1.309, \"cost_m\": 2.12, \"purpose\": \"discovery\"}, {\"candidate\": 12, \"side\": 4, \"xy\": [-2.349, -0.786], \"heading\": -1.047, \"cost_m\": 2.58, \"purpose\": \"discovery\"}, {\"candidate\": 13, \"side\": 0, \"xy\": [-0.831, -1.722], \"heading\": -3.142, \"cost_m\": 2.06, \"purpose\": \"discovery\"}, {\"candidate\": 13, \"side\": 1, \"xy\": [-1.224, -0.772], \"heading\": -2.356, \"cost_m\": 1.48, \"purpose\": \"discovery\"}, {\"candidate\": 13, \"side\": 2, \"xy\": [-2.174, -0.379], \"heading\": -1.571, \"cost_m\": 2.27, \"purpose\": \"discovery\"}, {\"candidate\": 13, \"side\": 3, \"xy\": [-2.521, -0.425], \"heading\": -1.309, \"cost_m\": 2.64, \"purpose\": \"discovery\"}, {\"candidate\": 13, \"side\": 4, \"xy\": [-2.845, -0.559], \"heading\": -1.047, \"cost_m\": 3.0, \"purpose\": \"discovery\"}, {\"candidate\": 13, \"side\": 7, \"xy\": [-0.876, -2.07], \"heading\": 2.88, \"cost_m\": 2.43, \"purpose\": \"discovery\"}, {\"candidate\": 14, \"side\": 0, \"xy\": [-1.777, -0.912], \"heading\": -3.142, \"cost_m\": 2.09, \"purpose\": \"discovery\"}, {\"candidate\": 14, \"side\": 1, \"xy\": [-2.171, 0.037], \"heading\": -2.356, \"cost_m\": 2.1, \"purpose\": \"discovery\"}, {\"candidate\": 14, \"side\": 2, \"xy\": [-1.957, -0.241], \"heading\": -2.618, \"cost_m\": 2.0, \"purpose\": \"discovery\"}, {\"candidate\": 14, \"side\": 7, \"xy\": [-1.823, -0.565], \"heading\": -2.88, \"cost_m\": 2.0, \"purpose\": \"discovery\"}, {\"candidate\": 15, \"side\": 1, \"xy\": [0.071, 0.056], \"heading\": -1.309, \"cost_m\": 0.17, \"purpose\": \"discovery\"}, {\"candidate\": 15, \"side\": 5, \"xy\": [-0.948, -1.707], \"heading\": 0.262, \"cost_m\": 2.1, \"purpose\": \"discovery\"}, {\"candidate\": 15, \"side\": 6, \"xy\": [-0.804, -2.054], \"heading\": 0.524, \"cost_m\": 2.41, \"purpose\": \"discovery\"}, {\"candidate\": 16, \"side\": 1, \"xy\": [-0.555, -1.516], \"heading\": -1.833, \"cost_m\": 1.76, \"purpose\": \"discovery\"}, {\"candidate\": 16, \"side\": 2, \"xy\": [-0.902, -1.471], \"heading\": -1.571, \"cost_m\": 1.85, \"purpose\": \"discovery\"}, {\"candidate\": 16, \"side\": 3, \"xy\": [-1.249, -1.516], \"heading\": -1.309, \"cost_m\": 2.03, \"purpose\": \"discovery\"}, {\"candidate\": 16, \"side\": 4, \"xy\": [-1.572, -1.65], \"heading\": -1.047, \"cost_m\": 2.32, \"purpose\": \"discovery\"}, {\"candidate\": 17, \"side\": 1, \"xy\": [-0.197, -1.166], \"heading\": -1.309, \"cost_m\": 1.24, \"purpose\": \"discovery\"}, {\"candidate\": 17, \"side\": 2, \"xy\": [-0.523, -1.301], \"heading\": -1.047, \"cost_m\": 1.54, \"purpose\": \"discovery\"}, {\"candidate\": 17, \"side\": 3, \"xy\": [-0.804, -1.516], \"heading\": -0.785, \"cost_m\": 1.86, \"purpose\": \"discovery\"}, {\"candidate\": 17, \"side\": 4, \"xy\": [-1.019, -1.797], \"heading\": -0.524, \"cost_m\": 2.19, \"purpose\": \"discovery\"}, {\"candidate\": 18, \"side\": 1, \"xy\": [0.15, -0.533], \"heading\": -1.309, \"cost_m\": 0.65, \"purpose\": \"discovery\"}, {\"candidate\": 18, \"side\": 2, \"xy\": [0.489, -0.489], \"heading\": -1.571, \"cost_m\": 0.76, \"purpose\": \"discovery\"}, {\"candidate\": 18, \"side\": 3, \"xy\": [-0.437, -0.872], \"heading\": -0.785, \"cost_m\": 1.04, \"purpose\": \"discovery\"}, {\"candidate\": 18, \"side\": 4, \"xy\": [-0.82, -1.798], \"heading\": -0.0, \"cost_m\": 2.11, \"purpose\": \"discovery\"}, {\"candidate\": 18, \"side\": 5, \"xy\": [-0.776, -2.137], \"heading\": 0.262, \"cost_m\": 2.44, \"purpose\": \"discovery\"}, {\"candidate\": 19, \"side\": 1, \"xy\": [0.447, 0.348], \"heading\": -1.309, \"cost_m\": 0.62, \"purpose\": \"discovery\"}, {\"candidate\": 19, \"side\": 5, \"xy\": [-0.785, -1.786], \"heading\": 0.262, \"cost_m\": 2.09, \"purpose\": \"discovery\"}, {\"candidate\": 19, \"side\": 6, \"xy\": [-0.611, -2.206], \"heading\": 0.524, \"cost_m\": 2.48, \"purpose\": \"discovery\"}], \"frontiers\": [{\"xy\": [-0.475, -2.075], \"gain_m2\": 14.53, \"cost_m\": 2.27}, {\"xy\": [-1.425, 1.825], \"gain_m2\": 14.13, \"cost_m\": 2.36}, {\"xy\": [-1.875, -1.225], \"gain_m2\": 13.03, \"cost_m\": 2.32}, {\"xy\": [-2.625, 0.175], \"gain_m2\": 13.27, \"cost_m\": 2.61}], \"inspected\": {}, \"holding\": null, \"holding_handle\": null}, \"verdict\": {\"satisfied\": false, \"candidate\": 1, \"at_inspection_pose\": false, \"reason\": \"not on the handle's side of the object\", \"instances\": [{\"satisfied\": false, \"candidate\": 1, \"at_inspection_pose\": false, \"reason\": \"not on the handle's side of the object\"}]}, \"history\": [{\"tool\": \"look_around\", \"args\": {}, \"status\": \"succeeded\", \"message\": \"\", \"measured_outcome\": {\"frames\": 12}}], \"admissible_actions\": [{\"tool\": \"go_to\", \"args\": {\"x\": -0.475, \"y\": -2.075}}, {\"tool\": \"go_to\", \"args\": {\"x\": -1.425, \"y\": 1.825}}, {\"tool\": \"go_to\", \"args\": {\"x\": -1.875, \"y\": -1.225}}, {\"tool\": \"go_to\", \"args\": {\"x\": -2.625, \"y\": 0.175}}], \"remaining_repair_attempts\": 3}"
+    },
+    {
+      "role": "assistant",
+      "text": "<tool_call>\n{\"name\": \"look_around\", \"arguments\": {}}\n</tool_call>"
+    },
+    {
+      "role": "user",
+      "text": "{\"recovery\": {\"reason\": \"invalid, exhausted, unobserved, wrong-instance or unsafe tool target\", \"goal_verification\": {\"satisfied\": false, \"candidate\": 1, \"at_inspection_pose\": false, \"reason\": \"not on the handle's side of the object\", \"instances\": [{\"satisfied\": false, \"candidate\": 1, \"at_inspection_pose\": false, \"reason\": \"not on the handle's side of the object\"}]}, \"admissible_alternatives\": [{\"tool\": \"go_to\", \"args\": {\"x\": -0.475, \"y\": -2.075}}, {\"tool\": \"go_to\", \"args\": {\"x\": -1.425, \"y\": 1.825}}, {\"tool\": \"go_to\", \"args\": {\"x\": -1.875, \"y\": -1.225}}, {\"tool\": \"go_to\", \"args\": {\"x\": -2.625, \"y\": 0.175}}], \"remaining_repair_attempts\": 2}}"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "look_around",
+        "description": "Observe the surroundings.",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "approach",
+        "description": "Visit a currently observed viewpoint.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "candidate": {
+              "type": "integer"
+            },
+            "side": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "candidate",
+            "side"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "inspect",
+        "description": "Inspect an observed candidate.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "candidate": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "candidate"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "explore_frontier",
+        "description": "Visit a frontier by its index in the current observation.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "index": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "index"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "finish",
+        "description": "Finish only if the observation verifies the bound goal, or decline.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "success": {
+              "type": "boolean"
+            },
+            "reason": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "success",
+            "reason"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "go_to",
+        "description": "Only a position listed in admissible_actions.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "x",
+            "y"
+          ]
+        }
+      }
+    }
+  ],
+  "status": "completed",
+  "output": "<tool_call>\n{\"name\": \"go_to\", \"arguments\": {\"x\": -0.475, \"y\": -2.075}}\n</tool_call>",
+  "usage": {
+    "input_tokens": 7655,
+    "output_tokens": 34
+  },
+  "inference_s": 3.674
+}

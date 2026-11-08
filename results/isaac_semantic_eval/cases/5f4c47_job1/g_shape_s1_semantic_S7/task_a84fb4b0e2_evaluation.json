@@ -1,0 +1,212 @@
+{
+  "episode": {
+    "goal": "Inspect(target='cabinet', candidate=None)",
+    "spec": {
+      "original_instruction": "Inspect the cabinet",
+      "target_class": "cabinet",
+      "target_kind": "object",
+      "target_instance": null,
+      "required_outcome": "inspected",
+      "also_required": [],
+      "grounding": "grammar",
+      "anchors": [
+        "inspect",
+        "cabinet"
+      ],
+      "digest": "1d6bf1281c9fc83e"
+    },
+    "success_claimed": true,
+    "reason": "verified: handle observed from a valid inspection pose",
+    "completion": null,
+    "model_reason": "inspection complete on candidate:2, which is a valid inspection pose with handle observed and confirmed close",
+    "tool_calls": 3,
+    "failed_actions": 1,
+    "steps": [
+      {
+        "tool": "inspect",
+        "args": {
+          "candidate": 1
+        },
+        "status": "failed",
+        "message": "partial observation only: not on the handle's side of the object",
+        "sim_time": 3.68,
+        "wall_time": 22.626
+      },
+      {
+        "tool": "approach",
+        "args": {
+          "candidate": 2,
+          "side": 5
+        },
+        "status": "succeeded",
+        "message": "",
+        "sim_time": 0.9,
+        "wall_time": 5.921
+      },
+      {
+        "tool": "inspect",
+        "args": {
+          "candidate": 2
+        },
+        "status": "succeeded",
+        "message": "inspection complete",
+        "sim_time": 3.68,
+        "wall_time": 21.745
+      }
+    ]
+  },
+  "agent_verdict": {
+    "satisfied": true,
+    "candidate": 2,
+    "at_inspection_pose": true,
+    "reason": "handle observed from a valid inspection pose",
+    "instances": [
+      {
+        "satisfied": false,
+        "candidate": 1,
+        "at_inspection_pose": false,
+        "reason": "not on the handle's side of the object"
+      },
+      {
+        "satisfied": true,
+        "candidate": 2,
+        "at_inspection_pose": true,
+        "reason": "handle observed from a valid inspection pose"
+      }
+    ]
+  },
+  "independent_verification": {
+    "goal_kind": "inspect",
+    "success_claimed": true,
+    "completion": null,
+    "terminal_stop_reason": "verified: handle observed from a valid inspection pose",
+    "model_decision_valid": {
+      "valid": true,
+      "note": "False when the model could not produce an admissible decision within the repair budget; a justified refusal is valid."
+    },
+    "navigation_success": {
+      "success": true,
+      "error_m": 0.01724392238914239,
+      "source": "odometry estimate (oracle-assisted), not independent"
+    },
+    "identity_correct": {
+      "correct": true,
+      "error_m": 0.03532371846210618
+    },
+    "viewpoint_correct": {
+      "correct": true,
+      "distance_m": 1.027562908306141,
+      "facing_error_deg": 25.06161616067042,
+      "on_front_side": true,
+      "bounds": {
+        "range_m": [
+          0.5,
+          1.5
+        ],
+        "facing_deg": 40.0
+      }
+    },
+    "handle_visible": {
+      "visible": true,
+      "in_frustum": true,
+      "occluded": false,
+      "depth_m": 1.1045120967839006,
+      "bearing_deg": -21.527876664246065,
+      "elevation_deg": -3.2081544641674746
+    },
+    "independent_task_success": {
+      "success": true,
+      "basis": "identity and viewpoint"
+    },
+    "false_claim": false,
+    "cabinet_scorer": {
+      "candidates": 2,
+      "candidates_with_handle": 2,
+      "phantom_handles": 0,
+      "success": true,
+      "false_claim": false,
+      "identity_error_m": 0.03532371846210618,
+      "identified_handle": "/World/Corner_01/Doors/DoorB2/Face/Handle_B2",
+      "true_handle_distance_m": 1.027562908306141,
+      "facing_error_deg": 25.06161616067042,
+      "on_front_side": true
+    },
+    "physical_safety": {
+      "contact_events": 0,
+      "contacted_bodies": {},
+      "max_contact_impulse_ns": 0.0,
+      "safety_stop": null,
+      "fell": false,
+      "min_height_m": 0.738472580909729,
+      "final_height_m": 0.7409876585006714,
+      "safe": true
+    },
+    "repair_count": 0,
+    "repair_changed_outcome": {
+      "changed": false,
+      "events": [],
+      "note": "a rejected model decision was replaced by another action, or the repair budget ended the task"
+    },
+    "task_end_contacts": {
+      "events": 0,
+      "bodies": [],
+      "window_sim_s": [
+        10.0,
+        18.26
+      ]
+    }
+  },
+  "mode": "semantic",
+  "grounding": {
+    "grammar_spec": {
+      "original_instruction": "Inspect the cabinet",
+      "target_class": "cabinet",
+      "target_kind": "object",
+      "target_instance": null,
+      "required_outcome": "inspected",
+      "also_required": [],
+      "grounding": "grammar",
+      "anchors": [
+        "inspect",
+        "cabinet"
+      ],
+      "digest": "1d6bf1281c9fc83e"
+    },
+    "model_consulted": false,
+    "final_spec": {
+      "original_instruction": "Inspect the cabinet",
+      "target_class": "cabinet",
+      "target_kind": "object",
+      "target_instance": null,
+      "required_outcome": "inspected",
+      "also_required": [],
+      "grounding": "grammar",
+      "anchors": [
+        "inspect",
+        "cabinet"
+      ],
+      "digest": "1d6bf1281c9fc83e"
+    },
+    "goal": "Inspect(target='cabinet', candidate=None)"
+  },
+  "completion_typed": {
+    "value": null,
+    "source": "claimed"
+  },
+  "original_request": {
+    "request": {
+      "id": "S7",
+      "text": "Inspect the cabinet",
+      "target": "cabinet",
+      "outcome": "inspected",
+      "supported": true,
+      "scorer": "cabinet"
+    },
+    "scorer": "cabinet handle and viewpoint scorer (experiments/isaac_g1_kitchen.score)",
+    "claimed": true,
+    "completion": null,
+    "result": "success",
+    "original_goal_success": true,
+    "false_success_claim": false
+  }
+}
