@@ -64,6 +64,18 @@
       "weights": {
         "ig": 0.0
       }
+    },
+    "proposed_k3": {
+      "policy": "utility",
+      "weights": {
+        "kappa": 3.0
+      }
+    },
+    "proposed_k30": {
+      "policy": "utility",
+      "weights": {
+        "kappa": 30.0
+      }
     }
   },
   "splits": {
@@ -266,6 +278,102 @@
           ]
         }
       ]
+    },
+    "dev3": {
+      "arms": [
+        "A_gain_frontier",
+        "proposed",
+        "proposed_k3",
+        "proposed_k30",
+        "abl_no_semantics"
+      ],
+      "conditions": [
+        {
+          "scenario": "A",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "B",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "C",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "D",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "E",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "F",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "G",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "H",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "I",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "J",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "K",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "L",
+          "seeds": [
+            100,
+            104
+          ]
+        }
+      ],
+      "kappa_rule": "Written before dev3 ran: among kappa in {3 (proposed_k3), 10 (proposed), 30 (proposed_k30)} choose the one with the most target-present successes on dev3; ties broken by the lower median sim time to verified success; any false success claim disqualifies a value. The chosen value is frozen into the held-out config."
     }
   }
 }
