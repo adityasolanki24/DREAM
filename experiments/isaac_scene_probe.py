@@ -51,7 +51,8 @@ def describe(cache, prim, depth: int = 1) -> dict:
 def main() -> None:  # pragma: no cover - needs Isaac Sim
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", type=pathlib.Path, required=True)
-    parser.add_argument("--kitchen", default="l_shape")
+    parser.add_argument("--kitchens", default="l_shape,g_shape,l_island,peninsula,u_shape")
+    parser.add_argument("--updates", type=int, default=150, help="app updates to let assets load")
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     from isaacsim import SimulationApp
@@ -65,37 +66,53 @@ def main() -> None:  # pragma: no cover - needs Isaac Sim
 
         from experiments.isaac_g1_kitchen import kitchen_url
 
-        url = kitchen_url(get_assets_root_path(), args.kitchen)
-        if not open_stage(url):
-            raise RuntimeError(f"could not open {url}")
-        app.update()
-        stage = get_current_stage()
-        cache = UsdGeom.BBoxCache(Usd.TimeCode.Default(), [UsdGeom.Tokens.default_, "render"])
-        labelled, named = [], []
-        for prim in stage.Traverse():
-            path = str(prim.GetPath())
-            attr = prim.GetAttribute("primvars:semantics:class:semanticData")
-            label = str(attr.Get()) if attr and attr.HasAuthoredValue() else None
-            box = cache.ComputeWorldBound(prim).ComputeAlignedRange()
-            lo, hi = list(box.GetMin()), list(box.GetMax())
-            empty = bool(box.IsEmpty()) or max(abs(v) for v in lo + hi) > HUGE
-            if label in ("refrigerator", "oven", "sink") and empty:
-                row = describe(cache, prim, 2)
-                row["label"] = label
-                row["ancestors"] = [
-                    describe(cache, a, 0) for a in [prim.GetParent(), prim.GetParent().GetParent()]
-                ]
-                labelled.append(row)
-            low = path.lower()
-            if any(k in low for k in ("refrig", "fridge", "oven")) and len(named) < 60:
-                named.append(describe(cache, prim, 0))
-        result = {
-            "kitchen": args.kitchen,
-            "labelled_empty": labelled,
-            "named_like_fridge_or_oven": named,
-        }
-        (args.out / "probe.json").write_text(json.dumps(result, indent=2, default=str))
-        print(json.dumps({"labelled_empty": len(labelled), "named": len(named)}), flush=True)
+        results = {}
+        for kitchen in args.kitchens.split(","):
+            url = kitchen_url(get_assets_root_path(), kitchen)
+            if not open_stage(url):
+                raise RuntimeError(f"could not open {url}")
+            for _ in range(args.updates):
+                app.update()
+            stage = get_current_stage()
+            cache = UsdGeom.BBoxCache(Usd.TimeCode.Default(), [UsdGeom.Tokens.default_, "render"])
+            guide = UsdGeom.BBoxCache(
+                Usd.TimeCode.Default(), [UsdGeom.Tokens.default_, "render", "guide", "proxy"]
+            )
+            rows = []
+            for prim in stage.Traverse():
+                attr = prim.GetAttribute("primvars:semantics:class:semanticData")
+                label = str(attr.Get()) if attr and attr.HasAuthoredValue() else None
+                if label not in ("refrigerator", "oven", "sink", "countertop"):
+                    continue
+                box = cache.ComputeWorldBound(prim).ComputeAlignedRange()
+                empty = (
+                    bool(box.IsEmpty())
+                    or max(abs(v) for v in [*box.GetMin(), *box.GetMax()]) > HUGE
+                )
+                row = describe(cache, prim, 1)
+                gbox = guide.ComputeWorldBound(prim).ComputeAlignedRange()
+                gempty = (
+                    bool(gbox.IsEmpty())
+                    or max(abs(v) for v in [*gbox.GetMin(), *gbox.GetMax()]) > HUGE
+                )
+                row.update(
+                    label=label,
+                    render_bound_empty=empty,
+                    all_purposes_bound=None
+                    if gempty
+                    else [list(gbox.GetMin()), list(gbox.GetMax())],
+                )
+                refs = []
+                for child in prim.GetChildren():
+                    for spec in child.GetPrimStack():
+                        refs += [
+                            str(r.assetPath) for r in spec.referenceList.GetAddedOrExplicitItems()
+                        ]
+                row["child_reference_assets"] = refs
+                rows.append(row)
+            results[kitchen] = rows
+            print(kitchen, len(rows), flush=True)
+        (args.out / "probe.json").write_text(json.dumps(results, indent=2, default=str))
     except BaseException:
         failure = traceback.format_exc()
         print(failure, flush=True)
