@@ -317,6 +317,7 @@ def serve(args, cfg):
                         for i in scoring_instances
                     ],
                     "labelled_prims": [{"path": o.path, "label": o.label} for o in truth_labelled],
+                    "declared_but_not_present": sem_eval.declared_absent(truth_labelled),
                 },
             )
         trajectory = out / "trajectory.jsonl"

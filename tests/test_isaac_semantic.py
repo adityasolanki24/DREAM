@@ -368,16 +368,19 @@ def test_decision_recorder_folder_is_configurable_and_default_unchanged(tmp_path
     assert detector.folder.name == "qwen_detector" and detector.folder.is_dir()
 
 
-def test_usd_empty_bounds_are_not_geometry_and_missing_truth_is_reported():
+def test_usd_empty_bounds_are_not_geometry_and_absent_appliances_are_reported():
     """Regression (session 877a82 smoke): the refrigerator and oven prims returned float32-max
-    bounds, became instances with a huge half extent, and any claim would have scored as a hit."""
+    bounds, became instances with a huge half extent, and any claim would have scored as a hit.
+    They are declared by the scene but have no geometry (their asset references are 404)."""
     sentinel = 3.4028234663852886e38
     empty = prim("/World/Fridge", "refrigerator", [sentinel] * 3, [-sentinel] * 3)
     broken = [empty if p.label == "refrigerator" else p for p in KITCHEN]
     instances = sem.true_instances(broken)
     assert not [i for i in instances if i.cls == "refrigerator"]
-    assert sem.missing_truth(instances) == ["refrigerator"]
-    assert sem.missing_truth(sem.true_instances(KITCHEN)) == []
+    assert [d["label"] for d in sem.declared_absent(broken)] == ["refrigerator"]
+    assert sem.missing_truth(instances) == []
+    no_sink = [p for p in broken if not p.label.startswith("sink")]
+    assert sem.missing_truth(sem.true_instances(no_sink)) == ["sink"]
     assert all(np.all(i.half < 100) for i in sem.true_instances(KITCHEN))
 
 

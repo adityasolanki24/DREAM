@@ -13,42 +13,124 @@
     "Physics is frozen during inference (synchronous simulation): the robot is held while Qwen decides or detects. A real-time deployment is not measured.",
     "l_shape is a development kitchen (the closeout, the toolbox and the Isaac bring-up were developed on it); g_shape, l_island, peninsula and u_shape are held-out for every Qwen run. They were used before only by the classical, non-model explorer (results/isaac_g1_kitchen_*). The semantic modules and their thresholds were not tuned on any of them.",
     "The detector is Qwen3-VL grounding boxes, in a coordinate convention (relative 0..1000 versus absolute pixels) measured on l_shape before freezing (results/isaac_semantic_dev/coordinate_check.json).",
-    "Ground truth for the independent scorer is the NVIDIA scene's own semantic labels reduced to axis-aligned boxes (refrigerator, sink as the union of its rim and basin prims, oven as stove, countertop). No kettle or bed exists in these scenes: 'Find the bed' must never be claimed, and 'Pick up the kettle' is unsupported by capability.",
+    "Ground truth for the independent scorer is the NVIDIA scene's own semantic labels reduced to axis-aligned boxes (sink as the union of its rim and basin prims, countertop). THE REFRIGERATOR AND THE OVEN ARE ABSENT FROM EVERY KITCHEN: the scene declares prims labelled refrigerator and oven, but their SimReady asset references (../../SimReady/Residential/Kitchen/Appliances/...) return HTTP 404 on NVIDIA's asset server for Isaac 6.2, so those prims carry no geometry, no collider and no bound (results/isaac_semantic_dev/scene_probe_5_kitchens.json). 'Find/Walk to the refrigerator' are therefore absent-target requests, exactly like 'Find the bed': the only correct outcome is no claim, and a refrigerator success is impossible by construction. This is an environment limitation found after the 7 Nov closeout (whose T3 refrigerator task was likewise unanswerable); only the sink can be found. No kettle exists either; 'Pick up the kettle' is unsupported by capability.",
     "Planner memory hints are empty: a live Isaac session has no home memory. The semantic world attaches only to FindObject goals; Inspect and refusal paths keep the closeout toolbox.",
     "The robot-time budget is counted from session start (including the 10 s stand-up), so the usable task time is about 290 s. 60 tool calls at most.",
     "One run per case (no repetition), so success counts are small-sample point values without confidence intervals; two starts per kitchen."
   ],
   "kitchens": {
-    "development": ["l_shape"],
-    "held_out": ["g_shape", "l_island", "peninsula", "u_shape"]
+    "development": [
+      "l_shape"
+    ],
+    "held_out": [
+      "g_shape",
+      "l_island",
+      "peninsula",
+      "u_shape"
+    ]
   },
-  "starts": [1, 2],
+  "starts": [
+    1,
+    2
+  ],
   "start_rule": "experiments/isaac_g1_kitchen.choose_start('explore', start): free cell at least 0.55 m from every collider footprint, drawn with seed [start, 7]; the same rule and seeds as experiments/configs/isaac_g1_kitchen.json (evaluation_starts 1, 2, 3; 3 not used). A start the rule refuses is recorded as a setup failure; there are no replacement starts.",
   "budget_s": 300,
   "qwen_max_new_tokens": 512,
-  "planner": {"policy": "utility", "weights": {"kappa": 3.0, "ig": 1.0, "gamma": 1.0}, "source": "experiments/configs/semantic_search_heldout.json frozen at 9d08c27 (lead: kappa 3.0 by the pre-registered dev3 rule); merged into this branch at 33eb693"},
+  "planner": {
+    "policy": "utility",
+    "weights": {
+      "kappa": 3.0,
+      "ig": 1.0,
+      "gamma": 1.0
+    },
+    "source": "experiments/configs/semantic_search_heldout.json frozen at 9d08c27 (lead: kappa 3.0 by the pre-registered dev3 rule); merged into this branch at 33eb693"
+  },
   "qwen_max_new_tokens_note": "Both arms share one pinned Qwen server. The closeout server default (192 new tokens) leaves a 15-key JSON answer within 12% of truncation (room-prior answers used up to 168) and a detector list of a cluttered kitchen can exceed it; a truncated list is invalid JSON and silently yields no detections, an artifact of the harness and not a behaviour. 512 was fixed before any semantic-arm result; greedy decoding means shorter answers are unchanged.",
   "arms": {
     "semantic": {
       "mode": "semantic",
       "description": "Original request grounded by the explicit grammar (Qwen proposes a grounding only if the grammar leaves target or outcome ungrounded), deterministic binding, TaskAgent.run(goal, spec=spec), SemanticSearchPlanner 'utility' with the Qwen3-VL detector for FindObject goals, MobileModelPlanner for Inspect.",
       "tasks": [
-        {"id": "S1", "text": "Find the refrigerator", "target": "refrigerator", "outcome": "visually_localized", "supported": true},
-        {"id": "S2", "text": "Walk to the refrigerator", "target": "refrigerator", "outcome": "reached", "supported": true},
-        {"id": "S3", "text": "Find the sink", "target": "sink", "outcome": "visually_localized", "supported": true},
-        {"id": "S4", "text": "Find the bed", "target": "bed", "outcome": "visually_localized", "supported": true, "note": "absent from every kitchen: the only correct outcomes are exhausted, not found or possible-unconfirmed, never a claim"},
-        {"id": "S5", "text": "Pick up the kettle", "target": "kettle", "outcome": "grasped", "supported": false},
-        {"id": "S6", "text": "Walk to the far end of the room and come back", "target": "far_end_of_room", "outcome": "reached", "supported": false},
-        {"id": "S7", "text": "Inspect the cabinet", "target": "cabinet", "outcome": "inspected", "supported": true, "scorer": "cabinet"}
+        {
+          "id": "S1",
+          "text": "Find the refrigerator",
+          "target": "refrigerator",
+          "outcome": "visually_localized",
+          "supported": true,
+          "note": "the refrigerator is declared but not present in any kitchen (404 asset): an absent target, any claim is a false success"
+        },
+        {
+          "id": "S2",
+          "text": "Walk to the refrigerator",
+          "target": "refrigerator",
+          "outcome": "reached",
+          "supported": true,
+          "note": "the refrigerator is declared but not present in any kitchen (404 asset): an absent target, any claim is a false success"
+        },
+        {
+          "id": "S3",
+          "text": "Find the sink",
+          "target": "sink",
+          "outcome": "visually_localized",
+          "supported": true
+        },
+        {
+          "id": "S4",
+          "text": "Find the bed",
+          "target": "bed",
+          "outcome": "visually_localized",
+          "supported": true,
+          "note": "absent from every kitchen: the only correct outcomes are exhausted, not found or possible-unconfirmed, never a claim"
+        },
+        {
+          "id": "S5",
+          "text": "Pick up the kettle",
+          "target": "kettle",
+          "outcome": "grasped",
+          "supported": false
+        },
+        {
+          "id": "S6",
+          "text": "Walk to the far end of the room and come back",
+          "target": "far_end_of_room",
+          "outcome": "reached",
+          "supported": false
+        },
+        {
+          "id": "S7",
+          "text": "Inspect the cabinet",
+          "target": "cabinet",
+          "outcome": "inspected",
+          "supported": true,
+          "scorer": "cabinet"
+        }
       ]
     },
     "nov7": {
       "mode": "nov7",
       "description": "The 7 Nov 2026 closeout path, unchanged (Qwen interprets the goal and chooses every step; the verifier checks the goal Qwen bound), scored on the ORIGINAL request.",
       "tasks": [
-        {"id": "N1", "text": "Walk to the refrigerator", "target": "refrigerator", "outcome": "reached", "supported": true},
-        {"id": "N2", "text": "Pick up the kettle", "target": "kettle", "outcome": "grasped", "supported": false},
-        {"id": "N3", "text": "Find the refrigerator", "target": "refrigerator", "outcome": "visually_localized", "supported": true}
+        {
+          "id": "N1",
+          "text": "Walk to the refrigerator",
+          "target": "refrigerator",
+          "outcome": "reached",
+          "supported": true
+        },
+        {
+          "id": "N2",
+          "text": "Pick up the kettle",
+          "target": "kettle",
+          "outcome": "grasped",
+          "supported": false
+        },
+        {
+          "id": "N3",
+          "text": "Find the refrigerator",
+          "target": "refrigerator",
+          "outcome": "visually_localized",
+          "supported": true
+        }
       ]
     }
   },
@@ -62,9 +144,12 @@
     "min_remaining_to_start_process_s": 1500
   },
   "gates": {
-    "_note": "Pre-registered before any held-out run. Counted over every executed case of the stated arm and kitchens (development and held-out reported separately, gate evaluated on both pooled and on held-out alone). A case without an evaluation file cannot pass a gate: its claim is taken from the scheduler state and the gate is INCOMPLETE if any case lacks an evaluation. No threshold may be tuned after seeing held-out outcomes.",
+    "_note": "Pre-registered before any held-out run. Counted over every executed case of the stated arm and kitchens (development and held-out reported separately, gate evaluated on both pooled and on held-out alone). A case without an evaluation file cannot pass a gate: its claim is taken from the scheduler state and the gate is INCOMPLETE if any case lacks an evaluation. No threshold may be tuned after seeing held-out outcomes. The refrigerator tasks S1 and S2 are absent-target tasks (no refrigerator is rendered), so the semantic false-success gate covers them as well.",
     "semantic_false_success_max": 0,
-    "unsupported_tasks": ["S5", "S6"],
+    "unsupported_tasks": [
+      "S5",
+      "S6"
+    ],
     "unsupported_refused_fraction_min": 1.0,
     "absent_target_task": "S4",
     "absent_target_claims_max": 0,
@@ -72,7 +157,7 @@
     "falls_scope": "every case of both arms"
   },
   "reported_without_gate": [
-    "success counts for S1, S2, S3 (refrigerator and sink tasks) per split and per kitchen",
+    "outcome counts for S1, S2 (absent refrigerator) and S3 (sink) per split and per kitchen; refrigerator success is impossible by construction",
     "S7 inspection successes per split",
     "nov7 false claims (original-request result false_success) per task and split, with n",
     "typed outcome distribution of every unsuccessful semantic case",

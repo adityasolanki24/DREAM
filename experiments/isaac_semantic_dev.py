@@ -260,6 +260,9 @@ def measure(args, cfg) -> None:  # pragma: no cover - needs Isaac Sim
     failure = None
     try:
         for cls, prims in targets.items():
+            if not prims:  # declared by the scene, but no geometry exists (404 asset reference)
+                truth_log[cls] = {"declared_absent": True, "candidates": 0, "rejected": []}
+                continue
             lo = np.min([p.lo for p in prims], axis=0)
             hi3 = np.max([p.hi for p in prims], axis=0)
             centre = ((lo + hi3) / 2)[:2]

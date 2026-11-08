@@ -61,7 +61,12 @@ SCENE_CLASSES = {
 FROZEN_WEIGHTS = {"kappa": 3.0, "ig": 1.0, "gamma": 1.0}
 MERGE_MARGIN_M = 0.02  # AABBs of one merged class closer than this are one physical instance
 MERGE_CLASSES = frozenset({"sink"})  # a sink is a rim, a basin and a bowl; countertops are not
-REQUIRED_CLASSES = ("refrigerator", "sink")  # tasks are scored against these: truth must exist
+# The sink must exist in the scene for the scorer to mean anything. The refrigerator and the
+# oven are DECLARED by the NVIDIA kitchens but not present: their SimReady asset references
+# (../../SimReady/Residential/Kitchen/Appliances/...) return 404 on NVIDIA's server, so the prims
+# carry no geometry and no collider (results/isaac_semantic_eval/scene_probe.json). They are
+# therefore absent targets, exactly as the bed is.
+REQUIRED_CLASSES = ("sink",)
 
 
 def vocabularies(knowledge: SemanticKnowledge) -> tuple[dict, dict]:
@@ -196,6 +201,24 @@ def missing_truth(instances: list[TrueInstance]) -> list[str]:
     """Required scorer classes with no usable instance (the scorer would call a real object
     absent): the live process refuses to run rather than score against nothing."""
     return [c for c in REQUIRED_CLASSES if not any(i.cls == c for i in instances)]
+
+
+def declared_absent(labelled) -> list[dict]:
+    """Prims the scene labels as a scorer class but that have no usable geometry (declared in
+    the scene description, not present in the world): reported with the scoring instances."""
+    out = []
+    for obj in labelled:
+        cls = SCENE_CLASSES.get(obj.label)
+        lo, hi = np.asarray(obj.lo, float), np.asarray(obj.hi, float)
+        usable = (
+            np.isfinite(lo).all()
+            and np.isfinite(hi).all()
+            and np.abs(np.concatenate([lo, hi])).max() <= 1e8
+            and not np.any(hi < lo)
+        )
+        if cls is not None and not usable:
+            out.append({"path": obj.path, "label": obj.label, "class": cls})
+    return out
 
 
 def claim_position(goal, verdict: dict, odometry_end) -> list[float] | None:
