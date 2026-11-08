@@ -198,7 +198,7 @@ Arms differ only in how they choose where to look:
 there by a rule written beforehand: on dev3, κ = 3, 10 and 30 and Baseline A all found the target
 in 33 of 34 homes with no false claims, and the tie-break by median time chose κ = 3 (51.5 s, the
 same as A). So development showed **no advantage** for the semantic term before held-out data
-was seen. The held-out config was then frozen at `9d08c27`, with gates G0-G8
+was seen. The held-out config was then frozen at `9c19328`, with gates G0-G8
 (`experiments/configs/semantic_search_heldout.json`), and run from a worktree pinned to that
 commit:
 
@@ -360,7 +360,7 @@ of frames. Target: refrigerator.
   that had none, and claimed a storage shelf in 2 of the 8 that had one.
 
 **Verifier fix, confirmed on fresh seeds (V1; gates V1 and V2 PASS).**
-- **Where.** Results are in `results/semantic_search_verifier_v2`: 384 episodes on seeds 9200-9205, which no earlier config or result had used. The config was frozen at `4726ede` and the code ran from `2db3904`.
+- **Where.** Results are in `results/semantic_search_verifier_v2`: 384 episodes on seeds 9200-9205, which no earlier config or result had used. The config was frozen at `acea9d3` and the code ran from `1e11889`.
 - **What changed.** The verifier now also requires 95% one-sided confidence that the target is the track's majority label. In terms of the Wilson score lower bound on (target labels / all labels):
   - the bound must exceed 0.5, on top of the existing point purity ≥ 0.6;
   - 3 of 5 views gives 0.27 and is refused;
@@ -390,7 +390,7 @@ of frames. Target: refrigerator.
   - V1 does show that the stricter rule cost no successes on fresh homes.
   - It also removes the weakness behind both look-alike claims seen so far: accepting on a handful of mixed labels.
 
-Under the pre-registered rule, the confidence check is now the verifier default (`6fffdac`). Every earlier result used the point rule and reproduces from its frozen commit. The H1-H4 gates are not rescored.
+Under the pre-registered rule, the confidence check is now the verifier default (`6d680b4`). Every earlier result used the point rule and reproduces from its frozen commit. The H1-H4 gates are not rescored.
 
 **Room inference** (proposed arm, H1, 293 region instances with evidence). The top room type was
 right for 178 regions (61%). The cautious label committed 70 times and was right 62 times (89%);
@@ -440,7 +440,7 @@ attributed to the fix. It also ran in two sessions: the first budget was set too
 deferred, and they ran unchanged in a second session. None was repeated.
 
 **Semantic re-test on held-out kitchens.**
-- **Setup.** The re-test was frozen at `b2119da` before any held-out case ran (`experiments/configs/isaac_semantic_eval.json`) and ran in cloud sessions 5f4c47 and 8d3855. Results are in `results/isaac_semantic_eval`, with counts in `OUTCOMES.json`. Each case was scored against the original request.
+- **Setup.** The re-test was frozen at `c4100e2` before any held-out case ran (`experiments/configs/isaac_semantic_eval.json`) and ran in cloud sessions 5f4c47 and 8d3855. Results are in `results/isaac_semantic_eval`, with counts in `OUTCOMES.json`. Each case was scored against the original request.
 - **Kitchens.** Four held-out kitchens, all from start 1, with one run per case.
 - **Semantic arm.** It is the new path:
   - the explicit goal grammar and deterministic binding;
@@ -639,7 +639,7 @@ python cloud/isaac_session.py stop --manifest <m> --yes
 The room summary is `experiments/summarise_room_postfix.py`, the Qwen one
 `experiments/summarise_isaac_postfix.py`. Each inventory item has its own command.
 
-Object search: run each split from a checkout of the frozen commit `9d08c27`. The analysis scripts
+Object search: run each split from a checkout of the frozen commit `9c19328`. The analysis scripts
 are read-only and live on this branch.
 
 ```powershell
@@ -658,15 +658,15 @@ $PY = ".venv/Scripts/python.exe"; $C = "experiments/configs/semantic_search_held
 H4 runs on the cloud's `dream` environment through `experiments/cloud_bootstrap.py`, which installs
 the hash-pinned scipy from `cloud/semantic.requirements.lock.txt`.
 
-Verifier fix (V1): run from a checkout of `2db3904`. From `6fffdac` on, the default rule is the confidence check, so both arms would be identical. The episode diagnosis replays the frozen H2 code from `9d08c27`.
+Verifier fix (V1): run from a checkout of `1e11889`. From `6d680b4` on, the default rule is the confidence check, so both arms would be identical. The episode diagnosis replays the frozen H2 code from `9c19328`.
 
 ```powershell
 & $PY experiments/semantic_search_eval.py experiments/configs/semantic_search_verifier_v2.json --split V1 --workers 3 --out results/semantic_search_verifier_v2/V1
 & $PY experiments/verifier_v2_gates.py results/semantic_search_verifier_v2/V1 --out results/semantic_search_verifier_v2/gates.json
-& $PY experiments/diagnose_search_episode.py experiments/configs/semantic_search_heldout.json --split H2 --scenario E --target bathtub --seed 6001 --code-root <checkout of 9d08c27> --focus-tracks 88,124 --out results/semantic_search_heldout/H2_false_claim_diagnosis.json
+& $PY experiments/diagnose_search_episode.py experiments/configs/semantic_search_heldout.json --split H2 --scenario E --target bathtub --seed 6001 --code-root <checkout of 9c19328> --focus-tracks 88,124 --out results/semantic_search_heldout/H2_false_claim_diagnosis.json
 ```
 
-**Final verification**, on this branch at `6fffdac`:
+**Final verification**, on this branch at `6d680b4`:
 - Python fast suite: 772 passed, 1 skipped.
 - Slow suite: 61 passed.
 - Isolation: 19 passed.
@@ -683,16 +683,20 @@ Ruff is clean on tracked Python, apart from files left byte-identical to the cod
 | Ref | Role | State |
 |---|---|---|
 | `claude/semantic-goal-search-20261108` | This tree: goal consistency, object search, held-out evaluations, this report | Not merged into `main` |
-| `claude/semantic-isaac-20261108` | Isaac and Qwen tier of the same work; re-test config frozen at `b2119da` | Merged here (`f6d7191`) |
-| `9d08c27` | Frozen held-out MuJoCo search config and code (κ = 3) | Every H1-H4 run executed from it |
+| `claude/semantic-isaac-20261108` | Isaac and Qwen tier of the same work; re-test config frozen at `c4100e2` | Merged here (`95a2e60`); its commits are in this branch, and the branch itself is not pushed |
+| `9c19328` | Frozen held-out MuJoCo search config and code (κ = 3) | Every H1-H4 run executed from it |
 | `claude/research-closeout-20261106` | 7 November closeout: all evaluations, the room fix | Base of this branch |
 | `claude/closeout-evals-20261106`, `claude/camera-measure-20261106`, `codex/g1-runtime-builder-20261028` | Merged here | Retained |
 | `claude/wholebody-autonomy` (8f47475) | W6 | **Not merged**: failed gates |
 | `claude/room-margin-diagnostic` (1fce5c5), `claude/postfix-r1-prefix-20261107` (117c97d), `claude/bisect-throwaway-20261107` | Diagnostics | Never merge |
 
-Key commits: `2db3904` the verifier confidence check, V1 ran from it; `6fffdac` it becomes the
+Key commits: `1e11889` the verifier confidence check, V1 ran from it; `6d680b4` it becomes the
 default; `eaa313a` the room fix; `b8208bb` the regression; `b0e2e17` frozen Qwen run; `a3b4304` frozen
 room run; `aba05d1` post-fix runs. Earlier heads are retained by `archive/2026-10-29/...` tags.
+
+**Commit IDs after 9 November.** Before this branch was first pushed, its history was rewritten for one reason: to remove co-author trailers that named a model, as AGENTS.md requires. Commit messages also had their abbreviated commit IDs translated to the new ones. Every rewritten commit has the same file tree as before.
+
+IDs recorded inside `results/` and in the frozen configs' `frozen_commit` fields are the pre-rewrite IDs. They were left as the runs wrote them. `results/commit_map_20261109.json` maps each old ID to its new one, for example H1-H4's `9d08c27` → `9c19328`.
 
 ## Cloud cost and cleanup
 
