@@ -59,7 +59,9 @@ SCENE_CLASSES = {
 # Planner weights of the frozen MuJoCo held-out evaluation (experiments/configs/
 # semantic_search_heldout.json, commit 9d08c27): kappa chosen there by the pre-registered dev3 rule.
 FROZEN_WEIGHTS = {"kappa": 3.0, "ig": 1.0, "gamma": 1.0}
-MERGE_MARGIN_M = 0.02  # AABBs of one class closer than this are one physical instance
+MERGE_MARGIN_M = 0.02  # AABBs of one merged class closer than this are one physical instance
+MERGE_CLASSES = frozenset({"sink"})  # a sink is a rim, a basin and a bowl; countertops are not
+REQUIRED_CLASSES = ("refrigerator", "sink")  # tasks are scored against these: truth must exist
 
 
 def vocabularies(knowledge: SemanticKnowledge) -> tuple[dict, dict]:
@@ -154,22 +156,28 @@ def true_instances(labelled, room_type: str = "kitchen") -> list[TrueInstance]:
     members: dict[str, list] = {}
     for obj in labelled:
         cls = SCENE_CLASSES.get(obj.label)
-        if cls is not None:
-            members.setdefault(cls, []).append(obj)
+        lo, hi = np.asarray(obj.lo, float), np.asarray(obj.hi, float)
+        if cls is None or not (np.isfinite(lo).all() and np.isfinite(hi).all()):
+            continue
+        if np.abs(np.concatenate([lo, hi])).max() > 1e8 or np.any(hi < lo):
+            continue  # USD's empty-range sentinel: no usable geometry
+        members.setdefault(cls, []).append(obj)
     out: list[TrueInstance] = []
     for cls in sorted(members):
         boxes = [(np.asarray(o.lo, float)[:2], np.asarray(o.hi, float)[:2]) for o in members[cls]]
         groups: list[list[int]] = []
         for i, (lo, hi) in enumerate(boxes):
-            touching = [
-                g
-                for g in groups
-                if any(
-                    np.all(lo <= boxes[j][1] + MERGE_MARGIN_M)
-                    and np.all(boxes[j][0] <= hi + MERGE_MARGIN_M)
-                    for j in g
-                )
-            ]
+            touching = []
+            if cls in MERGE_CLASSES:
+                touching = [
+                    g
+                    for g in groups
+                    if any(
+                        np.all(lo <= boxes[j][1] + MERGE_MARGIN_M)
+                        and np.all(boxes[j][0] <= hi + MERGE_MARGIN_M)
+                        for j in g
+                    )
+                ]
             merged = [i]
             for g in touching:
                 merged += g
@@ -178,9 +186,16 @@ def true_instances(labelled, room_type: str = "kitchen") -> list[TrueInstance]:
         for k, g in enumerate(sorted(groups, key=min)):
             lo = np.min([boxes[j][0] for j in g], axis=0)
             hi = np.max([boxes[j][1] for j in g], axis=0)
-            out.append(TrueInstance(f"{cls}:{k}", cls, (lo + hi) / 2, (hi - lo) / 2, 0.0,
-                                    room_type))  # fmt: skip
+            out.append(
+                TrueInstance(f"{cls}:{k}", cls, (lo + hi) / 2, (hi - lo) / 2, 0.0, room_type)
+            )
     return out
+
+
+def missing_truth(instances: list[TrueInstance]) -> list[str]:
+    """Required scorer classes with no usable instance (the scorer would call a real object
+    absent): the live process refuses to run rather than score against nothing."""
+    return [c for c in REQUIRED_CLASSES if not any(i.cls == c for i in instances)]
 
 
 def claim_position(goal, verdict: dict, odometry_end) -> list[float] | None:

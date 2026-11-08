@@ -366,3 +366,24 @@ def test_decision_recorder_folder_is_configurable_and_default_unchanged(tmp_path
     assert DecisionRecorder(FakeBackend(), tmp_path, lambda: 0.0).folder.name == "qwen_decisions"
     detector = DecisionRecorder(FakeBackend(), tmp_path, lambda: 0.0, folder_name="qwen_detector")
     assert detector.folder.name == "qwen_detector" and detector.folder.is_dir()
+
+
+def test_usd_empty_bounds_are_not_geometry_and_missing_truth_is_reported():
+    """Regression (session 877a82 smoke): the refrigerator and oven prims returned float32-max
+    bounds, became instances with a huge half extent, and any claim would have scored as a hit."""
+    sentinel = 3.4028234663852886e38
+    empty = prim("/World/Fridge", "refrigerator", [sentinel] * 3, [-sentinel] * 3)
+    broken = [empty if p.label == "refrigerator" else p for p in KITCHEN]
+    instances = sem.true_instances(broken)
+    assert not [i for i in instances if i.cls == "refrigerator"]
+    assert sem.missing_truth(instances) == ["refrigerator"]
+    assert sem.missing_truth(sem.true_instances(KITCHEN)) == []
+    assert all(np.all(i.half < 100) for i in sem.true_instances(KITCHEN))
+
+
+def test_adjacent_countertops_stay_separate_instances():
+    tops = [
+        prim("/World/T0", "countertop", [0, 0, 0.8], [1.0, 0.6, 0.9]),
+        prim("/World/T1", "countertop", [1.0, 0, 0.8], [2.0, 0.6, 0.9]),
+    ]
+    assert len([i for i in sem.true_instances(tops) if i.cls == "countertop"]) == 2

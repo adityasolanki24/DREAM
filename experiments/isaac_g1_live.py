@@ -297,6 +297,9 @@ def serve(args, cfg):
         scoring_instances = []
         if args.scoring_config is not None:
             scoring_instances = sem_eval.true_instances(truth_labelled)
+            missing = sem_eval.missing_truth(scoring_instances)
+            if missing:
+                raise RuntimeError(f"scene truth has no usable instance of {missing}")
             scoring_cfg = json.loads(args.scoring_config.read_text(encoding="utf-8"))
             for arm in scoring_cfg["arms"].values():
                 for entry in arm["tasks"]:

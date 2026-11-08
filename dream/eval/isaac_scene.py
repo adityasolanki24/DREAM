@@ -13,6 +13,7 @@ from dataclasses import dataclass
 import numpy as np
 
 CELL = 0.05  # m, start-pose occupancy grid
+_HUGE = 1e8  # m: beyond this a bound is USD's empty-range sentinel (about 3.4e38)
 
 
 @dataclass(frozen=True)
@@ -29,7 +30,25 @@ class LabelledObject:
 
 def _bbox(cache, prim) -> tuple[np.ndarray, np.ndarray]:
     box = cache.ComputeWorldBound(prim).ComputeAlignedRange()
-    return np.array(box.GetMin(), float), np.array(box.GetMax(), float)
+    lo, hi = np.array(box.GetMin(), float), np.array(box.GetMax(), float)
+    if box.IsEmpty() or np.abs(np.concatenate([lo, hi])).max() > _HUGE:
+        # A labelled prim can carry no geometry itself (the refrigerator and the oven of the
+        # NVIDIA kitchens return float32-max bounds): union the bounds of its descendants,
+        # instance proxies included. Still empty -> non-finite, which callers skip.
+        from pxr import Usd, UsdGeom
+
+        lo, hi = np.full(3, np.inf), np.full(3, -np.inf)
+        for child in Usd.PrimRange(prim, Usd.TraverseInstanceProxies()):
+            if not child.IsA(UsdGeom.Boundable):
+                continue
+            part = cache.ComputeWorldBound(child).ComputeAlignedRange()
+            if part.IsEmpty():
+                continue
+            c_lo, c_hi = np.array(part.GetMin(), float), np.array(part.GetMax(), float)
+            if np.abs(np.concatenate([c_lo, c_hi])).max() > _HUGE:
+                continue
+            lo, hi = np.minimum(lo, c_lo), np.maximum(hi, c_hi)
+    return lo, hi
 
 
 def labelled_objects(stage, exclude_prefix: str = "/World/G1") -> list[LabelledObject]:
