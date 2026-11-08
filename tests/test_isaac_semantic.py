@@ -246,22 +246,21 @@ def test_claim_position_and_typed_completion():
 # -- config, case plan and gates -------------------------------------------------------------
 
 
-def test_case_plan_matches_the_task_statement():
-    cfg = ev.load_config(CONFIG, allow_draft=True)
+def test_case_plan_is_the_frozen_reduced_matrix():
+    cfg = ev.load_config(CONFIG)  # frozen: loading without allow_draft must work
     cases = ev.build_cases(cfg)
-    assert len(cases) == 5 * 2 * (7 + 3)
-    assert {c["split"] for c in cases} == {"development", "held_out"}
-    assert {c["kitchen"] for c in cases if c["split"] == "held_out"} == {
-        "g_shape", "l_island", "peninsula", "u_shape",
-    }  # fmt: skip
+    assert len(cases) == 4 * 1 * 7
+    assert {c["split"] for c in cases} == {"held_out"}
+    assert {c["kitchen"] for c in cases} == {"g_shape", "l_island", "peninsula", "u_shape"}
+    assert {c["start"] for c in cases} == {1}
     assert len({c["case_id"] for c in cases}) == len(cases)
-    assert [c["text"] for c in cases if c["arm"] == "nov7"][:3] == [
-        "Walk to the refrigerator", "Pick up the kettle", "Find the refrigerator",
-    ]  # fmt: skip
+    assert {c["task"] for c in cases} == {"N1", "N2", "S2", "S3", "S5", "S6", "S7"}
+    first_kitchen = [c["task"] for c in cases if c["kitchen"] == "g_shape"]
+    assert first_kitchen == ["N1", "N2", "S2", "S5", "S3", "S6", "S7"]
+    assert [c["text"] for c in cases[:2]] == ["Walk to the refrigerator", "Pick up the kettle"]
     kettle = [c for c in cases if c["text"] == "Pick up the kettle"]
-    assert all(c["unsupported_expected"] for c in kettle)
-    with pytest.raises(ValueError, match="frozen"):
-        ev.load_config(CONFIG)  # a draft cannot be run by accident
+    assert len(kettle) == 8 and all(c["unsupported_expected"] for c in kettle)
+    assert cfg["qwen_max_new_tokens"] == 512 and cfg["planner"]["weights"]["kappa"] == 3.0
 
 
 def test_scoring_table_entries_agree_across_arms():
@@ -287,7 +286,7 @@ def case(
 def passing_cases():
     return [
         case("semantic", "S1", "success", True),
-        case("semantic", "S4", "correct_refusal", completion="search_exhausted"),
+        case("semantic", "S2", "correct_refusal", completion="search_exhausted"),
         case("semantic", "S5", "correct_refusal", completion="goal_unsupported"),
         case("semantic", "S6", "correct_refusal", completion="goal_unsupported"),
         case("nov7", "N1", "false_success", True),
@@ -313,11 +312,7 @@ def test_gates_pass_and_nov7_false_claims_do_not_fail_the_semantic_gate():
             lambda c: c.append(case("semantic", "S5", "missed", completion=None)),
             "unsupported_refused_every_case",
         ),
-        (
-            lambda c: c.append(case("semantic", "S4", "false_success", True)),
-            "find_bed_never_claimed",
-        ),
-        (lambda c: c.append(case("nov7", "N3", "missed", fell=True)), "falls_zero"),
+        (lambda c: c.append(case("nov7", "N2", "missed", fell=True)), "falls_zero"),
     ],
 )
 def test_each_gate_can_fail(mutation, gate):

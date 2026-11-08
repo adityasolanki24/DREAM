@@ -57,33 +57,38 @@ def split_of(cfg: dict, kitchen: str) -> str:
 def build_cases(
     cfg: dict, kitchens=None, starts=None, arms=None, tasks=None, case_ids=None
 ) -> list[dict]:
-    """The case plan in a fixed order: kitchen (development first), start, arm, task."""
-    all_kitchens = [*cfg["kitchens"]["development"], *cfg["kitchens"]["held_out"]]
+    """The case plan in a fixed order: kitchen, start, then ``case_order`` over both arms."""
+    run = cfg["kitchens"].get("run") or [
+        *cfg["kitchens"]["development"],
+        *cfg["kitchens"]["held_out"],
+    ]
+    order = cfg.get("case_order", [])
+    ordered = sorted(
+        ((arm, task) for arm, body in cfg["arms"].items() for task in body["tasks"]),
+        key=lambda at: order.index(at[1]["id"]) if at[1]["id"] in order else len(order),
+    )
     out = []
-    for kitchen in kitchens or all_kitchens:
+    for kitchen in kitchens or run:
         for start in starts or cfg["starts"]:
-            for arm, body in cfg["arms"].items():
-                if arms and arm not in arms:
+            for arm, task in ordered:
+                case_id = f"{kitchen}_s{start}_{arm}_{task['id']}"
+                if (arms and arm not in arms) or (tasks and task["id"] not in tasks):
                     continue
-                for task in body["tasks"]:
-                    if tasks and task["id"] not in tasks:
-                        continue
-                    case_id = f"{kitchen}_s{start}_{arm}_{task['id']}"
-                    if case_ids and case_id not in case_ids:
-                        continue
-                    out.append(
-                        {
-                            "case_id": case_id,
-                            "kitchen": kitchen,
-                            "split": split_of(cfg, kitchen),
-                            "start": start,
-                            "arm": arm,
-                            "mode": body["mode"],
-                            "task": task["id"],
-                            "text": task["text"],
-                            "unsupported_expected": not task["supported"],
-                        }
-                    )
+                if case_ids and case_id not in case_ids:
+                    continue
+                out.append(
+                    {
+                        "case_id": case_id,
+                        "kitchen": kitchen,
+                        "split": split_of(cfg, kitchen),
+                        "start": start,
+                        "arm": arm,
+                        "mode": cfg["arms"][arm]["mode"],
+                        "task": task["id"],
+                        "text": task["text"],
+                        "unsupported_expected": not task["supported"],
+                    }
+                )
     return out
 
 
@@ -176,8 +181,6 @@ def evaluate_gates(cfg: dict, cases: list[dict]) -> dict:
             for c in unsupported
             if c["original_result"] == "correct_refusal" and c["completion"] == "goal_unsupported"
         ]
-        absent = [c for c in semantic if c["task"] == g["absent_target_task"]]
-        absent_claims = [c["case_id"] for c in absent if c["success_claimed"]]
         falls = [c["case_id"] for c in scope if c["fell"]]
         unknown = [c["case_id"] for c in scope if c["fell"] is None]
         fraction = len(refused) / len(unsupported) if unsupported else None
@@ -193,11 +196,6 @@ def evaluate_gates(cfg: dict, cases: list[dict]) -> dict:
                 of=len(unsupported),
                 not_refused=[c["case_id"] for c in unsupported if c not in refused],
             ),
-            "find_bed_never_claimed": verdict(
-                bool(absent) and len(absent_claims) <= g["absent_target_claims_max"],
-                claims=absent_claims,
-                of=len(absent),
-            ),
             "falls_zero": verdict(
                 len(falls) <= g["falls_max"] and not unknown, falls=falls, unknown_safety=unknown
             ),
@@ -206,8 +204,11 @@ def evaluate_gates(cfg: dict, cases: list[dict]) -> dict:
     return {
         "pooled": gates_for(ran),
         "held_out_only": gates_for([c for c in ran if c["split"] == "held_out"]),
-        "development_only": gates_for([c for c in ran if c["split"] == "development"]),
-    }
+    } | (
+        {"development_only": gates_for(dev)}
+        if (dev := [c for c in ran if c["split"] == "development"])
+        else {}
+    )
 
 
 def report_tables(cases: list[dict]) -> dict:

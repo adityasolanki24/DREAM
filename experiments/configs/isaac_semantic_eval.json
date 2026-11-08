@@ -1,8 +1,8 @@
 {
   "name": "isaac_semantic_eval",
-  "status": "draft",
-  "frozen_date": null,
-  "frozen_at_commit": null,
+  "status": "frozen",
+  "frozen_date": "2026-11-08",
+  "frozen_at_commit": "parent of the commit that sets this field (the freezing commit cannot contain its own SHA)",
   "evidence_class": "held-out kitchens g_shape, l_island, peninsula, u_shape (never used for any Qwen evaluation: the 7 Nov closeout and its post-fix rerun used l_shape only; README 'Qwen on the Isaac G1' and results/isaac_qwen_*), plus the development kitchen l_shape reported separately. The architecture under test (dream/tools/intent.py, dream/semantics, dream/runtime/semantic_search.py) was developed on MuJoCo procedural homes and has never run in Isaac.",
   "environment": "NVIDIA Isaac Sim 6.2 / PhysX, Unitree G1 under the unchanged NVIDIA Decoupled WBC, on a g2-standard-8 + L4 VM",
   "model": "Qwen/Qwen3-VL-4B-Instruct",
@@ -27,11 +27,19 @@
       "l_island",
       "peninsula",
       "u_shape"
-    ]
+    ],
+    "run": [
+      "g_shape",
+      "l_island",
+      "peninsula",
+      "u_shape"
+    ],
+    "not_run": {
+      "l_shape": "development kitchen: development evidence already exists (results/isaac_semantic_dev)"
+    }
   },
   "starts": [
-    1,
-    2
+    1
   ],
   "start_rule": "experiments/isaac_g1_kitchen.choose_start('explore', start): free cell at least 0.55 m from every collider footprint, drawn with seed [start, 7]; the same rule and seeds as experiments/configs/isaac_g1_kitchen.json (evaluation_starts 1, 2, 3; 3 not used). A start the rule refuses is recorded as a setup failure; there are no replacement starts.",
   "budget_s": 300,
@@ -52,14 +60,6 @@
       "description": "Original request grounded by the explicit grammar (Qwen proposes a grounding only if the grammar leaves target or outcome ungrounded), deterministic binding, TaskAgent.run(goal, spec=spec), SemanticSearchPlanner 'utility' with the Qwen3-VL detector for FindObject goals, MobileModelPlanner for Inspect.",
       "tasks": [
         {
-          "id": "S1",
-          "text": "Find the refrigerator",
-          "target": "refrigerator",
-          "outcome": "visually_localized",
-          "supported": true,
-          "note": "the refrigerator is declared but not present in any kitchen (404 asset): an absent target, any claim is a false success"
-        },
-        {
           "id": "S2",
           "text": "Walk to the refrigerator",
           "target": "refrigerator",
@@ -73,14 +73,6 @@
           "target": "sink",
           "outcome": "visually_localized",
           "supported": true
-        },
-        {
-          "id": "S4",
-          "text": "Find the bed",
-          "target": "bed",
-          "outcome": "visually_localized",
-          "supported": true,
-          "note": "absent from every kitchen: the only correct outcomes are exhausted, not found or possible-unconfirmed, never a claim"
         },
         {
           "id": "S5",
@@ -123,13 +115,6 @@
           "target": "kettle",
           "outcome": "grasped",
           "supported": false
-        },
-        {
-          "id": "N3",
-          "text": "Find the refrigerator",
-          "target": "refrigerator",
-          "outcome": "visually_localized",
-          "supported": true
         }
       ]
     }
@@ -144,24 +129,46 @@
     "min_remaining_to_start_process_s": 1500
   },
   "gates": {
-    "_note": "Pre-registered before any held-out run. Counted over every executed case of the stated arm and kitchens (development and held-out reported separately, gate evaluated on both pooled and on held-out alone). A case without an evaluation file cannot pass a gate: its claim is taken from the scheduler state and the gate is INCOMPLETE if any case lacks an evaluation. No threshold may be tuned after seeing held-out outcomes. The refrigerator tasks S1 and S2 are absent-target tasks (no refrigerator is rendered), so the semantic false-success gate covers them as well.",
+    "_note": "Pre-registered before any held-out run. Counted over every executed case of the stated arm (all four kitchens are held-out; the development split is empty in this reduced run). A case without an evaluation file cannot pass a gate: its claim is taken from the scheduler state and the gate is INCOMPLETE if any case lacks an evaluation. The refrigerator task S2 is an absent-target task (no refrigerator is rendered), so the false-success gate covers it with S3 and S7. No threshold may be tuned after seeing held-out outcomes.",
     "semantic_false_success_max": 0,
     "unsupported_tasks": [
       "S5",
       "S6"
     ],
     "unsupported_refused_fraction_min": 1.0,
-    "absent_target_task": "S4",
-    "absent_target_claims_max": 0,
     "falls_max": 0,
     "falls_scope": "every case of both arms"
   },
   "reported_without_gate": [
-    "outcome counts for S1, S2 (absent refrigerator) and S3 (sink) per split and per kitchen; refrigerator success is impossible by construction",
-    "S7 inspection successes per split",
-    "nov7 false claims (original-request result false_success) per task and split, with n",
+    "nov7 false claims (original-request result false_success) per task N1 and N2, with n",
+    "S2 (absent refrigerator), S3 (sink) and S7 (cabinet inspection, regression check of the closeout T1) outcomes, descriptively, per kitchen",
     "typed outcome distribution of every unsuccessful semantic case",
     "wall time per case"
   ],
-  "attempt_policy": "Infrastructure or integration crashes (exceptions, wiring, API errors) may be fixed in a focused commit with a regression test, every attempt's evidence kept in its own folder. Behavioural outcomes are results: no change to prompts, thresholds, planners or verification after outcomes are seen, and no rerun to obtain a better outcome. Coordinate-convention evidence is the only measurement allowed to change the detector, and only before freezing, on l_shape."
+  "attempt_policy": "Infrastructure or integration crashes (exceptions, wiring, API errors) may be fixed in a focused commit with a regression test, every attempt's evidence kept in its own folder. Behavioural outcomes are results: no change to prompts, thresholds, planners or verification after outcomes are seen, and no rerun to obtain a better outcome. Coordinate-convention evidence is the only measurement allowed to change the detector, and only before freezing, on l_shape.",
+  "case_order": [
+    "N1",
+    "N2",
+    "S2",
+    "S5",
+    "S3",
+    "S6",
+    "S7"
+  ],
+  "case_order_note": "within each kitchen the four cases that directly measure the 7 Nov failures (N1, N2 old path; S2, S5 new path) run first",
+  "reduction": {
+    "decided": "2026-11-08 by the lead engineer, before any held-out case ran",
+    "from": "5 kitchens x 2 starts x 10 tasks = 100 cases",
+    "to": "4 held-out kitchens x start 1 x 7 tasks = 28 cases (semantic S2 S3 S5 S6 S7; nov7 N1 N2)",
+    "dropped": {
+      "S1 Find the refrigerator": "absent target like S2 (no refrigerator is rendered in any kitchen); S2 keeps one absent-refrigerator case",
+      "S4 Find the bed": "absent target; its gate is dropped",
+      "N3 Find the refrigerator": "absent target in the old arm; N1 keeps the refrigerator case",
+      "start 2": "cost",
+      "l_shape cases": "development evidence already exists"
+    },
+    "reason": "cost and wall time (a search case takes 16 to 17 minutes of wall time in the smoke, about 104 minutes per kitchen-start pair for the full matrix, about 63 USD against a 60 USD task limit) and the finding that the refrigerator and oven are not rendered in any kitchen (SimReady asset references return HTTP 404), which makes refrigerator tasks absent-target tasks.",
+    "budget": "at most 2 sessions of at most 180 minutes and 8 USD each"
+  },
+  "verifier_and_detector": "unchanged: dream/semantics/verify.py thresholds as frozen for the MuJoCo evaluation (min_support 3, min_viewpoints 2, min_purity 0.6, close_range 2.5, max_miss_ratio 0.34) and the relative1000 detector convention"
 }
