@@ -56,8 +56,10 @@ The previous README is preserved in `archive/documentation-closeout-20261107.zip
 
 - The 7 November Qwen evaluation **failed its gates**. Asked to walk to a refrigerator or pick up a
   kettle, the system substituted a goal it could do (go to the entrance, inspect a cabinet),
-  verified that, and claimed success. The record stands. The fix is above, and its Isaac
-  re-test is under "Qwen on the Isaac G1".
+  verified that, and claimed success. The record stands. The fix is above. In the Isaac
+  re-test on three held-out kitchens, the old path did this again in 4 of 6 cases and the new
+  path did not do it (0/9). Those gates are incomplete, because a fourth kitchen never loaded.
+  See "Qwen on the Isaac G1".
 - Room search on fresh seeds **failed its frozen gates** (15/20, 4/10). The later fix does not
   change that record.
 - Compartment opening from camera perception **failed** (11/20). MolmoAct2 **did not complete the
@@ -76,7 +78,7 @@ The previous README is preserved in `archive/documentation-closeout-20261107.zip
 | Object search, shifted homes and new targets (H2) | Proposed 31/32 vs A 29/32; **1/48 false claim** (shower claimed as bathtub) | **FAIL** G0, G7 |
 | Object search, degraded detector (H3) | Proposed 14/16 vs A 11/16; 0/24 false claims; single-view 10/16 false claims | Reported (G6) |
 | Room inference from objects | Top-1 61%; labelled 62/70; laundry and storage 0% | Measured, heuristic |
-| Qwen on Isaac G1, semantic re-test, held-out kitchens | Frozen at `b2119da`, running | Pending |
+| Qwen on Isaac G1, semantic re-test, held-out kitchens | New path 0/9 false successes, 4/4 unsupported requests refused; old path 4/6 false successes; 0 falls; `l_island` never loaded | Gates **INCOMPLETE** |
 | Qwen on Isaac G1, frozen matrix | 3 false claims, T3 1/3, T4 2/3; falls 0, T1 3/3, T2 3/3 | **FAIL** |
 | Same matrix after the viewpoint fix | Same gate results; T2 2/3; hand contact in 2 of 15 cases | **FAIL**, development only |
 | Whole-body W6 | Off-band 0.667 (0.70), refusal 0.864 (0.90); held-out not run | **FAIL**, not merged |
@@ -398,6 +400,39 @@ The after-fix run does not replace the frozen one. One run per case, so its diff
 attributed to the fix. It also ran in two sessions: the first budget was set too short, 6 cases
 deferred, and they ran unchanged in a second session. None was repeated.
 
+**Semantic re-test on held-out kitchens.**
+- **Setup.** The re-test was frozen at `b2119da` before any held-out case ran (`experiments/configs/isaac_semantic_eval.json`) and ran in cloud sessions 5f4c47 and 8d3855. Results are in `results/isaac_semantic_eval`, with counts in `OUTCOMES.json`. Each case was scored against the original request.
+- **Kitchens.** Four held-out kitchens, all from start 1, with one run per case.
+- **Semantic arm.** It is the new path:
+  - the explicit goal grammar and deterministic binding;
+  - `TaskAgent.run(spec=)`;
+  - the frozen MuJoCo planner weights (κ = 3);
+  - Qwen3-VL-4B at `ebb281ec` as the detector.
+- **Old arm.** The 7 November path, unchanged.
+- **The refrigerator is absent.** Its SimReady asset reference returns 404 in every kitchen, so "Walk to the refrigerator" is an absent-target task.
+
+| Request | Old arm (7 Nov path) | Semantic arm |
+|---|---|---|
+| Walk to the refrigerator (absent) | **3/3 false success**: it bound "go to the entrance", verified that and claimed success | 3/3 no claim: twice it searched the reachable space and refused; once the 300 s budget ran out |
+| Pick up the kettle (unsupported) | **1/3 false success**: it bound "inspect the cabinet". The other 2 failed without a claim | 3/3 refused as unsupported, with no tool call |
+| Find the sink | Not in this arm | g_shape: missed. A possible sink was seen but not verified |
+| Walk to the far end and back (unsupported) | Not in this arm | g_shape: refused |
+| Inspect the cabinet | Not in this arm | g_shape: verified |
+
+No robot fell in the 15 cases that ran.
+
+**The pre-registered gates are incomplete.** Not every case ran:
+- `l_island` never loaded. All 11 attempts across both sessions crashed at world reset with the PhysX error "non-finite bounds". The cause is the declared refrigerator and oven prims, whose asset references are missing. This is deterministic and specific to that scene, and those cases are unscored.
+- The sink, far-end and cabinet tasks were not run in `peninsula` and `u_shape`, to fit the session time.
+
+Over the cases that did run:
+- **Semantic arm:** 0 of 9 false successes, and it refused 4 of 4 unsupported requests.
+- **Old arm:** 4 of 6 cases were false successes.
+
+These cases cover three kitchens with one run each, so no rate is claimed. The 7 November substitution reproduced on new kitchens, and the new path did not substitute.
+
+**Counter-mounted objects cannot be confirmed yet.** The best sink track in `g_shape` had support 13 from 6 viewpoints, but its purity was only 0.39, below the 0.6 threshold. Qwen's countertop and cabinet boxes span the whole counter run, so depth back-projection fuses cabinet, countertop and sink into one track. The verifier refused it, which is the safe outcome. The coordinate check (`results/isaac_semantic_dev`, sink evidence only) gives a mean IoU of 0.29 for Qwen's relative-1000 boxes, and no convention reaches 0.5.
+
 ### Room search
 
 | Arm | Code, renderer, seeds | Nominal | Shifted | No cabinet |
@@ -478,7 +513,7 @@ Rule 3 classes for everything that affects the object-search results.
 
 | Finding | Evidence | State |
 |---|---|---|
-| Request-to-goal substitution produces false claims | T3 and T4, both 7 Nov Qwen runs. Replayed outputs refused, and the fault-injection gate holds (0/40). Isaac re-test below | **Fixed** in tested paths |
+| Request-to-goal substitution produces false claims | T3 and T4, both 7 Nov Qwen runs. Replayed outputs refused, and the fault-injection gate holds (0/40). Isaac held-out re-test: old path 4/6, new path 0/9 (gates incomplete) | **Fixed** in tested paths |
 | A single sighting of a look-alike accepted as the target | Single-view ablation: 17/50 false claims in H1, 10/16 in H3 | Reduced by the multi-view verifier, not prevented |
 | A look-alike accepted after many passive views | H2: a shower verified as the bathtub after 582 s (1/48) | **Open** |
 | Isaac kitchens lack the refrigerator and oven (404 assets) | `results/isaac_semantic_dev/scene_probe_5_kitchens.json` | Environment fact; refrigerator tasks are absent-target |
@@ -515,6 +550,26 @@ Kept as recorded, not rescored: `results/isaac_qwen_closeout_20261107`, `results
 cause not established), `results/compartment_vision_closeout`, `results/compartment_out_of_class`,
 `results/molmo_multichunk_closeout`, `results/isaac_qwen_live_20261101`, `results/isaac_live_idle_failure`,
 and W6 on `claude/wholebody-autonomy`.
+
+**The H2 false claim** (`results/semantic_search_heldout/H2`, scenario E, bathtub, seed 6001).
+A rerun of the frozen code reproduced it exactly.
+
+How it happened:
+- The shower was seen in partial strips, so the tracker built several fragment tracks over it and
+  never merged them. The planner tried three times to verify one fragment, saw mostly "shower",
+  and gave up on it.
+- About 0.6 m away, outside the tracker's 0.35 m association gate, a new fragment collected five
+  labels on a single walk past: bathtub, bathtub, shower, bathtub, shower.
+- With 3 of 5 views as the target (purity 0.6), two camera positions 1.1 m apart and one view at
+  2.3 m, it met every verifier threshold.
+
+**Cause.** The verifier judged each fragment on its own evidence, and a point purity of 3 in 5 is
+statistically weak. The planner's give-up decision does not reach the verifier, and neighbouring
+fragments that called the same surface "shower" were not consulted. Pooling neighbours is not a
+safe fix, because the shower's fragments also touch an armchair's tracks.
+
+The frozen result is not rescored. The fix and its confirmation on fresh seeds are under "Verifier
+fix" once run.
 
 ## Reproduction
 
@@ -572,7 +627,7 @@ the code that produced their results.
 | Ref | Role | State |
 |---|---|---|
 | `claude/semantic-goal-search-20261108` | This tree: goal consistency, object search, held-out evaluations, this report | Not merged into `main` |
-| `claude/semantic-isaac-20261108` | Isaac and Qwen tier of the same work | To be merged here after its held-out re-test |
+| `claude/semantic-isaac-20261108` | Isaac and Qwen tier of the same work; re-test config frozen at `b2119da` | Merged here (`f6d7191`) |
 | `9d08c27` | Frozen held-out MuJoCo search config and code (κ = 3) | Every H1-H4 run executed from it |
 | `claude/research-closeout-20261106` | 7 November closeout: all evaluations, the room fix | Base of this branch |
 | `claude/closeout-evals-20261106`, `claude/camera-measure-20261106`, `codex/g1-runtime-builder-20261028` | Merged here | Retained |
@@ -591,8 +646,9 @@ All figures are **estimates from list prices and session lifetime. Billed cost h
 | Eight closeout sessions (917495 6.22, c8b923 6.32, 8b876b 5.51, Molmo 0df87a 3.09, e8cbd9 7.37, 50f10e 6.94, dcf71e 6.63, 4ce347 4.07) | 46.15 |
 | Failed start 966132: ran about 3 minutes, ledger keeps the full estimate, so overstated | 7.65 |
 | Before this closeout, upper bound (ledger union 55.99 plus earlier estimates 76.31) | 132.30 |
+| This branch, 8 and 9 Nov: Isaac/Qwen development 877a82 6.12, 5c4288 4.18, 357d19 5.07; H4 6b6f73 4.15; Isaac re-test 5f4c47 5.84, 8d3855 5.84 | 31.20 |
 
-Verified after the last session, in project `nerva-adityapersonal`: no DREAM VM, disk, router, NAT,
+Verified on 9 November after the last session, in project `nerva-adityapersonal`: no DREAM VM, disk, router, NAT,
 network, bucket or service account remains. Outputs were checksum-verified before their buckets were
 removed. The only DREAM resource left is the runtime image, retained at about US$1.23 a month.
 `quartus-build`, `quartus-router` and the NERVA buckets are not DREAM's and were not touched.
