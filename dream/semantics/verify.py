@@ -9,6 +9,12 @@ counts as the requested object only on accumulated, consistent evidence:
   or one viewpoint's systematic confusion, is not enough),
 - label purity ``min_purity`` among all labels given to the same physical object (a detector
   that calls it a wardrobe as often as a refrigerator has not identified it),
+- with ``purity_rule="wilson_lower"``, also confidence that the target is the track's majority
+  label: the Wilson score lower bound (``purity_confidence_z``, 1.645 = 95% one-sided) on
+  target labels / all labels must exceed ``purity_majority`` (0.5). A point purity from a few
+  views says little when the detector confuses classes (bathtub and shower share a confusion
+  group): 3 of 5 views give a lower bound of 0.27 and are refused, 3 of 3 give 0.53 and 4 of 4
+  give 0.60 and are accepted. The default ``purity_rule="point"`` applies ``min_purity`` alone.
 - seen as the target within ``close_range`` at least once,
 - misses (plainly in view at close range and not detected) at most ``max_miss_ratio`` of its
   target views (hallucinations and moved objects stop being detected).
@@ -43,6 +49,9 @@ class VerifierThresholds:
     reach_distance: float = 1.2  # m from the object's footprint
     reach_facing_deg: float = 35.0
     fresh_s: float = 6.0  # s: a "since arriving" detection is at most this old
+    purity_rule: str = "point"  # "point": min_purity only; "wilson_lower": also the bound below
+    purity_confidence_z: float = 1.645  # one-sided 95%
+    purity_majority: float = 0.5  # the Wilson lower bound on purity must exceed this
 
 
 def distinct_viewpoints(cams: list[np.ndarray]) -> int:
@@ -54,9 +63,21 @@ def distinct_viewpoints(cams: list[np.ndarray]) -> int:
     return len(kept)
 
 
+def wilson_lower(successes: int, total: int, z: float) -> float:
+    """Lower end of the Wilson score interval for a binomial proportion (0 when total is 0)."""
+    if total <= 0:
+        return 0.0
+    p = successes / total
+    z2 = z * z
+    centre = p + z2 / (2 * total)
+    spread = z * math.sqrt(p * (1 - p) / total + z2 / (4 * total * total))
+    return max(0.0, (centre - spread) / (1 + z2 / total))
+
+
 def check_track(track: Track, target: str, th: VerifierThresholds) -> dict:
     support = track.support(target)
     cams = track.label_views.get(target, [])
+    lower = wilson_lower(support, sum(track.labels.values()), th.purity_confidence_z)
     checks = {
         "support": support >= th.min_support,
         "viewpoints": distinct_viewpoints(cams) >= th.min_viewpoints,
@@ -64,6 +85,10 @@ def check_track(track: Track, target: str, th: VerifierThresholds) -> dict:
         "close": track.closest.get(target, math.inf) <= th.close_range,
         "misses": track.misses <= th.max_miss_ratio * max(support, 1),
     }
+    if th.purity_rule == "wilson_lower":
+        checks["purity_confident"] = lower > th.purity_majority
+    elif th.purity_rule != "point":
+        raise ValueError(f"unknown purity_rule {th.purity_rule!r}")
     return {
         "track": track.id,
         "verified": all(checks.values()),
@@ -71,6 +96,7 @@ def check_track(track: Track, target: str, th: VerifierThresholds) -> dict:
         "support": support,
         "viewpoints": distinct_viewpoints(cams),
         "purity": round(track.purity(target), 3),
+        "purity_lower": round(lower, 3),
         "closest_m": round(track.closest.get(target, math.inf), 2),
         "misses": track.misses,
     }

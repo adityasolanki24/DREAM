@@ -29,6 +29,7 @@ import tempfile
 import time
 import traceback
 from concurrent.futures import ProcessPoolExecutor
+from dataclasses import replace
 
 import numpy as np
 
@@ -51,7 +52,7 @@ from dream.runtime.semantic_search import (  # noqa: E402
 )
 from dream.semantics.belief import BeliefConfig  # noqa: E402
 from dream.semantics.knowledge import load_knowledge, uniform_knowledge  # noqa: E402
-from dream.semantics.verify import VerifierThresholds  # noqa: E402
+from dream.semantics.verify import VerifierThresholds, check_track  # noqa: E402
 from dream.semantics.world import SemanticWorld  # noqa: E402
 from dream.sim import home as homes  # noqa: E402
 from dream.tools.goals import UnsupportedGoal  # noqa: E402
@@ -224,6 +225,55 @@ def build_base(kind: str, home, seed: int, noise):
     return base, env.true_pose, lambda: None
 
 
+SHADOW_RULES = ("point", "wilson_lower")
+
+
+class ShadowAcceptances:
+    """EVALUATION ONLY, read-only: after every planner step, which candidate tracks of the
+    target would pass the verifier under each purity rule, and what is truly there.
+
+    Called from TaskAgent's ``verification`` event (the state after the previous step's tool
+    and the fresh observation, before the planner decides). It reads the semantic map and
+    the true poses and writes only to itself, so it cannot influence the agent. Per rule and
+    track it keeps the first step and robot time at which the track passed, plus the nearest
+    true object (class and footprint distance) by the same agent-to-world transform that
+    scores claims."""
+
+    def __init__(self, world, target, base, true_pose, instances) -> None:
+        self.world, self.target, self.base = world, target, base
+        self.true_pose, self.instances = true_pose, instances
+        self.found: dict[str, dict[int, dict]] = {rule: {} for rule in SHADOW_RULES}
+        self.step = 0
+
+    def check(self) -> None:
+        if not self.target:
+            return
+        to_world = odometry_to_world(self.true_pose(), self.base.odometry())
+        for track in self.world.map.candidates(self.target):
+            for rule in SHADOW_RULES:
+                if track.id in self.found[rule]:
+                    continue
+                th = replace(self.world.thresholds, purity_rule=rule)
+                if not check_track(track, self.target, th)["verified"]:
+                    continue
+                w = to_world(track.position)
+                near = min(self.instances, key=lambda i: i.distance(w))
+                self.found[rule][track.id] = {
+                    "step": self.step, "sim_s": round(self.base.time, 1), "track": track.id,
+                    "nearest_cls": near.cls, "nearest_m": round(near.distance(w), 2),
+                }  # fmt: skip
+
+    def on_event(self, kind: str, data: dict) -> None:
+        if kind == "verification":
+            self.check()
+        elif kind == "result":
+            self.step += 1
+
+    def rows(self) -> dict:
+        return {rule: sorted(d.values(), key=lambda r: r["step"])
+                for rule, d in self.found.items()}  # fmt: skip
+
+
 def episode(job: dict) -> dict:
     cfg, arm = job["cfg"], job["arm"]
     row = {k: job[k] for k in ("scenario", "target", "generator", "noise", "seed", "arm_name",
@@ -273,7 +323,15 @@ def _run(home, job, cfg, arm, t0) -> dict:
             chosen = SubstitutingPlanner(planner, toolbox, target, arm["substitute_after_s"])
         agent = TaskAgent(toolbox, TimeBudget(chosen, meter, cfg["time_budget_s"]),
                           max_steps=cfg["max_steps"])  # fmt: skip
-        episode = agent.run(goal, spec=spec if arm.get("gate", True) else None)
+        instances = [
+            TrueInstance(o.instance_id, o.cls, np.array(o.xy, float), np.array(o.half[:2], float),
+                         float(o.yaw), getattr(homes.room_at(home, o.xy), "type", "none"))
+            for o in home.objects
+        ]  # fmt: skip
+        shadow = ShadowAcceptances(world, target, meter, true_pose, instances)
+        episode = agent.run(goal, on_event=shadow.on_event,
+                            spec=spec if arm.get("gate", True) else None)  # fmt: skip
+        shadow.check()  # the state after the last step
         verdict = toolbox.call("verify_goal", {"goal": goal}).data
         stored = write_back(mem, world, target, hints, verdict, 1_000_000.0 + meter.time)
         mem.close()
@@ -288,11 +346,6 @@ def _run(home, job, cfg, arm, t0) -> dict:
         claim_xy = meter.odometry()[:2].tolist()
     world.refresh()
     to_world = odometry_to_world(true_pose(), meter.odometry())
-    instances = [
-        TrueInstance(o.instance_id, o.cls, np.array(o.xy, float), np.array(o.half[:2], float),
-                     float(o.yaw), getattr(homes.room_at(home, o.xy), "type", "none"))
-        for o in home.objects
-    ]  # fmt: skip
     supported = home.scenario != "L"
     score = score_episode(
         target=target, outcome=getattr(goal, "outcome", spec.required_outcome),
@@ -322,6 +375,7 @@ def _run(home, job, cfg, arm, t0) -> dict:
         "verdict": {k: verdict.get(k) for k in ("status", "reason", "track", "position")},
         "candidates_seen": len(world.map.candidates(target)) if target else 0,
         "memory_hints": len(hints), "memory_write_back": stored,
+        "shadow_acceptances": shadow.rows(),
         "trace": planner.trace[-40:],
     }  # fmt: skip
 
