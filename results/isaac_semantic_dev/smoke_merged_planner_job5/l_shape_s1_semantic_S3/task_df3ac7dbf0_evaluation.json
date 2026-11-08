@@ -1,0 +1,1109 @@
+{
+  "episode": {
+    "goal": "FindObject(target='sink', outcome='visually_localized')",
+    "spec": {
+      "original_instruction": "Find the sink",
+      "target_class": "sink",
+      "target_kind": "object",
+      "target_instance": null,
+      "required_outcome": "visually_localized",
+      "also_required": [],
+      "grounding": "grammar",
+      "anchors": [
+        "find",
+        "sink"
+      ],
+      "digest": "2a05fd98b0920e70"
+    },
+    "success_claimed": false,
+    "reason": "no reachable look is expected to reveal more; a possible sink was seen but not verified",
+    "completion": "possible_target_unconfirmed",
+    "model_reason": null,
+    "tool_calls": 14,
+    "failed_actions": 0,
+    "steps": [
+      {
+        "tool": "look_around",
+        "args": {},
+        "status": "succeeded",
+        "message": "",
+        "sim_time": 12.84,
+        "wall_time": 100.871
+      },
+      {
+        "tool": "go_to",
+        "args": {
+          "x": -2.5749999999999997,
+          "y": 0.17500000000000035
+        },
+        "status": "succeeded",
+        "message": "",
+        "sim_time": 13.3,
+        "wall_time": 89.411
+      },
+      {
+        "tool": "go_to",
+        "args": {
+          "x": -1.475,
+          "y": 1.6750000000000003
+        },
+        "status": "succeeded",
+        "message": "",
+        "sim_time": 9.6,
+        "wall_time": 63.325
+      },
+      {
+        "tool": "go_to",
+        "args": {
+          "x": -0.02499999999999982,
+          "y": -0.02499999999999982
+        },
+        "status": "succeeded",
+        "message": "",
+        "sim_time": 10.3,
+        "wall_time": 67.657
+      },
+      {
+        "tool": "go_to",
+        "args": {
+          "x": -0.8249999999999996,
+          "y": 0.275
+        },
+        "status": "succeeded",
+        "message": "",
+        "sim_time": 7.6,
+        "wall_time": 54.121
+      },
+      {
+        "tool": "look_around",
+        "args": {},
+        "status": "succeeded",
+        "message": "",
+        "sim_time": 12.84,
+        "wall_time": 96.084
+      },
+      {
+        "tool": "go_to",
+        "args": {
+          "x": -0.8249999999999996,
+          "y": -0.2749999999999998
+        },
+        "status": "succeeded",
+        "message": "",
+        "sim_time": 5.6,
+        "wall_time": 37.887
+      },
+      {
+        "tool": "go_to",
+        "args": {
+          "x": -1.3749999999999996,
+          "y": -0.2749999999999998
+        },
+        "status": "succeeded",
+        "message": "",
+        "sim_time": 4.1,
+        "wall_time": 28.349
+      },
+      {
+        "tool": "look_around",
+        "args": {},
+        "status": "succeeded",
+        "message": "",
+        "sim_time": 12.84,
+        "wall_time": 88.877
+      },
+      {
+        "tool": "go_to",
+        "args": {
+          "x": -1.3749999999999996,
+          "y": -0.8249999999999996
+        },
+        "status": "succeeded",
+        "message": "",
+        "sim_time": 4.6,
+        "wall_time": 23.259
+      },
+      {
+        "tool": "go_to",
+        "args": {
+          "x": -1.9249999999999994,
+          "y": -0.8249999999999996
+        },
+        "status": "succeeded",
+        "message": "",
+        "sim_time": 4.2,
+        "wall_time": 17.437
+      },
+      {
+        "tool": "look_around",
+        "args": {},
+        "status": "succeeded",
+        "message": "",
+        "sim_time": 12.84,
+        "wall_time": 93.615
+      },
+      {
+        "tool": "go_to",
+        "args": {
+          "x": -1.775,
+          "y": -0.225,
+          "heading": 1.970571639237534
+        },
+        "status": "succeeded",
+        "message": "",
+        "sim_time": 5.8,
+        "wall_time": 43.442
+      },
+      {
+        "tool": "look_at",
+        "args": {
+          "x": -2.518473994492811,
+          "y": 1.534583515974932
+        },
+        "status": "succeeded",
+        "message": "",
+        "sim_time": 4.12,
+        "wall_time": 48.363
+      }
+    ]
+  },
+  "agent_verdict": {
+    "target": "sink",
+    "outcome": "visually_localized",
+    "thresholds": {
+      "min_support": 3,
+      "min_viewpoints": 2,
+      "min_purity": 0.6,
+      "close_range": 2.5,
+      "max_miss_ratio": 0.34,
+      "reach_distance": 1.2,
+      "reach_facing_deg": 35.0,
+      "fresh_s": 6.0
+    },
+    "tracks": [
+      {
+        "track": 3,
+        "verified": false,
+        "checks": {
+          "support": true,
+          "viewpoints": true,
+          "purity": false,
+          "close": true,
+          "misses": false
+        },
+        "support": 4,
+        "viewpoints": 2,
+        "purity": 0.267,
+        "closest_m": 2.23,
+        "misses": 3
+      },
+      {
+        "track": 1,
+        "verified": false,
+        "checks": {
+          "support": false,
+          "viewpoints": true,
+          "purity": false,
+          "close": true,
+          "misses": true
+        },
+        "support": 2,
+        "viewpoints": 2,
+        "purity": 0.125,
+        "closest_m": 1.08,
+        "misses": 0
+      }
+    ],
+    "satisfied": false,
+    "status": "possible_target_unconfirmed",
+    "reason": "2 object(s) labelled sink at least once, none verified"
+  },
+  "independent_verification": {
+    "goal_kind": "FindObject",
+    "success_claimed": false,
+    "completion": "possible_target_unconfirmed",
+    "terminal_stop_reason": "no reachable look is expected to reveal more; a possible sink was seen but not verified",
+    "model_decision_valid": {
+      "valid": true,
+      "note": "False when the model could not produce an admissible decision within the repair budget; a justified refusal is valid."
+    },
+    "navigation_success": {
+      "success": true,
+      "error_m": 0.1085982702570902,
+      "source": "odometry estimate (oracle-assisted), not independent"
+    },
+    "identity_correct": {
+      "correct": null,
+      "reason": "no ground truth for this task type"
+    },
+    "viewpoint_correct": {
+      "correct": null,
+      "reason": "no ground truth for this task type"
+    },
+    "handle_visible": {
+      "visible": null,
+      "reason": "not an inspection task"
+    },
+    "independent_task_success": {
+      "success": null,
+      "reason": "no ground truth for this task type"
+    },
+    "false_claim": false,
+    "false_claim_note": "success claimed without any independent confirmation",
+    "physical_safety": {
+      "contact_events": 0,
+      "contacted_bodies": {},
+      "max_contact_impulse_ns": 0.0,
+      "safety_stop": null,
+      "fell": false,
+      "min_height_m": 0.7384052276611328,
+      "final_height_m": 0.7404845952987671,
+      "safe": true
+    },
+    "repair_count": 0,
+    "repair_changed_outcome": {
+      "changed": false,
+      "events": [],
+      "note": "a rejected model decision was replaced by another action, or the repair budget ended the task"
+    },
+    "task_end_contacts": {
+      "events": 0,
+      "bodies": [],
+      "window_sim_s": [
+        10.0,
+        130.58
+      ]
+    }
+  },
+  "mode": "semantic",
+  "grounding": {
+    "grammar_spec": {
+      "original_instruction": "Find the sink",
+      "target_class": "sink",
+      "target_kind": "object",
+      "target_instance": null,
+      "required_outcome": "visually_localized",
+      "also_required": [],
+      "grounding": "grammar",
+      "anchors": [
+        "find",
+        "sink"
+      ],
+      "digest": "2a05fd98b0920e70"
+    },
+    "model_consulted": false,
+    "final_spec": {
+      "original_instruction": "Find the sink",
+      "target_class": "sink",
+      "target_kind": "object",
+      "target_instance": null,
+      "required_outcome": "visually_localized",
+      "also_required": [],
+      "grounding": "grammar",
+      "anchors": [
+        "find",
+        "sink"
+      ],
+      "digest": "2a05fd98b0920e70"
+    },
+    "goal": "FindObject(target='sink', outcome='visually_localized')"
+  },
+  "search_trace": [
+    {
+      "call": "look_around",
+      "args": {},
+      "purpose": "initial_look"
+    },
+    {
+      "call": "go_to",
+      "args": {
+        "x": -2.5749999999999997,
+        "y": 0.17500000000000035
+      },
+      "purpose": "explore",
+      "here": false,
+      "frontier": true,
+      "detection": 1.0898,
+      "gain_m2": 13.49,
+      "cost_m": 2.5621,
+      "risk": 0.0,
+      "region": 1,
+      "value": 16.7594,
+      "utility": 14.1973
+    },
+    {
+      "call": "go_to",
+      "args": {
+        "x": -1.475,
+        "y": 1.6750000000000003
+      },
+      "purpose": "explore",
+      "here": false,
+      "frontier": true,
+      "detection": 0.0804,
+      "gain_m2": 12.3875,
+      "cost_m": 1.8935,
+      "risk": 0.7029,
+      "region": 1,
+      "value": 12.6287,
+      "utility": 10.0323
+    },
+    {
+      "call": "go_to",
+      "args": {
+        "x": -0.02499999999999982,
+        "y": -0.02499999999999982
+      },
+      "purpose": "explore",
+      "here": false,
+      "frontier": true,
+      "detection": 0.0184,
+      "gain_m2": 10.2025,
+      "cost_m": 2.3213,
+      "risk": 0.0,
+      "region": 1,
+      "value": 10.2576,
+      "utility": 7.9363
+    },
+    {
+      "call": "go_to",
+      "args": {
+        "x": -0.8249999999999996,
+        "y": 0.275
+      },
+      "purpose": "explore",
+      "here": false,
+      "frontier": false,
+      "detection": 0.0665,
+      "gain_m2": 0.055,
+      "cost_m": 0.7828,
+      "risk": 0.0,
+      "region": 1,
+      "value": 0.2545,
+      "utility": -4.1683
+    },
+    {
+      "call": "look_around",
+      "args": {},
+      "purpose": "explore_look",
+      "here": true,
+      "frontier": false,
+      "detection": 0.0749,
+      "gain_m2": 0.075,
+      "cost_m": 0.0,
+      "risk": 0.0,
+      "region": 1,
+      "value": 0.2998,
+      "utility": -3.3402
+    },
+    {
+      "call": "go_to",
+      "args": {
+        "x": -0.8249999999999996,
+        "y": -0.2749999999999998
+      },
+      "purpose": "explore",
+      "here": false,
+      "frontier": false,
+      "detection": 0.0264,
+      "gain_m2": 0.0875,
+      "cost_m": 0.5621,
+      "risk": 0.0,
+      "region": 1,
+      "value": 0.1668,
+      "utility": -4.0354
+    },
+    {
+      "call": "go_to",
+      "args": {
+        "x": -1.3749999999999996,
+        "y": -0.2749999999999998
+      },
+      "purpose": "explore",
+      "here": false,
+      "frontier": false,
+      "detection": 0.0549,
+      "gain_m2": 0.11,
+      "cost_m": 0.6121,
+      "risk": 0.0,
+      "region": 1,
+      "value": 0.2748,
+      "utility": -3.9773
+    },
+    {
+      "call": "look_around",
+      "args": {},
+      "purpose": "explore_look",
+      "here": true,
+      "frontier": false,
+      "detection": 0.0489,
+      "gain_m2": 0.1,
+      "cost_m": 0.0,
+      "risk": 0.0,
+      "region": 1,
+      "value": 0.2466,
+      "utility": -3.3934
+    },
+    {
+      "call": "go_to",
+      "args": {
+        "x": -1.3749999999999996,
+        "y": -0.8249999999999996
+      },
+      "purpose": "explore",
+      "here": false,
+      "frontier": false,
+      "detection": 0.0282,
+      "gain_m2": 0.1025,
+      "cost_m": 0.6621,
+      "risk": 0.0,
+      "region": 1,
+      "value": 0.1871,
+      "utility": -4.1151
+    },
+    {
+      "call": "go_to",
+      "args": {
+        "x": -1.9249999999999994,
+        "y": -0.8249999999999996
+      },
+      "purpose": "explore",
+      "here": false,
+      "frontier": false,
+      "detection": 0.029,
+      "gain_m2": 0.1075,
+      "cost_m": 0.6121,
+      "risk": 0.0,
+      "region": 1,
+      "value": 0.1945,
+      "utility": -4.0576
+    },
+    {
+      "call": "look_around",
+      "args": {},
+      "purpose": "explore_look",
+      "here": true,
+      "frontier": false,
+      "detection": 0.0248,
+      "gain_m2": 0.115,
+      "cost_m": 0.0,
+      "risk": 0.0,
+      "region": 1,
+      "value": 0.1895,
+      "utility": -3.4505
+    },
+    {
+      "call": "go_to",
+      "args": {
+        "x": -1.775,
+        "y": -0.225,
+        "heading": 1.970571639237534
+      },
+      "purpose": "verify",
+      "track": 3,
+      "object_xy": [
+        -2.518473994492811,
+        1.534583515974932
+      ],
+      "cost_m": 0.55
+    },
+    {
+      "call": "look_at",
+      "args": {
+        "x": -2.518473994492811,
+        "y": 1.534583515974932
+      },
+      "purpose": "verify_look",
+      "track": 3
+    }
+  ],
+  "detector_log": [
+    {
+      "time": 10.0,
+      "answer": "[{\"label\": \"countertop\", \"bbox_2d\": [0, 0, 398, 356]}, {\"label\": \"kitchen cabinet\", \"bbox_2d\": [0, 186, 438, 986]}]",
+      "problems": [],
+      "labels": [
+        "countertop",
+        "kitchen_cabinet"
+      ]
+    },
+    {
+      "time": 11.58,
+      "answer": "[\n    {\"label\": \"countertop\", \"bbox_2d\": [428, 138, 950, 346]},\n    {\"label\": \"kitchen cabinet\", \"bbox_2d\": [428, 346, 950, 888]},\n    {\"label\": \"sink\", \"bbox_2d\": [510, 88, 740, 250]}\n]",
+      "problems": [],
+      "labels": [
+        "countertop",
+        "kitchen_cabinet",
+        "sink"
+      ]
+    },
+    {
+      "time": 13.16,
+      "answer": "[\n    {\"label\": \"countertop\", \"bbox_2d\": [0, 0, 638, 214]},\n    {\"label\": \"kitchen cabinet\", \"bbox_2d\": [0, 0, 638, 714]}\n]",
+      "problems": [],
+      "labels": [
+        "countertop",
+        "kitchen_cabinet"
+      ]
+    },
+    {
+      "time": 14.74,
+      "answer": "[\n    {\"label\": \"kitchen cabinet\", \"bbox_2d\": [550, 0, 1000, 828]},\n    {\"label\": \"kitchen cabinet\", \"bbox_2d\": [0, 0, 550, 312]},\n    {\"label\": \"countertop\", \"bbox_2d\": [550, 0, 1000, 156]}\n]",
+      "problems": [],
+      "labels": [
+        "kitchen_cabinet",
+        "kitchen_cabinet",
+        "countertop"
+      ]
+    },
+    {
+      "time": 16.32,
+      "answer": "[{\"label\": \"kitchen cabinet\", \"bbox_2d\": [595, 0, 998, 388]}]",
+      "problems": [],
+      "labels": [
+        "kitchen_cabinet"
+      ]
+    },
+    {
+      "time": 17.9,
+      "answer": "[]",
+      "problems": [],
+      "labels": []
+    },
+    {
+      "time": 19.48,
+      "answer": "[]",
+      "problems": [],
+      "labels": []
+    },
+    {
+      "time": 21.06,
+      "answer": "[]",
+      "problems": [],
+      "labels": []
+    },
+    {
+      "time": 22.64,
+      "answer": "[{\"label\": \"kitchen cabinet\", \"bbox_2d\": [0, 156, 333, 956]}]",
+      "problems": [],
+      "labels": [
+        "kitchen_cabinet"
+      ]
+    },
+    {
+      "time": 63.64,
+      "answer": "[\n    {\"label\": \"countertop\", \"bbox_2d\": [398, 0, 1000, 100]},\n    {\"label\": \"kitchen cabinet\", \"bbox_2d\": [398, 0, 1000, 468]},\n    {\"label\": \"sink\", \"bbox_2d\": [628, 12, 828, 100]}\n]",
+      "problems": [],
+      "labels": [
+        "countertop",
+        "kitchen_cabinet",
+        "sink"
+      ]
+    },
+    {
+      "time": 65.22,
+      "answer": "[]",
+      "problems": [],
+      "labels": []
+    },
+    {
+      "time": 66.8,
+      "answer": "[]",
+      "problems": [],
+      "labels": []
+    },
+    {
+      "time": 68.38,
+      "answer": "[]",
+      "problems": [],
+      "labels": []
+    },
+    {
+      "time": 69.96,
+      "answer": "[{\"label\": \"kitchen cabinet\", \"bbox_2d\": [0, 100, 220, 828]}]",
+      "problems": [],
+      "labels": [
+        "kitchen_cabinet"
+      ]
+    },
+    {
+      "time": 71.54,
+      "answer": "[\n    {\n        \"label\": \"kitchen cabinet\",\n        \"bbox_2d\": [312, 100, 714, 650]\n    },\n    {\n        \"label\": \"countertop\",\n        \"bbox_2d\": [312, 100, 714, 196]\n    },\n    {\n        \"label\": \"sink\",\n        \"bbox_2d\": [412, 38, 588, 138]\n    }\n]",
+      "problems": [],
+      "labels": [
+        "kitchen_cabinet",
+        "countertop",
+        "sink"
+      ]
+    },
+    {
+      "time": 73.12,
+      "answer": "[{\"label\": \"kitchen cabinet\", \"bbox_2d\": [0, 100, 578, 744]}, {\"label\": \"countertop\", \"bbox_2d\": [0, 100, 578, 250]}]",
+      "problems": [],
+      "labels": [
+        "kitchen_cabinet",
+        "countertop"
+      ]
+    },
+    {
+      "time": 74.7,
+      "answer": "[\n    {\"label\": \"countertop\", \"bbox_2d\": [400, 0, 1000, 156]},\n    {\"label\": \"kitchen cabinet\", \"bbox_2d\": [398, 106, 1000, 998]}\n]",
+      "problems": [],
+      "labels": [
+        "countertop",
+        "kitchen_cabinet"
+      ]
+    },
+    {
+      "time": 76.28,
+      "answer": "[\n    {\"label\": \"countertop\", \"bbox_2d\": [300, 0, 1000, 100]},\n    {\"label\": \"kitchen cabinet\", \"bbox_2d\": [300, 0, 1000, 438]},\n    {\"label\": \"sink\", \"bbox_2d\": [538, 0, 700, 74]}\n]",
+      "problems": [],
+      "labels": [
+        "countertop",
+        "kitchen_cabinet",
+        "sink"
+      ]
+    },
+    {
+      "time": 86.18,
+      "answer": "[]",
+      "problems": [],
+      "labels": []
+    },
+    {
+      "time": 87.76,
+      "answer": "[]",
+      "problems": [],
+      "labels": []
+    },
+    {
+      "time": 89.34,
+      "answer": "[]",
+      "problems": [],
+      "labels": []
+    },
+    {
+      "time": 90.92,
+      "answer": "[]",
+      "problems": [],
+      "labels": []
+    },
+    {
+      "time": 92.5,
+      "answer": "[{\"label\": \"kitchen cabinet\", \"bbox_2d\": [100, 0, 416, 484]}]",
+      "problems": [],
+      "labels": [
+        "kitchen_cabinet"
+      ]
+    },
+    {
+      "time": 94.08,
+      "answer": "[\n    {\"label\": \"kitchen cabinet\", \"bbox_2d\": [0, 0, 500, 494]},\n    {\"label\": \"kitchen cabinet\", \"bbox_2d\": [694, 0, 1000, 494]},\n    {\"label\": \"countertop\", \"bbox_2d\": [0, 0, 500, 100]},\n    {\"label\": \"countertop\", \"bbox_2d\": [694, 0, 1000, 100]}\n]",
+      "problems": [],
+      "labels": [
+        "kitchen_cabinet",
+        "kitchen_cabinet",
+        "countertop",
+        "countertop"
+      ]
+    },
+    {
+      "time": 95.66,
+      "answer": "[\n    {\"label\": \"countertop\", \"bbox_2d\": [400, 0, 1000, 1000]},\n    {\"label\": \"kitchen cabinet\", \"bbox_2d\": [400, 0, 1000, 625]}\n]",
+      "problems": [],
+      "labels": [
+        "countertop",
+        "kitchen_cabinet"
+      ]
+    },
+    {
+      "time": 97.24,
+      "answer": "[{\"label\": \"kitchen cabinet\", \"bbox_2d\": [319, 2, 1000, 456]}, {\"label\": \"countertop\", \"bbox_2d\": [321, 2, 1000, 100]}]",
+      "problems": [],
+      "labels": [
+        "kitchen_cabinet",
+        "countertop"
+      ]
+    },
+    {
+      "time": 98.82,
+      "answer": "[{\"label\": \"kitchen cabinet\", \"bbox_2d\": [847, 100, 1000, 550]}]",
+      "problems": [],
+      "labels": [
+        "kitchen_cabinet"
+      ]
+    },
+    {
+      "time": 107.82,
+      "answer": "[]",
+      "problems": [],
+      "labels": []
+    },
+    {
+      "time": 109.4,
+      "answer": "[{\"label\": \"countertop\", \"bbox_2d\": [0, 777, 1000, 1000]}]",
+      "problems": [],
+      "labels": [
+        "countertop"
+      ]
+    },
+    {
+      "time": 110.98,
+      "answer": "[]",
+      "problems": [],
+      "labels": []
+    },
+    {
+      "time": 112.56,
+      "answer": "[]",
+      "problems": [],
+      "labels": []
+    },
+    {
+      "time": 114.14,
+      "answer": "[{\"label\": \"kitchen cabinet\", \"bbox_2d\": [44, 0, 344, 338]}]",
+      "problems": [],
+      "labels": [
+        "kitchen_cabinet"
+      ]
+    },
+    {
+      "time": 115.72,
+      "answer": "[{\"label\": \"kitchen cabinet\", \"bbox_2d\": [0, 0, 533, 328], \"bbox_2d\": [666, 0, 999, 328]}, {\"label\": \"countertop\", \"bbox_2d\": [0, 0, 533, 100], \"bbox_2d\": [666, 0, 999, 100]}]",
+      "problems": [],
+      "labels": [
+        "kitchen_cabinet",
+        "countertop"
+      ]
+    },
+    {
+      "time": 117.3,
+      "answer": "[\n    {\"label\": \"kitchen cabinet\", \"bbox_2d\": [0, 0, 472, 536]},\n    {\"label\": \"kitchen cabinet\", \"bbox_2d\": [522, 0, 1000, 450]},\n    {\"label\": \"countertop\", \"bbox_2d\": [0, 0, 472, 136]},\n    {\"label\": \"sink\", \"bbox_2d\": [222, 2, 372, 78]}\n]",
+      "problems": [],
+      "labels": [
+        "kitchen_cabinet",
+        "kitchen_cabinet",
+        "countertop",
+        "sink"
+      ]
+    },
+    {
+      "time": 118.88,
+      "answer": "[\n\t{\"label\": \"countertop\", \"bbox_2d\": [550, 2, 1000, 112]},\n\t{\"label\": \"kitchen cabinet\", \"bbox_2d\": [550, 2, 1000, 450]},\n\t{\"label\": \"sink\", \"bbox_2d\": [800, 2, 1000, 62]}\n]",
+      "problems": [],
+      "labels": [
+        "countertop",
+        "kitchen_cabinet",
+        "sink"
+      ]
+    },
+    {
+      "time": 120.46,
+      "answer": "[]",
+      "problems": [],
+      "labels": []
+    },
+    {
+      "time": 127.2,
+      "answer": "[\n    {\"label\": \"countertop\", \"bbox_2d\": [0, 0, 1000, 1000]},\n    {\"label\": \"kitchen cabinet\", \"bbox_2d\": [0, 0, 1000, 550]}\n]",
+      "problems": [],
+      "labels": [
+        "countertop",
+        "kitchen_cabinet"
+      ]
+    },
+    {
+      "time": 128.12,
+      "answer": "[{\"label\": \"kitchen cabinet\", \"bbox_2d\": [214, 0, 900, 524]}, {\"label\": \"countertop\", \"bbox_2d\": [214, 0, 900, 100]}]",
+      "problems": [],
+      "labels": [
+        "kitchen_cabinet",
+        "countertop"
+      ]
+    },
+    {
+      "time": 129.66,
+      "answer": "[\n    {\"label\": \"kitchen cabinet\", \"bbox_2d\": [0, 100, 500, 644]},\n    {\"label\": \"kitchen cabinet\", \"bbox_2d\": [500, 0, 1000, 500]},\n    {\"label\": \"countertop\", \"bbox_2d\": [0, 0, 1000, 100]}\n]",
+      "problems": [],
+      "labels": [
+        "kitchen_cabinet",
+        "kitchen_cabinet",
+        "countertop"
+      ]
+    },
+    {
+      "time": 130.58,
+      "answer": "[\n    {\"label\": \"kitchen cabinet\", \"bbox_2d\": [0, 0, 283, 600]},\n    {\"label\": \"kitchen cabinet\", \"bbox_2d\": [283, 0, 650, 328]},\n    {\"label\": \"kitchen cabinet\", \"bbox_2d\": [650, 0, 1000, 500]},\n    {\"label\": \"countertop\", \"bbox_2d\": [0, 0, 650, 100]}\n]",
+      "problems": [],
+      "labels": [
+        "kitchen_cabinet",
+        "kitchen_cabinet",
+        "kitchen_cabinet",
+        "countertop"
+      ]
+    }
+  ],
+  "semantic_summary": {
+    "objects": [
+      {
+        "id": 1,
+        "reference": "object:1",
+        "labels": {
+          "kitchen_cabinet": 9,
+          "countertop": 5,
+          "sink": 2
+        },
+        "position": [
+          0.759,
+          0.479,
+          0.76
+        ],
+        "extent": [
+          0.635,
+          0.934,
+          0.984
+        ],
+        "views": 16,
+        "misses": 0,
+        "closest_m": {
+          "countertop": 0.96,
+          "kitchen_cabinet": 0.95,
+          "sink": 1.08
+        },
+        "region": 1
+      },
+      {
+        "id": 3,
+        "reference": "object:3",
+        "labels": {
+          "kitchen_cabinet": 6,
+          "countertop": 5,
+          "sink": 4
+        },
+        "position": [
+          -2.531,
+          1.521,
+          0.778
+        ],
+        "extent": [
+          2.285,
+          1.504,
+          0.917
+        ],
+        "views": 15,
+        "misses": 3,
+        "closest_m": {
+          "kitchen_cabinet": 1.95,
+          "countertop": 1.83,
+          "sink": 2.23
+        },
+        "region": 1
+      },
+      {
+        "id": 5,
+        "reference": "object:5",
+        "labels": {
+          "kitchen_cabinet": 7,
+          "countertop": 4
+        },
+        "position": [
+          -2.836,
+          1.061,
+          0.669
+        ],
+        "extent": [
+          0.93,
+          0.991,
+          0.91
+        ],
+        "views": 11,
+        "misses": 0,
+        "closest_m": {
+          "kitchen_cabinet": 1.72,
+          "countertop": 1.68
+        },
+        "region": 1
+      },
+      {
+        "id": 2,
+        "reference": "object:2",
+        "labels": {
+          "kitchen_cabinet": 5,
+          "countertop": 3
+        },
+        "position": [
+          -0.329,
+          1.368,
+          0.734
+        ],
+        "extent": [
+          1.468,
+          0.826,
+          1.039
+        ],
+        "views": 8,
+        "misses": 2,
+        "closest_m": {
+          "countertop": 1.33,
+          "kitchen_cabinet": 1.25
+        },
+        "region": 1
+      },
+      {
+        "id": 4,
+        "reference": "object:4",
+        "labels": {
+          "countertop": 3,
+          "kitchen_cabinet": 2
+        },
+        "position": [
+          -0.608,
+          1.662,
+          0.833
+        ],
+        "extent": [
+          1.306,
+          0.846,
+          1.045
+        ],
+        "views": 5,
+        "misses": 2,
+        "closest_m": {
+          "countertop": 1.54,
+          "kitchen_cabinet": 1.92
+        },
+        "region": 1
+      },
+      {
+        "id": 7,
+        "reference": "object:7",
+        "labels": {
+          "kitchen_cabinet": 2
+        },
+        "position": [
+          -1.172,
+          1.861,
+          0.557
+        ],
+        "extent": [
+          1.087,
+          0.71,
+          0.896
+        ],
+        "views": 2,
+        "misses": 0,
+        "closest_m": {
+          "kitchen_cabinet": 2.22
+        },
+        "region": 1
+      },
+      {
+        "id": 6,
+        "reference": "object:6",
+        "labels": {
+          "countertop": 1
+        },
+        "position": [
+          -2.292,
+          -1.462,
+          -0.0
+        ],
+        "extent": [
+          1.466,
+          1.102,
+          0.007
+        ],
+        "views": 1,
+        "misses": 1,
+        "closest_m": {
+          "countertop": 1.43
+        },
+        "region": 1
+      }
+    ],
+    "regions": [
+      {
+        "id": 1,
+        "reference": "region:1",
+        "area_m2": 15.32,
+        "centroid": [
+          -1.31,
+          -0.22
+        ],
+        "classification": "ambiguous",
+        "top_category": "pantry",
+        "weights_heuristic": {
+          "pantry": 0.119,
+          "kitchen": 0.11,
+          "closet": 0.097
+        },
+        "evidence": {
+          "countertop": 0.43,
+          "kitchen_cabinet": 1.0,
+          "sink": 0.22
+        },
+        "objects": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      }
+    ],
+    "knowledge_source": "ConceptNet 5.7.0 assertions, WordNet 3.0",
+    "search": {
+      "target": "sink",
+      "typical_rooms_knowledge": [
+        [
+          "kitchen",
+          0.625
+        ],
+        [
+          "laundry_room",
+          0.106
+        ],
+        [
+          "bathroom",
+          0.036
+        ]
+      ],
+      "mass_share_by_region": {
+        "region:1": 0.671,
+        "unexplored": 0.329
+      },
+      "note": "search hypotheses under an assumed detector model; not observations"
+    }
+  },
+  "completion_typed": {
+    "value": "possible_target_unconfirmed",
+    "source": "episode"
+  },
+  "original_request": {
+    "request": {
+      "id": "S3",
+      "text": "Find the sink",
+      "target": "sink",
+      "outcome": "visually_localized",
+      "supported": true
+    },
+    "instances": [
+      "countertop:0",
+      "countertop:1",
+      "countertop:2",
+      "countertop:3",
+      "countertop:4",
+      "sink:0"
+    ],
+    "target": "sink",
+    "outcome": "visually_localized",
+    "target_exists": true,
+    "claimed": false,
+    "completion": "possible_target_unconfirmed",
+    "result": "missed",
+    "original_goal_success": false,
+    "false_success_claim": false
+  }
+}
