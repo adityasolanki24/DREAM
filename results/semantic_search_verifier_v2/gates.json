@@ -1,0 +1,195 @@
+{
+  "config": "semantic_search_verifier_v2",
+  "frozen_commit": "2db390482d8ed8cb5fa50d1925edc2c9e52632f0",
+  "episodes": 384,
+  "V1": {
+    "gate": "proposed_v2 makes 0 false success claims",
+    "false_success_claims": 0,
+    "valid_episodes": 192,
+    "zero_upper_95": 0.0155,
+    "false_claim_episodes": [],
+    "crashes": 0,
+    "scene_failures": 0,
+    "passed": true
+  },
+  "V2": {
+    "gate": "proposed_v2 target-present successes >= proposed - 3, paired",
+    "pairs": 96,
+    "successes": {
+      "proposed_v2": 94,
+      "proposed": 93
+    },
+    "threshold": 90,
+    "passed": true,
+    "pairs_expected": 96
+  },
+  "V3": {
+    "descriptive": true,
+    "shadow_acceptances": {
+      "proposed_v2": {
+        "episodes": 192,
+        "point": {
+          "acceptances": 95,
+          "on_target": 94,
+          "decoy": 1,
+          "decoy_within_tolerance": 1,
+          "episodes_with_decoy": 1,
+          "episodes_with_decoy_within_tolerance": 1,
+          "decoy_by_nearest_class": {
+            "countertop": 1
+          },
+          "decoy_episodes": [
+            {
+              "scenario": "B",
+              "target": "stove",
+              "generator": "shifted",
+              "seed": 9204,
+              "track": 17,
+              "sim_s": 29.0,
+              "nearest_cls": "countertop",
+              "nearest_m": 0.0
+            }
+          ]
+        },
+        "wilson_lower": {
+          "acceptances": 94,
+          "on_target": 94,
+          "decoy": 0,
+          "decoy_within_tolerance": 0,
+          "episodes_with_decoy": 0,
+          "episodes_with_decoy_within_tolerance": 0,
+          "decoy_by_nearest_class": {},
+          "decoy_episodes": []
+        }
+      },
+      "proposed": {
+        "episodes": 192,
+        "point": {
+          "acceptances": 94,
+          "on_target": 93,
+          "decoy": 1,
+          "decoy_within_tolerance": 1,
+          "episodes_with_decoy": 1,
+          "episodes_with_decoy_within_tolerance": 1,
+          "decoy_by_nearest_class": {
+            "countertop": 1
+          },
+          "decoy_episodes": [
+            {
+              "scenario": "B",
+              "target": "stove",
+              "generator": "shifted",
+              "seed": 9204,
+              "track": 17,
+              "sim_s": 29.0,
+              "nearest_cls": "countertop",
+              "nearest_m": 0.0
+            }
+          ]
+        },
+        "wilson_lower": {
+          "acceptances": 72,
+          "on_target": 72,
+          "decoy": 0,
+          "decoy_within_tolerance": 0,
+          "episodes_with_decoy": 0,
+          "episodes_with_decoy_within_tolerance": 0,
+          "decoy_by_nearest_class": {},
+          "decoy_episodes": []
+        }
+      }
+    },
+    "reference_false_claims": [
+      {
+        "scenario": "B",
+        "target": "stove",
+        "generator": "shifted",
+        "seed": 9204,
+        "sim_s": 29.04,
+        "claim_nearest": {
+          "id": "countertop_0",
+          "cls": "countertop",
+          "distance_m": 0.0
+        }
+      }
+    ],
+    "paired": {
+      "pairs": 96,
+      "success": [
+        94,
+        93
+      ],
+      "discordant": {
+        "only_proposed_v2": 1,
+        "only_proposed": 0
+      },
+      "mcnemar_exact_p": 1.0,
+      "median_time_diff_s": 0.0,
+      "median_time_diff_ci95": [
+        0.0,
+        0.0
+      ],
+      "wilcoxon_p": 0.0007,
+      "note": "time censored at the budget for unsuccessful episodes; negative = a faster"
+    },
+    "arms": {
+      "proposed": {
+        "success_target_present": [
+          93,
+          96,
+          [
+            0.912,
+            0.989
+          ]
+        ],
+        "false_success_claims": [
+          1,
+          192
+        ],
+        "correct_refusal_absent": [
+          96,
+          96,
+          [
+            0.962,
+            1.0
+          ]
+        ],
+        "median_success_sim_s": 76.6,
+        "mean_path_m": 44.5,
+        "crashes": 0
+      },
+      "proposed_v2": {
+        "success_target_present": [
+          94,
+          96,
+          [
+            0.927,
+            0.994
+          ]
+        ],
+        "false_success_claims": [
+          0,
+          192
+        ],
+        "correct_refusal_absent": [
+          96,
+          96,
+          [
+            0.962,
+            1.0
+          ]
+        ],
+        "median_success_sim_s": 79.94,
+        "mean_path_m": 44.53,
+        "crashes": 0
+      }
+    }
+  },
+  "decision": {
+    "rule": "wilson_lower becomes the default only if V1 and V2 both pass",
+    "V1_passed": true,
+    "V2_passed": true,
+    "criteria_met": true,
+    "note": "reported only; the default is changed by the main session, not by this script"
+  }
+}
