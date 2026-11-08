@@ -82,6 +82,37 @@ class TimeBudget:
         return self.planner.next_action(goal, scene, verdict, history)
 
 
+class SubstitutingPlanner:
+    """FAULT INJECTION for the goal-consistency ablation, not a method: after ``after_s`` of
+    robot time without success it walks to the region whose inferred room is the target's
+    most typical one and claims success there, the 7 Nov 2026 failure mode ("the kitchen was
+    reached, so the refrigerator was found"). With the original request recorded, TaskAgent
+    must reject that claim; without it, nothing does."""
+
+    def __init__(self, inner, toolbox, target: str, after_s: float) -> None:
+        self.inner, self.toolbox, self.target, self.after_s = inner, toolbox, target, after_s
+        self.trace = getattr(inner, "trace", [])
+        self.tries = 0
+
+    def next_action(self, goal, scene, verdict, history):
+        from dream.runtime.agent import ToolCall
+
+        base, world = self.toolbox.base, self.toolbox.semantic
+        if verdict.get("satisfied") or base.time < self.after_s:
+            return self.inner.next_action(goal, scene, verdict, history)
+        room = world.knowledge.typical_rooms(self.target, 1)[0][0]
+        world.refresh()
+        regions = [r for r in world.regions.values() if r.leading()[0] == room]
+        if not regions or self.tries >= 3:
+            return self.inner.next_action(goal, scene, verdict, history)
+        here = world.segmenter.region_of(world.grid, base.odometry()[:2])
+        if any(r.id == here for r in regions):
+            return Finish(True, f"reached the {room}; a {self.target} is usually there")
+        r = max(regions, key=lambda r: r.weights.get(room, 0.0))
+        self.tries += 1
+        return ToolCall("go_to", {"x": float(r.centroid[0]), "y": float(r.centroid[1])})
+
+
 class PathMeter:
     """Wraps a MobileBase to measure the true path length (evaluation only)."""
 
@@ -236,9 +267,12 @@ def _run(home, job, cfg, arm, t0) -> dict:
         hints, mem = memory_hints(home, target, belief.memory, folder)
         weights = UtilityWeights(**{**cfg.get("weights", {}), **arm.get("weights", {})})
         planner = SemanticSearchPlanner(toolbox, arm["policy"], weights, memory_hints=hints)
-        agent = TaskAgent(toolbox, TimeBudget(planner, meter, cfg["time_budget_s"]),
+        chosen = planner
+        if "substitute_after_s" in arm:  # fault injection (goal-consistency ablation)
+            chosen = SubstitutingPlanner(planner, toolbox, target, arm["substitute_after_s"])
+        agent = TaskAgent(toolbox, TimeBudget(chosen, meter, cfg["time_budget_s"]),
                           max_steps=cfg["max_steps"])  # fmt: skip
-        episode = agent.run(goal, spec=spec)
+        episode = agent.run(goal, spec=spec if arm.get("gate", True) else None)
         verdict = toolbox.call("verify_goal", {"goal": goal}).data
         stored = write_back(mem, world, target, hints, verdict, 1_000_000.0 + meter.time)
         mem.close()
@@ -248,6 +282,9 @@ def _run(home, job, cfg, arm, t0) -> dict:
         completion = stop_outcome(toolbox, target, episode.completion, episode.reason)
         if episode.success_claimed:
             completion = "target_found_verified"
+    claim_xy = verdict.get("position") if episode.success_claimed else None
+    if episode.success_claimed and claim_xy is None:  # a claim without a verified object
+        claim_xy = meter.odometry()[:2].tolist()
     world.refresh()
     to_world = odometry_to_world(true_pose(), meter.odometry())
     instances = [
@@ -259,7 +296,7 @@ def _run(home, job, cfg, arm, t0) -> dict:
     score = score_episode(
         target=target, outcome=getattr(goal, "outcome", spec.required_outcome),
         supported_expected=supported, claimed=episode.success_claimed, completion=completion,
-        claim_xy_odom=verdict.get("position") if episode.success_claimed else None,
+        claim_xy_odom=claim_xy,
         instances=instances, to_world=to_world, true_pose_end=true_pose(),
     )  # fmt: skip
 

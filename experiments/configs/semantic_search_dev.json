@@ -76,6 +76,18 @@
       "weights": {
         "kappa": 30.0
       }
+    },
+    "abl_substitution_gated": {
+      "policy": "utility",
+      "substitute_after_s": 120,
+      "gate": true,
+      "_note": "fault injection: claims success on reaching the target's typical room; gate on"
+    },
+    "abl_substitution_ungated": {
+      "policy": "utility",
+      "substitute_after_s": 120,
+      "gate": false,
+      "_note": "fault injection with no original-request record: the 7 Nov failure mode"
     }
   },
   "splits": {
@@ -374,6 +386,28 @@
         }
       ],
       "kappa_rule": "Written before dev3 ran: among kappa in {3 (proposed_k3), 10 (proposed), 30 (proposed_k30)} choose the one with the most target-present successes on dev3; ties broken by the lower median sim time to verified success; any false success claim disqualifies a value. The chosen value is frozen into the held-out config."
+    },
+    "subst_smoke": {
+      "arms": [
+        "abl_substitution_gated",
+        "abl_substitution_ungated"
+      ],
+      "conditions": [
+        {
+          "scenario": "D",
+          "seeds": [
+            100,
+            101
+          ]
+        },
+        {
+          "scenario": "E",
+          "seeds": [
+            100,
+            101
+          ]
+        }
+      ]
     }
   }
 }
