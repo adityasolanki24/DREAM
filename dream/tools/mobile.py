@@ -154,12 +154,21 @@ class MobileToolbox:
         on_event=None,
         navigator: str = "classic",
         semantic=None,
+        detector=None,
+        detect_when: str = "always",
     ) -> None:
         """``navigator``: "classic" (the validated Milestone B follower, kept as the baseline)
         or "rpp" (smoothed path, Regulated Pure Pursuit, continuous scanning, safe
         preemption; dream/navigation/rpp.py). ``semantic``: a SemanticWorld
         (dream/semantics/world.py) fed every frame, for object search; None leaves the
-        toolbox exactly as before."""
+        toolbox exactly as before. ``detector``: optional ``frame -> frame`` that attaches
+        semantic detections (e.g. dream/perception/vlm_detect.VLMDetector), run on every
+        frame (``detect_when="always"``) or only while standing to look
+        (``"stationary"``: look_around, look_at, inspect), for detectors too slow to run
+        while walking. Frames it does not run on carry no detections and add no evidence."""
+        if detect_when not in ("always", "stationary"):
+            raise ValueError(f"unknown detect_when {detect_when!r}")
+        self.detector, self.detect_when, self._standing_look = detector, detect_when, False
         if navigator not in ("classic", "rpp"):
             raise ValueError(f"unknown navigator {navigator!r}")
         self.base, self.memory, self.navigator = base, memory, navigator
@@ -182,13 +191,19 @@ class MobileToolbox:
         if self.base.stop_reason and name not in ("observe_scene", "get_robot_state"):
             return ToolResult(name, "rejected", f"robot stopped: {self.base.stop_reason}")
         t0 = self.base.time
-        result = getattr(self, f"_{name}")(**args)
+        self._standing_look = name in ("look_around", "look_at", "inspect")
+        try:
+            result = getattr(self, f"_{name}")(**args)
+        finally:
+            self._standing_look = False
         result.sim_time = self.base.time - t0
         return result
 
     # ----- perception ------------------------------------------------------------------
     def _look(self) -> None:
         frame = self.base.capture()
+        if self.detector is not None and (self.detect_when == "always" or self._standing_look):
+            frame = self.detector(frame)
         self.memory.update(frame)
         if self.semantic is not None:
             self.semantic.observe(frame)

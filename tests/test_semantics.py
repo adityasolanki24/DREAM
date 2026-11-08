@@ -250,3 +250,42 @@ def test_graph_keeps_hypotheses_off_object_nodes():
     with pytest.raises(ValueError):
         g.edge("region:1", "is", "class:refrigerator", "fact", "x")
     assert CELL == 0.05
+
+
+def test_toolbox_runs_a_slow_detector_only_on_standing_looks():
+    import threading
+
+    from dream.perception.spatial import SpatialMemory
+    from dream.tools.mobile import MobileToolbox
+
+    class Base:
+        time, stop_reason = 0.0, None
+
+        def odometry(self):
+            return np.zeros(3)
+
+        def capture(self):
+            h, w = 24, 32
+            rot = np.array([[0, 0, -1], [-1, 0, 0], [0, 1, 0]], float)
+            cal = CameraCalibration(w, h, 58.0, np.array([0.0, 0.0, 1.0]), rot)
+            depth = np.full((h, w), 2.0, np.float32)
+            return RGBDFrame(self.time, np.zeros((h, w, 3), np.uint8), depth,
+                             np.zeros((h, w), bool), cal)  # fmt: skip
+
+        def walk(self, *a):
+            self.time += a[-1]
+            return True
+
+    seen = []
+
+    def detector(frame):
+        seen.append(frame.time)
+        return frame
+
+    tb = MobileToolbox(Base(), SpatialMemory(np.random.default_rng(0), boxes=False),
+                       detector=detector, detect_when="stationary")  # fmt: skip
+    tb.cancel = threading.Event()
+    tb.call("go_to", {"x": 0.0, "y": 0.0})
+    assert not seen
+    tb.call("look_at", {"x": 1.0, "y": 0.0})
+    assert len(seen) == 4 and not tb._standing_look
