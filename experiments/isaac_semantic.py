@@ -56,6 +56,9 @@ SCENE_CLASSES = {
     "oven": "stove",
     "countertop": "countertop",
 }
+# Planner weights of the frozen MuJoCo held-out evaluation (experiments/configs/
+# semantic_search_heldout.json, commit 9d08c27): kappa chosen there by the pre-registered dev3 rule.
+FROZEN_WEIGHTS = {"kappa": 3.0, "ig": 1.0, "gamma": 1.0}
 MERGE_MARGIN_M = 0.02  # AABBs of one class closer than this are one physical instance
 
 
@@ -128,13 +131,13 @@ def attach_semantic_search(toolbox, memory, detector_backend, knowledge: Semanti
     (their prompts and tool behaviour unchanged). The planner's memory hints are empty because
     a live Isaac session has no home memory."""
     from dream.perception.vlm_detect import VLMDetector
-    from dream.runtime.semantic_search import SemanticSearchPlanner
+    from dream.runtime.semantic_search import SemanticSearchPlanner, UtilityWeights
     from dream.semantics.world import SemanticWorld
 
     toolbox.semantic = SemanticWorld(memory.grid, knowledge)
     toolbox.detector = VLMDetector(detector_backend, detector_vocabulary(knowledge))
     toolbox.detect_when = "stationary"
-    return SemanticSearchPlanner(toolbox, "utility")
+    return SemanticSearchPlanner(toolbox, "utility", UtilityWeights(**FROZEN_WEIGHTS))
 
 
 # ---------------------------------------------------------------------------------------------

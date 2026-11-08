@@ -106,6 +106,7 @@ def test_attach_semantic_search_wires_the_toolbox_for_stationary_detection():
     assert toolbox.semantic is not None and toolbox.detect_when == "stationary"
     assert toolbox.detector.classes == sorted(c.replace("_", " ") for c in sem.DETECTOR_VOCABULARY)
     assert planner.policy == "utility" and planner.toolbox is toolbox and not planner.memory_hints
+    assert (planner.weights.kappa, planner.weights.ig, planner.weights.gamma) == (3.0, 1.0, 1.0)
 
 
 # -- scorer mapping -------------------------------------------------------------------------

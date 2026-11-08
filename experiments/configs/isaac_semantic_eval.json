@@ -26,6 +26,7 @@
   "start_rule": "experiments/isaac_g1_kitchen.choose_start('explore', start): free cell at least 0.55 m from every collider footprint, drawn with seed [start, 7]; the same rule and seeds as experiments/configs/isaac_g1_kitchen.json (evaluation_starts 1, 2, 3; 3 not used). A start the rule refuses is recorded as a setup failure; there are no replacement starts.",
   "budget_s": 300,
   "qwen_max_new_tokens": 512,
+  "planner": {"policy": "utility", "weights": {"kappa": 3.0, "ig": 1.0, "gamma": 1.0}, "source": "experiments/configs/semantic_search_heldout.json frozen at 9d08c27 (lead: kappa 3.0 by the pre-registered dev3 rule); merged into this branch at 33eb693"},
   "qwen_max_new_tokens_note": "Both arms share one pinned Qwen server. The closeout server default (192 new tokens) leaves a 15-key JSON answer within 12% of truncation (room-prior answers used up to 168) and a detector list of a cluttered kitchen can exceed it; a truncated list is invalid JSON and silently yields no detections, an artifact of the harness and not a behaviour. 512 was fixed before any semantic-arm result; greedy decoding means shorter answers are unchanged.",
   "arms": {
     "semantic": {
