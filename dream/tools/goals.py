@@ -78,13 +78,26 @@ class GoToObserved:
 
 
 @dataclass(frozen=True)
+class FindObject:
+    """Find an instance of the perception class ``target`` and verify its identity from
+    evidence (``outcome="visually_localized"``); with ``outcome="reached"`` also stand at it.
+
+    Grounded only from a ``GoalSpecification`` (dream/tools/intent.py) whose target and
+    outcome it repeats: rooms, frontiers and viewpoints visited on the way are subgoals and
+    can never verify this goal."""
+
+    target: str
+    outcome: str = "visually_localized"
+
+
+@dataclass(frozen=True)
 class UnsupportedGoal:
     """A capability/grounding refusal, rather than an execution error."""
 
     reason: str
 
 
-Goal = InRegion | OnTop | Inspect | GoToPlace | GoToObserved | UnsupportedGoal
+Goal = InRegion | OnTop | Inspect | GoToPlace | GoToObserved | FindObject | UnsupportedGoal
 
 
 @dataclass(frozen=True)

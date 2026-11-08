@@ -30,6 +30,7 @@ from typing import Protocol
 import numpy as np
 
 from dream.tools.goals import EXPLORATION_REACHED, Goal, InRegion, OnTop, resting_on
+from dream.tools.intent import GoalSpecification, check_binding
 from dream.tools.toolbox import WALL_CLEARANCE, Toolbox, ToolResult
 from dream.types import ObjectObservation
 
@@ -216,6 +217,7 @@ class Episode:
     suspended: bool = False  # stopped at an action boundary for a higher-priority task
     completion: str | None = None  # e.g. exploration_point_reached_target_unverified
     model_reason: str | None = None  # a model's free text; never the user-facing reason
+    spec: GoalSpecification | None = None  # the original request, when one was recorded
 
     @property
     def tool_calls(self) -> int:
@@ -233,6 +235,7 @@ class Episode:
     def to_dict(self) -> dict:
         return {
             "goal": repr(self.goal),
+            "spec": None if self.spec is None else self.spec.to_dict(),
             "success_claimed": self.success_claimed,
             "reason": self.reason,
             "completion": self.completion,
@@ -265,6 +268,7 @@ class TaskAgent:
         on_event: Callable[[str, dict], None] | None = None,
         history: list[Step] | None = None,
         preempt=None,
+        spec: GoalSpecification | None = None,
     ) -> Episode:
         """Run to completion, failure or the step budget.
 
@@ -272,19 +276,58 @@ class TaskAgent:
         planner sees them, but the scene is observed afresh before the next action, so a
         changed world is revalidated rather than assumed. ``preempt`` (an Event) suspends
         at the next action boundary, after the running tool has brought the robot to a safe
-        state, returning ``suspended=True`` with the steps so far as the checkpoint."""
+        state, returning ``suspended=True`` with the steps so far as the checkpoint.
+
+        ``spec`` is the user's original request (dream/tools/intent.py). With it, a goal that
+        cannot establish the request is refused before any action, and a success claim is
+        accepted only if the goal still establishes the request when the episode ends."""
         emit = on_event or (lambda kind, data: None)
         steps: list[Step] = list(history or [])
-        emit("goal", {"goal": repr(goal), "resumed_steps": len(steps)})
+        emit(
+            "goal",
+            {
+                "goal": repr(goal),
+                "resumed_steps": len(steps),
+                **({} if spec is None else {"spec": spec.to_dict()}),
+            },
+        )
+        finish = self._finish
+        if spec is not None:
+            digest = spec.digest
+
+            def finish(goal, success, reason, steps, emit, completion=None, model_reason=None):
+                if spec.digest != digest:  # frozen, so only a replaced object can differ
+                    success, reason, completion = (
+                        False,
+                        "original request record changed",
+                        ("goal_substitution_rejected"),
+                    )
+                ep = self._finish(goal, success, reason, steps, emit, completion, model_reason)
+                ep.spec = spec
+                return ep
+
+            bound, why = check_binding(spec, goal)
+            if not bound:
+                return finish(
+                    goal,
+                    False,
+                    f"refused: the bound goal would not complete the request "
+                    f"'{spec.original_instruction}': {why}",
+                    steps,
+                    emit,
+                    "goal_substitution_rejected",
+                )
         for _ in range(self.max_steps - len(steps)):
             hold = getattr(self.tools, "hold_for_reasoning", None)
             if hold is not None:
                 hold()  # Same deterministic pause contract as the VLM on this embodiment.
             if self.tools.cancel.is_set():
-                return self._finish(goal, False, "cancelled by user", steps, emit)
+                return finish(goal, False, "cancelled by user", steps, emit)
             if preempt is not None and preempt.is_set():
                 emit("suspended", {"steps": len(steps)})
-                return Episode(goal, False, "suspended for a higher-priority task", steps, True)
+                return Episode(
+                    goal, False, "suspended for a higher-priority task", steps, True, spec=spec
+                )
             observed = [
                 self.tools.call("observe_scene"),
                 self.tools.call("verify_goal", {"goal": goal}),
@@ -292,23 +335,37 @@ class TaskAgent:
             ]
             bad = next((r for r in observed if not r.ok), None)
             if bad is not None:
-                return self._finish(goal, False, f"{bad.tool} failed: {bad.message}", steps, emit)
+                return finish(goal, False, f"{bad.tool} failed: {bad.message}", steps, emit)
             scene, verdict, state = (r.data for r in observed)
             if state["protective_stop"]:
-                return self._finish(
+                return finish(
                     goal, False, "robot in protective stop (operator reset needed)", steps, emit
                 )
             emit("verification", {"verdict": verdict, "goal": repr(goal)})
             action = self.planner.next_action(goal, scene, verdict, steps)
             # A slow planner may return after a pause or cancellation request.
             if self.tools.cancel.is_set():
-                return self._finish(goal, False, "cancelled by user", steps, emit)
+                return finish(goal, False, "cancelled by user", steps, emit)
             if preempt is not None and preempt.is_set():
                 emit("suspended", {"steps": len(steps)})
-                return Episode(goal, False, "suspended at an action boundary", steps, True)
+                return Episode(
+                    goal, False, "suspended at an action boundary", steps, True, spec=spec
+                )
             if isinstance(action, Finish):
                 action = self._typed_outcome(goal, action)
-                return self._finish(
+                if spec is not None and action.success:
+                    bound, why = check_binding(spec, goal)
+                    if not (bound and verdict.get("satisfied")):
+                        action = Finish(
+                            False,
+                            "success not accepted: "
+                            + (why if not bound else "the original request is not verified"),
+                            "goal_substitution_rejected" if not bound else action.completion,
+                            action.model_reason
+                            if action.model_reason is not None
+                            else action.reason,
+                        )
+                return finish(
                     goal,
                     action.success,
                     action.reason,
@@ -331,10 +388,10 @@ class TaskAgent:
                 },
             )
             if result.status == "stopped":
-                return self._finish(goal, False, result.message, steps, emit)
+                return finish(goal, False, result.message, steps, emit)
             if result.status == "interrupted":  # the tool stopped safely for a preemption
                 continue
-        return self._finish(goal, False, f"step budget ({self.max_steps}) exhausted", steps, emit)
+        return finish(goal, False, f"step budget ({self.max_steps}) exhausted", steps, emit)
 
     @staticmethod
     def _typed_outcome(goal, action: Finish) -> Finish:

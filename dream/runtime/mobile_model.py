@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Iterable, Mapping
 
 from dream.runtime.agent import Finish, ToolCall
 from dream.runtime.vlm import parse_tool_call
@@ -17,6 +18,13 @@ from dream.tools.goals import (
     GoToPlace,
     Inspect,
     UnsupportedGoal,
+)
+from dream.tools.intent import (
+    OUTCOMES,
+    UNKNOWN,
+    GoalSpecification,
+    check_anchoring,
+    check_binding,
 )
 from dream.tools.mobile import frontier_already_reached
 
@@ -106,8 +114,29 @@ def _reached(frontier, scene) -> bool:
     )
 
 
-def interpret_mobile_goal(backend, utterance, places, scene, camera):
-    """Ask the selected VLM to map a spoken request to a supported typed mobile goal."""
+def interpret_mobile_goal(backend, utterance, places, scene, camera, spec=None, attempts=3):
+    """Ask the selected VLM to map a spoken request to a supported typed mobile goal.
+
+    With ``spec`` (the immutable original request, dream/tools/intent.py) every proposed goal
+    must pass ``check_binding``: one that would complete something else is rejected and the
+    model is told why, up to ``attempts`` proposals, then the request is refused. Without
+    ``spec`` this is the 7 Nov 2026 behaviour, kept unchanged as the comparison arm."""
+    if spec is None:
+        return _interpret_once(backend, utterance, places, scene, camera)
+    feedback: list[dict] = []
+    for _ in range(attempts):
+        goal = _interpret_once(backend, utterance, places, scene, camera, spec, feedback)
+        ok, why = check_binding(spec, goal)
+        if ok:
+            return goal
+        feedback.append({"rejected_goal": repr(goal), "reason": why})
+    return UnsupportedGoal(
+        f"no available goal completes '{spec.original_instruction}' without changing it: "
+        + "; ".join(f["reason"] for f in feedback)
+    )
+
+
+def _interpret_once(backend, utterance, places, scene, camera, spec=None, feedback=()):
     # Stable references supplied by the user are constraints, not a model-chosen replacement.
     words = {
         name: i
@@ -133,6 +162,15 @@ def interpret_mobile_goal(backend, utterance, places, scene, camera):
         ],
         "unsupported_capabilities": ["grasp", "open", "carry", "manipulate"],
     }
+    if spec is not None:
+        message["original_request"] = {
+            "target": spec.target_class,
+            "required_outcome": spec.required_outcome,
+            "rule": "the goal must establish exactly this outcome on exactly this target; "
+            "if no listed goal does, call unsupported",
+        }
+        if feedback:
+            message["rejected_proposals"] = list(feedback)
     parts = [{"type": "text", "text": json.dumps(message, default=str)}]
     frame = camera()
     if frame is not None:
@@ -397,3 +435,81 @@ class MobileModelPlanner:
                 ]
             )
         return settled("exhausted", Finish(False, f"model repair budget exhausted: {last_error}"))
+
+
+SPECIFY_SCHEMA = {
+    "type": "function",
+    "function": {
+        "name": "specify_request",
+        "description": "Restate the user's request in the robot's vocabulary. Use only words "
+        "the user said (or a listed synonym); never replace the target with something easier.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "target": {"type": "string", "description": "a vocabulary class or place, or ''"},
+                "target_kind": {"type": "string", "enum": ["object", "room", "place", "none"]},
+                "outcome": {"type": "string", "enum": [*OUTCOMES, UNKNOWN]},
+                "also_required": {"type": "array", "items": {"type": "string"}},
+            },
+            "required": ["target", "target_kind", "outcome"],
+        },
+    },
+}
+
+
+def propose_grounding(
+    backend,
+    text: str,
+    objects: Mapping[str, Iterable[str]],
+    rooms: Mapping[str, Iterable[str]] = (),
+    places: Iterable[str] = (),
+    attempts: int = 2,
+) -> tuple[GoalSpecification | None, list[dict]]:
+    """Ask a language model to ground what the grammar could not, then validate it against
+    the request's own words. Returns (spec or None, the rejected proposals)."""
+    places = list(places)
+    message = {
+        "request": text,
+        "object_vocabulary": {k: list(v) for k, v in objects.items()},
+        "room_vocabulary": sorted(dict(rooms)),
+        "remembered_places": sorted(places),
+        "outcomes": list(OUTCOMES),
+    }
+    messages = [
+        {"role": "system", "content": [{"type": "text", "text": (
+            "Restate the request with specify_request. The target must be what the user "
+            "named, in the robot's vocabulary; the outcome must be the action the user asked "
+            "for. If the user named something outside the vocabulary or an action not listed, "
+            "say so with target '' or outcome 'unknown'. Never choose a different target or "
+            "an easier outcome.")}]},
+        {"role": "user", "content": [{"type": "text", "text": json.dumps(message)}]},
+    ]  # fmt: skip
+    rejected = []
+    for _ in range(attempts):
+        output = backend.generate(messages, [SPECIFY_SCHEMA])
+        call, error = parse_tool_call(output)
+        problems = [error] if call is None else []
+        spec = None
+        if call is not None:
+            a = call["arguments"]
+            target = a.get("target") or None
+            kind = a.get("target_kind")
+            spec = GoalSpecification(
+                original_instruction=text,
+                target_class=target if isinstance(target, str) else None,
+                target_kind=None if kind in (None, "none") or target is None else kind,
+                target_instance=None,
+                required_outcome=a.get("outcome") if isinstance(a.get("outcome"), str) else "",
+                also_required=tuple(x for x in a.get("also_required") or () if isinstance(x, str)),
+                grounding="model",
+            )
+            problems = check_anchoring(spec, objects, rooms, places)
+        if not problems:
+            return spec, rejected
+        rejected.append({"model_output": str(output)[:300], "problems": problems})
+        messages += [
+            {"role": "assistant", "content": [{"type": "text", "text": str(output)}]},
+            {"role": "user", "content": [{"type": "text", "text": json.dumps(
+                {"rejected": problems, "note": "use only what the request states"})}]},
+        ]  # fmt: skip
+    return None, rejected
