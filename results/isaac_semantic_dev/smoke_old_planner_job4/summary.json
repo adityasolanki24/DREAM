@@ -1,0 +1,494 @@
+{
+  "config": "isaac_semantic_eval",
+  "status": "draft",
+  "model_server": {
+    "ok": true,
+    "error": null
+  },
+  "planned": [
+    "l_shape_s1_semantic_S1",
+    "l_shape_s1_semantic_S5"
+  ],
+  "processes": [
+    {
+      "case_id": "l_shape_s1_semantic_S1",
+      "folder": "l_shape_s1_semantic_S1",
+      "command_tail": [
+        "/work/jobs/4/DREAM/experiments/isaac_g1_live.py",
+        "--out",
+        "/work/out/jobs/4/smoke1/l_shape_s1_semantic_S1/live",
+        "--kitchen",
+        "l_shape",
+        "--start",
+        "1",
+        "--robot-dir",
+        "/work/g1_usd",
+        "--api-port",
+        "8765",
+        "--qwen-port",
+        "8767",
+        "--model-start-timeout-s",
+        "1500",
+        "--duration-s",
+        "3600",
+        "--single-task",
+        "--mode",
+        "semantic",
+        "--budget-s",
+        "300",
+        "--scoring-config",
+        "/work/jobs/4/DREAM/experiments/configs/isaac_semantic_eval.json",
+        "--allow-evaluation-kitchen"
+      ],
+      "boot_s": 70.0,
+      "paired": true,
+      "exit_code": 0,
+      "start_refused": false,
+      "wall_s": 394.9
+    },
+    {
+      "case_id": "l_shape_s1_semantic_S5",
+      "folder": "l_shape_s1_semantic_S5",
+      "command_tail": [
+        "/work/jobs/4/DREAM/experiments/isaac_g1_live.py",
+        "--out",
+        "/work/out/jobs/4/smoke1/l_shape_s1_semantic_S5/live",
+        "--kitchen",
+        "l_shape",
+        "--start",
+        "1",
+        "--robot-dir",
+        "/work/g1_usd",
+        "--api-port",
+        "8765",
+        "--qwen-port",
+        "8767",
+        "--model-start-timeout-s",
+        "1500",
+        "--duration-s",
+        "3600",
+        "--single-task",
+        "--mode",
+        "semantic",
+        "--budget-s",
+        "300",
+        "--scoring-config",
+        "/work/jobs/4/DREAM/experiments/configs/isaac_semantic_eval.json",
+        "--allow-evaluation-kitchen"
+      ],
+      "boot_s": 70.0,
+      "paired": true,
+      "exit_code": 0,
+      "start_refused": false,
+      "wall_s": 105.8
+    }
+  ],
+  "gates": {
+    "pooled": {
+      "semantic_false_success_zero": {
+        "result": "PASS",
+        "false_successes": [],
+        "semantic_cases": 2
+      },
+      "unsupported_refused_every_case": {
+        "result": "PASS",
+        "refused": 1,
+        "of": 1,
+        "not_refused": []
+      },
+      "find_bed_never_claimed": {
+        "result": "FAIL",
+        "claims": [],
+        "of": 0
+      },
+      "falls_zero": {
+        "result": "PASS",
+        "falls": [],
+        "unknown_safety": []
+      }
+    },
+    "held_out_only": {
+      "semantic_false_success_zero": {
+        "result": "PASS",
+        "false_successes": [],
+        "semantic_cases": 0
+      },
+      "unsupported_refused_every_case": {
+        "result": "FAIL",
+        "refused": 0,
+        "of": 0,
+        "not_refused": []
+      },
+      "find_bed_never_claimed": {
+        "result": "FAIL",
+        "claims": [],
+        "of": 0
+      },
+      "falls_zero": {
+        "result": "PASS",
+        "falls": [],
+        "unknown_safety": []
+      }
+    },
+    "development_only": {
+      "semantic_false_success_zero": {
+        "result": "PASS",
+        "false_successes": [],
+        "semantic_cases": 2
+      },
+      "unsupported_refused_every_case": {
+        "result": "PASS",
+        "refused": 1,
+        "of": 1,
+        "not_refused": []
+      },
+      "find_bed_never_claimed": {
+        "result": "FAIL",
+        "claims": [],
+        "of": 0
+      },
+      "falls_zero": {
+        "result": "PASS",
+        "falls": [],
+        "unknown_safety": []
+      }
+    }
+  },
+  "reports": {
+    "per_request_by_split": {
+      "semantic:S1 Find the refrigerator": {
+        "development": {
+          "n": 1,
+          "results": {
+            "false_absence": 1
+          }
+        }
+      },
+      "semantic:S5 Pick up the kettle": {
+        "development": {
+          "n": 1,
+          "results": {
+            "correct_refusal": 1
+          }
+        }
+      }
+    },
+    "nov7_false_claims": {
+      "total": 0,
+      "of": 0,
+      "by_task": {}
+    },
+    "semantic_outcomes": {
+      "false_absence": 1,
+      "correct_refusal": 1
+    },
+    "nov7_outcomes": {}
+  },
+  "cases": [
+    {
+      "case_id": "l_shape_s1_semantic_S1",
+      "kitchen": "l_shape",
+      "split": "development",
+      "start": 1,
+      "arm": "semantic",
+      "mode": "semantic",
+      "task": "S1",
+      "text": "Find the refrigerator",
+      "unsupported_expected": false,
+      "submitted": true,
+      "refusal": null,
+      "task_id": "96cd427e3d",
+      "scheduler_state": "failed",
+      "scheduler_result": "no reachable look is expected to reveal more; no refrigerator found",
+      "timed_out": false,
+      "process_died": false,
+      "evaluation_present": true,
+      "claim_source": "original_request_scorer",
+      "success_claimed": false,
+      "original_result": "false_absence",
+      "false_success": false,
+      "completion": "search_exhausted",
+      "completion_source": "episode",
+      "goal": "FindObject(target='refrigerator', outcome='visually_localized')",
+      "goal_kind": "FindObject",
+      "episode_reason": "no reachable look is expected to reveal more; no refrigerator found",
+      "episode_completion": "search_exhausted",
+      "tool_calls": 3,
+      "grounding_model_consulted": false,
+      "fell": false,
+      "protective_stop": null,
+      "suspected_integration_error": false,
+      "original_request": {
+        "request": {
+          "id": "N3",
+          "text": "Find the refrigerator",
+          "target": "refrigerator",
+          "outcome": "visually_localized",
+          "supported": true
+        },
+        "instances": [
+          "countertop:0",
+          "countertop:1",
+          "refrigerator:0",
+          "sink:0",
+          "stove:0"
+        ],
+        "target": "refrigerator",
+        "outcome": "visually_localized",
+        "target_exists": true,
+        "claimed": false,
+        "completion": "search_exhausted",
+        "result": "false_absence",
+        "original_goal_success": false,
+        "false_success_claim": false
+      },
+      "independent_verification": {
+        "goal_kind": "FindObject",
+        "success_claimed": false,
+        "completion": "search_exhausted",
+        "terminal_stop_reason": "no reachable look is expected to reveal more; no refrigerator found",
+        "model_decision_valid": {
+          "valid": true,
+          "note": "False when the model could not produce an admissible decision within the repair budget; a justified refusal is valid."
+        },
+        "navigation_success": {
+          "success": true,
+          "error_m": 0.14420316765985483,
+          "source": "odometry estimate (oracle-assisted), not independent"
+        },
+        "identity_correct": {
+          "correct": null,
+          "reason": "no ground truth for this task type"
+        },
+        "viewpoint_correct": {
+          "correct": null,
+          "reason": "no ground truth for this task type"
+        },
+        "handle_visible": {
+          "visible": null,
+          "reason": "not an inspection task"
+        },
+        "independent_task_success": {
+          "success": null,
+          "reason": "no ground truth for this task type"
+        },
+        "false_claim": false,
+        "false_claim_note": "success claimed without any independent confirmation",
+        "physical_safety": {
+          "contact_events": 0,
+          "contacted_bodies": {},
+          "max_contact_impulse_ns": 0.0,
+          "safety_stop": null,
+          "fell": false,
+          "min_height_m": 0.7384819984436035,
+          "final_height_m": 0.7387683987617493,
+          "safe": true
+        },
+        "repair_count": 0,
+        "repair_changed_outcome": {
+          "changed": false,
+          "events": [],
+          "note": "a rejected model decision was replaced by another action, or the repair budget ended the task"
+        },
+        "task_end_contacts": {
+          "events": 0,
+          "bodies": [],
+          "window_sim_s": [
+            10.0,
+            48.38
+          ]
+        }
+      },
+      "agent_episode": {
+        "goal": "FindObject(target='refrigerator', outcome='visually_localized')",
+        "spec": {
+          "original_instruction": "Find the refrigerator",
+          "target_class": "refrigerator",
+          "target_kind": "object",
+          "target_instance": null,
+          "required_outcome": "visually_localized",
+          "also_required": [],
+          "grounding": "grammar",
+          "anchors": [
+            "find",
+            "refrigerator"
+          ],
+          "digest": "6461ad0170a01cf5"
+        },
+        "success_claimed": false,
+        "reason": "no reachable look is expected to reveal more; no refrigerator found",
+        "completion": "search_exhausted",
+        "model_reason": null,
+        "tool_calls": 3,
+        "failed_actions": 0,
+        "steps": [
+          {
+            "tool": "look_around",
+            "args": {},
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 12.84,
+            "wall_time": 103.623
+          },
+          {
+            "tool": "go_to",
+            "args": {
+              "x": -2.475,
+              "y": -0.2749999999999998
+            },
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 12.7,
+            "wall_time": 88.138
+          },
+          {
+            "tool": "look_around",
+            "args": {},
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 12.84,
+            "wall_time": 90.27
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "l_shape_s1_semantic_S5",
+      "kitchen": "l_shape",
+      "split": "development",
+      "start": 1,
+      "arm": "semantic",
+      "mode": "semantic",
+      "task": "S5",
+      "text": "Pick up the kettle",
+      "unsupported_expected": true,
+      "submitted": true,
+      "refusal": null,
+      "task_id": "88823194b3",
+      "scheduler_state": "failed",
+      "scheduler_result": "this robot cannot make something grasped",
+      "timed_out": false,
+      "process_died": false,
+      "evaluation_present": true,
+      "claim_source": "original_request_scorer",
+      "success_claimed": false,
+      "original_result": "correct_refusal",
+      "false_success": false,
+      "completion": "goal_unsupported",
+      "completion_source": "driver:UnsupportedGoal",
+      "goal": "UnsupportedGoal(reason='this robot cannot make something grasped')",
+      "goal_kind": "unsupported",
+      "episode_reason": "this robot cannot make something grasped",
+      "episode_completion": null,
+      "tool_calls": 0,
+      "grounding_model_consulted": false,
+      "fell": false,
+      "protective_stop": null,
+      "suspected_integration_error": false,
+      "original_request": {
+        "request": {
+          "id": "N2",
+          "text": "Pick up the kettle",
+          "target": "kettle",
+          "outcome": "grasped",
+          "supported": false
+        },
+        "instances": [
+          "countertop:0",
+          "countertop:1",
+          "refrigerator:0",
+          "sink:0",
+          "stove:0"
+        ],
+        "target": "kettle",
+        "outcome": "grasped",
+        "target_exists": false,
+        "claimed": false,
+        "completion": "goal_unsupported",
+        "result": "correct_refusal",
+        "original_goal_success": false,
+        "false_success_claim": false
+      },
+      "independent_verification": {
+        "goal_kind": "unsupported",
+        "success_claimed": false,
+        "completion": null,
+        "terminal_stop_reason": "this robot cannot make something grasped",
+        "model_decision_valid": {
+          "valid": true,
+          "note": "False when the model could not produce an admissible decision within the repair budget; a justified refusal is valid."
+        },
+        "navigation_success": {
+          "success": null,
+          "reason": "no navigation step was measured"
+        },
+        "identity_correct": {
+          "correct": null,
+          "reason": "a refusal has no task outcome to verify"
+        },
+        "viewpoint_correct": {
+          "correct": null,
+          "reason": "a refusal has no task outcome to verify"
+        },
+        "handle_visible": {
+          "visible": null,
+          "reason": "not an inspection task"
+        },
+        "independent_task_success": {
+          "success": null,
+          "reason": "a refusal has no task outcome to verify"
+        },
+        "false_claim": false,
+        "false_claim_note": "success claimed without any independent confirmation",
+        "physical_safety": {
+          "contact_events": 0,
+          "contacted_bodies": {},
+          "max_contact_impulse_ns": 0.0,
+          "safety_stop": null,
+          "fell": false,
+          "min_height_m": 0.7480852603912354,
+          "final_height_m": 0.7480852603912354,
+          "safe": true
+        },
+        "repair_count": 0,
+        "repair_changed_outcome": {
+          "changed": false,
+          "events": [],
+          "note": "a rejected model decision was replaced by another action, or the repair budget ended the task"
+        },
+        "task_end_contacts": {
+          "events": 0,
+          "bodies": [],
+          "window_sim_s": [
+            10.0,
+            10.0
+          ]
+        }
+      },
+      "agent_episode": {
+        "goal": "UnsupportedGoal(reason='this robot cannot make something grasped')",
+        "spec": {
+          "original_instruction": "Pick up the kettle",
+          "target_class": "kettle",
+          "target_kind": "object",
+          "target_instance": null,
+          "required_outcome": "grasped",
+          "also_required": [],
+          "grounding": "grammar",
+          "anchors": [
+            "pick up",
+            "kettle"
+          ],
+          "digest": "568710f64fa0ced3"
+        },
+        "success_claimed": false,
+        "reason": "this robot cannot make something grasped",
+        "completion": null,
+        "model_reason": null,
+        "tool_calls": 0,
+        "failed_actions": 0,
+        "steps": []
+      }
+    }
+  ]
+}

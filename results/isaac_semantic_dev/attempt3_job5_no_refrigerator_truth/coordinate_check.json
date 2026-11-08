@@ -1,0 +1,1618 @@
+{
+  "kitchen": "l_shape",
+  "model": "Qwen/Qwen3-VL-4B-Instruct",
+  "model_revision": "ebb281ec70b05090aa6165b016eac8ec08e71b17",
+  "max_new_tokens": 512,
+  "prompt": "List every object of these classes that is visible in the image: {classes}. Answer with JSON only: a list of {{\"label\": <one of the classes>, \"bbox_2d\": [x1, y1, x2, y2]}} with coordinates scaled 0-1000 across the image width and height. Answer [] if none is visible. Do not list objects you cannot see.",
+  "vocabulary": [
+    "bathtub",
+    "bed",
+    "countertop",
+    "dishwasher",
+    "kettle",
+    "kitchen cabinet",
+    "microwave",
+    "refrigerator",
+    "sink",
+    "sofa",
+    "stove",
+    "toilet",
+    "wardrobe",
+    "washing machine"
+  ],
+  "image_size": [
+    320,
+    240
+  ],
+  "method": "robot reset to ring poses around the true object, head camera frame, VLMDetector prompt, true AABB projected with the true camera pose (occlusion by other furniture not modelled; unoccluded in-frustum sample point required). Evaluation only.",
+  "summary": {
+    "per_convention": {
+      "relative1000": {
+        "targets_scored": 6,
+        "mean_best_iou": 0.2886011161873782,
+        "matched_at_0.5": 0,
+        "parse_problems": 0
+      },
+      "absolute": {
+        "targets_scored": 6,
+        "mean_best_iou": 0.0,
+        "matched_at_0.5": 0,
+        "parse_problems": 0
+      }
+    },
+    "decision_rule": "absolute only if matched@0.5 is higher and mean best IoU is at least 0.1 higher than relative1000",
+    "evidence_says": "relative1000",
+    "frames": 6
+  },
+  "scene_truth_used": {
+    "refrigerator": {
+      "lo": [
+        3.4028234663852886e+38,
+        3.4028234663852886e+38,
+        3.4028234663852886e+38
+      ],
+      "hi": [
+        -3.4028234663852886e+38,
+        -3.4028234663852886e+38,
+        -3.4028234663852886e+38
+      ],
+      "candidates": 0,
+      "rejected": []
+    },
+    "sink": {
+      "lo": [
+        -2.310142900737716,
+        0.16101429547221635,
+        0.6800679090496986
+      ],
+      "hi": [
+        -1.84155037259131,
+        0.6181637419810426,
+        1.229969189122166
+      ],
+      "candidates": 40,
+      "rejected": [
+        {
+          "i": 0,
+          "reason": "not visible",
+          "pose": [
+            -1.7880173206329366,
+            -1.5223939895629903,
+            1.720214039938424
+          ],
+          "projected": {
+            "box": [
+              116.54542875656773,
+              0.0,
+              195.09275803704168,
+              39.5855239600408
+            ],
+            "full_box": [
+              116.54542875656773,
+              -55.37581809054038,
+              195.09275803704168,
+              39.5855239600408
+            ],
+            "visible_fraction": 0.41685935671544705,
+            "depth_m": 1.2764385463002148
+          },
+          "visible": {
+            "visible": false,
+            "in_frustum": false,
+            "occluded": false,
+            "depth_m": 1.5482374550066353,
+            "bearing_deg": -0.06852426307041277,
+            "elevation_deg": 35.608363718477705
+          }
+        },
+        {
+          "i": 1,
+          "reason": "not visible",
+          "pose": [
+            -1.3380173206329382,
+            -1.5223939895629903,
+            1.9390865080183695
+          ],
+          "projected": {
+            "box": [
+              116.89195790904901,
+              0.0,
+              200.20031398670665,
+              36.14960175385953
+            ],
+            "full_box": [
+              116.89195790904901,
+              -55.18783996017589,
+              200.20031398670665,
+              36.14960175385953
+            ],
+            "visible_fraction": 0.3957807562318069,
+            "depth_m": 1.3374224060757658
+          },
+          "visible": {
+            "visible": false,
+            "in_frustum": false,
+            "occluded": false,
+            "depth_m": 1.6387256421250278,
+            "bearing_deg": 0.2879849346297527,
+            "elevation_deg": 35.78424342798977
+          }
+        },
+        {
+          "i": 3,
+          "reason": "not visible",
+          "pose": [
+            -0.7380173206329403,
+            -1.4223939895629907,
+            2.2067823826325363
+          ],
+          "projected": {
+            "box": [
+              118.1234204958497,
+              0.0,
+              199.38398137261748,
+              29.235560293581017
+            ],
+            "full_box": [
+              118.1234204958497,
+              -54.952063077961895,
+              199.38398137261748,
+              29.235560293581017
+            ],
+            "visible_fraction": 0.3472667254728944,
+            "depth_m": 1.4760140037249223
+          },
+          "visible": {
+            "visible": false,
+            "in_frustum": false,
+            "occluded": false,
+            "depth_m": 1.7969362809771385,
+            "bearing_deg": -0.11828971832821593,
+            "elevation_deg": 36.052589782657506
+          }
+        },
+        {
+          "i": 5,
+          "reason": "not visible",
+          "pose": [
+            -0.23801732063294212,
+            -1.4223939895629907,
+            2.3632759161422534
+          ],
+          "projected": {
+            "box": [
+              127.05048102480748,
+              0.0,
+              198.39983205718104,
+              19.32023344446833
+            ],
+            "full_box": [
+              127.05048102480748,
+              -54.44742323765027,
+              198.39983205718104,
+              19.32023344446833
+            ],
+            "visible_fraction": 0.26190656330217393,
+            "depth_m": 1.7299116265168861
+          },
+          "visible": {
+            "visible": false,
+            "in_frustum": false,
+            "occluded": false,
+            "depth_m": 2.0544763823173353,
+            "bearing_deg": 0.6525461864857806,
+            "elevation_deg": 36.34886897942075
+          }
+        },
+        {
+          "i": 8,
+          "reason": "not visible",
+          "pose": [
+            0.36198267936705575,
+            -1.4223939895629907,
+            2.502408023255676
+          ],
+          "projected": {
+            "box": [
+              133.64692000232338,
+              0.0,
+              193.41260643325649,
+              8.627624761997154
+            ],
+            "full_box": [
+              133.64692000232338,
+              -54.21087133899434,
+              193.41260643325649,
+              8.627624761997154
+            ],
+            "visible_fraction": 0.13729839664098875,
+            "depth_m": 2.0889771602721465
+          },
+          "visible": {
+            "visible": false,
+            "in_frustum": false,
+            "occluded": false,
+            "depth_m": 2.4110183210185476,
+            "bearing_deg": 0.755730986775721,
+            "elevation_deg": 36.69339534859595
+          }
+        },
+        {
+          "i": 9,
+          "reason": "not visible",
+          "pose": [
+            0.41198267936705557,
+            -1.322393989562991,
+            2.538868627222436
+          ],
+          "projected": {
+            "box": [
+              133.35363479285962,
+              0.0,
+              193.07458085430542,
+              9.011355677449899
+            ],
+            "full_box": [
+              133.35363479285962,
+              -54.12075951025756,
+              193.07458085430542,
+              9.011355677449899
+            ],
+            "visible_fraction": 0.142738060504656,
+            "depth_m": 2.0773046354497873
+          },
+          "visible": {
+            "visible": false,
+            "in_frustum": false,
+            "occluded": false,
+            "depth_m": 2.3979877805899386,
+            "bearing_deg": 0.6449270527831994,
+            "elevation_deg": 36.66527494940839
+          }
+        },
+        {
+          "i": 10,
+          "reason": "not visible",
+          "pose": [
+            -0.1880173206329423,
+            -0.8223939895629928,
+            2.570863188520764
+          ],
+          "projected": {
+            "box": [
+              117.9271097667918,
+              0.0,
+              198.20768279784318,
+              29.498214942326086
+            ],
+            "full_box": [
+              117.9271097667918,
+              -54.92683313089003,
+              198.20768279784318,
+              29.498214942326086
+            ],
+            "visible_fraction": 0.3494012217410203,
+            "depth_m": 1.4702291757966521
+          },
+          "visible": {
+            "visible": false,
+            "in_frustum": false,
+            "occluded": false,
+            "depth_m": 1.7903551153330786,
+            "bearing_deg": -0.8300791618423029,
+            "elevation_deg": 36.02360151686916
+          }
+        },
+        {
+          "i": 11,
+          "reason": "not visible",
+          "pose": [
+            1.111982679367053,
+            -1.5223939895629903,
+            2.6013379925743316
+          ],
+          "projected": {
+            "box": [
+              133.64209329977166,
+              0.0,
+              181.3573678676904,
+              -2.4545812448003232
+            ],
+            "full_box": [
+              133.64209329977166,
+              -53.930261048246166,
+              181.3573678676904,
+              -2.4545812448003232
+            ],
+            "visible_fraction": 0.0,
+            "depth_m": 2.623854587224322
+          },
+          "visible": {
+            "visible": false,
+            "in_frustum": false,
+            "occluded": false,
+            "depth_m": 2.94235088055659,
+            "bearing_deg": -0.7897010575799075,
+            "elevation_deg": 37.04365304079479
+          }
+        },
+        {
+          "i": 12,
+          "reason": "not visible",
+          "pose": [
+            -0.28801732063294194,
+            -0.6223939895629935,
+            2.6265180785133815
+          ],
+          "projected": {
+            "box": [
+              121.33643783973388,
+              0.0,
+              207.99723708824996,
+              36.57617855726623
+            ],
+            "full_box": [
+              121.33643783973388,
+              -55.14179985382438,
+              207.99723708824996,
+              36.57617855726623
+            ],
+            "visible_fraction": 0.3987896287173662,
+            "depth_m": 1.3269265707817879
+          },
+          "visible": {
+            "visible": false,
+            "in_frustum": false,
+            "occluded": false,
+            "depth_m": 1.6427433093053943,
+            "bearing_deg": 0.6566742127211619,
+            "elevation_deg": 35.77737780207077
+          }
+        },
+        {
+          "i": 13,
+          "reason": "not visible",
+          "pose": [
+            0.9619826793670536,
+            -1.2223939895629914,
+            2.6537373163602314
+          ],
+          "projected": {
+            "box": [
+              131.98199249210657,
+              0.0,
+              182.82342105842866,
+              1.509218492188836
+            ],
+            "full_box": [
+              131.98199249210657,
+              -53.969064843839874,
+              182.82342105842866,
+              1.509218492188836
+            ],
+            "visible_fraction": 0.027203770582582526,
+            "depth_m": 2.410179298816703
+          },
+          "visible": {
+            "visible": false,
+            "in_frustum": false,
+            "occluded": false,
+            "depth_m": 2.7255478123700527,
+            "bearing_deg": -0.8659921068254015,
+            "elevation_deg": 36.90479450563585
+          }
+        },
+        {
+          "i": 14,
+          "reason": "not visible",
+          "pose": [
+            0.16198267936705646,
+            -0.7223939895629932,
+            2.6804261040231308
+          ],
+          "projected": {
+            "box": [
+              123.39645416031553,
+              0.0,
+              193.1350237620201,
+              21.091093007443007
+            ],
+            "full_box": [
+              123.39645416031553,
+              -54.65157350728214,
+              193.1350237620201,
+              21.091093007443007
+            ],
+            "visible_fraction": 0.2784572286393256,
+            "depth_m": 1.6767876512248963
+          },
+          "visible": {
+            "visible": false,
+            "in_frustum": false,
+            "occluded": false,
+            "depth_m": 1.990225759413367,
+            "bearing_deg": -0.83513381175222,
+            "elevation_deg": 36.28360050705154
+          }
+        },
+        {
+          "i": 15,
+          "reason": "not visible",
+          "pose": [
+            0.21198267936705628,
+            -0.6723939895629933,
+            2.7070027938799752
+          ],
+          "projected": {
+            "box": [
+              124.07611764973726,
+              0.0,
+              192.50489818172247,
+              20.354906028536632
+            ],
+            "full_box": [
+              124.07611764973726,
+              -54.62617442166356,
+              192.50489818172247,
+              20.354906028536632
+            ],
+            "visible_fraction": 0.27146722755023045,
+            "depth_m": 1.6971887848687368
+          },
+          "visible": {
+            "visible": false,
+            "in_frustum": false,
+            "occluded": false,
+            "depth_m": 2.008567246430693,
+            "bearing_deg": -0.8472079968613166,
+            "elevation_deg": 36.30382718001943
+          }
+        },
+        {
+          "i": 16,
+          "reason": "not visible",
+          "pose": [
+            0.9619826793670536,
+            -0.9223939895629925,
+            2.7339075807946815
+          ],
+          "projected": {
+            "box": [
+              131.99969686934978,
+              0.0,
+              183.36560636265773,
+              3.433961956405156
+            ],
+            "full_box": [
+              131.99969686934978,
+              -54.045262821578206,
+              183.36560636265773,
+              3.433961956405156
+            ],
+            "visible_fraction": 0.059742663017273136,
+            "depth_m": 2.314809289986721
+          },
+          "visible": {
+            "visible": false,
+            "in_frustum": false,
+            "occluded": false,
+            "depth_m": 2.6239199533671633,
+            "bearing_deg": -0.8530035281003285,
+            "elevation_deg": 36.83954813138068
+          }
+        },
+        {
+          "i": 17,
+          "reason": "not visible",
+          "pose": [
+            1.2119826793670527,
+            -0.9223939895629925,
+            2.761912143027594
+          ],
+          "projected": {
+            "box": [
+              133.55597431828778,
+              0.0,
+              180.96583044989956,
+              -0.19781798580852694
+            ],
+            "full_box": [
+              133.55597431828778,
+              -53.97076403366668,
+              180.96583044989956,
+              -0.19781798580852694
+            ],
+            "visible_fraction": 0.0,
+            "depth_m": 2.4974509683024535
+          },
+          "visible": {
+            "visible": false,
+            "in_frustum": false,
+            "occluded": false,
+            "depth_m": 2.8041180179590075,
+            "bearing_deg": -0.943347104423694,
+            "elevation_deg": 36.95715834004072
+          }
+        },
+        {
+          "i": 18,
+          "reason": "not visible",
+          "pose": [
+            0.6619826793670547,
+            -0.6223939895629935,
+            2.787538490546968
+          ],
+          "projected": {
+            "box": [
+              131.4128710946678,
+              0.0,
+              188.41158449002188,
+              10.61513331405537
+            ],
+            "full_box": [
+              131.4128710946678,
+              -54.17508077769563,
+              188.41158449002188,
+              10.61513331405537
+            ],
+            "visible_fraction": 0.1638385281305449,
+            "depth_m": 2.0157541758285964
+          },
+          "visible": {
+            "visible": false,
+            "in_frustum": false,
+            "occluded": false,
+            "depth_m": 2.319171398159096,
+            "bearing_deg": -0.3878158482072026,
+            "elevation_deg": 36.591018382736905
+          }
+        },
+        {
+          "i": 19,
+          "reason": "not visible",
+          "pose": [
+            0.6119826793670549,
+            -0.5223939895629939,
+            2.814480904438603
+          ],
+          "projected": {
+            "box": [
+              133.81721408507912,
+              0.0,
+              191.73721829907754,
+              12.118216808012036
+            ],
+            "full_box": [
+              133.81721408507912,
+              -54.37893509122395,
+              191.73721829907754,
+              12.118216808012036
+            ],
+            "visible_fraction": 0.18223662911721286,
+            "depth_m": 1.956096552847844
+          },
+          "visible": {
+            "visible": false,
+            "in_frustum": false,
+            "occluded": false,
+            "depth_m": 2.2556255580940587,
+            "bearing_deg": 0.30262914720143536,
+            "elevation_deg": 36.55789990071776
+          }
+        },
+        {
+          "i": 20,
+          "reason": "not visible",
+          "pose": [
+            0.061982679367056814,
+            -0.27239398956299476,
+            2.8413045531874532
+          ],
+          "projected": {
+            "box": [
+              128.84223530957965,
+              0.0,
+              201.75418366667944,
+              28.57827177692056
+            ],
+            "full_box": [
+              128.84223530957965,
+              -54.9181887414768,
+              201.75418366667944,
+              28.57827177692056
+            ],
+            "visible_fraction": 0.3422692602715023,
+            "depth_m": 1.4903777563933482
+          },
+          "visible": {
+            "visible": false,
+            "in_frustum": false,
+            "occluded": false,
+            "depth_m": 1.7863418451254645,
+            "bearing_deg": 0.6639058988177582,
+            "elevation_deg": 36.0083348309122
+          }
+        },
+        {
+          "i": 21,
+          "reason": "not visible",
+          "pose": [
+            0.4619826793670554,
+            -0.3223939895629946,
+            2.868075837275259
+          ],
+          "projected": {
+            "box": [
+              134.22340964172025,
+              0.0,
+              194.9645726001388,
+              16.72008631349614
+            ],
+            "full_box": [
+              134.22340964172025,
+              -54.48045324984619,
+              194.9645726001388,
+              16.72008631349614
+            ],
+            "visible_fraction": 0.23483089336171958,
+            "depth_m": 1.8048081320076899
+          },
+          "visible": {
+            "visible": false,
+            "in_frustum": false,
+            "occluded": false,
+            "depth_m": 2.097538046885072,
+            "bearing_deg": 0.6648663762528142,
+            "elevation_deg": 36.39275559651738
+          }
+        },
+        {
+          "i": 22,
+          "reason": "not visible",
+          "pose": [
+            0.16198267936705646,
+            -0.17239398956299512,
+            2.895552033724484
+          ],
+          "projected": {
+            "box": [
+              125.47833529378177,
+              0.0,
+              194.00279358702124,
+              25.982057557887487
+            ],
+            "full_box": [
+              125.47833529378177,
+              -54.96685865306094,
+              194.00279358702124,
+              25.982057557887487
+            ],
+            "visible_fraction": 0.32096856602971274,
+            "depth_m": 1.5481629432078268
+          },
+          "visible": {
+            "visible": false,
+            "in_frustum": false,
+            "occluded": false,
+            "depth_m": 1.839819616396096,
+            "bearing_deg": -0.7304370540450534,
+            "elevation_deg": 36.10509899052437
+          }
+        },
+        {
+          "i": 23,
+          "reason": "not visible",
+          "pose": [
+            1.5619826793670515,
+            -0.42239398956299423,
+            2.921987028909885
+          ],
+          "projected": {
+            "box": [
+              142.83288429942465,
+              0.0,
+              184.118157317219,
+              -3.079319860734813
+            ],
+            "full_box": [
+              142.83288429942465,
+              -53.834187213659106,
+              184.118157317219,
+              -3.079319860734813
+            ],
+            "visible_fraction": 0.0,
+            "depth_m": 2.6654427639875213
+          },
+          "visible": {
+            "visible": false,
+            "in_frustum": false,
+            "occluded": false,
+            "depth_m": 2.9512379443368784,
+            "bearing_deg": 0.6262548114023962,
+            "elevation_deg": 37.0271525092214
+          }
+        },
+        {
+          "i": 25,
+          "reason": "not visible",
+          "pose": [
+            1.3119826793670524,
+            -0.17239398956299512,
+            2.9772066404744177
+          ],
+          "projected": {
+            "box": [
+              142.26932237261724,
+              0.0,
+              185.4798718103007,
+              0.8564659899009683
+            ],
+            "full_box": [
+              142.26932237261724,
+              -53.94222079067197,
+              185.4798718103007,
+              0.8564659899009683
+            ],
+            "visible_fraction": 0.015629315960261295,
+            "depth_m": 2.444177435563706
+          },
+          "visible": {
+            "visible": false,
+            "in_frustum": false,
+            "occluded": false,
+            "depth_m": 2.72209601437693,
+            "bearing_deg": 0.666684355499437,
+            "elevation_deg": 36.892457158219116
+          }
+        },
+        {
+          "i": 26,
+          "reason": "not visible",
+          "pose": [
+            -0.1880173206329423,
+            0.12760601043700381,
+            3.003698627671786
+          ],
+          "projected": {
+            "box": [
+              125.41767644064328,
+              0.0,
+              203.1158573263559,
+              40.73871033882665
+            ],
+            "full_box": [
+              125.41767644064328,
+              -55.36997864331849,
+              203.1158573263559,
+              40.73871033882665
+            ],
+            "visible_fraction": 0.42388165701016894,
+            "depth_m": 1.251562435681379
+          },
+          "visible": {
+            "visible": false,
+            "in_frustum": false,
+            "occluded": false,
+            "depth_m": 1.5268836874832603,
+            "bearing_deg": 0.005335456705548472,
+            "elevation_deg": 35.5493731954223
+          }
+        },
+        {
+          "i": 27,
+          "reason": "not visible",
+          "pose": [
+            1.2119826793670527,
+            0.02760601043700417,
+            3.031936426810731
+          ],
+          "projected": {
+            "box": [
+              140.38170915505793,
+              0.0,
+              183.44640669000705,
+              2.4436545337721043
+            ],
+            "full_box": [
+              140.38170915505793,
+              -54.294926844854416,
+              183.44640669000705,
+              2.4436545337721043
+            ],
+            "visible_fraction": 0.04306865759411869,
+            "depth_m": 2.3507260729226287
+          },
+          "visible": {
+            "visible": false,
+            "in_frustum": false,
+            "occluded": false,
+            "depth_m": 2.6213452378334496,
+            "bearing_deg": 0.12799648869272168,
+            "elevation_deg": 36.87435018035324
+          }
+        },
+        {
+          "i": 28,
+          "reason": "not visible",
+          "pose": [
+            0.4619826793670554,
+            0.17760601043700364,
+            3.058256848034923
+          ],
+          "projected": {
+            "box": [
+              135.82539861453887,
+              0.0,
+              191.3110063576606,
+              18.01224530604206
+            ],
+            "full_box": [
+              135.82539861453887,
+              -54.683716326078184,
+              191.3110063576606,
+              18.01224530604206
+            ],
+            "visible_fraction": 0.24777504694405839,
+            "depth_m": 1.7614896949688303
+          },
+          "visible": {
+            "visible": false,
+            "in_frustum": false,
+            "occluded": false,
+            "depth_m": 2.0274117654204726,
+            "bearing_deg": 0.3459803178226365,
+            "elevation_deg": 36.33336572610686
+          }
+        },
+        {
+          "i": 29,
+          "reason": "not visible",
+          "pose": [
+            -0.03801732063294283,
+            0.2776060104370033,
+            3.0866957632674006
+          ],
+          "projected": {
+            "box": [
+              123.13309715587121,
+              0.0,
+              194.7091983495696,
+              34.2112748349614
+            ],
+            "full_box": [
+              123.13309715587121,
+              -55.35648289786559,
+              194.7091983495696,
+              34.2112748349614
+            ],
+            "visible_fraction": 0.3819597107366551,
+            "depth_m": 1.367696684522399
+          },
+          "visible": {
+            "visible": false,
+            "in_frustum": false,
+            "occluded": false,
+            "depth_m": 1.631436144239825,
+            "bearing_deg": -0.7257192492428594,
+            "elevation_deg": 35.782827792626165
+          }
+        },
+        {
+          "i": 30,
+          "reason": "not visible",
+          "pose": [
+            0.16198267936705646,
+            0.3276060104370031,
+            3.113901906737673
+          ],
+          "projected": {
+            "box": [
+              128.89613949011985,
+              0.0,
+              193.3780908933644,
+              26.6361144435633
+            ],
+            "full_box": [
+              128.89613949011985,
+              -55.201292688631554,
+              193.3780908933644,
+              26.6361144435633
+            ],
+            "visible_fraction": 0.32547603079038223,
+            "depth_m": 1.528437455132105
+          },
+          "visible": {
+            "visible": false,
+            "in_frustum": false,
+            "occluded": false,
+            "depth_m": 1.7856827221593765,
+            "bearing_deg": 0.06397878180284522,
+            "elevation_deg": 36.052382959767314
+          }
+        },
+        {
+          "i": 31,
+          "reason": "not visible",
+          "pose": [
+            1.0619826793670533,
+            0.3776060104370029,
+            3.1377737874787544
+          ],
+          "projected": {
+            "box": [
+              139.11698484634337,
+              0.0,
+              183.3400247409407,
+              5.215535076003931
+            ],
+            "full_box": [
+              139.11698484634337,
+              -54.26959383777299,
+              183.3400247409407,
+              5.215535076003931
+            ],
+            "visible_fraction": 0.08767796542164001,
+            "depth_m": 2.237058380793892
+          },
+          "visible": {
+            "visible": false,
+            "in_frustum": false,
+            "occluded": false,
+            "depth_m": 2.489585123114373,
+            "bearing_deg": 0.2813823754207983,
+            "elevation_deg": 36.76019532267037
+          }
+        }
+      ]
+    }
+  },
+  "frames": [
+    {
+      "frame": "sink_02",
+      "pose": [
+        -1.2880173206329384,
+        -0.9723939895629923,
+        2.0952141410082827
+      ],
+      "class": "sink",
+      "visibility": {
+        "visible": true,
+        "in_frustum": true,
+        "occluded": false,
+        "depth_m": 1.419851476656998,
+        "bearing_deg": 0.062057798821460716,
+        "elevation_deg": 25.96034153904853
+      },
+      "projected": {
+        "box": [
+          100.03904330337191,
+          0.0,
+          215.0948779662417,
+          62.45013617319034
+        ],
+        "full_box": [
+          100.03904330337191,
+          -56.20119548117603,
+          215.0948779662417,
+          62.45013617319034
+        ],
+        "visible_fraction": 0.5263332092648466,
+        "depth_m": 0.950786155231889
+      },
+      "answer": "[\n    {\"label\": \"countertop\", \"bbox_2d\": [0, 0, 778, 356]},\n    {\"label\": \"sink\", \"bbox_2d\": [378, 0, 656, 112]},\n    {\"label\": \"kitchen cabinet\", \"bbox_2d\": [0, 0, 778, 886]}\n]",
+      "usage": {
+        "input_tokens": 202,
+        "output_tokens": 96
+      },
+      "scores": {
+        "relative1000": {
+          "detections": [
+            {
+              "label": "countertop",
+              "box": [
+                0.0,
+                0.0,
+                249.0,
+                86.0
+              ],
+              "iou_with_true_same_class": null
+            },
+            {
+              "label": "sink",
+              "box": [
+                120.0,
+                0.0,
+                210.0,
+                27.0
+              ],
+              "iou_with_true_same_class": 0.3381927059240797
+            },
+            {
+              "label": "kitchen_cabinet",
+              "box": [
+                0.0,
+                0.0,
+                249.0,
+                213.0
+              ],
+              "iou_with_true_same_class": null
+            }
+          ],
+          "problems": [],
+          "best_iou_by_class": {
+            "sink": 0.3381927059240797
+          }
+        },
+        "absolute": {
+          "detections": [
+            {
+              "label": "countertop",
+              "box": [
+                0.0,
+                0.0,
+                320.0,
+                240.0
+              ],
+              "iou_with_true_same_class": null
+            },
+            {
+              "label": "sink",
+              "box": null,
+              "iou_with_true_same_class": 0.0
+            },
+            {
+              "label": "kitchen_cabinet",
+              "box": [
+                0.0,
+                0.0,
+                320.0,
+                240.0
+              ],
+              "iou_with_true_same_class": null
+            }
+          ],
+          "problems": [],
+          "best_iou_by_class": {
+            "sink": 0.0
+          }
+        }
+      }
+    },
+    {
+      "frame": "sink_04",
+      "pose": [
+        -0.83801732063294,
+        -1.022393989562992,
+        2.2905658472535055
+      ],
+      "class": "sink",
+      "visibility": {
+        "visible": true,
+        "in_frustum": true,
+        "occluded": false,
+        "depth_m": 1.6580894710029415,
+        "bearing_deg": -0.7703389825987569,
+        "elevation_deg": 27.97766390449809
+      },
+      "projected": {
+        "box": [
+          107.01652315946973,
+          0.0,
+          205.63741504833496,
+          45.0999445555171
+        ],
+        "full_box": [
+          107.01652315946973,
+          -55.51248808839273,
+          205.63741504833496,
+          45.0999445555171
+        ],
+        "visible_fraction": 0.4482541905644604,
+        "depth_m": 1.1804676699515138
+      },
+      "answer": "[\n    {\"label\": \"countertop\", \"bbox_2d\": [34, 0, 778, 178]},\n    {\"label\": \"kitchen cabinet\", \"bbox_2d\": [34, 0, 778, 738]}\n]",
+      "usage": {
+        "input_tokens": 202,
+        "output_tokens": 67
+      },
+      "scores": {
+        "relative1000": {
+          "detections": [
+            {
+              "label": "countertop",
+              "box": [
+                10.0,
+                0.0,
+                249.0,
+                43.0
+              ],
+              "iou_with_true_same_class": null
+            },
+            {
+              "label": "kitchen_cabinet",
+              "box": [
+                10.0,
+                0.0,
+                249.0,
+                178.0
+              ],
+              "iou_with_true_same_class": null
+            }
+          ],
+          "problems": [],
+          "best_iou_by_class": {
+            "sink": 0.0
+          }
+        },
+        "absolute": {
+          "detections": [
+            {
+              "label": "countertop",
+              "box": [
+                34.0,
+                0.0,
+                320.0,
+                178.0
+              ],
+              "iou_with_true_same_class": null
+            },
+            {
+              "label": "kitchen_cabinet",
+              "box": [
+                34.0,
+                0.0,
+                320.0,
+                240.0
+              ],
+              "iou_with_true_same_class": null
+            }
+          ],
+          "problems": [],
+          "best_iou_by_class": {
+            "sink": 0.0
+          }
+        }
+      }
+    },
+    {
+      "frame": "sink_06",
+      "pose": [
+        -0.9380173206329396,
+        -0.6223939895629935,
+        2.4146660386390306
+      ],
+      "class": "sink",
+      "visibility": {
+        "visible": true,
+        "in_frustum": true,
+        "occluded": false,
+        "depth_m": 1.3808765301685835,
+        "bearing_deg": -0.8505402308463705,
+        "elevation_deg": 25.5215239655604
+      },
+      "projected": {
+        "box": [
+          96.23554878144083,
+          0.0,
+          218.31891047095377,
+          66.9596641926797
+        ],
+        "full_box": [
+          96.23554878144083,
+          -56.3885115780451,
+          218.31891047095377,
+          66.9596641926797
+        ],
+        "visible_fraction": 0.5428508672648872,
+        "depth_m": 0.9022729413781144
+      },
+      "answer": "[\n    {\"label\": \"countertop\", \"bbox_2d\": [0, 0, 750, 338]},\n    {\"label\": \"sink\", \"bbox_2d\": [357, 0, 675, 138]},\n    {\"label\": \"kitchen cabinet\", \"bbox_2d\": [0, 100, 750, 838]}\n]",
+      "usage": {
+        "input_tokens": 202,
+        "output_tokens": 98
+      },
+      "scores": {
+        "relative1000": {
+          "detections": [
+            {
+              "label": "countertop",
+              "box": [
+                0.0,
+                0.0,
+                240.0,
+                82.0
+              ],
+              "iou_with_true_same_class": null
+            },
+            {
+              "label": "sink",
+              "box": [
+                114.0,
+                0.0,
+                216.0,
+                34.0
+              ],
+              "iou_with_true_same_class": 0.42423778080486874
+            },
+            {
+              "label": "kitchen_cabinet",
+              "box": [
+                0.0,
+                24.0,
+                240.0,
+                202.0
+              ],
+              "iou_with_true_same_class": null
+            }
+          ],
+          "problems": [],
+          "best_iou_by_class": {
+            "sink": 0.42423778080486874
+          }
+        },
+        "absolute": {
+          "detections": [
+            {
+              "label": "countertop",
+              "box": [
+                0.0,
+                0.0,
+                320.0,
+                240.0
+              ],
+              "iou_with_true_same_class": null
+            },
+            {
+              "label": "sink",
+              "box": null,
+              "iou_with_true_same_class": 0.0
+            },
+            {
+              "label": "kitchen_cabinet",
+              "box": [
+                0.0,
+                100.0,
+                320.0,
+                240.0
+              ],
+              "iou_with_true_same_class": null
+            }
+          ],
+          "problems": [],
+          "best_iou_by_class": {
+            "sink": 0.0
+          }
+        }
+      }
+    },
+    {
+      "frame": "sink_07",
+      "pose": [
+        -0.8880173206329398,
+        -0.5723939895629937,
+        2.460864523619841
+      ],
+      "class": "sink",
+      "visibility": {
+        "visible": true,
+        "in_frustum": true,
+        "occluded": false,
+        "depth_m": 1.3849605423381532,
+        "bearing_deg": -0.05512436626891621,
+        "elevation_deg": 25.588067765077728
+      },
+      "projected": {
+        "box": [
+          101.0117862515165,
+          0.0,
+          222.20642074976328,
+          66.36248934248346
+        ],
+        "full_box": [
+          101.0117862515165,
+          -56.521063151065704,
+          222.20642074976328,
+          66.36248934248346
+        ],
+        "visible_fraction": 0.5400437080134641,
+        "depth_m": 0.9071927909490818
+      },
+      "answer": "[\n    {\"label\": \"countertop\", \"bbox_2d\": [0, 0, 1000, 312]},\n    {\"label\": \"sink\", \"bbox_2d\": [359, 0, 656, 125]},\n    {\"label\": \"kitchen cabinet\", \"bbox_2d\": [0, 125, 998, 875]}\n]",
+      "usage": {
+        "input_tokens": 202,
+        "output_tokens": 99
+      },
+      "scores": {
+        "relative1000": {
+          "detections": [
+            {
+              "label": "countertop",
+              "box": [
+                0.0,
+                0.0,
+                320.0,
+                75.0
+              ],
+              "iou_with_true_same_class": null
+            },
+            {
+              "label": "sink",
+              "box": [
+                114.0,
+                0.0,
+                210.0,
+                30.0
+              ],
+              "iou_with_true_same_class": 0.3580852447772386
+            },
+            {
+              "label": "kitchen_cabinet",
+              "box": [
+                0.0,
+                30.0,
+                320.0,
+                210.0
+              ],
+              "iou_with_true_same_class": null
+            }
+          ],
+          "problems": [],
+          "best_iou_by_class": {
+            "sink": 0.3580852447772386
+          }
+        },
+        "absolute": {
+          "detections": [
+            {
+              "label": "countertop",
+              "box": [
+                0.0,
+                0.0,
+                320.0,
+                240.0
+              ],
+              "iou_with_true_same_class": null
+            },
+            {
+              "label": "sink",
+              "box": null,
+              "iou_with_true_same_class": 0.0
+            },
+            {
+              "label": "kitchen_cabinet",
+              "box": [
+                0.0,
+                125.0,
+                320.0,
+                240.0
+              ],
+              "iou_with_true_same_class": null
+            }
+          ],
+          "problems": [],
+          "best_iou_by_class": {
+            "sink": 0.0
+          }
+        }
+      }
+    },
+    {
+      "frame": "sink_24",
+      "pose": [
+        -0.9880173206329395,
+        0.17760601043700364,
+        2.9491366455795553
+      ],
+      "class": "sink",
+      "visibility": {
+        "visible": true,
+        "in_frustum": true,
+        "occluded": false,
+        "depth_m": 1.056849642081199,
+        "bearing_deg": -0.07494891902271315,
+        "elevation_deg": 20.768289162412763
+      },
+      "projected": {
+        "box": [
+          97.47929056470511,
+          0.0,
+          244.69913724360862,
+          101.88999566224305
+        ],
+        "full_box": [
+          97.47929056470511,
+          -58.479764359602626,
+          244.69913724360862,
+          101.88999566224305
+        ],
+        "visible_fraction": 0.6353441923736964,
+        "depth_m": 0.6194638422811178
+      },
+      "answer": "[\n    {\"label\": \"countertop\", \"bbox_2d\": [0, 0, 1000, 338]},\n    {\"label\": \"sink\", \"bbox_2d\": [348, 71, 700, 214]},\n    {\"label\": \"kitchen cabinet\", \"bbox_2d\": [0, 348, 1000, 871]}\n]",
+      "usage": {
+        "input_tokens": 202,
+        "output_tokens": 101
+      },
+      "scores": {
+        "relative1000": {
+          "detections": [
+            {
+              "label": "countertop",
+              "box": [
+                0.0,
+                0.0,
+                320.0,
+                82.0
+              ],
+              "iou_with_true_same_class": null
+            },
+            {
+              "label": "sink",
+              "box": [
+                111.0,
+                17.0,
+                224.0,
+                52.0
+              ],
+              "iou_with_true_same_class": 0.26366263193391837
+            },
+            {
+              "label": "kitchen_cabinet",
+              "box": [
+                0.0,
+                83.0,
+                320.0,
+                210.0
+              ],
+              "iou_with_true_same_class": null
+            }
+          ],
+          "problems": [],
+          "best_iou_by_class": {
+            "sink": 0.26366263193391837
+          }
+        },
+        "absolute": {
+          "detections": [
+            {
+              "label": "countertop",
+              "box": [
+                0.0,
+                0.0,
+                320.0,
+                240.0
+              ],
+              "iou_with_true_same_class": null
+            },
+            {
+              "label": "sink",
+              "box": null,
+              "iou_with_true_same_class": 0.0
+            },
+            {
+              "label": "kitchen_cabinet",
+              "box": null,
+              "iou_with_true_same_class": null
+            }
+          ],
+          "problems": [],
+          "best_iou_by_class": {
+            "sink": 0.0
+          }
+        }
+      }
+    },
+    {
+      "frame": "sink_32",
+      "pose": [
+        -0.7380173206329403,
+        0.42760601043700275,
+        -3.1131833766879224
+      ],
+      "class": "sink",
+      "visibility": {
+        "visible": true,
+        "in_frustum": true,
+        "occluded": false,
+        "depth_m": 1.2363265011952431,
+        "bearing_deg": -0.02391855450982931,
+        "elevation_deg": 23.775663916935923
+      },
+      "projected": {
+        "box": [
+          99.38494748534228,
+          0.0,
+          218.5041068077614,
+          74.9540217365223
+        ],
+        "full_box": [
+          99.38494748534228,
+          -57.214979445832995,
+          218.5041068077614,
+          74.9540217365223
+        ],
+        "visible_fraction": 0.5671074235713354,
+        "depth_m": 0.8260875249787459
+      },
+      "answer": "[\n\t{\"label\": \"countertop\", \"bbox_2d\": [0, 0, 1000, 200]},\n\t{\"label\": \"kitchen cabinet\", \"bbox_2d\": [0, 200, 1000, 686]},\n\t{\"label\": \"sink\", \"bbox_2d\": [359, 0, 648, 136]}\n]",
+      "usage": {
+        "input_tokens": 202,
+        "output_tokens": 100
+      },
+      "scores": {
+        "relative1000": {
+          "detections": [
+            {
+              "label": "countertop",
+              "box": [
+                0.0,
+                0.0,
+                320.0,
+                48.0
+              ],
+              "iou_with_true_same_class": null
+            },
+            {
+              "label": "kitchen_cabinet",
+              "box": [
+                0.0,
+                48.0,
+                320.0,
+                165.0
+              ],
+              "iou_with_true_same_class": null
+            },
+            {
+              "label": "sink",
+              "box": [
+                114.0,
+                0.0,
+                208.0,
+                33.0
+              ],
+              "iou_with_true_same_class": 0.34742833368416404
+            }
+          ],
+          "problems": [],
+          "best_iou_by_class": {
+            "sink": 0.34742833368416404
+          }
+        },
+        "absolute": {
+          "detections": [
+            {
+              "label": "countertop",
+              "box": [
+                0.0,
+                0.0,
+                320.0,
+                200.0
+              ],
+              "iou_with_true_same_class": null
+            },
+            {
+              "label": "kitchen_cabinet",
+              "box": [
+                0.0,
+                200.0,
+                320.0,
+                240.0
+              ],
+              "iou_with_true_same_class": null
+            },
+            {
+              "label": "sink",
+              "box": null,
+              "iou_with_true_same_class": 0.0
+            }
+          ],
+          "problems": [],
+          "best_iou_by_class": {
+            "sink": 0.0
+          }
+        }
+      }
+    }
+  ],
+  "max_output_tokens": 101
+}
