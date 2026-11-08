@@ -1,0 +1,797 @@
+{
+  "meta": {
+    "config": {
+      "name": "semantic_search_dev",
+      "status": "development",
+      "_note": "DEVELOPMENT ONLY. Seeds here may guide changes to the planner, belief, verifier and weights. Held-out evaluation uses semantic_search_heldout.json with disjoint seeds, frozen before it runs. Seed ranges are half-open [a, b).",
+      "navigator": "classic",
+      "time_budget_s": 600,
+      "max_steps": 80,
+      "weights": {
+        "kappa": 10.0,
+        "ig": 1.0,
+        "gamma": 1.0
+      },
+      "verifier": {},
+      "arms": {
+        "proposed": {
+          "policy": "utility"
+        },
+        "A_gain_frontier": {
+          "policy": "frontier_gain",
+          "semantic": false,
+          "memory": false
+        },
+        "B_nearest_frontier": {
+          "policy": "frontier_nearest",
+          "semantic": false,
+          "memory": false
+        },
+        "C_room_priority": {
+          "policy": "room_priority",
+          "memory": false
+        },
+        "abl_no_semantics": {
+          "policy": "utility",
+          "semantic": false
+        },
+        "abl_no_room_inference": {
+          "policy": "utility",
+          "room_inference": false
+        },
+        "abl_no_memory": {
+          "policy": "utility",
+          "memory": false,
+          "scenarios": [
+            "I"
+          ]
+        },
+        "abl_single_view_verify": {
+          "policy": "utility",
+          "verifier": {
+            "min_support": 1,
+            "min_viewpoints": 1,
+            "min_purity": 0.0,
+            "max_miss_ratio": 1000.0
+          }
+        },
+        "abl_no_semantic_term": {
+          "policy": "utility",
+          "weights": {
+            "kappa": 0.0
+          }
+        },
+        "abl_no_info_gain": {
+          "policy": "utility",
+          "weights": {
+            "ig": 0.0
+          }
+        },
+        "proposed_k3": {
+          "policy": "utility",
+          "weights": {
+            "kappa": 3.0
+          }
+        },
+        "proposed_k30": {
+          "policy": "utility",
+          "weights": {
+            "kappa": 30.0
+          }
+        }
+      },
+      "splits": {
+        "smoke": {
+          "arms": [
+            "proposed"
+          ],
+          "conditions": [
+            {
+              "scenario": "B",
+              "seeds": [
+                100,
+                101
+              ]
+            }
+          ]
+        },
+        "dev": {
+          "arms": [
+            "proposed",
+            "A_gain_frontier",
+            "B_nearest_frontier",
+            "C_room_priority"
+          ],
+          "conditions": [
+            {
+              "scenario": "A",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "B",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "C",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "D",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "E",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "F",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "G",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "H",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "I",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "J",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "K",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "L",
+              "seeds": [
+                100,
+                104
+              ]
+            }
+          ]
+        },
+        "dev2": {
+          "arms": [
+            "proposed",
+            "A_gain_frontier"
+          ],
+          "conditions": [
+            {
+              "scenario": "A",
+              "seeds": [
+                100,
+                102
+              ]
+            },
+            {
+              "scenario": "B",
+              "seeds": [
+                100,
+                102
+              ]
+            },
+            {
+              "scenario": "C",
+              "seeds": [
+                100,
+                102
+              ]
+            },
+            {
+              "scenario": "D",
+              "seeds": [
+                100,
+                102
+              ]
+            },
+            {
+              "scenario": "E",
+              "seeds": [
+                100,
+                102
+              ]
+            },
+            {
+              "scenario": "F",
+              "seeds": [
+                100,
+                102
+              ]
+            },
+            {
+              "scenario": "G",
+              "seeds": [
+                100,
+                102
+              ]
+            },
+            {
+              "scenario": "H",
+              "seeds": [
+                100,
+                102
+              ]
+            },
+            {
+              "scenario": "I",
+              "seeds": [
+                100,
+                102
+              ]
+            },
+            {
+              "scenario": "J",
+              "seeds": [
+                100,
+                102
+              ]
+            },
+            {
+              "scenario": "K",
+              "seeds": [
+                100,
+                102
+              ]
+            },
+            {
+              "scenario": "L",
+              "seeds": [
+                100,
+                102
+              ]
+            }
+          ]
+        },
+        "dev3": {
+          "arms": [
+            "A_gain_frontier",
+            "proposed",
+            "proposed_k3",
+            "proposed_k30",
+            "abl_no_semantics"
+          ],
+          "conditions": [
+            {
+              "scenario": "A",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "B",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "C",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "D",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "E",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "F",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "G",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "H",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "I",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "J",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "K",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "L",
+              "seeds": [
+                100,
+                104
+              ]
+            }
+          ],
+          "kappa_rule": "Written before dev3 ran: among kappa in {3 (proposed_k3), 10 (proposed), 30 (proposed_k30)} choose the one with the most target-present successes on dev3; ties broken by the lower median sim time to verified success; any false success claim disqualifies a value. The chosen value is frozen into the held-out config."
+        }
+      }
+    },
+    "split": "dev3",
+    "arms": [
+      "A_gain_frontier",
+      "proposed",
+      "proposed_k3",
+      "proposed_k30",
+      "abl_no_semantics"
+    ],
+    "base": "kinematic",
+    "git_sha": "c07f92e7c9062da2bc339c4da87c9de333b43cae",
+    "dream_dirty_at_start": false,
+    "renderer": null,
+    "machine": "Windows-11-10.0.26100-SP0",
+    "jobs": 240,
+    "wall_s": 6746.0
+  },
+  "by_arm_scenario": {
+    "A_gain_frontier|A": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 30.92,
+      "mean_path_m": 0.7
+    },
+    "A_gain_frontier|B": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 53.66,
+      "mean_path_m": 8.3
+    },
+    "A_gain_frontier|C": {
+      "n": 4,
+      "success": 3,
+      "missed": 1,
+      "median_success_sim_s": 130.74,
+      "mean_path_m": 28.0
+    },
+    "A_gain_frontier|D": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 66.54,
+      "mean_path_m": 11.8
+    },
+    "A_gain_frontier|E": {
+      "n": 4,
+      "correct_refusal": 4,
+      "median_success_sim_s": null,
+      "mean_path_m": 44.1
+    },
+    "A_gain_frontier|F": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 75.74,
+      "mean_path_m": 13.0
+    },
+    "A_gain_frontier|G": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 53.54,
+      "mean_path_m": 10.7
+    },
+    "A_gain_frontier|H": {
+      "n": 4,
+      "correct_refusal": 4,
+      "median_success_sim_s": null,
+      "mean_path_m": 63.5
+    },
+    "A_gain_frontier|I": {
+      "n": 4,
+      "correct_refusal": 2,
+      "success": 2,
+      "median_success_sim_s": 42.12,
+      "mean_path_m": 17.0
+    },
+    "A_gain_frontier|J": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 130.22,
+      "mean_path_m": 17.3
+    },
+    "A_gain_frontier|K": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 28.14,
+      "mean_path_m": 1.8
+    },
+    "A_gain_frontier|L": {
+      "n": 4,
+      "correct_refusal": 4,
+      "median_success_sim_s": null,
+      "mean_path_m": 0.0
+    },
+    "abl_no_semantics|A": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 30.92,
+      "mean_path_m": 0.7
+    },
+    "abl_no_semantics|B": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 98.36,
+      "mean_path_m": 18.6
+    },
+    "abl_no_semantics|C": {
+      "n": 4,
+      "success": 3,
+      "missed": 1,
+      "median_success_sim_s": 130.74,
+      "mean_path_m": 35.5
+    },
+    "abl_no_semantics|D": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 67.34,
+      "mean_path_m": 14.8
+    },
+    "abl_no_semantics|E": {
+      "n": 4,
+      "correct_refusal": 4,
+      "median_success_sim_s": null,
+      "mean_path_m": 77.7
+    },
+    "abl_no_semantics|F": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 80.84,
+      "mean_path_m": 17.1
+    },
+    "abl_no_semantics|G": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 44.14,
+      "mean_path_m": 6.1
+    },
+    "abl_no_semantics|H": {
+      "n": 4,
+      "correct_refusal": 4,
+      "median_success_sim_s": null,
+      "mean_path_m": 93.2
+    },
+    "abl_no_semantics|I": {
+      "n": 4,
+      "correct_refusal": 2,
+      "success": 2,
+      "median_success_sim_s": 42.12,
+      "mean_path_m": 43.5
+    },
+    "abl_no_semantics|J": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 68.84,
+      "mean_path_m": 8.1
+    },
+    "abl_no_semantics|K": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 27.54,
+      "mean_path_m": 1.5
+    },
+    "abl_no_semantics|L": {
+      "n": 4,
+      "correct_refusal": 4,
+      "median_success_sim_s": null,
+      "mean_path_m": 0.0
+    },
+    "proposed|A": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 30.92,
+      "mean_path_m": 0.7
+    },
+    "proposed|B": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 98.84,
+      "mean_path_m": 13.6
+    },
+    "proposed|C": {
+      "n": 4,
+      "success": 3,
+      "missed": 1,
+      "median_success_sim_s": 105.02,
+      "mean_path_m": 33.5
+    },
+    "proposed|D": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 100.14,
+      "mean_path_m": 19.0
+    },
+    "proposed|E": {
+      "n": 4,
+      "correct_refusal": 4,
+      "median_success_sim_s": null,
+      "mean_path_m": 84.9
+    },
+    "proposed|F": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 106.48,
+      "mean_path_m": 12.2
+    },
+    "proposed|G": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 65.08,
+      "mean_path_m": 9.9
+    },
+    "proposed|H": {
+      "n": 4,
+      "correct_refusal": 4,
+      "median_success_sim_s": null,
+      "mean_path_m": 83.7
+    },
+    "proposed|I": {
+      "n": 4,
+      "correct_refusal": 2,
+      "success": 2,
+      "median_success_sim_s": 42.12,
+      "mean_path_m": 30.5
+    },
+    "proposed|J": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 68.84,
+      "mean_path_m": 9.7
+    },
+    "proposed|K": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 27.54,
+      "mean_path_m": 1.5
+    },
+    "proposed|L": {
+      "n": 4,
+      "correct_refusal": 4,
+      "median_success_sim_s": null,
+      "mean_path_m": 0.0
+    },
+    "proposed_k3|A": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 30.92,
+      "mean_path_m": 0.7
+    },
+    "proposed_k3|B": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 53.68,
+      "mean_path_m": 8.9
+    },
+    "proposed_k3|C": {
+      "n": 4,
+      "success": 3,
+      "missed": 1,
+      "median_success_sim_s": 130.74,
+      "mean_path_m": 36.1
+    },
+    "proposed_k3|D": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 59.44,
+      "mean_path_m": 12.9
+    },
+    "proposed_k3|E": {
+      "n": 4,
+      "correct_refusal": 4,
+      "median_success_sim_s": null,
+      "mean_path_m": 75.3
+    },
+    "proposed_k3|F": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 75.74,
+      "mean_path_m": 13.7
+    },
+    "proposed_k3|G": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 53.42,
+      "mean_path_m": 6.2
+    },
+    "proposed_k3|H": {
+      "n": 4,
+      "correct_refusal": 4,
+      "median_success_sim_s": null,
+      "mean_path_m": 87.5
+    },
+    "proposed_k3|I": {
+      "n": 4,
+      "correct_refusal": 2,
+      "success": 2,
+      "median_success_sim_s": 42.12,
+      "mean_path_m": 41.6
+    },
+    "proposed_k3|J": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 108.02,
+      "mean_path_m": 18.3
+    },
+    "proposed_k3|K": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 28.14,
+      "mean_path_m": 1.8
+    },
+    "proposed_k3|L": {
+      "n": 4,
+      "correct_refusal": 4,
+      "median_success_sim_s": null,
+      "mean_path_m": 0.0
+    },
+    "proposed_k30|A": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 30.92,
+      "mean_path_m": 0.7
+    },
+    "proposed_k30|B": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 101.98,
+      "mean_path_m": 12.8
+    },
+    "proposed_k30|C": {
+      "n": 4,
+      "success": 3,
+      "missed": 1,
+      "median_success_sim_s": 112.58,
+      "mean_path_m": 42.2
+    },
+    "proposed_k30|D": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 72.58,
+      "mean_path_m": 13.4
+    },
+    "proposed_k30|E": {
+      "n": 4,
+      "correct_refusal": 4,
+      "median_success_sim_s": null,
+      "mean_path_m": 76.9
+    },
+    "proposed_k30|F": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 131.74,
+      "mean_path_m": 13.8
+    },
+    "proposed_k30|G": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 63.98,
+      "mean_path_m": 9.9
+    },
+    "proposed_k30|H": {
+      "n": 4,
+      "correct_refusal": 4,
+      "median_success_sim_s": null,
+      "mean_path_m": 70.4
+    },
+    "proposed_k30|I": {
+      "n": 4,
+      "correct_refusal": 2,
+      "success": 2,
+      "median_success_sim_s": 42.12,
+      "mean_path_m": 41.6
+    },
+    "proposed_k30|J": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 69.72,
+      "mean_path_m": 6.7
+    },
+    "proposed_k30|K": {
+      "n": 4,
+      "success": 4,
+      "median_success_sim_s": 27.54,
+      "mean_path_m": 1.5
+    },
+    "proposed_k30|L": {
+      "n": 4,
+      "correct_refusal": 4,
+      "median_success_sim_s": null,
+      "mean_path_m": 0.0
+    }
+  },
+  "totals": {
+    "A_gain_frontier": {
+      "success": 33,
+      "missed": 1,
+      "correct_refusal": 14
+    },
+    "proposed": {
+      "success": 33,
+      "missed": 1,
+      "correct_refusal": 14
+    },
+    "proposed_k3": {
+      "success": 33,
+      "missed": 1,
+      "correct_refusal": 14
+    },
+    "proposed_k30": {
+      "success": 33,
+      "missed": 1,
+      "correct_refusal": 14
+    },
+    "abl_no_semantics": {
+      "success": 33,
+      "missed": 1,
+      "correct_refusal": 14
+    }
+  }
+}

@@ -1,8 +1,8 @@
 {
   "name": "semantic_search_heldout",
-  "status": "draft: kappa pending the dev3 rule; frozen before any held-out episode runs",
-  "frozen_date": null,
-  "frozen_commit": null,
+  "status": "frozen",
+  "frozen_date": "2026-11-08",
+  "frozen_commit": "parent of the commit that sets this field: 7c31f5afab841e503d4f5e8090878a062c381211",
   "evidence_class": "held-out seeds (H1), shifted generator and target classes never used in development (H2), degraded detector (H3), pretrained G1 whole-body controller (H4). Development used runner seeds [100, 104) only, with the refrigerator as the only target; generator tests used explicit home seeds 0-29. Runner seeds here are disjoint from both.",
   "labels": [
     "Odometry is ORACLE-ASSISTED (true increments plus noise, gyro bias std 0.002 rad/s, as dream/sim/g1_mobile.py).",
@@ -16,7 +16,7 @@
   "time_budget_s": 600,
   "max_steps": 80,
   "weights": {
-    "kappa": null,
+    "kappa": 3.0,
     "ig": 1.0,
     "gamma": 1.0
   },
@@ -627,5 +627,6 @@
     "G7_generalisation": "proposed: 0 false success in H2; success vs A_gain_frontier reported per target class (descriptive, n = 6 per class and arm)",
     "G8_embodiment": "proposed: 0 false success and 0 falls in H4; success vs A_gain_frontier reported (descriptive, n = 24 per arm)"
   },
-  "analysis": "experiments/summarise_semantic_search.py over each split's episodes.jsonl; statistics as in that module's docstring"
+  "analysis": "experiments/summarise_semantic_search.py over each split's episodes.jsonl; statistics as in that module's docstring",
+  "kappa_selection": "dev3 (results/semantic_search_dev/dev3, 48 development homes, runner seeds 100-103): all three kappa values and Baseline A succeeded on 33 of 34 target-present homes with no false claims; the pre-registered tie-break (lower median sim time to verified success) chose kappa = 3 (51.5 s) over 10 (53.7 s) and 30 (64.0 s). Development showed no difference from Baseline A (51.5 s): no improvement is expected or claimed before the held-out run."
 }
