@@ -9,12 +9,14 @@ counts as the requested object only on accumulated, consistent evidence:
   or one viewpoint's systematic confusion, is not enough),
 - label purity ``min_purity`` among all labels given to the same physical object (a detector
   that calls it a wardrobe as often as a refrigerator has not identified it),
-- with ``purity_rule="wilson_lower"``, also confidence that the target is the track's majority
-  label: the Wilson score lower bound (``purity_confidence_z``, 1.645 = 95% one-sided) on
-  target labels / all labels must exceed ``purity_majority`` (0.5). A point purity from a few
-  views says little when the detector confuses classes (bathtub and shower share a confusion
-  group): 3 of 5 views give a lower bound of 0.27 and are refused, 3 of 3 give 0.53 and 4 of 4
-  give 0.60 and are accepted. The default ``purity_rule="point"`` applies ``min_purity`` alone.
+- confidence that the target is the track's majority label (``purity_rule="wilson_lower"``,
+  the default): the Wilson score lower bound (``purity_confidence_z``, 1.645 = 95% one-sided)
+  on target labels / all labels must exceed ``purity_majority`` (0.5). A point purity from a
+  few views says little when the detector confuses classes (bathtub and shower share a
+  confusion group): 3 of 5 views give a lower bound of 0.27 and are refused, 3 of 3 give 0.53
+  and 4 of 4 give 0.60 and are accepted. ``purity_rule="point"`` applies ``min_purity`` alone;
+  it is the rule every result frozen before the verifier-v2 confirmation used
+  (experiments/configs/semantic_search_verifier_v2.json, results/semantic_search_verifier_v2).
 - seen as the target within ``close_range`` at least once,
 - misses (plainly in view at close range and not detected) at most ``max_miss_ratio`` of its
   target views (hallucinations and moved objects stop being detected).
@@ -49,7 +51,7 @@ class VerifierThresholds:
     reach_distance: float = 1.2  # m from the object's footprint
     reach_facing_deg: float = 35.0
     fresh_s: float = 6.0  # s: a "since arriving" detection is at most this old
-    purity_rule: str = "point"  # "point": min_purity only; "wilson_lower": also the bound below
+    purity_rule: str = "wilson_lower"  # also the bound below; "point": min_purity only
     purity_confidence_z: float = 1.645  # one-sided 95%
     purity_majority: float = 0.5  # the Wilson lower bound on purity must exceed this
 

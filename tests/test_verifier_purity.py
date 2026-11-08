@@ -11,8 +11,8 @@ import pytest
 from dream.perception.semantic import Track
 from dream.semantics.verify import VerifierThresholds, check_track, wilson_lower
 
-POINT = VerifierThresholds()
-WILSON = VerifierThresholds(purity_rule="wilson_lower")
+POINT = VerifierThresholds(purity_rule="point")
+WILSON = VerifierThresholds()
 Z = 1.645
 
 
@@ -77,11 +77,12 @@ def test_unknown_rule_is_rejected():
         check_track(t, "bathtub", VerifierThresholds(purity_rule="wilson"))
 
 
-def test_default_thresholds_are_the_frozen_ones():
+def test_default_thresholds_are_the_frozen_ones_with_the_confirmed_purity_rule():
+    """Frozen thresholds; wilson_lower is the default since it passed V1 and V2 on fresh seeds."""
     d = {f.name: f.default for f in fields(VerifierThresholds)}
     assert d == {
         "min_support": 3, "min_viewpoints": 2, "min_purity": 0.6, "close_range": 2.5,
         "max_miss_ratio": 0.34, "reach_distance": 1.2, "reach_facing_deg": 35.0,
-        "fresh_s": 6.0, "purity_rule": "point", "purity_confidence_z": 1.645,
+        "fresh_s": 6.0, "purity_rule": "wilson_lower", "purity_confidence_z": 1.645,
         "purity_majority": 0.5,
     }  # fmt: skip
