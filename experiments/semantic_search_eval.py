@@ -207,7 +207,8 @@ def build_base(kind: str, home, seed: int, noise):
     if kind == "kinematic":
         from dream.sim.kinematic_base import KinematicBase
 
-        base = KinematicBase(home, np.random.default_rng([seed, 1]), semantic=preset)
+        # Nothing in these runs reads colour (oracle detector: segmentation; map: depth).
+        base = KinematicBase(home, np.random.default_rng([seed, 1]), semantic=preset, rgb=False)
         return base, base.true_pose, lambda: len(base.contact_log())
     from dream.robot.g1_wbc import WBCLocomotion
     from dream.sim.g1_mobile import HEAD_CAMERA, G1MobileBase, G1MobileEnv, build_mobile_g1

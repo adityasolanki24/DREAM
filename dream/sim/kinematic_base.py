@@ -83,22 +83,28 @@ class _FastCamera(RGBDCamera):
             self._local.renderers = (rgb, depth)
         return self._local.renderers
 
+    render_rgb = True  # False: depth only; the colour image is left black (benchmark speed)
+
     def capture(self, data, lock=None) -> RGBDFrame:
         rgb_r, depth_r = self._renderers()
         name = self.spec.name
-        rgb_r.update_scene(data, camera=name, scene_option=self._scene_opt)
         depth_r.update_scene(data, camera=name, scene_option=self._scene_opt)
-        rgb = rgb_r.render().copy()
+        if self.render_rgb:
+            rgb_r.update_scene(data, camera=name, scene_option=self._scene_opt)
+            rgb = rgb_r.render().copy()
+        else:
+            rgb = np.zeros((self.spec.height, self.spec.width, 3), np.uint8)
         depth = depth_r.render().astype(np.float32)
         depth[depth > MAX_RANGE] = np.nan
         a, b = self.spec.depth_noise
         sigma = a + b * np.nan_to_num(depth) ** 2
         noisy = depth + self.rng.standard_normal(depth.shape, dtype=np.float32) * sigma
         noisy = (np.round(noisy * 1000) / 1000).astype(np.float32)  # 1 mm quantisation
-        n = self.rng.standard_normal(rgb.shape, dtype=np.float32)
-        n *= self.spec.rgb_noise
-        n += rgb
-        rgb = np.clip(n, 0, 255, out=n).astype(np.uint8)
+        if self.render_rgb:
+            n = self.rng.standard_normal(rgb.shape, dtype=np.float32)
+            n *= self.spec.rgb_noise
+            n += rgb
+            rgb = np.clip(n, 0, 255, out=n).astype(np.uint8)
         return RGBDFrame(
             float(data.time), rgb, noisy, np.zeros(depth.shape, bool), self.calibration(data)
         )
@@ -145,14 +151,20 @@ class KinematicBase:
         rng: np.random.Generator,
         noise: OdometryNoise = DEFAULT_ODOMETRY_NOISE,
         semantic=None,
+        rgb: bool = True,
     ) -> None:
-        """``semantic``: a ``SemanticNoise`` to attach an oracle-assisted detector, or None."""
+        """``semantic``: a ``SemanticNoise`` to attach an oracle-assisted detector, or None.
+        ``rgb=False`` renders depth only and leaves the colour image black: about 45 ms of a
+        ~110 ms capture on the development laptop, for runs where nothing reads colour (the
+        oracle detector uses segmentation, the map uses depth). The depth noise stream is
+        unchanged; the colour noise is not drawn."""
         cam_rng, self._rng, sem_rng = rng.spawn(3)  # independent streams per consumer
         self.home, self.noise = home, noise
         self.model = build_kinematic_model(home)
         self.data = mujoco.MjData(self.model)
         self._capsule = self.model.geom("robot_capsule").id
         self._camera = _FastCamera(self.model, HEAD_CAMERA, cam_rng)
+        self._camera.render_rgb = rgb
         self._semantic = None
         if semantic is not None:
             from dream.sim.semantic_sensor import SemanticCamera

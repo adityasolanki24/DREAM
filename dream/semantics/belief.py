@@ -94,16 +94,22 @@ class TargetBelief:
         occ, unknown, free = grid.occupied(), grid.unknown(), grid.free()
         reach = int(UNKNOWN_REACH / CELL)
         # Unknown space reachable from known floor through unknown space only (not through
-        # walls), within UNKNOWN_REACH.
-        grown = free.copy()
+        # walls), within UNKNOWN_REACH; computed in the known bounding box plus that reach.
         frontier_unknown = np.zeros_like(free)
-        for _ in range(reach):
-            nxt = ndimage.binary_dilation(grown, structure=np.ones((3, 3), bool)) & unknown
-            nxt &= ~frontier_unknown
-            if not nxt.any():
-                break
-            frontier_unknown |= nxt
-            grown = nxt
+        ii, jj = np.nonzero(free)
+        if len(ii):
+            i0, j0 = max(ii.min() - reach - 1, 0), max(jj.min() - reach - 1, 0)
+            i1, j1 = ii.max() + reach + 2, jj.max() + reach + 2
+            box_unknown, grown = unknown[i0:i1, j0:j1], free[i0:i1, j0:j1].copy()
+            found = np.zeros_like(grown)
+            for _ in range(reach):
+                nxt = ndimage.binary_dilation(grown, structure=np.ones((3, 3), bool))
+                nxt &= box_unknown & ~found
+                if not nxt.any():
+                    break
+                found |= nxt
+                grown = nxt
+            frontier_unknown[i0:i1, j0:j1] = found
         cand = occ | frontier_unknown
         factor = np.ones(occ.shape, np.float32)
         lr = self.knowledge.likelihood_ratio(self.target)
