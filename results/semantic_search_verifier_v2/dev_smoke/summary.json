@@ -1,0 +1,637 @@
+{
+  "meta": {
+    "config": {
+      "name": "semantic_search_verifier_v2",
+      "status": "draft",
+      "frozen_date": null,
+      "frozen_commit": null,
+      "evidence_class": "held-out (fresh seeds 9200-9205, never used by any config or result in the repository; the H2 false claim that motivated the change is development evidence and is not part of V1)",
+      "rule3_class": "General algorithmic correction, confirmation pending on fresh seeds (this split is the confirmation)",
+      "labels": [
+        "Odometry is ORACLE-ASSISTED (true increments plus noise, gyro bias std 0.002 rad/s, as dream/sim/g1_mobile.py).",
+        "The semantic detector is ORACLE-ASSISTED: rendered segmentation plus an ASSUMED, uncalibrated noise model (dream/sim/semantic_sensor.py); NOMINAL except H3 (DEGRADED).",
+        "H1-H3 use the KINEMATIC SURROGATE base (dream/sim/kinematic_base.py: no legged dynamics, no falls); H4 uses the pretrained whole-body controller in MuJoCo.",
+        "Room-type knowledge: ConceptNet 5.7 extract (third_party/household_knowledge), heuristic associations, not calibrated probabilities.",
+        "Remembered sightings (scenario I) are placed in the odometry frame with the true start pose (oracle-assisted initial localisation).",
+        "Requests are read by the explicit grammar (dream/tools/intent.py); no language model runs in these episodes."
+      ],
+      "navigator": "classic",
+      "time_budget_s": 600,
+      "max_steps": 80,
+      "weights": {
+        "kappa": 3.0,
+        "ig": 1.0,
+        "gamma": 1.0
+      },
+      "verifier": {
+        "min_support": 3,
+        "min_viewpoints": 2,
+        "min_purity": 0.6,
+        "close_range": 2.5,
+        "max_miss_ratio": 0.34,
+        "reach_distance": 1.2,
+        "reach_facing_deg": 35.0,
+        "fresh_s": 6.0
+      },
+      "arms": {
+        "proposed": {
+          "policy": "utility",
+          "_note": "the frozen point-purity rule (VerifierThresholds default)"
+        },
+        "proposed_v2": {
+          "policy": "utility",
+          "verifier": {
+            "purity_rule": "wilson_lower",
+            "purity_confidence_z": 1.645,
+            "purity_majority": 0.5
+          },
+          "_note": "proposed plus the Wilson lower-bound purity check: target must be the majority label with 95% one-sided confidence"
+        }
+      },
+      "splits": {
+        "V1": {
+          "_note": "fresh seeds 9200-9205: shifted generator, 8 targets x scenarios B, D, E; nominal generator, 8 targets x scenario E; 192 episodes per arm",
+          "arms": [
+            "proposed",
+            "proposed_v2"
+          ],
+          "conditions": [
+            {
+              "scenario": "B",
+              "target": "refrigerator",
+              "generator": "shifted",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "bed",
+              "generator": "shifted",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "toilet",
+              "generator": "shifted",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "stove",
+              "generator": "shifted",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "washing_machine",
+              "generator": "shifted",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "workbench",
+              "generator": "shifted",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "bathtub",
+              "generator": "shifted",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "sofa",
+              "generator": "shifted",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "refrigerator",
+              "generator": "shifted",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "bed",
+              "generator": "shifted",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "toilet",
+              "generator": "shifted",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "stove",
+              "generator": "shifted",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "washing_machine",
+              "generator": "shifted",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "workbench",
+              "generator": "shifted",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "bathtub",
+              "generator": "shifted",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "sofa",
+              "generator": "shifted",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "refrigerator",
+              "generator": "shifted",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "bed",
+              "generator": "shifted",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "toilet",
+              "generator": "shifted",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "stove",
+              "generator": "shifted",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "washing_machine",
+              "generator": "shifted",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "workbench",
+              "generator": "shifted",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "bathtub",
+              "generator": "shifted",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "sofa",
+              "generator": "shifted",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "refrigerator",
+              "generator": "nominal",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "bed",
+              "generator": "nominal",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "toilet",
+              "generator": "nominal",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "stove",
+              "generator": "nominal",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "washing_machine",
+              "generator": "nominal",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "workbench",
+              "generator": "nominal",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "bathtub",
+              "generator": "nominal",
+              "seeds": [
+                9200,
+                9206
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "sofa",
+              "generator": "nominal",
+              "seeds": [
+                9200,
+                9206
+              ]
+            }
+          ]
+        },
+        "dev_smoke": {
+          "_note": "DEVELOPMENT ONLY, runner seed 100: shifted generator, 8 targets x scenarios B, E; plus one nominal-E episode per target",
+          "arms": [
+            "proposed",
+            "proposed_v2"
+          ],
+          "conditions": [
+            {
+              "scenario": "B",
+              "target": "refrigerator",
+              "generator": "shifted",
+              "seeds": [
+                100,
+                101
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "bed",
+              "generator": "shifted",
+              "seeds": [
+                100,
+                101
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "toilet",
+              "generator": "shifted",
+              "seeds": [
+                100,
+                101
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "stove",
+              "generator": "shifted",
+              "seeds": [
+                100,
+                101
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "washing_machine",
+              "generator": "shifted",
+              "seeds": [
+                100,
+                101
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "workbench",
+              "generator": "shifted",
+              "seeds": [
+                100,
+                101
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "bathtub",
+              "generator": "shifted",
+              "seeds": [
+                100,
+                101
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "sofa",
+              "generator": "shifted",
+              "seeds": [
+                100,
+                101
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "refrigerator",
+              "generator": "shifted",
+              "seeds": [
+                100,
+                101
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "bed",
+              "generator": "shifted",
+              "seeds": [
+                100,
+                101
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "toilet",
+              "generator": "shifted",
+              "seeds": [
+                100,
+                101
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "stove",
+              "generator": "shifted",
+              "seeds": [
+                100,
+                101
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "washing_machine",
+              "generator": "shifted",
+              "seeds": [
+                100,
+                101
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "workbench",
+              "generator": "shifted",
+              "seeds": [
+                100,
+                101
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "bathtub",
+              "generator": "shifted",
+              "seeds": [
+                100,
+                101
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "sofa",
+              "generator": "shifted",
+              "seeds": [
+                100,
+                101
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "refrigerator",
+              "generator": "nominal",
+              "seeds": [
+                100,
+                101
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "bed",
+              "generator": "nominal",
+              "seeds": [
+                100,
+                101
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "toilet",
+              "generator": "nominal",
+              "seeds": [
+                100,
+                101
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "stove",
+              "generator": "nominal",
+              "seeds": [
+                100,
+                101
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "washing_machine",
+              "generator": "nominal",
+              "seeds": [
+                100,
+                101
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "workbench",
+              "generator": "nominal",
+              "seeds": [
+                100,
+                101
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "bathtub",
+              "generator": "nominal",
+              "seeds": [
+                100,
+                101
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "sofa",
+              "generator": "nominal",
+              "seeds": [
+                100,
+                101
+              ]
+            }
+          ]
+        }
+      },
+      "gates": {
+        "_note": "Pre-registered before V1 is run. Counts are over valid episodes (crashes and scene failures reported separately, never counted as passes). Evaluated by experiments/verifier_v2_gates.py.",
+        "V1_no_false_success": "proposed_v2 makes 0 false success claims in V1",
+        "V2_non_inferior_success": "proposed_v2 target-present successes >= proposed's successes - 3, paired on identical homes (n = 96 pairs: the target-present episodes, shifted generator scenarios B and D, 8 targets x 6 seeds x 2; scenario E homes contain no instance of the target and are the 96 target-absent episodes)",
+        "V3_descriptive": "decoy-track shadow acceptances per purity rule ('decoy' = the eval-side nearest true object is not the target class); proposed's false claims; paired time to verified find (median difference with bootstrap CI, Wilcoxon, time censored at the budget); McNemar on success",
+        "decision": "wilson_lower becomes the default purity rule only if V1 and V2 both pass. This is decided by the main session, not by the run."
+      },
+      "analysis": "experiments/verifier_v2_gates.py and experiments/summarise_semantic_search.py over results/semantic_search_verifier_v2/V1/episodes.jsonl"
+    },
+    "split": "dev_smoke",
+    "arms": [
+      "proposed",
+      "proposed_v2"
+    ],
+    "base": "kinematic",
+    "git_sha": "e30cfa80093a33415a9df750fc4eae841ffd14f7",
+    "dream_dirty_at_start": true,
+    "renderer": null,
+    "machine": "Windows-11-10.0.26100-SP0",
+    "jobs": 48,
+    "wall_s": 2864.3
+  },
+  "by_arm_scenario": {
+    "proposed|B": {
+      "n": 8,
+      "missed": 1,
+      "success": 7,
+      "median_success_sim_s": 108.98,
+      "mean_path_m": 29.5
+    },
+    "proposed|E": {
+      "n": 16,
+      "correct_refusal": 16,
+      "median_success_sim_s": null,
+      "mean_path_m": 75.0
+    },
+    "proposed_v2|B": {
+      "n": 8,
+      "missed": 1,
+      "success": 7,
+      "median_success_sim_s": 108.98,
+      "mean_path_m": 29.5
+    },
+    "proposed_v2|E": {
+      "n": 16,
+      "correct_refusal": 16,
+      "median_success_sim_s": null,
+      "mean_path_m": 75.0
+    }
+  },
+  "totals": {
+    "proposed": {
+      "missed": 1,
+      "success": 7,
+      "correct_refusal": 16
+    },
+    "proposed_v2": {
+      "missed": 1,
+      "success": 7,
+      "correct_refusal": 16
+    }
+  }
+}
