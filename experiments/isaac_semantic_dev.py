@@ -35,8 +35,6 @@ CONVENTIONS = ("relative1000", "absolute")
 # at least this much higher than relative1000.
 SWITCH_MARGIN = 0.1
 MATCH_IOU = 0.5
-RING_DISTANCES_M = (1.2, 1.6, 2.0, 2.5, 3.0)
-RING_BEARINGS_DEG = tuple(range(0, 360, 30))
 FRAMES_PER_TARGET = 6
 VISIBILITY_SAMPLES = (0.2, 0.35, 0.5, 0.65, 0.8)  # heights within the box, as a fraction
 MIN_VISIBLE_FRACTION = 0.2  # of the projected box inside the image
@@ -110,8 +108,9 @@ def score_frame(answer: str, width: int, height: int, labels, truths: dict) -> d
                 {
                     "label": d.label,
                     "box": box,
+                    # a detection with no pixel inside the image overlaps nothing
                     "iou_with_true_same_class": (
-                        iou(box, truths[d.label]) if d.label in truths and box else None
+                        (iou(box, truths[d.label]) if box else 0.0) if d.label in truths else None
                     ),
                 }
             )
@@ -154,25 +153,29 @@ def summarise(frames: list[dict]) -> dict:
     }
 
 
-def candidate_poses(centre_xy, cells, rng_free_radius: float = 0.4):
-    """Standing poses (x, y, yaw) on a ring around ``centre_xy``, each moved to the nearest free
-    cell and turned to face the object. Deterministic order."""
-    poses = []
-    cells = np.asarray(cells, float)
-    for d in RING_DISTANCES_M:
-        for bearing in RING_BEARINGS_DEG:
-            ideal = np.asarray(centre_xy, float) + d * np.array(
-                [math.cos(math.radians(bearing)), math.sin(math.radians(bearing))]
-            )
-            if not len(cells):
-                continue
-            k = int(np.argmin(np.linalg.norm(cells - ideal, axis=1)))
-            if np.linalg.norm(cells[k] - ideal) > rng_free_radius:
-                continue
-            x, y = (float(v) for v in cells[k])
-            yaw = math.atan2(centre_xy[1] - y, centre_xy[0] - x)
-            poses.append((x, y, yaw))
-    return poses
+def candidate_poses(lo_xy, hi_xy, cells, limit: int = 40, near: float = 0.8, far: float = 3.5):
+    """Standing poses (x, y, yaw): free cells whose distance to the object's footprint is in
+    [near, far] m, spread evenly in bearing around it (``limit`` of them), each turned to face
+    the footprint centre. Deterministic; the first attempt's ring of fixed distances found no
+    refrigerator frame because few free cells lie exactly on a ring."""
+    lo, hi = np.asarray(lo_xy, float), np.asarray(hi_xy, float)
+    cells = np.asarray(cells, float).reshape(-1, 2)
+    gap = np.maximum(np.maximum(lo - cells, cells - hi), 0.0)
+    distance = np.linalg.norm(gap, axis=1)
+    keep = np.flatnonzero((distance >= near) & (distance <= far))
+    if not len(keep):
+        return []
+    centre = (lo + hi) / 2
+    bearing = np.arctan2(cells[keep, 1] - centre[1], cells[keep, 0] - centre[0])
+    ordered = keep[np.argsort(bearing, kind="stable")]
+    picks = ordered[
+        np.unique(np.linspace(0, len(ordered) - 1, min(limit, len(ordered))).astype(int))
+    ]
+    return [
+        (float(cells[k, 0]), float(cells[k, 1]),
+         math.atan2(centre[1] - cells[k, 1], centre[0] - cells[k, 0]))
+        for k in picks
+    ]  # fmt: skip
 
 
 def main() -> None:  # pragma: no cover - needs Isaac Sim
@@ -253,6 +256,7 @@ def measure(args, cfg) -> None:  # pragma: no cover - needs Isaac Sim
         "sink": [o for o in labelled if o.label in ("sink", "sink_rim", "sink_basin")],
     }
     records = []
+    truth_log: dict = {}
     failure = None
     try:
         for cls, prims in targets.items():
@@ -260,13 +264,17 @@ def measure(args, cfg) -> None:  # pragma: no cover - needs Isaac Sim
             hi3 = np.max([p.hi for p in prims], axis=0)
             centre = ((lo + hi3) / 2)[:2]
             accepted = 0
-            for i, (x, y, yaw) in enumerate(candidate_poses(centre, cells)):
+            poses = candidate_poses(lo[:2], hi3[:2], cells)
+            truth_log[cls] = {"lo": lo.tolist(), "hi": hi3.tolist(), "candidates": len(poses),
+                              "rejected": []}  # fmt: skip
+            for i, (x, y, yaw) in enumerate(poses):
                 if accepted >= FRAMES_PER_TARGET:
                     break
                 env.reset(x, y, yaw, floor_z=float(hi[2]))
                 base = G1MobileBase(env, WBCLocomotion.from_cache())
                 base.walk(0.0, 0.0, 0.0, STAND_S)
                 if base.stop_reason is not None or env.true_height() < 0.6:
+                    truth_log[cls]["rejected"].append({"i": i, "reason": "not standing"})
                     continue
                 position, rotation = env._torso_pose()
                 camera = head_camera_world(position, rotation, HEAD_CAMERA)
@@ -281,8 +289,15 @@ def measure(args, cfg) -> None:  # pragma: no cover - needs Isaac Sim
                         break
                 projected = project_box(camera, lo, hi3, HEAD_CAMERA.width, HEAD_CAMERA.height)
                 if not visible.get("visible") or projected is None:
+                    truth_log[cls]["rejected"].append(
+                        {"i": i, "reason": "not visible", "pose": [x, y, yaw],
+                         "projected": projected, "visible": visible}
+                    )  # fmt: skip
                     continue
                 if projected["visible_fraction"] < MIN_VISIBLE_FRACTION:
+                    truth_log[cls]["rejected"].append(
+                        {"i": i, "reason": "too little in the image", "projected": projected}
+                    )
                     continue
                 frame = base.capture()
                 name = f"{cls}_{i:02d}"
@@ -331,6 +346,7 @@ def measure(args, cfg) -> None:  # pragma: no cover - needs Isaac Sim
             "other furniture not modelled; unoccluded in-frustum sample point required). "
             "Evaluation only.",
             "summary": summarise(records),
+            "scene_truth_used": truth_log,
             "frames": records,
             "max_output_tokens": max(
                 ((r["usage"] or {}).get("output_tokens", 0) for r in records), default=0

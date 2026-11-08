@@ -63,10 +63,25 @@ def test_a_tie_or_no_detection_keeps_the_documented_convention():
 def test_candidate_poses_face_the_object_and_stand_on_free_cells():
     xs, ys = np.meshgrid(np.arange(-4, 4, 0.1), np.arange(-4, 4, 0.1))
     cells = np.column_stack([xs.ravel(), ys.ravel()])
-    poses = dev.candidate_poses((0.0, 0.0), cells)
-    assert len(poses) == len(dev.RING_DISTANCES_M) * len(dev.RING_BEARINGS_DEG)
+    poses = dev.candidate_poses((-0.2, -0.2), (0.2, 0.2), cells)
+    assert 30 <= len(poses) <= 40
     for x, y, yaw in poses:
+        gap = np.maximum(
+            np.maximum(np.array([-0.2, -0.2]) - [x, y], [x, y] - np.array([0.2, 0.2])), 0
+        )
+        assert 0.8 <= np.linalg.norm(gap) <= 3.5
         assert math.isclose(math.atan2(-y, -x), yaw, abs_tol=1e-9)
+    bearings = {round(math.degrees(math.atan2(y, x)) / 45) for x, y, _ in poses}
+    assert len(bearings) >= 7  # spread all around, not clustered
+    assert dev.candidate_poses((0, 0), (1, 1), np.array([[0.5, 0.5]])) == []
+
+
+def test_detection_outside_the_image_scores_zero_not_none():
+    labels = canonical_labels({"sink": []})
+    answer = json.dumps([{"label": "sink", "bbox_2d": [328, 50, 660, 178]}])
+    scored = dev.score_frame(answer, 320, 240, labels, {"sink": [100.0, 0.0, 200.0, 60.0]})
+    assert scored["absolute"]["best_iou_by_class"]["sink"] == 0.0
+    assert dev.summarise([{"scores": scored}])["per_convention"]["absolute"]["targets_scored"] == 1
 
 
 ROOMS = ["kitchen", "bedroom"]
