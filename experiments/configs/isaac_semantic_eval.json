@@ -1,0 +1,174 @@
+{
+  "name": "isaac_semantic_eval",
+  "status": "frozen",
+  "frozen_date": "2026-11-08",
+  "frozen_at_commit": "parent of the commit that sets this field (the freezing commit cannot contain its own SHA)",
+  "evidence_class": "held-out kitchens g_shape, l_island, peninsula, u_shape (never used for any Qwen evaluation: the 7 Nov closeout and its post-fix rerun used l_shape only; README 'Qwen on the Isaac G1' and results/isaac_qwen_*), plus the development kitchen l_shape reported separately. The architecture under test (dream/tools/intent.py, dream/semantics, dream/runtime/semantic_search.py) was developed on MuJoCo procedural homes and has never run in Isaac.",
+  "environment": "NVIDIA Isaac Sim 6.2 / PhysX, Unitree G1 under the unchanged NVIDIA Decoupled WBC, on a g2-standard-8 + L4 VM",
+  "model": "Qwen/Qwen3-VL-4B-Instruct",
+  "model_revision": "ebb281ec70b05090aa6165b016eac8ec08e71b17",
+  "provider": "qwen",
+  "limitations": [
+    "Odometry is oracle-assisted (true increments plus noise); the object map and every claim position are in that odometry frame. The scorer maps them to the world with the true pose at the end of the task (drift compensation for scoring only).",
+    "Physics is frozen during inference (synchronous simulation): the robot is held while Qwen decides or detects. A real-time deployment is not measured.",
+    "l_shape is a development kitchen (the closeout, the toolbox and the Isaac bring-up were developed on it); g_shape, l_island, peninsula and u_shape are held-out for every Qwen run. They were used before only by the classical, non-model explorer (results/isaac_g1_kitchen_*). The semantic modules and their thresholds were not tuned on any of them.",
+    "The detector is Qwen3-VL grounding boxes, in a coordinate convention (relative 0..1000 versus absolute pixels) measured on l_shape before freezing (results/isaac_semantic_dev/coordinate_check.json).",
+    "Ground truth for the independent scorer is the NVIDIA scene's own semantic labels reduced to axis-aligned boxes (sink as the union of its rim and basin prims, countertop). THE REFRIGERATOR AND THE OVEN ARE ABSENT FROM EVERY KITCHEN: the scene declares prims labelled refrigerator and oven, but their SimReady asset references (../../SimReady/Residential/Kitchen/Appliances/...) return HTTP 404 on NVIDIA's asset server for Isaac 6.2, so those prims carry no geometry, no collider and no bound (results/isaac_semantic_dev/scene_probe_5_kitchens.json). 'Find/Walk to the refrigerator' are therefore absent-target requests, exactly like 'Find the bed': the only correct outcome is no claim, and a refrigerator success is impossible by construction. This is an environment limitation found after the 7 Nov closeout (whose T3 refrigerator task was likewise unanswerable); only the sink can be found. No kettle exists either; 'Pick up the kettle' is unsupported by capability.",
+    "Planner memory hints are empty: a live Isaac session has no home memory. The semantic world attaches only to FindObject goals; Inspect and refusal paths keep the closeout toolbox.",
+    "The robot-time budget is counted from session start (including the 10 s stand-up), so the usable task time is about 290 s. 60 tool calls at most.",
+    "One run per case (no repetition), so success counts are small-sample point values without confidence intervals; two starts per kitchen."
+  ],
+  "kitchens": {
+    "development": [
+      "l_shape"
+    ],
+    "held_out": [
+      "g_shape",
+      "l_island",
+      "peninsula",
+      "u_shape"
+    ],
+    "run": [
+      "g_shape",
+      "l_island",
+      "peninsula",
+      "u_shape"
+    ],
+    "not_run": {
+      "l_shape": "development kitchen: development evidence already exists (results/isaac_semantic_dev)"
+    }
+  },
+  "starts": [
+    1
+  ],
+  "start_rule": "experiments/isaac_g1_kitchen.choose_start('explore', start): free cell at least 0.55 m from every collider footprint, drawn with seed [start, 7]; the same rule and seeds as experiments/configs/isaac_g1_kitchen.json (evaluation_starts 1, 2, 3; 3 not used). A start the rule refuses is recorded as a setup failure; there are no replacement starts.",
+  "budget_s": 300,
+  "qwen_max_new_tokens": 512,
+  "planner": {
+    "policy": "utility",
+    "weights": {
+      "kappa": 3.0,
+      "ig": 1.0,
+      "gamma": 1.0
+    },
+    "source": "experiments/configs/semantic_search_heldout.json frozen at 9d08c27 (lead: kappa 3.0 by the pre-registered dev3 rule); merged into this branch at 33eb693"
+  },
+  "qwen_max_new_tokens_note": "Both arms share one pinned Qwen server. The closeout server default (192 new tokens) leaves a 15-key JSON answer within 12% of truncation (room-prior answers used up to 168) and a detector list of a cluttered kitchen can exceed it; a truncated list is invalid JSON and silently yields no detections, an artifact of the harness and not a behaviour. 512 was fixed before any semantic-arm result; greedy decoding means shorter answers are unchanged.",
+  "arms": {
+    "semantic": {
+      "mode": "semantic",
+      "description": "Original request grounded by the explicit grammar (Qwen proposes a grounding only if the grammar leaves target or outcome ungrounded), deterministic binding, TaskAgent.run(goal, spec=spec), SemanticSearchPlanner 'utility' with the Qwen3-VL detector for FindObject goals, MobileModelPlanner for Inspect.",
+      "tasks": [
+        {
+          "id": "S2",
+          "text": "Walk to the refrigerator",
+          "target": "refrigerator",
+          "outcome": "reached",
+          "supported": true,
+          "note": "the refrigerator is declared but not present in any kitchen (404 asset): an absent target, any claim is a false success"
+        },
+        {
+          "id": "S3",
+          "text": "Find the sink",
+          "target": "sink",
+          "outcome": "visually_localized",
+          "supported": true
+        },
+        {
+          "id": "S5",
+          "text": "Pick up the kettle",
+          "target": "kettle",
+          "outcome": "grasped",
+          "supported": false
+        },
+        {
+          "id": "S6",
+          "text": "Walk to the far end of the room and come back",
+          "target": "far_end_of_room",
+          "outcome": "reached",
+          "supported": false
+        },
+        {
+          "id": "S7",
+          "text": "Inspect the cabinet",
+          "target": "cabinet",
+          "outcome": "inspected",
+          "supported": true,
+          "scorer": "cabinet"
+        }
+      ]
+    },
+    "nov7": {
+      "mode": "nov7",
+      "description": "The 7 Nov 2026 closeout path, unchanged (Qwen interprets the goal and chooses every step; the verifier checks the goal Qwen bound), scored on the ORIGINAL request.",
+      "tasks": [
+        {
+          "id": "N1",
+          "text": "Walk to the refrigerator",
+          "target": "refrigerator",
+          "outcome": "reached",
+          "supported": true
+        },
+        {
+          "id": "N2",
+          "text": "Pick up the kettle",
+          "target": "kettle",
+          "outcome": "grasped",
+          "supported": false
+        }
+      ]
+    }
+  },
+  "process_rule": "One fresh experiments/isaac_g1_live.py process per (kitchen, start, arm, task) with --single-task, started by experiments/isaac_semantic_eval.py. The Qwen server is started once per job and reused. Each task is submitted through the real phone API with provider 'qwen'. No scripted controller, no mock inference: if the model cannot load, each case is recorded as a failure. Task text is never reworded.",
+  "original_request_scoring": "dream/eval/semantic_scoring.score_episode on the request as written, for both arms, inside the live process (evaluation only). Claim position: the verifier's object position for FindObject; the robot's final odometry for GoToPlace, GoToObserved and Inspect claims. 'Inspect the cabinet' is scored by the existing cabinet handle and viewpoint scorer, and only if the bound goal was an inspection. A refusal records no completion of its own: an UnsupportedGoal is typed goal_unsupported by the driver (recorded as completion_typed.source).",
+  "timeouts_s": {
+    "model_start": 1500,
+    "api_ready": 1800,
+    "task_terminal": 2400,
+    "process_exit_grace": 180,
+    "min_remaining_to_start_process_s": 1500
+  },
+  "gates": {
+    "_note": "Pre-registered before any held-out run. Counted over every executed case of the stated arm (all four kitchens are held-out; the development split is empty in this reduced run). A case without an evaluation file cannot pass a gate: its claim is taken from the scheduler state and the gate is INCOMPLETE if any case lacks an evaluation. The refrigerator task S2 is an absent-target task (no refrigerator is rendered), so the false-success gate covers it with S3 and S7. No threshold may be tuned after seeing held-out outcomes.",
+    "semantic_false_success_max": 0,
+    "unsupported_tasks": [
+      "S5",
+      "S6"
+    ],
+    "unsupported_refused_fraction_min": 1.0,
+    "falls_max": 0,
+    "falls_scope": "every case of both arms"
+  },
+  "reported_without_gate": [
+    "nov7 false claims (original-request result false_success) per task N1 and N2, with n",
+    "S2 (absent refrigerator), S3 (sink) and S7 (cabinet inspection, regression check of the closeout T1) outcomes, descriptively, per kitchen",
+    "typed outcome distribution of every unsuccessful semantic case",
+    "wall time per case"
+  ],
+  "attempt_policy": "Infrastructure or integration crashes (exceptions, wiring, API errors) may be fixed in a focused commit with a regression test, every attempt's evidence kept in its own folder. Behavioural outcomes are results: no change to prompts, thresholds, planners or verification after outcomes are seen, and no rerun to obtain a better outcome. Coordinate-convention evidence is the only measurement allowed to change the detector, and only before freezing, on l_shape.",
+  "case_order": [
+    "N1",
+    "N2",
+    "S2",
+    "S5",
+    "S3",
+    "S6",
+    "S7"
+  ],
+  "case_order_note": "within each kitchen the four cases that directly measure the 7 Nov failures (N1, N2 old path; S2, S5 new path) run first",
+  "reduction": {
+    "decided": "2026-11-08 by the lead engineer, before any held-out case ran",
+    "from": "5 kitchens x 2 starts x 10 tasks = 100 cases",
+    "to": "4 held-out kitchens x start 1 x 7 tasks = 28 cases (semantic S2 S3 S5 S6 S7; nov7 N1 N2)",
+    "dropped": {
+      "S1 Find the refrigerator": "absent target like S2 (no refrigerator is rendered in any kitchen); S2 keeps one absent-refrigerator case",
+      "S4 Find the bed": "absent target; its gate is dropped",
+      "N3 Find the refrigerator": "absent target in the old arm; N1 keeps the refrigerator case",
+      "start 2": "cost",
+      "l_shape cases": "development evidence already exists"
+    },
+    "reason": "cost and wall time (a search case takes 16 to 17 minutes of wall time in the smoke, about 104 minutes per kitchen-start pair for the full matrix, about 63 USD against a 60 USD task limit) and the finding that the refrigerator and oven are not rendered in any kitchen (SimReady asset references return HTTP 404), which makes refrigerator tasks absent-target tasks.",
+    "budget": "at most 2 sessions of at most 180 minutes and 8 USD each"
+  },
+  "verifier_and_detector": "unchanged: dream/semantics/verify.py thresholds as frozen for the MuJoCo evaluation (min_support 3, min_viewpoints 2, min_purity 0.6, close_range 2.5, max_miss_ratio 0.34) and the relative1000 detector convention"
+}

@@ -1,0 +1,21 @@
+{
+  "index": 7,
+  "sim_time_s": 21.06,
+  "model": "Qwen/Qwen3-VL-4B-Instruct",
+  "revision": "ebb281ec70b05090aa6165b016eac8ec08e71b17",
+  "image_sha256": "929de9841e44332f0ed9aa98d256c31af43ef008c8958c4329c5310af5588edc",
+  "messages": [
+    {
+      "role": "user",
+      "text": "List every object of these classes that is visible in the image: bathtub, bed, countertop, dishwasher, kettle, kitchen cabinet, microwave, refrigerator, sink, sofa, stove, toilet, wardrobe, washing machine. Answer with JSON only: a list of {\"label\": <one of the classes>, \"bbox_2d\": [x1, y1, x2, y2]} with coordinates scaled 0-1000 across the image width and height. Answer [] if none is visible. Do not list objects you cannot see."
+    }
+  ],
+  "tools": [],
+  "status": "completed",
+  "output": "[\n    {\"label\": \"countertop\", \"bbox_2d\": [0, 100, 1000, 300]},\n    {\"label\": \"sink\", \"bbox_2d\": [619, 100, 986, 200]},\n    {\"label\": \"kitchen cabinet\", \"bbox_2d\": [0, 250, 1000, 778]}\n]",
+  "usage": {
+    "input_tokens": 202,
+    "output_tokens": 104
+  },
+  "inference_s": 5.279
+}

@@ -391,6 +391,8 @@ def start_model_server(cfg: dict, out: pathlib.Path, port: int):
         "--revision",
         QWEN_REVISION,
     ]
+    if cfg.get("qwen_max_new_tokens") is not None:  # absent in the closeout config: default 192
+        command += ["--max-new-tokens", str(int(cfg["qwen_max_new_tokens"]))]
     proc = subprocess.Popen(command, cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT)
     deadline = time.monotonic() + cfg["timeouts_s"]["model_start"]
     while time.monotonic() < deadline:

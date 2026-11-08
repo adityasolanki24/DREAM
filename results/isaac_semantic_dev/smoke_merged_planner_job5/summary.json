@@ -1,0 +1,745 @@
+{
+  "config": "isaac_semantic_eval",
+  "status": "draft",
+  "model_server": {
+    "ok": true,
+    "error": null
+  },
+  "planned": [
+    "l_shape_s1_semantic_S1",
+    "l_shape_s1_semantic_S3"
+  ],
+  "processes": [
+    {
+      "case_id": "l_shape_s1_semantic_S1",
+      "folder": "l_shape_s1_semantic_S1",
+      "command_tail": [
+        "/work/jobs/5/DREAM/experiments/isaac_g1_live.py",
+        "--out",
+        "/work/out/jobs/5/smoke2/l_shape_s1_semantic_S1/live",
+        "--kitchen",
+        "l_shape",
+        "--start",
+        "1",
+        "--robot-dir",
+        "/work/g1_usd",
+        "--api-port",
+        "8765",
+        "--qwen-port",
+        "8767",
+        "--model-start-timeout-s",
+        "1500",
+        "--duration-s",
+        "3600",
+        "--single-task",
+        "--mode",
+        "semantic",
+        "--budget-s",
+        "300",
+        "--scoring-config",
+        "/work/jobs/5/DREAM/experiments/configs/isaac_semantic_eval.json",
+        "--allow-evaluation-kitchen"
+      ],
+      "boot_s": 75.0,
+      "paired": true,
+      "exit_code": 0,
+      "start_refused": false,
+      "wall_s": 959.2
+    },
+    {
+      "case_id": "l_shape_s1_semantic_S3",
+      "folder": "l_shape_s1_semantic_S3",
+      "command_tail": [
+        "/work/jobs/5/DREAM/experiments/isaac_g1_live.py",
+        "--out",
+        "/work/out/jobs/5/smoke2/l_shape_s1_semantic_S3/live",
+        "--kitchen",
+        "l_shape",
+        "--start",
+        "1",
+        "--robot-dir",
+        "/work/g1_usd",
+        "--api-port",
+        "8765",
+        "--qwen-port",
+        "8767",
+        "--model-start-timeout-s",
+        "1500",
+        "--duration-s",
+        "3600",
+        "--single-task",
+        "--mode",
+        "semantic",
+        "--budget-s",
+        "300",
+        "--scoring-config",
+        "/work/jobs/5/DREAM/experiments/configs/isaac_semantic_eval.json",
+        "--allow-evaluation-kitchen"
+      ],
+      "boot_s": 75.0,
+      "paired": true,
+      "exit_code": 0,
+      "start_refused": false,
+      "wall_s": 1018.8
+    }
+  ],
+  "gates": {
+    "pooled": {
+      "semantic_false_success_zero": {
+        "result": "PASS",
+        "false_successes": [],
+        "semantic_cases": 2
+      },
+      "unsupported_refused_every_case": {
+        "result": "FAIL",
+        "refused": 0,
+        "of": 0,
+        "not_refused": []
+      },
+      "find_bed_never_claimed": {
+        "result": "FAIL",
+        "claims": [],
+        "of": 0
+      },
+      "falls_zero": {
+        "result": "PASS",
+        "falls": [],
+        "unknown_safety": []
+      }
+    },
+    "held_out_only": {
+      "semantic_false_success_zero": {
+        "result": "PASS",
+        "false_successes": [],
+        "semantic_cases": 0
+      },
+      "unsupported_refused_every_case": {
+        "result": "FAIL",
+        "refused": 0,
+        "of": 0,
+        "not_refused": []
+      },
+      "find_bed_never_claimed": {
+        "result": "FAIL",
+        "claims": [],
+        "of": 0
+      },
+      "falls_zero": {
+        "result": "PASS",
+        "falls": [],
+        "unknown_safety": []
+      }
+    },
+    "development_only": {
+      "semantic_false_success_zero": {
+        "result": "PASS",
+        "false_successes": [],
+        "semantic_cases": 2
+      },
+      "unsupported_refused_every_case": {
+        "result": "FAIL",
+        "refused": 0,
+        "of": 0,
+        "not_refused": []
+      },
+      "find_bed_never_claimed": {
+        "result": "FAIL",
+        "claims": [],
+        "of": 0
+      },
+      "falls_zero": {
+        "result": "PASS",
+        "falls": [],
+        "unknown_safety": []
+      }
+    }
+  },
+  "reports": {
+    "per_request_by_split": {
+      "semantic:S1 Find the refrigerator": {
+        "development": {
+          "n": 1,
+          "results": {
+            "correct_refusal": 1
+          }
+        }
+      },
+      "semantic:S3 Find the sink": {
+        "development": {
+          "n": 1,
+          "results": {
+            "missed": 1
+          }
+        }
+      }
+    },
+    "nov7_false_claims": {
+      "total": 0,
+      "of": 0,
+      "by_task": {}
+    },
+    "semantic_outcomes": {
+      "correct_refusal": 1,
+      "missed": 1
+    },
+    "nov7_outcomes": {}
+  },
+  "cases": [
+    {
+      "case_id": "l_shape_s1_semantic_S1",
+      "kitchen": "l_shape",
+      "split": "development",
+      "start": 1,
+      "arm": "semantic",
+      "mode": "semantic",
+      "task": "S1",
+      "text": "Find the refrigerator",
+      "unsupported_expected": false,
+      "submitted": true,
+      "refusal": null,
+      "task_id": "b1fe6aa1f2",
+      "scheduler_state": "failed",
+      "scheduler_result": "no reachable look is expected to reveal more; no refrigerator found in the reachable space",
+      "timed_out": false,
+      "process_died": false,
+      "evaluation_present": true,
+      "claim_source": "original_request_scorer",
+      "success_claimed": false,
+      "original_result": "correct_refusal",
+      "false_success": false,
+      "completion": "search_exhausted",
+      "completion_source": "episode",
+      "goal": "FindObject(target='refrigerator', outcome='visually_localized')",
+      "goal_kind": "FindObject",
+      "episode_reason": "no reachable look is expected to reveal more; no refrigerator found in the reachable space",
+      "episode_completion": "search_exhausted",
+      "tool_calls": 13,
+      "grounding_model_consulted": false,
+      "fell": false,
+      "protective_stop": null,
+      "suspected_integration_error": false,
+      "original_request": {
+        "request": {
+          "id": "N3",
+          "text": "Find the refrigerator",
+          "target": "refrigerator",
+          "outcome": "visually_localized",
+          "supported": true
+        },
+        "instances": [
+          "countertop:0",
+          "countertop:1",
+          "countertop:2",
+          "countertop:3",
+          "countertop:4",
+          "sink:0"
+        ],
+        "target": "refrigerator",
+        "outcome": "visually_localized",
+        "target_exists": false,
+        "claimed": false,
+        "completion": "search_exhausted",
+        "result": "correct_refusal",
+        "original_goal_success": false,
+        "false_success_claim": false
+      },
+      "independent_verification": {
+        "goal_kind": "FindObject",
+        "success_claimed": false,
+        "completion": "search_exhausted",
+        "terminal_stop_reason": "no reachable look is expected to reveal more; no refrigerator found in the reachable space",
+        "model_decision_valid": {
+          "valid": true,
+          "note": "False when the model could not produce an admissible decision within the repair budget; a justified refusal is valid."
+        },
+        "navigation_success": {
+          "success": true,
+          "error_m": 0.1438848596659654,
+          "source": "odometry estimate (oracle-assisted), not independent"
+        },
+        "identity_correct": {
+          "correct": null,
+          "reason": "no ground truth for this task type"
+        },
+        "viewpoint_correct": {
+          "correct": null,
+          "reason": "no ground truth for this task type"
+        },
+        "handle_visible": {
+          "visible": null,
+          "reason": "not an inspection task"
+        },
+        "independent_task_success": {
+          "success": null,
+          "reason": "no ground truth for this task type"
+        },
+        "false_claim": false,
+        "false_claim_note": "success claimed without any independent confirmation",
+        "physical_safety": {
+          "contact_events": 0,
+          "contacted_bodies": {},
+          "max_contact_impulse_ns": 0.0,
+          "safety_stop": null,
+          "fell": false,
+          "min_height_m": 0.7384052276611328,
+          "final_height_m": 0.7444897890090942,
+          "safe": true
+        },
+        "repair_count": 0,
+        "repair_changed_outcome": {
+          "changed": false,
+          "events": [],
+          "note": "a rejected model decision was replaced by another action, or the repair budget ended the task"
+        },
+        "task_end_contacts": {
+          "events": 0,
+          "bodies": [],
+          "window_sim_s": [
+            10.0,
+            125.76
+          ]
+        }
+      },
+      "agent_episode": {
+        "goal": "FindObject(target='refrigerator', outcome='visually_localized')",
+        "spec": {
+          "original_instruction": "Find the refrigerator",
+          "target_class": "refrigerator",
+          "target_kind": "object",
+          "target_instance": null,
+          "required_outcome": "visually_localized",
+          "also_required": [],
+          "grounding": "grammar",
+          "anchors": [
+            "find",
+            "refrigerator"
+          ],
+          "digest": "6461ad0170a01cf5"
+        },
+        "success_claimed": false,
+        "reason": "no reachable look is expected to reveal more; no refrigerator found in the reachable space",
+        "completion": "search_exhausted",
+        "model_reason": null,
+        "tool_calls": 13,
+        "failed_actions": 0,
+        "steps": [
+          {
+            "tool": "look_around",
+            "args": {},
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 12.84,
+            "wall_time": 106.532
+          },
+          {
+            "tool": "go_to",
+            "args": {
+              "x": -2.5749999999999997,
+              "y": 0.17500000000000035
+            },
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 13.3,
+            "wall_time": 95.772
+          },
+          {
+            "tool": "go_to",
+            "args": {
+              "x": -1.475,
+              "y": 1.6750000000000003
+            },
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 9.6,
+            "wall_time": 63.886
+          },
+          {
+            "tool": "go_to",
+            "args": {
+              "x": -0.02499999999999982,
+              "y": -0.02499999999999982
+            },
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 10.3,
+            "wall_time": 65.866
+          },
+          {
+            "tool": "go_to",
+            "args": {
+              "x": -0.8249999999999996,
+              "y": 0.275
+            },
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 7.6,
+            "wall_time": 54.778
+          },
+          {
+            "tool": "look_around",
+            "args": {},
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 12.84,
+            "wall_time": 95.079
+          },
+          {
+            "tool": "go_to",
+            "args": {
+              "x": -0.8249999999999996,
+              "y": -0.2749999999999998
+            },
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 5.6,
+            "wall_time": 39.647
+          },
+          {
+            "tool": "go_to",
+            "args": {
+              "x": -1.3749999999999996,
+              "y": -0.2749999999999998
+            },
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 4.1,
+            "wall_time": 28.831
+          },
+          {
+            "tool": "look_around",
+            "args": {},
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 12.84,
+            "wall_time": 92.428
+          },
+          {
+            "tool": "go_to",
+            "args": {
+              "x": -1.3749999999999996,
+              "y": -0.8249999999999996
+            },
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 4.6,
+            "wall_time": 23.275
+          },
+          {
+            "tool": "go_to",
+            "args": {
+              "x": -1.9249999999999994,
+              "y": -0.8249999999999996
+            },
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 4.2,
+            "wall_time": 17.489
+          },
+          {
+            "tool": "look_around",
+            "args": {},
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 12.84,
+            "wall_time": 89.234
+          },
+          {
+            "tool": "go_to",
+            "args": {
+              "x": -3.025,
+              "y": -0.2749999999999998
+            },
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 5.1,
+            "wall_time": 28.639
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "l_shape_s1_semantic_S3",
+      "kitchen": "l_shape",
+      "split": "development",
+      "start": 1,
+      "arm": "semantic",
+      "mode": "semantic",
+      "task": "S3",
+      "text": "Find the sink",
+      "unsupported_expected": false,
+      "submitted": true,
+      "refusal": null,
+      "task_id": "df3ac7dbf0",
+      "scheduler_state": "failed",
+      "scheduler_result": "no reachable look is expected to reveal more; a possible sink was seen but not verified",
+      "timed_out": false,
+      "process_died": false,
+      "evaluation_present": true,
+      "claim_source": "original_request_scorer",
+      "success_claimed": false,
+      "original_result": "missed",
+      "false_success": false,
+      "completion": "possible_target_unconfirmed",
+      "completion_source": "episode",
+      "goal": "FindObject(target='sink', outcome='visually_localized')",
+      "goal_kind": "FindObject",
+      "episode_reason": "no reachable look is expected to reveal more; a possible sink was seen but not verified",
+      "episode_completion": "possible_target_unconfirmed",
+      "tool_calls": 14,
+      "grounding_model_consulted": false,
+      "fell": false,
+      "protective_stop": null,
+      "suspected_integration_error": false,
+      "original_request": {
+        "request": {
+          "id": "S3",
+          "text": "Find the sink",
+          "target": "sink",
+          "outcome": "visually_localized",
+          "supported": true
+        },
+        "instances": [
+          "countertop:0",
+          "countertop:1",
+          "countertop:2",
+          "countertop:3",
+          "countertop:4",
+          "sink:0"
+        ],
+        "target": "sink",
+        "outcome": "visually_localized",
+        "target_exists": true,
+        "claimed": false,
+        "completion": "possible_target_unconfirmed",
+        "result": "missed",
+        "original_goal_success": false,
+        "false_success_claim": false
+      },
+      "independent_verification": {
+        "goal_kind": "FindObject",
+        "success_claimed": false,
+        "completion": "possible_target_unconfirmed",
+        "terminal_stop_reason": "no reachable look is expected to reveal more; a possible sink was seen but not verified",
+        "model_decision_valid": {
+          "valid": true,
+          "note": "False when the model could not produce an admissible decision within the repair budget; a justified refusal is valid."
+        },
+        "navigation_success": {
+          "success": true,
+          "error_m": 0.1085982702570902,
+          "source": "odometry estimate (oracle-assisted), not independent"
+        },
+        "identity_correct": {
+          "correct": null,
+          "reason": "no ground truth for this task type"
+        },
+        "viewpoint_correct": {
+          "correct": null,
+          "reason": "no ground truth for this task type"
+        },
+        "handle_visible": {
+          "visible": null,
+          "reason": "not an inspection task"
+        },
+        "independent_task_success": {
+          "success": null,
+          "reason": "no ground truth for this task type"
+        },
+        "false_claim": false,
+        "false_claim_note": "success claimed without any independent confirmation",
+        "physical_safety": {
+          "contact_events": 0,
+          "contacted_bodies": {},
+          "max_contact_impulse_ns": 0.0,
+          "safety_stop": null,
+          "fell": false,
+          "min_height_m": 0.7384052276611328,
+          "final_height_m": 0.7404845952987671,
+          "safe": true
+        },
+        "repair_count": 0,
+        "repair_changed_outcome": {
+          "changed": false,
+          "events": [],
+          "note": "a rejected model decision was replaced by another action, or the repair budget ended the task"
+        },
+        "task_end_contacts": {
+          "events": 0,
+          "bodies": [],
+          "window_sim_s": [
+            10.0,
+            130.58
+          ]
+        }
+      },
+      "agent_episode": {
+        "goal": "FindObject(target='sink', outcome='visually_localized')",
+        "spec": {
+          "original_instruction": "Find the sink",
+          "target_class": "sink",
+          "target_kind": "object",
+          "target_instance": null,
+          "required_outcome": "visually_localized",
+          "also_required": [],
+          "grounding": "grammar",
+          "anchors": [
+            "find",
+            "sink"
+          ],
+          "digest": "2a05fd98b0920e70"
+        },
+        "success_claimed": false,
+        "reason": "no reachable look is expected to reveal more; a possible sink was seen but not verified",
+        "completion": "possible_target_unconfirmed",
+        "model_reason": null,
+        "tool_calls": 14,
+        "failed_actions": 0,
+        "steps": [
+          {
+            "tool": "look_around",
+            "args": {},
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 12.84,
+            "wall_time": 100.871
+          },
+          {
+            "tool": "go_to",
+            "args": {
+              "x": -2.5749999999999997,
+              "y": 0.17500000000000035
+            },
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 13.3,
+            "wall_time": 89.411
+          },
+          {
+            "tool": "go_to",
+            "args": {
+              "x": -1.475,
+              "y": 1.6750000000000003
+            },
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 9.6,
+            "wall_time": 63.325
+          },
+          {
+            "tool": "go_to",
+            "args": {
+              "x": -0.02499999999999982,
+              "y": -0.02499999999999982
+            },
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 10.3,
+            "wall_time": 67.657
+          },
+          {
+            "tool": "go_to",
+            "args": {
+              "x": -0.8249999999999996,
+              "y": 0.275
+            },
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 7.6,
+            "wall_time": 54.121
+          },
+          {
+            "tool": "look_around",
+            "args": {},
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 12.84,
+            "wall_time": 96.084
+          },
+          {
+            "tool": "go_to",
+            "args": {
+              "x": -0.8249999999999996,
+              "y": -0.2749999999999998
+            },
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 5.6,
+            "wall_time": 37.887
+          },
+          {
+            "tool": "go_to",
+            "args": {
+              "x": -1.3749999999999996,
+              "y": -0.2749999999999998
+            },
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 4.1,
+            "wall_time": 28.349
+          },
+          {
+            "tool": "look_around",
+            "args": {},
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 12.84,
+            "wall_time": 88.877
+          },
+          {
+            "tool": "go_to",
+            "args": {
+              "x": -1.3749999999999996,
+              "y": -0.8249999999999996
+            },
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 4.6,
+            "wall_time": 23.259
+          },
+          {
+            "tool": "go_to",
+            "args": {
+              "x": -1.9249999999999994,
+              "y": -0.8249999999999996
+            },
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 4.2,
+            "wall_time": 17.437
+          },
+          {
+            "tool": "look_around",
+            "args": {},
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 12.84,
+            "wall_time": 93.615
+          },
+          {
+            "tool": "go_to",
+            "args": {
+              "x": -1.775,
+              "y": -0.225,
+              "heading": 1.970571639237534
+            },
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 5.8,
+            "wall_time": 43.442
+          },
+          {
+            "tool": "look_at",
+            "args": {
+              "x": -2.518473994492811,
+              "y": 1.534583515974932
+            },
+            "status": "succeeded",
+            "message": "",
+            "sim_time": 4.12,
+            "wall_time": 48.363
+          }
+        ]
+      }
+    }
+  ]
+}

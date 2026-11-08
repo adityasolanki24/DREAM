@@ -23,6 +23,7 @@ import signal
 import subprocess
 import sys
 import time
+import traceback
 import urllib.request
 from urllib.parse import urlparse
 
@@ -77,9 +78,11 @@ class PairedPhoneAPI:
 class DecisionRecorder:
     """Keep each genuine Qwen input image, raw tool-call output and timing."""
 
-    def __init__(self, backend, out: pathlib.Path, sim_time, capture=None):
+    def __init__(
+        self, backend, out: pathlib.Path, sim_time, capture=None, folder_name="qwen_decisions"
+    ):
         self.backend, self.out, self.sim_time = backend, out, sim_time
-        self.folder = out / "qwen_decisions"
+        self.folder = out / folder_name
         self.folder.mkdir(parents=True, exist_ok=True)
         self.index = 0
         self.capture = capture
@@ -209,6 +212,7 @@ def serve(args, cfg):
     from dream.sim.isaac_g1 import IsaacG1Env
     from dream.tools.goals import NaturalLanguageGoal
     from dream.tools.mobile import MobileToolbox
+    from experiments import isaac_semantic as sem_eval
     from experiments.isaac_g1_kitchen import (
         FLOOR,
         Evidence,
@@ -282,10 +286,40 @@ def serve(args, cfg):
         )
         from dream.runtime.camera_stream import CameraStream
         from dream.runtime.media_runtime import MediaRuntime, install_binary
+        from dream.tools.goals import FindObject
         from dream.tools.goals import Inspect as InspectGoal
         from experiments.isaac_g1_kitchen import handle_truth, score
 
-        truth_handles = handle_truth(labelled_objects(world.stage))  # evaluation only
+        truth_labelled = labelled_objects(world.stage)  # evaluation only
+        truth_handles = handle_truth(truth_labelled)  # evaluation only
+        semantic_mode = args.mode == "semantic"
+        scoring_table = {}  # request text -> original-request scoring entry (evaluation only)
+        scoring_instances = []
+        if args.scoring_config is not None:
+            scoring_instances = sem_eval.true_instances(truth_labelled)
+            missing = sem_eval.missing_truth(scoring_instances)
+            if missing:
+                raise RuntimeError(f"scene truth has no usable instance of {missing}")
+            scoring_cfg = json.loads(args.scoring_config.read_text(encoding="utf-8"))
+            for arm in scoring_cfg["arms"].values():
+                for entry in arm["tasks"]:
+                    scoring_table[entry["text"]] = entry
+            evidence.write(
+                "scoring_instances.json",
+                {
+                    "instances": [
+                        {
+                            "id": i.id,
+                            "cls": i.cls,
+                            "centre": i.centre.tolist(),
+                            "half": i.half.tolist(),
+                        }
+                        for i in scoring_instances
+                    ],
+                    "labelled_prims": [{"path": o.path, "label": o.label} for o in truth_labelled],
+                    "declared_but_not_present": sem_eval.declared_absent(truth_labelled),
+                },
+            )
         trajectory = out / "trajectory.jsonl"
         heights: list[tuple[float, float]] = []  # (sim time, pelvis height), evaluation only
         scene_boxes = obstacle_boxes(world.stage, floors=env.floor_paths)  # evaluation only
@@ -359,6 +393,8 @@ def serve(args, cfg):
                 "motor_policy": "pretrained WBC velocity controller; typed-tool planner above it",
                 "odometry": "oracle-assisted, as documented for this Milestone B adapter",
                 "seed": args.start,
+                "mode": args.mode,
+                "budget_s": args.budget_s,
                 "initial_pose": [x, y, yaw],
                 "initial_clear_run_m": clear_run,
                 "start_selection": "scene geometry only for a collision-clear reset pose",
@@ -399,6 +435,14 @@ def serve(args, cfg):
 
         recorder = DecisionRecorder(backend, out, lambda: env.time, capture_decision)
         qwen_choice.backend_for = lambda _model: recorder
+        detector_recorder = knowledge = None
+        if semantic_mode:
+            from dream.semantics.knowledge import load_knowledge
+
+            knowledge = load_knowledge()
+            detector_recorder = DecisionRecorder(
+                backend, out, lambda: env.time, None, folder_name="qwen_detector"
+            )
         evidence.stage(
             "qwen_ready", model=qwen_choice.default_model, revision=QWEN_REVISION, gpu="NVIDIA L4"
         )
@@ -415,7 +459,14 @@ def serve(args, cfg):
             recorder.set_cancel_event(cancel)
             task_started_sim_s = env.time
             inspect_views.clear()
-            if isinstance(task.goal, NaturalLanguageGoal):
+            spec = binding = None
+            if semantic_mode:
+                observed = toolbox.call("observe_scene")
+                if not observed.ok:
+                    raise RuntimeError("goal interpretation observation failed")
+                binding = sem_eval.ground_and_bind(task.text, recorder, knowledge, toolbox.places)
+                spec, task.goal = binding["spec"], binding["goal"]
+            elif isinstance(task.goal, NaturalLanguageGoal):
                 observed = toolbox.call("observe_scene")
                 if not observed.ok:
                     raise RuntimeError("goal interpretation observation failed")
@@ -426,11 +477,16 @@ def serve(args, cfg):
                     observed.data,
                     lambda: None if memory.last_frame is None else memory.last_frame.rgb.copy(),
                 )
-            planner = MobileModelPlanner(
-                recorder,
-                task.text,
-                lambda: None if memory.last_frame is None else memory.last_frame.rgb.copy(),
-            )
+            if semantic_mode and isinstance(task.goal, FindObject):
+                planner = sem_eval.attach_semantic_search(
+                    toolbox, memory, detector_recorder, knowledge
+                )
+            else:
+                planner = MobileModelPlanner(
+                    recorder,
+                    task.text,
+                    lambda: None if memory.last_frame is None else memory.last_frame.rgb.copy(),
+                )
 
             def emit(kind, data):
                 row = {"id": task.id, **data}
@@ -445,12 +501,15 @@ def serve(args, cfg):
             from experiments.g1_explore_room import Budgeted
 
             episode = TaskAgent(
-                toolbox, Budgeted(planner, base, 180), max_steps=cfg["explore"]["max_steps"]
+                toolbox,
+                Budgeted(planner, base, args.budget_s),
+                max_steps=cfg["explore"]["max_steps"],
             ).run(
                 task.goal,
                 on_event=emit,
                 history=history,
                 preempt=preempt,
+                spec=spec,
             )
             verdict = toolbox.call("verify_goal", {"goal": task.goal}).data
             window_contacts = [c.__dict__ for c in env.contacts if c.time_s >= task_started_sim_s]
@@ -490,7 +549,7 @@ def serve(args, cfg):
                 visibility=visibility,
                 safety=safety,
                 navigation_error_m=errors[-1] if errors else None,
-                repairs=planner.repairs,
+                repairs=getattr(planner, "repairs", []),
                 stop_reason=base.stop_reason or episode.reason,
             )
             result["task_end_contacts"] = {
@@ -498,12 +557,43 @@ def serve(args, cfg):
                 "bodies": sorted({c["other"] for c in window_contacts}),
                 "window_sim_s": [task_started_sim_s, env.time],
             }
+            extra = {"mode": args.mode}
+            if binding is not None:
+                extra["grounding"] = binding["record"]
+            if semantic_mode and isinstance(task.goal, FindObject):
+                extra["search_trace"] = planner.trace
+                extra["detector_log"] = toolbox.detector.log
+                extra["semantic_summary"] = json.loads(
+                    json.dumps(toolbox.semantic.summary(limit=30), default=str)
+                )
+            entry = scoring_table.get(task.text)
+            if entry is not None:
+                completion, completion_source = sem_eval.typed_completion(
+                    task.goal,
+                    episode.completion,
+                    episode.success_claimed,
+                    episode.reason,
+                    toolbox,
+                )
+                extra["completion_typed"] = {"value": completion, "source": completion_source}
+                extra["original_request"] = sem_eval.score_original_request(
+                    entry,
+                    goal=task.goal,
+                    claimed=episode.success_claimed,
+                    completion=completion,
+                    verdict=verdict,
+                    odometry_end=base.odometry(),
+                    true_pose_end=env.true_pose(),
+                    instances=scoring_instances,
+                    cabinet_success=(result.get("independent_task_success") or {}).get("success"),
+                )
             evidence.write(
                 f"task_{task.id}_evaluation.json",
                 {
                     "episode": episode.to_dict(),
                     "agent_verdict": verdict,
                     "independent_verification": result,
+                    **extra,
                 },
             )
             task_finished_at = time.monotonic()
@@ -564,6 +654,12 @@ def serve(args, cfg):
                 )
             ),
         )
+    except BaseException:
+        # app.close(skip_cleanup=True) below ends the process with status 0; print the
+        # traceback first so a setup failure is visible in the job log.
+        traceback.print_exc()
+        sys.stderr.flush()
+        raise
     finally:
         if "env" in locals():
             evidence.write(
@@ -623,12 +719,38 @@ def main():
     parser.add_argument("--media", action="store_true")
     parser.add_argument("--single-task", action="store_true")
     parser.add_argument(
+        "--mode",
+        choices=("nov7", "semantic"),
+        default="nov7",
+        help="nov7: the 7 Nov 2026 closeout path, unchanged; semantic: original-request "
+        "grounding, deterministic binding and semantic object search",
+    )
+    parser.add_argument(
+        "--budget-s",
+        type=float,
+        default=180,
+        help="robot-time budget per task (counted from session start, incl. the stand-up)",
+    )
+    parser.add_argument(
+        "--scoring-config",
+        type=pathlib.Path,
+        help="config whose arms/tasks tables give the original-request scoring entries",
+    )
+    parser.add_argument(
+        "--allow-evaluation-kitchen",
+        action="store_true",
+        help="permit the held-out kitchens (only the frozen semantic evaluation uses this)",
+    )
+    parser.add_argument(
         "--tailnet-hostname",
         help="join the owner's tailnet as this name (API keeps its token)",
     )
     args = parser.parse_args()
     cfg = json.loads(args.config.read_text(encoding="utf-8"))
-    if args.kitchen not in cfg["development_kitchens"]:
+    allowed = list(cfg["development_kitchens"])
+    if args.allow_evaluation_kitchen:
+        allowed += cfg["evaluation_kitchens"]
+    if args.kitchen not in allowed:
         parser.error("live voice demo is restricted to the existing development kitchen")
     receipt = json.loads((args.robot_dir / "receipt.json").read_text(encoding="utf-8"))
     usd = receipt.get("usda")

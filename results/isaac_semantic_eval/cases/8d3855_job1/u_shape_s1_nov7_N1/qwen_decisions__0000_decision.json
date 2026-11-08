@@ -1,0 +1,132 @@
+{
+  "index": 0,
+  "sim_time_s": 10.0,
+  "model": "Qwen/Qwen3-VL-4B-Instruct",
+  "revision": "ebb281ec70b05090aa6165b016eac8ec08e71b17",
+  "image_sha256": "1a0b011d53d3515189c1e4df82f4710858bf88d5db2b78bdb36e4a75c4a735e1",
+  "messages": [
+    {
+      "role": "system",
+      "text": "Interpret the user's goal from the request and current robot observation. Select one typed goal only when it preserves the user's intent and is supported by the listed mobile skills. Never invent a place or capability; otherwise call unsupported."
+    },
+    {
+      "role": "user",
+      "text": "{\"request\": \"Walk to the refrigerator\", \"required_candidate_instance\": null, \"available_places\": [\"entrance\"], \"observed_scene\": {\"pose\": [-0.078, -0.002, 0.006], \"inspection_poses\": {\"1\": {\"valid\": false, \"reason\": \"no handle seen\"}, \"2\": {\"valid\": false, \"reason\": \"no handle seen\"}, \"3\": {\"valid\": false, \"reason\": \"no handle seen\"}, \"4\": {\"valid\": false, \"reason\": \"no handle seen\"}}, \"odometry_source\": \"robot odometry estimate\", \"explored_m2\": 1.625, \"candidates\": [{\"id\": 1, \"reference\": \"candidate:1\", \"color\": \"orange\", \"position\": [1.155, -0.001, 0.446], \"extent\": [0.83, 1.595, 0.896], \"views\": 3, \"handle\": null, \"handle_views\": 0, \"handle_side\": null, \"sides_seen_close\": [3, 4, 5]}, {\"id\": 2, \"reference\": \"candidate:2\", \"color\": \"orange\", \"position\": [0.986, -0.674, 0.448], \"extent\": [0.669, 0.354, 0.896], \"views\": 2, \"handle\": null, \"handle_views\": 0, \"handle_side\": null, \"sides_seen_close\": [2, 3, 4]}, {\"id\": 3, \"reference\": \"candidate:3\", \"color\": \"orange\", \"position\": [0.813, 0.64, 0.44], \"extent\": [0.125, 0.526, 0.881], \"views\": 2, \"handle\": null, \"handle_views\": 0, \"handle_side\": null, \"sides_seen_close\": [4, 5, 6]}, {\"id\": 4, \"reference\": \"candidate:4\", \"color\": \"yellow\", \"position\": [1.541, -0.556, 0.47], \"extent\": [0.66, 0.375, 0.971], \"views\": 3, \"handle\": null, \"handle_views\": 0, \"handle_side\": null, \"sides_seen_close\": [2, 3, 4, 5]}], \"viewpoints\": [], \"frontiers\": [], \"inspected\": {}, \"frontiers_note\": \"no unexplored frontier farther than 0.3 m from the robot remains\", \"holding\": null, \"holding_handle\": null}, \"capabilities\": [\"inspect a cabinet\", \"inspect an observed candidate instance\", \"navigate to a remembered place or observed reachable frontier/viewpoint\"], \"unsupported_capabilities\": [\"grasp\", \"open\", \"carry\", \"manipulate\"]}"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "inspect_instance",
+        "description": "Inspect exactly this observed candidate track ID; do not substitute another instance.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "candidate": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "candidate"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "go_to_frontier",
+        "description": "Navigate to the index of an observed reachable frontier.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "index": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "index"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "go_to_viewpoint",
+        "description": "Navigate to a validated observed viewpoint.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "candidate": {
+              "type": "integer"
+            },
+            "side": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "candidate",
+            "side"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "inspect_cabinet",
+        "description": "Find the cabinet and stand where it can be examined.",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "go_to_place",
+        "description": "Go to a named place already present in home memory.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "place": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "place"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "unsupported",
+        "description": "The request cannot be represented by the available mobile skills.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "reason": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "reason"
+          ]
+        }
+      }
+    }
+  ],
+  "status": "completed",
+  "output": "<tool_call>\n{\"name\": \"go_to_place\", \"arguments\": {\"place\": \"entrance\"}}\n</tool_call>",
+  "usage": {
+    "input_tokens": 1261,
+    "output_tokens": 22
+  },
+  "inference_s": 1.401
+}

@@ -1,0 +1,84 @@
+{
+  "index": 1,
+  "sim_time_s": 10.0,
+  "model": "Qwen/Qwen3-VL-4B-Instruct",
+  "revision": "ebb281ec70b05090aa6165b016eac8ec08e71b17",
+  "image_sha256": null,
+  "messages": [
+    {
+      "role": "system",
+      "text": "Restate the request with specify_request. The target must be what the user named, in the robot's vocabulary; the outcome must be the action the user asked for. If the user named something outside the vocabulary or an action not listed, say so with target '' or outcome 'unknown'. Never choose a different target or an easier outcome."
+    },
+    {
+      "role": "user",
+      "text": "{\"request\": \"Walk to the far end of the room and come back\", \"object_vocabulary\": {\"refrigerator\": [\"electric refrigerator\", \"refrigeratores\", \"refrigerators\", \"refrigerator\", \"ice chest\", \"icebox\", \"cooler\", \"fridge\"], \"sink\": [\"kitchen sink\", \"sinkes\", \"sinks\", \"sink\"], \"stove\": [\"potbelly stove\", \"electric range\", \"kitchen range\", \"kitchen stove\", \"cooking stove\", \"spirit stove\", \"primus stove\", \"gas cooker\", \"gas stove\", \"gas range\", \"cookstove\", \"stovees\", \"stoves\", \"stove\"], \"countertop\": [\"countertopes\", \"countertops\", \"countertop\"], \"kitchen_cabinet\": [\"kitchen cabinetes\", \"kitchen cabinets\", \"airing cupboard\", \"kitchen cabinet\", \"supply closet\", \"broom closet\", \"cupboard\"], \"microwave\": [\"microwave oven\", \"microwavees\", \"microwaves\", \"microwave\"], \"dishwasher\": [\"dishwashing machine\", \"dishwasheres\", \"dishwashers\", \"dish washer\", \"dishwasher\"], \"wardrobe\": [\"clothes closet\", \"clothespress\", \"coat closet\", \"wardrobees\", \"wardrobes\", \"wardrobe\", \"armoire\"], \"bed\": [\"platform bed\", \"marriage bed\", \"built-in bed\", \"built in bed\", \"trundle bed\", \"truckle bed\", \"four-poster\", \"single bed\", \"sleigh bed\", \"double bed\", \"murphy bed\", \"water bed\", \"plank-bed\", \"bunk bed\", \"twin bed\", \"camp bed\", \"sickbed\", \"truckle\", \"trundle\", \"bedes\", \"beds\", \"bed\"], \"toilet\": [\"flushless toilet\", \"flush toilet\", \"potty chair\", \"potty seat\", \"toiletes\", \"commode\", \"crapper\", \"toilets\", \"toilet\", \"potty\"], \"sofa\": [\"divan bed\", \"love seat\", \"sofa bed\", \"loveseat\", \"lounge\", \"sofaes\", \"daybed\", \"couch\", \"divan\", \"sofas\", \"sofa\"], \"washing_machine\": [\"washing machinees\", \"washing machines\", \"automatic washer\", \"washing machine\"], \"bathtub\": [\"bathing tub\", \"bathtubes\", \"sitz bath\", \"bathtubs\", \"footbath\", \"hip bath\", \"hot tub\", \"bathtub\", \"tub\"], \"kettle\": [\"teakettle\", \"kettlees\", \"kettles\", \"kettle\"], \"cabinet\": [\"medicine cabinet\", \"medicine chest\", \"china cabinet\", \"china closet\", \"cabinetes\", \"cabinets\", \"cabinet\"]}, \"room_vocabulary\": [\"basement\", \"bathroom\", \"bedroom\", \"closet\", \"dining_room\", \"garage\", \"hallway\", \"kitchen\", \"laundry_room\", \"living_room\", \"office\", \"pantry\", \"storage_room\", \"workshop\"], \"remembered_places\": [\"entrance\"], \"outcomes\": [\"visually_localized\", \"reached\", \"inspected\", \"grasped\", \"delivered\", \"opened\", \"closed\", \"placed\"]}"
+    },
+    {
+      "role": "assistant",
+      "text": "<tool_call>\n{\"name\": \"specify_request\", \"arguments\": {\"target\": \"room\", \"target_kind\": \"room\", \"outcome\": \"reached\"}}\n</tool_call>"
+    },
+    {
+      "role": "user",
+      "text": "{\"rejected\": [\"room 'room' is not in the vocabulary\"], \"note\": \"use only what the request states\"}"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "specify_request",
+        "description": "Restate the user's request in the robot's vocabulary. Use only words the user said (or a listed synonym); never replace the target with something easier.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "target": {
+              "type": "string",
+              "description": "a vocabulary class or place, or ''"
+            },
+            "target_kind": {
+              "type": "string",
+              "enum": [
+                "object",
+                "room",
+                "place",
+                "none"
+              ]
+            },
+            "outcome": {
+              "type": "string",
+              "enum": [
+                "visually_localized",
+                "reached",
+                "inspected",
+                "grasped",
+                "delivered",
+                "opened",
+                "closed",
+                "placed",
+                "unknown"
+              ]
+            },
+            "also_required": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "target",
+            "target_kind",
+            "outcome"
+          ]
+        }
+      }
+    }
+  ],
+  "status": "completed",
+  "output": "<tool_call>\n{\"name\": \"specify_request\", \"arguments\": {\"target\": \"far end\", \"target_kind\": \"place\", \"outcome\": \"reached\"}}\n</tool_call>",
+  "usage": {
+    "input_tokens": 1152,
+    "output_tokens": 36
+  },
+  "inference_s": 2.044
+}
