@@ -1,0 +1,413 @@
+{
+  "name": "semantic_search_dev",
+  "status": "development",
+  "_note": "DEVELOPMENT ONLY. Seeds here may guide changes to the planner, belief, verifier and weights. Held-out evaluation uses semantic_search_heldout.json with disjoint seeds, frozen before it runs. Seed ranges are half-open [a, b).",
+  "navigator": "classic",
+  "time_budget_s": 600,
+  "max_steps": 80,
+  "weights": {
+    "kappa": 10.0,
+    "ig": 1.0,
+    "gamma": 1.0
+  },
+  "verifier": {},
+  "arms": {
+    "proposed": {
+      "policy": "utility"
+    },
+    "A_gain_frontier": {
+      "policy": "frontier_gain",
+      "semantic": false,
+      "memory": false
+    },
+    "B_nearest_frontier": {
+      "policy": "frontier_nearest",
+      "semantic": false,
+      "memory": false
+    },
+    "C_room_priority": {
+      "policy": "room_priority",
+      "memory": false
+    },
+    "abl_no_semantics": {
+      "policy": "utility",
+      "semantic": false
+    },
+    "abl_no_room_inference": {
+      "policy": "utility",
+      "room_inference": false
+    },
+    "abl_no_memory": {
+      "policy": "utility",
+      "memory": false,
+      "scenarios": [
+        "I"
+      ]
+    },
+    "abl_single_view_verify": {
+      "policy": "utility",
+      "verifier": {
+        "min_support": 1,
+        "min_viewpoints": 1,
+        "min_purity": 0.0,
+        "max_miss_ratio": 1000.0
+      }
+    },
+    "abl_no_semantic_term": {
+      "policy": "utility",
+      "weights": {
+        "kappa": 0.0
+      }
+    },
+    "abl_no_info_gain": {
+      "policy": "utility",
+      "weights": {
+        "ig": 0.0
+      }
+    },
+    "proposed_k3": {
+      "policy": "utility",
+      "weights": {
+        "kappa": 3.0
+      }
+    },
+    "proposed_k30": {
+      "policy": "utility",
+      "weights": {
+        "kappa": 30.0
+      }
+    },
+    "abl_substitution_gated": {
+      "policy": "utility",
+      "substitute_after_s": 120,
+      "gate": true,
+      "_note": "fault injection: claims success on reaching the target's typical room; gate on"
+    },
+    "abl_substitution_ungated": {
+      "policy": "utility",
+      "substitute_after_s": 120,
+      "gate": false,
+      "_note": "fault injection with no original-request record: the 7 Nov failure mode"
+    }
+  },
+  "splits": {
+    "smoke": {
+      "arms": [
+        "proposed"
+      ],
+      "conditions": [
+        {
+          "scenario": "B",
+          "seeds": [
+            100,
+            101
+          ]
+        }
+      ]
+    },
+    "dev": {
+      "arms": [
+        "proposed",
+        "A_gain_frontier",
+        "B_nearest_frontier",
+        "C_room_priority"
+      ],
+      "conditions": [
+        {
+          "scenario": "A",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "B",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "C",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "D",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "E",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "F",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "G",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "H",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "I",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "J",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "K",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "L",
+          "seeds": [
+            100,
+            104
+          ]
+        }
+      ]
+    },
+    "dev2": {
+      "arms": [
+        "proposed",
+        "A_gain_frontier"
+      ],
+      "conditions": [
+        {
+          "scenario": "A",
+          "seeds": [
+            100,
+            102
+          ]
+        },
+        {
+          "scenario": "B",
+          "seeds": [
+            100,
+            102
+          ]
+        },
+        {
+          "scenario": "C",
+          "seeds": [
+            100,
+            102
+          ]
+        },
+        {
+          "scenario": "D",
+          "seeds": [
+            100,
+            102
+          ]
+        },
+        {
+          "scenario": "E",
+          "seeds": [
+            100,
+            102
+          ]
+        },
+        {
+          "scenario": "F",
+          "seeds": [
+            100,
+            102
+          ]
+        },
+        {
+          "scenario": "G",
+          "seeds": [
+            100,
+            102
+          ]
+        },
+        {
+          "scenario": "H",
+          "seeds": [
+            100,
+            102
+          ]
+        },
+        {
+          "scenario": "I",
+          "seeds": [
+            100,
+            102
+          ]
+        },
+        {
+          "scenario": "J",
+          "seeds": [
+            100,
+            102
+          ]
+        },
+        {
+          "scenario": "K",
+          "seeds": [
+            100,
+            102
+          ]
+        },
+        {
+          "scenario": "L",
+          "seeds": [
+            100,
+            102
+          ]
+        }
+      ]
+    },
+    "dev3": {
+      "arms": [
+        "A_gain_frontier",
+        "proposed",
+        "proposed_k3",
+        "proposed_k30",
+        "abl_no_semantics"
+      ],
+      "conditions": [
+        {
+          "scenario": "A",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "B",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "C",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "D",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "E",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "F",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "G",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "H",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "I",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "J",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "K",
+          "seeds": [
+            100,
+            104
+          ]
+        },
+        {
+          "scenario": "L",
+          "seeds": [
+            100,
+            104
+          ]
+        }
+      ],
+      "kappa_rule": "Written before dev3 ran: among kappa in {3 (proposed_k3), 10 (proposed), 30 (proposed_k30)} choose the one with the most target-present successes on dev3; ties broken by the lower median sim time to verified success; any false success claim disqualifies a value. The chosen value is frozen into the held-out config."
+    },
+    "subst_smoke": {
+      "arms": [
+        "abl_substitution_gated",
+        "abl_substitution_ungated"
+      ],
+      "conditions": [
+        {
+          "scenario": "D",
+          "seeds": [
+            100,
+            101
+          ]
+        },
+        {
+          "scenario": "E",
+          "seeds": [
+            100,
+            101
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -335,7 +335,7 @@ def read_home_memory(path):
         return {"available": False, "error": "home memory could not be read"}
 
 
-def make_snapshot(api, scheduler, base, memory, home_path=None, providers=None):
+def make_snapshot(api, scheduler, base, memory, home_path=None, providers=None, toolbox=None):
     frame = memory.last_frame
     camera = None
     if frame is not None:
@@ -385,6 +385,12 @@ def make_snapshot(api, scheduler, base, memory, home_path=None, providers=None):
         if nodes
         else None
     )
+    semantic = getattr(toolbox, "semantic", None)
+    extra = (
+        {"semantic_graph": semantic.graph(round(base.time, 2)).to_dict()}
+        if semantic is not None
+        else {}
+    )
     return {
         "environment": "MuJoCo simulation (Unitree G1)",
         "provider": api.provider,
@@ -405,6 +411,7 @@ def make_snapshot(api, scheduler, base, memory, home_path=None, providers=None):
             else None
         ),
         "history": tasks,
+        **extra,
     }
 
 
@@ -522,7 +529,7 @@ def main():
             "odometry": base.odometry().tolist(),
             "stop_reason": base.stop_reason,
         },
-        snapshot=lambda: make_snapshot(api, sched, base, memory, args.memory, providers),
+        snapshot=lambda: make_snapshot(api, sched, base, memory, args.memory, providers, tb),
         web_root=ROOT / "web" / "out",
         provider=args.provider,
         validate_task=make_validator(providers, args.provider),

@@ -227,3 +227,49 @@ test('mixed map frames are not folded together; the exclusion is stated', () => 
   strictEqual(g.mapId, 'demo-home');
   ok(linkKeys(g).every((k) => !k.includes('crane')));
 });
+
+const semGraph = () => ({
+  frame: 'odometry',
+  nodes: [
+    { id: 'region:3', kind: 'region', attrs: { area_m2: 4, centroid: [1, 2], frame: 'odometry' } },
+    { id: 'unexplored', kind: 'unexplored', attrs: {} },
+    { id: 'object:7', kind: 'object', attrs: { labels: { mug: 1, cup: 3 }, position: [1, 1, 0.8], views: 4, frame: 'odometry' } },
+    { id: 'class:mug', kind: 'class', attrs: {} },
+    { id: 'category:kitchen', kind: 'category', attrs: {} },
+  ],
+  edges: [
+    { source: 'region:3', relation: 'contains', target: 'object:7', status: 'observed', provenance: 'perception:semantic_tracker', evidence: ['views:4'], time: 5, score: 4, score_kind: 'view_count', frame: 'odometry' },
+    { source: 'region:3', relation: 'may_contain', target: 'class:mug', status: 'hypothesis', provenance: 'belief:target_search', evidence: [], time: 6, score: 0.4, score_kind: 'share_of_search_mass', frame: null },
+    { source: 'unexplored', relation: 'may_contain', target: 'class:mug', status: 'hypothesis', provenance: 'belief:target_search', evidence: [], time: 6, score: 0.1, score_kind: 'share_of_search_mass', frame: null },
+    { source: 'class:mug', relation: 'typically_in', target: 'category:kitchen', status: 'knowledge', provenance: 'conceptnet', evidence: [], time: null, score: 0.8, score_kind: 'heuristic_association', frame: null },
+    { source: 'region:3', relation: 'contains', target: 'object:missing', status: 'observed', provenance: 'x', evidence: [], time: 1, score: 1, score_kind: 'view_count', frame: null },
+  ],
+  statuses: ['observed', 'hypothesis', 'knowledge'],
+});
+
+test('semantic graph payload converts to sem: nodes and status-typed links', () => {
+  const g = buildSceneGraphData({ ...snap(demoHome()), semantic_graph: semGraph() });
+  strictEqual(g.source, 'semantic-graph');
+  deepStrictEqual(idSet(g), new Set(['sem:region:3', 'sem:unexplored', 'sem:object:7', 'sem:class:mug', 'sem:category:kitchen']));
+  strictEqual(g.nodes.find((n) => n.id === 'sem:region:3').label, 'region 3');
+  strictEqual(g.nodes.find((n) => n.id === 'sem:object:7').label, 'cup 7');
+  strictEqual(g.nodes.find((n) => n.id === 'sem:class:mug').label, 'mug');
+  strictEqual(g.links.length, 4);  // dangling edge dropped
+  const hyp = g.links.filter((l) => l.type === 'hypothesis');
+  strictEqual(hyp.length, 2);
+  strictEqual(hyp[0].meta.score_kind, 'share_of_search_mass');
+  strictEqual(hyp[0].meta.relation, 'may_contain');
+  strictEqual(g.links.find((l) => l.type === 'observed').meta.provenance, 'perception:semantic_tracker');
+});
+
+test('hypothesis links never target object nodes when the payload respects that', () => {
+  const g = buildSceneGraphData({ ...snap(demoHome()), semantic_graph: semGraph() });
+  const types = new Map(g.nodes.map((n) => [n.id, n.type]));
+  for (const l of g.links.filter((x) => x.type === 'hypothesis')) ok(types.get(l.target) !== 'object');
+});
+
+test('empty semantic graph leaves the home-memory and session paths unchanged', () => {
+  const empty = { frame: 'odometry', nodes: [], edges: [], statuses: [] };
+  deepStrictEqual(buildSceneGraphData({ ...snap(demoHome()), semantic_graph: empty }), demoGraph());
+  strictEqual(buildSceneGraphData(snap(null, [{ id: 'a', position: [0, 0, 0] }])).source, 'session-candidates');
+});
