@@ -1,0 +1,402 @@
+{
+  "splits_run": {
+    "H1_main": 480,
+    "H1_ablations": 420,
+    "H2": 176,
+    "H3": 64,
+    "H4": 48
+  },
+  "invalid_episodes": {
+    "H1_main": {},
+    "H1_ablations": {},
+    "H2": {},
+    "H3": {},
+    "H4": {}
+  },
+  "G0_no_false_success": {
+    "per_split": {
+      "H1": {
+        "A_gain_frontier": [
+          0,
+          120
+        ],
+        "B_nearest_frontier": [
+          0,
+          120
+        ],
+        "C_room_priority": [
+          0,
+          120
+        ],
+        "abl_no_info_gain": [
+          0,
+          70
+        ],
+        "abl_no_memory": [
+          0,
+          10
+        ],
+        "abl_no_room_inference": [
+          0,
+          70
+        ],
+        "abl_no_semantic_term": [
+          0,
+          70
+        ],
+        "abl_no_semantics": [
+          0,
+          70
+        ],
+        "abl_single_view_verify": [
+          17,
+          50
+        ],
+        "proposed": [
+          0,
+          120
+        ]
+      },
+      "H2": {
+        "A_gain_frontier": [
+          0,
+          48
+        ],
+        "C_room_priority": [
+          0,
+          48
+        ],
+        "abl_no_semantics": [
+          0,
+          32
+        ],
+        "proposed": [
+          1,
+          48
+        ]
+      },
+      "H3": {
+        "A_gain_frontier": [
+          0,
+          24
+        ],
+        "abl_single_view_verify": [
+          10,
+          16
+        ],
+        "proposed": [
+          0,
+          24
+        ]
+      },
+      "H4": {
+        "A_gain_frontier": [
+          0,
+          24
+        ],
+        "proposed": [
+          0,
+          24
+        ]
+      }
+    },
+    "proposed_upper95": {
+      "H1": 0.0247,
+      "H3": 0.1173,
+      "H4": 0.1173
+    },
+    "pass": false,
+    "complete": true
+  },
+  "G1_unsupported_refused": {
+    "refused_without_motion": [
+      10,
+      10
+    ],
+    "pass": true
+  },
+  "G2_false_absence": {
+    "false_absence": [
+      0,
+      87,
+      [
+        0.0,
+        0.042
+      ]
+    ],
+    "pass": true
+  },
+  "G3_primary_efficiency": {
+    "paired": {
+      "pairs": 50,
+      "success": [
+        46,
+        44
+      ],
+      "discordant": {
+        "only_proposed": 4,
+        "only_A_gain_frontier": 2
+      },
+      "mcnemar_exact_p": 0.6875,
+      "median_time_diff_s": 0.0,
+      "median_time_diff_ci95": [
+        0.0,
+        0.0
+      ],
+      "wilcoxon_p": 0.7314,
+      "note": "time censored at the budget for unsuccessful episodes; negative = a faster"
+    },
+    "verdict": "no demonstrated improvement"
+  },
+  "G4_atypical_non_inferiority": {
+    "proposed": [
+      20,
+      20
+    ],
+    "A_gain_frontier": [
+      20,
+      20
+    ],
+    "paired": {
+      "pairs": 20,
+      "success": [
+        20,
+        20
+      ],
+      "discordant": {
+        "only_proposed": 0,
+        "only_A_gain_frontier": 0
+      },
+      "mcnemar_exact_p": 1.0,
+      "median_time_diff_s": 0.0,
+      "median_time_diff_ci95": [
+        -13.4,
+        0.0
+      ],
+      "wilcoxon_p": 0.1934,
+      "note": "time censored at the budget for unsuccessful episodes; negative = a faster"
+    },
+    "pass": true
+  },
+  "G5_fault_injection_validity": {
+    "ungated_false_success": [
+      7,
+      40
+    ],
+    "gated_false_success": [
+      0,
+      40
+    ],
+    "gated_rejections": 7,
+    "pass": true
+  },
+  "G6_verification_ablation": {
+    "H1": {
+      "scenarios": [
+        "B",
+        "E",
+        "F",
+        "H",
+        "K"
+      ],
+      "abl_single_view_verify": [
+        17,
+        50
+      ],
+      "proposed_same_scenarios": [
+        0,
+        50
+      ]
+    },
+    "H3": {
+      "scenarios": [
+        "B",
+        "E",
+        "F",
+        "H"
+      ],
+      "abl_single_view_verify": [
+        10,
+        16
+      ],
+      "proposed_same_scenarios": [
+        0,
+        16
+      ]
+    }
+  },
+  "G7_generalisation": {
+    "proposed_false_success": [
+      1,
+      48
+    ],
+    "success_target_present_by_class": {
+      "bathtub": {
+        "A_gain_frontier": [
+          3,
+          4
+        ],
+        "C_room_priority": [
+          3,
+          4
+        ],
+        "abl_no_semantics": [
+          3,
+          4
+        ],
+        "proposed": [
+          4,
+          4
+        ]
+      },
+      "bed": {
+        "A_gain_frontier": [
+          4,
+          4
+        ],
+        "C_room_priority": [
+          4,
+          4
+        ],
+        "abl_no_semantics": [
+          4,
+          4
+        ],
+        "proposed": [
+          4,
+          4
+        ]
+      },
+      "refrigerator": {
+        "A_gain_frontier": [
+          4,
+          4
+        ],
+        "C_room_priority": [
+          3,
+          4
+        ],
+        "abl_no_semantics": [
+          4,
+          4
+        ],
+        "proposed": [
+          4,
+          4
+        ]
+      },
+      "sofa": {
+        "A_gain_frontier": [
+          2,
+          4
+        ],
+        "C_room_priority": [
+          1,
+          4
+        ],
+        "abl_no_semantics": [
+          2,
+          4
+        ],
+        "proposed": [
+          3,
+          4
+        ]
+      },
+      "stove": {
+        "A_gain_frontier": [
+          4,
+          4
+        ],
+        "C_room_priority": [
+          4,
+          4
+        ],
+        "abl_no_semantics": [
+          3,
+          4
+        ],
+        "proposed": [
+          4,
+          4
+        ]
+      },
+      "toilet": {
+        "A_gain_frontier": [
+          4,
+          4
+        ],
+        "C_room_priority": [
+          4,
+          4
+        ],
+        "abl_no_semantics": [
+          4,
+          4
+        ],
+        "proposed": [
+          4,
+          4
+        ]
+      },
+      "washing_machine": {
+        "A_gain_frontier": [
+          4,
+          4
+        ],
+        "C_room_priority": [
+          4,
+          4
+        ],
+        "abl_no_semantics": [
+          4,
+          4
+        ],
+        "proposed": [
+          4,
+          4
+        ]
+      },
+      "workbench": {
+        "A_gain_frontier": [
+          4,
+          4
+        ],
+        "C_room_priority": [
+          3,
+          4
+        ],
+        "abl_no_semantics": [
+          2,
+          4
+        ],
+        "proposed": [
+          4,
+          4
+        ]
+      }
+    },
+    "pass": false
+  },
+  "G8_embodiment": {
+    "proposed_false_success": [
+      0,
+      24
+    ],
+    "falls": {
+      "A_gain_frontier": 0,
+      "proposed": 0
+    },
+    "success_target_present": {
+      "A_gain_frontier": [
+        13,
+        15
+      ],
+      "proposed": [
+        14,
+        15
+      ]
+    },
+    "pass": true
+  }
+}

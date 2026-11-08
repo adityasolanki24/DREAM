@@ -6,6 +6,9 @@ the proposed method, and navigation reported apart from semantic correctness.
 Read-only analysis of episodes.jsonl files. Statistics:
 - proportions with Wilson 95% intervals; zero false claims also get the one-sided 95% upper
   bound (rule of three ~ 3/n), so "0 of n" is never presented as a rate of zero;
+- room inference: thresholded labels ("accuracy_when_decided") and the top category of each
+  region with evidence ("top1_accuracy"), overall and by true room type (heuristic weights,
+  not calibrated probabilities);
 - paired comparison on identical homes (scenario, target, generator, noise, seed): exact
   McNemar test on success, and time to verified success censored at the budget (an
   unsuccessful episode counts as the full budget) with a Wilcoxon signed-rank test and a
@@ -74,9 +77,17 @@ def arm_table(rows: list[dict]) -> dict:
         succ = sum(r["result"] == "success" for r in present)
         false = sum(r["result"] == "false_success" for r in valid)
         rooms = Counter()
+        by_type: dict[str, Counter] = defaultdict(Counter)
         for r in valid:
-            for k in ("correct", "incorrect", "ambiguous"):
+            for k in ("correct", "incorrect", "ambiguous", "top_correct", "top_with_evidence"):
                 rooms[k] += (r.get("rooms") or {}).get(k, 0)
+            for reg in (r.get("rooms") or {}).get("regions", []):
+                t = by_type[reg["true"]]
+                t["regions"] += 1
+                t["top_correct"] += reg.get("top_correct") is True
+                t["top_with_evidence"] += reg.get("top_correct") is not None
+                t["classified"] += reg.get("correct") is not None
+                t["correct"] += reg.get("correct") is True
         decided = rooms["correct"] + rooms["incorrect"]
         times = [r["sim_s"] for r in present if r["result"] == "success"]
         out[arm] = {
@@ -108,6 +119,12 @@ def arm_table(rows: list[dict]) -> dict:
             "rooms": {
                 **rooms,
                 "accuracy_when_decided": round(rooms["correct"] / decided, 3) if decided else None,
+                "top1_accuracy": (
+                    round(rooms["top_correct"] / rooms["top_with_evidence"], 3)
+                    if rooms["top_with_evidence"]
+                    else None
+                ),
+                "by_true_type": {k: dict(v) for k, v in sorted(by_type.items())},
             },  # fmt: skip
             "crashes": res.get("crash", 0),
             "scene_failures": res.get("scene_failure", 0),

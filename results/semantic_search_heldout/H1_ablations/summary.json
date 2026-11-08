@@ -1,0 +1,961 @@
+{
+  "meta": {
+    "config": {
+      "name": "semantic_search_heldout",
+      "status": "frozen",
+      "frozen_date": "2026-11-08",
+      "frozen_commit": "parent of the commit that sets this field: 7c31f5afab841e503d4f5e8090878a062c381211",
+      "evidence_class": "held-out seeds (H1), shifted generator and target classes never used in development (H2), degraded detector (H3), pretrained G1 whole-body controller (H4). Development used runner seeds [100, 104) only, with the refrigerator as the only target; generator tests used explicit home seeds 0-29. Runner seeds here are disjoint from both.",
+      "labels": [
+        "Odometry is ORACLE-ASSISTED (true increments plus noise, gyro bias std 0.002 rad/s, as dream/sim/g1_mobile.py).",
+        "The semantic detector is ORACLE-ASSISTED: rendered segmentation plus an ASSUMED, uncalibrated noise model (dream/sim/semantic_sensor.py); NOMINAL except H3 (DEGRADED).",
+        "H1-H3 use the KINEMATIC SURROGATE base (dream/sim/kinematic_base.py: no legged dynamics, no falls); H4 uses the pretrained whole-body controller in MuJoCo.",
+        "Room-type knowledge: ConceptNet 5.7 extract (third_party/household_knowledge), heuristic associations, not calibrated probabilities.",
+        "Remembered sightings (scenario I) are placed in the odometry frame with the true start pose (oracle-assisted initial localisation).",
+        "Requests are read by the explicit grammar (dream/tools/intent.py); no language model runs in these episodes."
+      ],
+      "navigator": "classic",
+      "time_budget_s": 600,
+      "max_steps": 80,
+      "weights": {
+        "kappa": 3.0,
+        "ig": 1.0,
+        "gamma": 1.0
+      },
+      "verifier": {
+        "min_support": 3,
+        "min_viewpoints": 2,
+        "min_purity": 0.6,
+        "close_range": 2.5,
+        "max_miss_ratio": 0.34,
+        "reach_distance": 1.2,
+        "reach_facing_deg": 35.0,
+        "fresh_s": 6.0
+      },
+      "arms": {
+        "proposed": {
+          "policy": "utility"
+        },
+        "A_gain_frontier": {
+          "policy": "frontier_gain",
+          "semantic": false,
+          "memory": false,
+          "_note": "Baseline A: DREAM's existing explorer (gain - cost frontiers), no semantic knowledge, no memory; same detector, verifier and candidate verification."
+        },
+        "B_nearest_frontier": {
+          "policy": "frontier_nearest",
+          "semantic": false,
+          "memory": false,
+          "_note": "Baseline B: classical nearest-frontier exploration."
+        },
+        "C_room_priority": {
+          "policy": "room_priority",
+          "memory": false,
+          "_note": "Baseline C: semantic room-priority search (regions by inferred association with the target, each covered before the next)."
+        },
+        "abl_no_semantics": {
+          "policy": "utility",
+          "semantic": false,
+          "_note": "uniform knowledge: the belief has no room priors",
+          "scenarios": [
+            "B",
+            "C",
+            "D",
+            "F",
+            "G",
+            "J",
+            "K"
+          ]
+        },
+        "abl_no_room_inference": {
+          "policy": "utility",
+          "room_inference": false,
+          "_note": "object co-occurrence within 2.5 m instead of room regions",
+          "scenarios": [
+            "B",
+            "C",
+            "D",
+            "F",
+            "G",
+            "J",
+            "K"
+          ]
+        },
+        "abl_no_info_gain": {
+          "policy": "utility",
+          "weights": {
+            "ig": 0.0
+          },
+          "scenarios": [
+            "B",
+            "C",
+            "D",
+            "F",
+            "G",
+            "J",
+            "K"
+          ]
+        },
+        "abl_no_semantic_term": {
+          "policy": "utility",
+          "weights": {
+            "kappa": 0.0
+          },
+          "_note": "frontier explorer plus in-room inspection points, no target-belief term",
+          "scenarios": [
+            "B",
+            "C",
+            "D",
+            "F",
+            "G",
+            "J",
+            "K"
+          ]
+        },
+        "abl_no_memory": {
+          "policy": "utility",
+          "memory": false,
+          "scenarios": [
+            "I"
+          ]
+        },
+        "abl_single_view_verify": {
+          "policy": "utility",
+          "verifier": {
+            "min_support": 1,
+            "min_viewpoints": 1,
+            "min_purity": 0.0,
+            "max_miss_ratio": 1000.0
+          },
+          "_note": "verification ablation: accept the first detection",
+          "scenarios": [
+            "B",
+            "E",
+            "F",
+            "H",
+            "K"
+          ]
+        },
+        "abl_substitution_gated": {
+          "policy": "utility",
+          "substitute_after_s": 120,
+          "gate": true,
+          "scenarios": [
+            "D",
+            "E",
+            "H",
+            "J"
+          ],
+          "_note": "FAULT INJECTION: claims success on reaching the target's typical room; original-request gate on"
+        },
+        "abl_substitution_ungated": {
+          "policy": "utility",
+          "substitute_after_s": 120,
+          "gate": false,
+          "scenarios": [
+            "D",
+            "E",
+            "H",
+            "J"
+          ],
+          "_note": "FAULT INJECTION without the original-request record (the 7 Nov failure mode)"
+        }
+      },
+      "splits": {
+        "H1": {
+          "_note": "within-distribution held-out homes: nominal generator, refrigerator, all scenarios",
+          "arms": [
+            "proposed",
+            "A_gain_frontier",
+            "B_nearest_frontier",
+            "C_room_priority",
+            "abl_no_semantics",
+            "abl_no_room_inference",
+            "abl_no_info_gain",
+            "abl_no_semantic_term",
+            "abl_no_memory",
+            "abl_single_view_verify",
+            "abl_substitution_gated",
+            "abl_substitution_ungated"
+          ],
+          "conditions": [
+            {
+              "scenario": "A",
+              "seeds": [
+                5000,
+                5010
+              ]
+            },
+            {
+              "scenario": "B",
+              "seeds": [
+                5000,
+                5010
+              ]
+            },
+            {
+              "scenario": "C",
+              "seeds": [
+                5000,
+                5010
+              ]
+            },
+            {
+              "scenario": "D",
+              "seeds": [
+                5000,
+                5010
+              ]
+            },
+            {
+              "scenario": "E",
+              "seeds": [
+                5000,
+                5010
+              ]
+            },
+            {
+              "scenario": "F",
+              "seeds": [
+                5000,
+                5010
+              ]
+            },
+            {
+              "scenario": "G",
+              "seeds": [
+                5000,
+                5010
+              ]
+            },
+            {
+              "scenario": "H",
+              "seeds": [
+                5000,
+                5010
+              ]
+            },
+            {
+              "scenario": "I",
+              "seeds": [
+                5000,
+                5010
+              ]
+            },
+            {
+              "scenario": "J",
+              "seeds": [
+                5000,
+                5010
+              ]
+            },
+            {
+              "scenario": "K",
+              "seeds": [
+                5000,
+                5010
+              ]
+            },
+            {
+              "scenario": "L",
+              "seeds": [
+                5000,
+                5010
+              ]
+            }
+          ]
+        },
+        "H2": {
+          "_note": "generalisation: shifted generator (larger homes, other furnishing and sizes) and seven target classes never used in development",
+          "arms": [
+            "proposed",
+            "A_gain_frontier",
+            "C_room_priority",
+            "abl_no_semantics"
+          ],
+          "conditions": [
+            {
+              "scenario": "B",
+              "target": "refrigerator",
+              "generator": "shifted",
+              "seeds": [
+                6000,
+                6002
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "refrigerator",
+              "generator": "shifted",
+              "seeds": [
+                6000,
+                6002
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "refrigerator",
+              "generator": "shifted",
+              "seeds": [
+                6000,
+                6002
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "bed",
+              "generator": "shifted",
+              "seeds": [
+                6000,
+                6002
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "bed",
+              "generator": "shifted",
+              "seeds": [
+                6000,
+                6002
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "bed",
+              "generator": "shifted",
+              "seeds": [
+                6000,
+                6002
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "toilet",
+              "generator": "shifted",
+              "seeds": [
+                6000,
+                6002
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "toilet",
+              "generator": "shifted",
+              "seeds": [
+                6000,
+                6002
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "toilet",
+              "generator": "shifted",
+              "seeds": [
+                6000,
+                6002
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "stove",
+              "generator": "shifted",
+              "seeds": [
+                6000,
+                6002
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "stove",
+              "generator": "shifted",
+              "seeds": [
+                6000,
+                6002
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "stove",
+              "generator": "shifted",
+              "seeds": [
+                6000,
+                6002
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "washing_machine",
+              "generator": "shifted",
+              "seeds": [
+                6000,
+                6002
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "washing_machine",
+              "generator": "shifted",
+              "seeds": [
+                6000,
+                6002
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "washing_machine",
+              "generator": "shifted",
+              "seeds": [
+                6000,
+                6002
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "workbench",
+              "generator": "shifted",
+              "seeds": [
+                6000,
+                6002
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "workbench",
+              "generator": "shifted",
+              "seeds": [
+                6000,
+                6002
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "workbench",
+              "generator": "shifted",
+              "seeds": [
+                6000,
+                6002
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "bathtub",
+              "generator": "shifted",
+              "seeds": [
+                6000,
+                6002
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "bathtub",
+              "generator": "shifted",
+              "seeds": [
+                6000,
+                6002
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "bathtub",
+              "generator": "shifted",
+              "seeds": [
+                6000,
+                6002
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "sofa",
+              "generator": "shifted",
+              "seeds": [
+                6000,
+                6002
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "sofa",
+              "generator": "shifted",
+              "seeds": [
+                6000,
+                6002
+              ]
+            },
+            {
+              "scenario": "E",
+              "target": "sofa",
+              "generator": "shifted",
+              "seeds": [
+                6000,
+                6002
+              ]
+            }
+          ]
+        },
+        "H3": {
+          "_note": "perception shift: DEGRADED detector noise (double confusion, weaker detection, more false positives)",
+          "arms": [
+            "proposed",
+            "A_gain_frontier",
+            "abl_single_view_verify"
+          ],
+          "conditions": [
+            {
+              "scenario": "B",
+              "noise": "degraded",
+              "seeds": [
+                7000,
+                7004
+              ]
+            },
+            {
+              "scenario": "C",
+              "noise": "degraded",
+              "seeds": [
+                7000,
+                7004
+              ]
+            },
+            {
+              "scenario": "E",
+              "noise": "degraded",
+              "seeds": [
+                7000,
+                7004
+              ]
+            },
+            {
+              "scenario": "F",
+              "noise": "degraded",
+              "seeds": [
+                7000,
+                7004
+              ]
+            },
+            {
+              "scenario": "G",
+              "noise": "degraded",
+              "seeds": [
+                7000,
+                7004
+              ]
+            },
+            {
+              "scenario": "H",
+              "noise": "degraded",
+              "seeds": [
+                7000,
+                7004
+              ]
+            }
+          ]
+        },
+        "H4": {
+          "_note": "embodiment: the pretrained whole-body controller walking the G1 in MuJoCo, same homes logic",
+          "base": "g1",
+          "arms": [
+            "proposed",
+            "A_gain_frontier"
+          ],
+          "conditions": [
+            {
+              "scenario": "A",
+              "seeds": [
+                8000,
+                8003
+              ]
+            },
+            {
+              "scenario": "B",
+              "seeds": [
+                8000,
+                8003
+              ]
+            },
+            {
+              "scenario": "C",
+              "seeds": [
+                8000,
+                8003
+              ]
+            },
+            {
+              "scenario": "D",
+              "seeds": [
+                8000,
+                8003
+              ]
+            },
+            {
+              "scenario": "E",
+              "seeds": [
+                8000,
+                8003
+              ]
+            },
+            {
+              "scenario": "G",
+              "seeds": [
+                8000,
+                8003
+              ]
+            },
+            {
+              "scenario": "H",
+              "seeds": [
+                8000,
+                8003
+              ]
+            },
+            {
+              "scenario": "L",
+              "seeds": [
+                8000,
+                8003
+              ]
+            }
+          ]
+        }
+      },
+      "gates": {
+        "_note": "Pre-registered with the freeze. Counts are over valid episodes (crashes and scene failures are reported separately and never counted as passes). 'Fault-injection' arms are excluded from G0.",
+        "G0_no_false_success": "proposed: 0 false success claims in every split (H1-H4); every other non-fault-injection arm's count is reported",
+        "G1_unsupported_refused": "proposed: every scenario-L episode ends goal_unsupported with no motion",
+        "G2_false_absence": "proposed: false_absence <= 5% of target-present episodes in H1",
+        "G3_primary_efficiency": "proposed vs A_gain_frontier, H1 target-present typical-location scenarios (B, C, F, G, K; n = 50 pairs): improvement is claimed only if the paired Wilcoxon test on time to verified success (censored at the budget) has p < 0.05 with a negative median difference; otherwise 'no demonstrated improvement'",
+        "G4_atypical_non_inferiority": "proposed successes on H1 D and J >= A_gain_frontier successes - 2 (n = 20 each arm)",
+        "G5_fault_injection_validity": "abl_substitution_ungated produces >= 1 false success in H1 (the injected failure is real); abl_substitution_gated produces 0",
+        "G6_verification_ablation": "reported, not gated: abl_single_view_verify false successes in H1 and H3 against proposed",
+        "G7_generalisation": "proposed: 0 false success in H2; success vs A_gain_frontier reported per target class (descriptive, n = 6 per class and arm)",
+        "G8_embodiment": "proposed: 0 false success and 0 falls in H4; success vs A_gain_frontier reported (descriptive, n = 24 per arm)"
+      },
+      "analysis": "experiments/summarise_semantic_search.py over each split's episodes.jsonl; statistics as in that module's docstring",
+      "kappa_selection": "dev3 (results/semantic_search_dev/dev3, 48 development homes, runner seeds 100-103): all three kappa values and Baseline A succeeded on 33 of 34 target-present homes with no false claims; the pre-registered tie-break (lower median sim time to verified success) chose kappa = 3 (51.5 s) over 10 (53.7 s) and 30 (64.0 s). Development showed no difference from Baseline A (51.5 s): no improvement is expected or claimed before the held-out run."
+    },
+    "split": "H1",
+    "arms": [
+      "abl_no_semantics",
+      "abl_no_room_inference",
+      "abl_no_info_gain",
+      "abl_no_semantic_term",
+      "abl_no_memory",
+      "abl_single_view_verify",
+      "abl_substitution_gated",
+      "abl_substitution_ungated"
+    ],
+    "base": "kinematic",
+    "git_sha": "9d08c27cec0619de66342340a2e4e39acb9239b3",
+    "dream_dirty_at_start": false,
+    "renderer": null,
+    "machine": "Windows-11-10.0.26100-SP0",
+    "jobs": 420,
+    "wall_s": 4819.4
+  },
+  "by_arm_scenario": {
+    "abl_no_info_gain|B": {
+      "n": 10,
+      "success": 10,
+      "median_success_sim_s": 51.18,
+      "mean_path_m": 8.3
+    },
+    "abl_no_info_gain|C": {
+      "n": 10,
+      "success": 9,
+      "missed": 1,
+      "median_success_sim_s": 124.18,
+      "mean_path_m": 20.5
+    },
+    "abl_no_info_gain|D": {
+      "n": 10,
+      "success": 10,
+      "median_success_sim_s": 57.92,
+      "mean_path_m": 8.8
+    },
+    "abl_no_info_gain|F": {
+      "n": 10,
+      "success": 10,
+      "median_success_sim_s": 43.28,
+      "mean_path_m": 5.0
+    },
+    "abl_no_info_gain|G": {
+      "n": 10,
+      "success": 9,
+      "missed": 1,
+      "median_success_sim_s": 77.64,
+      "mean_path_m": 15.0
+    },
+    "abl_no_info_gain|J": {
+      "n": 10,
+      "success": 10,
+      "median_success_sim_s": 40.82,
+      "mean_path_m": 4.2
+    },
+    "abl_no_info_gain|K": {
+      "n": 10,
+      "success": 10,
+      "median_success_sim_s": 56.74,
+      "mean_path_m": 9.3
+    },
+    "abl_no_memory|I": {
+      "n": 10,
+      "success": 7,
+      "correct_refusal": 3,
+      "median_success_sim_s": 56.84,
+      "mean_path_m": 28.2
+    },
+    "abl_no_room_inference|B": {
+      "n": 10,
+      "success": 10,
+      "median_success_sim_s": 49.94,
+      "mean_path_m": 8.4
+    },
+    "abl_no_room_inference|C": {
+      "n": 10,
+      "success": 9,
+      "missed": 1,
+      "median_success_sim_s": 76.54,
+      "mean_path_m": 22.9
+    },
+    "abl_no_room_inference|D": {
+      "n": 10,
+      "success": 10,
+      "median_success_sim_s": 56.84,
+      "mean_path_m": 10.3
+    },
+    "abl_no_room_inference|F": {
+      "n": 10,
+      "success": 10,
+      "median_success_sim_s": 41.92,
+      "mean_path_m": 7.5
+    },
+    "abl_no_room_inference|G": {
+      "n": 10,
+      "success": 8,
+      "missed": 2,
+      "median_success_sim_s": 78.54,
+      "mean_path_m": 22.8
+    },
+    "abl_no_room_inference|J": {
+      "n": 10,
+      "success": 10,
+      "median_success_sim_s": 40.94,
+      "mean_path_m": 6.3
+    },
+    "abl_no_room_inference|K": {
+      "n": 10,
+      "success": 10,
+      "median_success_sim_s": 61.24,
+      "mean_path_m": 12.7
+    },
+    "abl_no_semantic_term|B": {
+      "n": 10,
+      "success": 10,
+      "median_success_sim_s": 45.84,
+      "mean_path_m": 7.7
+    },
+    "abl_no_semantic_term|C": {
+      "n": 10,
+      "success": 9,
+      "missed": 1,
+      "median_success_sim_s": 76.54,
+      "mean_path_m": 27.7
+    },
+    "abl_no_semantic_term|D": {
+      "n": 10,
+      "success": 10,
+      "median_success_sim_s": 51.84,
+      "mean_path_m": 9.3
+    },
+    "abl_no_semantic_term|F": {
+      "n": 10,
+      "success": 10,
+      "median_success_sim_s": 41.92,
+      "mean_path_m": 7.6
+    },
+    "abl_no_semantic_term|G": {
+      "n": 10,
+      "success": 10,
+      "median_success_sim_s": 58.24,
+      "mean_path_m": 12.2
+    },
+    "abl_no_semantic_term|J": {
+      "n": 10,
+      "success": 10,
+      "median_success_sim_s": 51.04,
+      "mean_path_m": 9.0
+    },
+    "abl_no_semantic_term|K": {
+      "n": 10,
+      "success": 10,
+      "median_success_sim_s": 57.54,
+      "mean_path_m": 12.1
+    },
+    "abl_no_semantics|B": {
+      "n": 10,
+      "success": 10,
+      "median_success_sim_s": 52.44,
+      "mean_path_m": 9.4
+    },
+    "abl_no_semantics|C": {
+      "n": 10,
+      "success": 9,
+      "missed": 1,
+      "median_success_sim_s": 76.54,
+      "mean_path_m": 24.0
+    },
+    "abl_no_semantics|D": {
+      "n": 10,
+      "success": 10,
+      "median_success_sim_s": 51.84,
+      "mean_path_m": 9.6
+    },
+    "abl_no_semantics|F": {
+      "n": 10,
+      "success": 10,
+      "median_success_sim_s": 41.92,
+      "mean_path_m": 7.5
+    },
+    "abl_no_semantics|G": {
+      "n": 10,
+      "success": 7,
+      "missed": 3,
+      "median_success_sim_s": 43.04,
+      "mean_path_m": 20.8
+    },
+    "abl_no_semantics|J": {
+      "n": 10,
+      "success": 10,
+      "median_success_sim_s": 40.94,
+      "mean_path_m": 6.5
+    },
+    "abl_no_semantics|K": {
+      "n": 10,
+      "success": 10,
+      "median_success_sim_s": 64.04,
+      "mean_path_m": 11.9
+    },
+    "abl_single_view_verify|B": {
+      "n": 10,
+      "success": 9,
+      "false_success": 1,
+      "median_success_sim_s": 35.04,
+      "mean_path_m": 7.4
+    },
+    "abl_single_view_verify|E": {
+      "n": 10,
+      "false_success": 7,
+      "correct_refusal": 3,
+      "median_success_sim_s": null,
+      "mean_path_m": 34.3
+    },
+    "abl_single_view_verify|F": {
+      "n": 10,
+      "success": 10,
+      "median_success_sim_s": 37.34,
+      "mean_path_m": 7.3
+    },
+    "abl_single_view_verify|H": {
+      "n": 10,
+      "correct_refusal": 3,
+      "false_success": 7,
+      "median_success_sim_s": null,
+      "mean_path_m": 25.7
+    },
+    "abl_single_view_verify|K": {
+      "n": 10,
+      "success": 8,
+      "false_success": 2,
+      "median_success_sim_s": 61.24,
+      "mean_path_m": 11.2
+    },
+    "abl_substitution_gated|D": {
+      "n": 10,
+      "success": 9,
+      "missed": 1,
+      "median_success_sim_s": 39.64,
+      "mean_path_m": 9.6
+    },
+    "abl_substitution_gated|E": {
+      "n": 10,
+      "correct_refusal": 10,
+      "median_success_sim_s": null,
+      "mean_path_m": 46.0
+    },
+    "abl_substitution_gated|H": {
+      "n": 10,
+      "correct_refusal": 10,
+      "median_success_sim_s": null,
+      "mean_path_m": 56.3
+    },
+    "abl_substitution_gated|J": {
+      "n": 10,
+      "success": 10,
+      "median_success_sim_s": 40.94,
+      "mean_path_m": 6.5
+    },
+    "abl_substitution_ungated|D": {
+      "n": 10,
+      "success": 9,
+      "false_success": 1,
+      "median_success_sim_s": 39.64,
+      "mean_path_m": 9.6
+    },
+    "abl_substitution_ungated|E": {
+      "n": 10,
+      "correct_refusal": 5,
+      "false_success": 5,
+      "median_success_sim_s": null,
+      "mean_path_m": 46.0
+    },
+    "abl_substitution_ungated|H": {
+      "n": 10,
+      "correct_refusal": 9,
+      "false_success": 1,
+      "median_success_sim_s": null,
+      "mean_path_m": 56.3
+    },
+    "abl_substitution_ungated|J": {
+      "n": 10,
+      "success": 10,
+      "median_success_sim_s": 40.94,
+      "mean_path_m": 6.5
+    }
+  },
+  "totals": {
+    "abl_no_semantics": {
+      "success": 66,
+      "missed": 4
+    },
+    "abl_no_room_inference": {
+      "success": 67,
+      "missed": 3
+    },
+    "abl_no_info_gain": {
+      "success": 68,
+      "missed": 2
+    },
+    "abl_no_semantic_term": {
+      "success": 69,
+      "missed": 1
+    },
+    "abl_single_view_verify": {
+      "success": 27,
+      "false_success": 17,
+      "correct_refusal": 6
+    },
+    "abl_substitution_gated": {
+      "success": 19,
+      "missed": 1,
+      "correct_refusal": 20
+    },
+    "abl_substitution_ungated": {
+      "success": 19,
+      "false_success": 7,
+      "correct_refusal": 14
+    },
+    "abl_no_memory": {
+      "success": 7,
+      "correct_refusal": 3
+    }
+  }
+}

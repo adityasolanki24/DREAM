@@ -1,0 +1,446 @@
+{
+  "reference": "rooms whose FURNISHING_NOMINAL lists the class (dream/sim/home.py)",
+  "classes": 29,
+  "benchmark_targets": [
+    "refrigerator",
+    "bed",
+    "toilet",
+    "stove",
+    "washing_machine",
+    "workbench",
+    "bathtub",
+    "sofa"
+  ],
+  "totals": {
+    "conceptnet": {
+      "all_classes": {
+        "hit": 17,
+        "no knowledge": 4,
+        "miss": 6,
+        "no reference": 2
+      },
+      "benchmark_targets": {
+        "hit": 6,
+        "miss": 2
+      }
+    },
+    "qwen": {
+      "all_classes": {
+        "hit": 23,
+        "tie": 2,
+        "miss": 2,
+        "no reference": 2
+      },
+      "benchmark_targets": {
+        "hit": 8
+      }
+    }
+  },
+  "per_class": {
+    "refrigerator": {
+      "reference": [
+        "kitchen"
+      ],
+      "conceptnet": {
+        "top": "kitchen",
+        "result": "hit"
+      },
+      "qwen": {
+        "top": "kitchen",
+        "result": "hit"
+      }
+    },
+    "countertop": {
+      "reference": [
+        "kitchen"
+      ],
+      "conceptnet": {
+        "top": null,
+        "result": "no knowledge"
+      },
+      "qwen": {
+        "top": "kitchen",
+        "result": "hit"
+      }
+    },
+    "sink": {
+      "reference": [
+        "kitchen"
+      ],
+      "conceptnet": {
+        "top": "kitchen",
+        "result": "hit"
+      },
+      "qwen": {
+        "top": "kitchen",
+        "result": "hit"
+      }
+    },
+    "stove": {
+      "reference": [
+        "kitchen"
+      ],
+      "conceptnet": {
+        "top": "living_room",
+        "result": "miss"
+      },
+      "qwen": {
+        "top": "kitchen",
+        "result": "hit"
+      }
+    },
+    "kitchen_cabinet": {
+      "reference": [
+        "kitchen"
+      ],
+      "conceptnet": {
+        "top": "pantry",
+        "result": "miss"
+      },
+      "qwen": {
+        "top": [
+          "kitchen",
+          "pantry"
+        ],
+        "result": "tie"
+      }
+    },
+    "dining_table": {
+      "reference": [
+        "kitchen"
+      ],
+      "conceptnet": {
+        "top": "dining_room",
+        "result": "miss"
+      },
+      "qwen": {
+        "top": "dining_room",
+        "result": "miss"
+      }
+    },
+    "chair": {
+      "reference": [],
+      "conceptnet": {
+        "top": null,
+        "result": "no reference"
+      },
+      "qwen": {
+        "top": null,
+        "result": "no reference"
+      }
+    },
+    "microwave": {
+      "reference": [
+        "kitchen"
+      ],
+      "conceptnet": {
+        "top": "kitchen",
+        "result": "hit"
+      },
+      "qwen": {
+        "top": "kitchen",
+        "result": "hit"
+      }
+    },
+    "bed": {
+      "reference": [
+        "bedroom"
+      ],
+      "conceptnet": {
+        "top": "bedroom",
+        "result": "hit"
+      },
+      "qwen": {
+        "top": "bedroom",
+        "result": "hit"
+      }
+    },
+    "wardrobe": {
+      "reference": [
+        "basement",
+        "bedroom",
+        "closet",
+        "pantry",
+        "storage_room"
+      ],
+      "conceptnet": {
+        "top": "bedroom",
+        "result": "hit"
+      },
+      "qwen": {
+        "top": "bedroom",
+        "result": "hit"
+      }
+    },
+    "nightstand": {
+      "reference": [
+        "bedroom"
+      ],
+      "conceptnet": {
+        "top": "bedroom",
+        "result": "hit"
+      },
+      "qwen": {
+        "top": "bedroom",
+        "result": "hit"
+      }
+    },
+    "desk": {
+      "reference": [
+        "bedroom",
+        "office"
+      ],
+      "conceptnet": {
+        "top": "office",
+        "result": "hit"
+      },
+      "qwen": {
+        "top": "office",
+        "result": "hit"
+      }
+    },
+    "office_chair": {
+      "reference": [],
+      "conceptnet": {
+        "top": null,
+        "result": "no reference"
+      },
+      "qwen": {
+        "top": null,
+        "result": "no reference"
+      }
+    },
+    "bookshelf": {
+      "reference": [
+        "living_room",
+        "office"
+      ],
+      "conceptnet": {
+        "top": "bedroom",
+        "result": "miss"
+      },
+      "qwen": {
+        "top": "living_room",
+        "result": "hit"
+      }
+    },
+    "sofa": {
+      "reference": [
+        "living_room"
+      ],
+      "conceptnet": {
+        "top": "living_room",
+        "result": "hit"
+      },
+      "qwen": {
+        "top": "living_room",
+        "result": "hit"
+      }
+    },
+    "coffee_table": {
+      "reference": [
+        "living_room"
+      ],
+      "conceptnet": {
+        "top": "living_room",
+        "result": "hit"
+      },
+      "qwen": {
+        "top": "living_room",
+        "result": "hit"
+      }
+    },
+    "tv_stand": {
+      "reference": [
+        "living_room"
+      ],
+      "conceptnet": {
+        "top": null,
+        "result": "no knowledge"
+      },
+      "qwen": {
+        "top": "living_room",
+        "result": "hit"
+      }
+    },
+    "armchair": {
+      "reference": [
+        "living_room"
+      ],
+      "conceptnet": {
+        "top": "living_room",
+        "result": "hit"
+      },
+      "qwen": {
+        "top": "living_room",
+        "result": "hit"
+      }
+    },
+    "toilet": {
+      "reference": [
+        "bathroom"
+      ],
+      "conceptnet": {
+        "top": "bathroom",
+        "result": "hit"
+      },
+      "qwen": {
+        "top": "bathroom",
+        "result": "hit"
+      }
+    },
+    "washbasin": {
+      "reference": [
+        "bathroom",
+        "laundry_room"
+      ],
+      "conceptnet": {
+        "top": "bathroom",
+        "result": "hit"
+      },
+      "qwen": {
+        "top": "bathroom",
+        "result": "hit"
+      }
+    },
+    "shower": {
+      "reference": [
+        "bathroom"
+      ],
+      "conceptnet": {
+        "top": "bathroom",
+        "result": "hit"
+      },
+      "qwen": {
+        "top": "bathroom",
+        "result": "hit"
+      }
+    },
+    "bathtub": {
+      "reference": [
+        "bathroom"
+      ],
+      "conceptnet": {
+        "top": "bathroom",
+        "result": "hit"
+      },
+      "qwen": {
+        "top": "bathroom",
+        "result": "hit"
+      }
+    },
+    "workbench": {
+      "reference": [
+        "garage",
+        "workshop"
+      ],
+      "conceptnet": {
+        "top": "garage",
+        "result": "hit"
+      },
+      "qwen": {
+        "top": "workshop",
+        "result": "hit"
+      }
+    },
+    "tool_rack": {
+      "reference": [
+        "garage",
+        "workshop"
+      ],
+      "conceptnet": {
+        "top": null,
+        "result": "no knowledge"
+      },
+      "qwen": {
+        "top": "workshop",
+        "result": "hit"
+      }
+    },
+    "storage_shelf": {
+      "reference": [
+        "basement",
+        "closet",
+        "garage",
+        "laundry_room",
+        "pantry",
+        "storage_room",
+        "workshop"
+      ],
+      "conceptnet": {
+        "top": null,
+        "result": "no knowledge"
+      },
+      "qwen": {
+        "top": [
+          "closet",
+          "kitchen",
+          "storage_room"
+        ],
+        "result": "tie"
+      }
+    },
+    "washing_machine": {
+      "reference": [
+        "laundry_room"
+      ],
+      "conceptnet": {
+        "top": "basement",
+        "result": "miss"
+      },
+      "qwen": {
+        "top": "laundry_room",
+        "result": "hit"
+      }
+    },
+    "dryer": {
+      "reference": [
+        "laundry_room"
+      ],
+      "conceptnet": {
+        "top": "basement",
+        "result": "miss"
+      },
+      "qwen": {
+        "top": "laundry_room",
+        "result": "hit"
+      }
+    },
+    "chest_freezer": {
+      "reference": [
+        "basement",
+        "closet",
+        "garage",
+        "laundry_room",
+        "pantry",
+        "storage_room",
+        "workshop"
+      ],
+      "conceptnet": {
+        "top": "garage",
+        "result": "hit"
+      },
+      "qwen": {
+        "top": "kitchen",
+        "result": "miss"
+      }
+    },
+    "filing_cabinet": {
+      "reference": [
+        "basement",
+        "closet",
+        "office",
+        "pantry",
+        "storage_room"
+      ],
+      "conceptnet": {
+        "top": "office",
+        "result": "hit"
+      },
+      "qwen": {
+        "top": "office",
+        "result": "hit"
+      }
+    }
+  }
+}
