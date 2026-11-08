@@ -15,86 +15,603 @@
   "navigator": "classic",
   "time_budget_s": 600,
   "max_steps": 80,
-  "weights": {"kappa": null, "ig": 1.0, "gamma": 1.0},
-  "verifier": {"min_support": 3, "min_viewpoints": 2, "min_purity": 0.6, "close_range": 2.5, "max_miss_ratio": 0.34, "reach_distance": 1.2, "reach_facing_deg": 35.0, "fresh_s": 6.0},
+  "weights": {
+    "kappa": null,
+    "ig": 1.0,
+    "gamma": 1.0
+  },
+  "verifier": {
+    "min_support": 3,
+    "min_viewpoints": 2,
+    "min_purity": 0.6,
+    "close_range": 2.5,
+    "max_miss_ratio": 0.34,
+    "reach_distance": 1.2,
+    "reach_facing_deg": 35.0,
+    "fresh_s": 6.0
+  },
   "arms": {
-    "proposed": {"policy": "utility"},
-    "A_gain_frontier": {"policy": "frontier_gain", "semantic": false, "memory": false, "_note": "Baseline A: DREAM's existing explorer (gain - cost frontiers), no semantic knowledge, no memory; same detector, verifier and candidate verification."},
-    "B_nearest_frontier": {"policy": "frontier_nearest", "semantic": false, "memory": false, "_note": "Baseline B: classical nearest-frontier exploration."},
-    "C_room_priority": {"policy": "room_priority", "memory": false, "_note": "Baseline C: semantic room-priority search (regions by inferred association with the target, each covered before the next)."},
-    "abl_no_semantics": {"policy": "utility", "semantic": false, "_note": "uniform knowledge: the belief has no room priors"},
-    "abl_no_room_inference": {"policy": "utility", "room_inference": false, "_note": "object co-occurrence within 2.5 m instead of room regions"},
-    "abl_no_info_gain": {"policy": "utility", "weights": {"ig": 0.0}},
-    "abl_no_semantic_term": {"policy": "utility", "weights": {"kappa": 0.0}, "_note": "frontier explorer plus in-room inspection points, no target-belief term"},
-    "abl_no_memory": {"policy": "utility", "memory": false, "scenarios": ["I"]},
-    "abl_single_view_verify": {"policy": "utility", "verifier": {"min_support": 1, "min_viewpoints": 1, "min_purity": 0.0, "max_miss_ratio": 1000.0}, "_note": "verification ablation: accept the first detection"},
-    "abl_substitution_gated": {"policy": "utility", "substitute_after_s": 120, "gate": true, "scenarios": ["D", "E", "H", "J"], "_note": "FAULT INJECTION: claims success on reaching the target's typical room; original-request gate on"},
-    "abl_substitution_ungated": {"policy": "utility", "substitute_after_s": 120, "gate": false, "scenarios": ["D", "E", "H", "J"], "_note": "FAULT INJECTION without the original-request record (the 7 Nov failure mode)"}
+    "proposed": {
+      "policy": "utility"
+    },
+    "A_gain_frontier": {
+      "policy": "frontier_gain",
+      "semantic": false,
+      "memory": false,
+      "_note": "Baseline A: DREAM's existing explorer (gain - cost frontiers), no semantic knowledge, no memory; same detector, verifier and candidate verification."
+    },
+    "B_nearest_frontier": {
+      "policy": "frontier_nearest",
+      "semantic": false,
+      "memory": false,
+      "_note": "Baseline B: classical nearest-frontier exploration."
+    },
+    "C_room_priority": {
+      "policy": "room_priority",
+      "memory": false,
+      "_note": "Baseline C: semantic room-priority search (regions by inferred association with the target, each covered before the next)."
+    },
+    "abl_no_semantics": {
+      "policy": "utility",
+      "semantic": false,
+      "_note": "uniform knowledge: the belief has no room priors",
+      "scenarios": [
+        "B",
+        "C",
+        "D",
+        "F",
+        "G",
+        "J",
+        "K"
+      ]
+    },
+    "abl_no_room_inference": {
+      "policy": "utility",
+      "room_inference": false,
+      "_note": "object co-occurrence within 2.5 m instead of room regions",
+      "scenarios": [
+        "B",
+        "C",
+        "D",
+        "F",
+        "G",
+        "J",
+        "K"
+      ]
+    },
+    "abl_no_info_gain": {
+      "policy": "utility",
+      "weights": {
+        "ig": 0.0
+      },
+      "scenarios": [
+        "B",
+        "C",
+        "D",
+        "F",
+        "G",
+        "J",
+        "K"
+      ]
+    },
+    "abl_no_semantic_term": {
+      "policy": "utility",
+      "weights": {
+        "kappa": 0.0
+      },
+      "_note": "frontier explorer plus in-room inspection points, no target-belief term",
+      "scenarios": [
+        "B",
+        "C",
+        "D",
+        "F",
+        "G",
+        "J",
+        "K"
+      ]
+    },
+    "abl_no_memory": {
+      "policy": "utility",
+      "memory": false,
+      "scenarios": [
+        "I"
+      ]
+    },
+    "abl_single_view_verify": {
+      "policy": "utility",
+      "verifier": {
+        "min_support": 1,
+        "min_viewpoints": 1,
+        "min_purity": 0.0,
+        "max_miss_ratio": 1000.0
+      },
+      "_note": "verification ablation: accept the first detection",
+      "scenarios": [
+        "B",
+        "E",
+        "F",
+        "H",
+        "K"
+      ]
+    },
+    "abl_substitution_gated": {
+      "policy": "utility",
+      "substitute_after_s": 120,
+      "gate": true,
+      "scenarios": [
+        "D",
+        "E",
+        "H",
+        "J"
+      ],
+      "_note": "FAULT INJECTION: claims success on reaching the target's typical room; original-request gate on"
+    },
+    "abl_substitution_ungated": {
+      "policy": "utility",
+      "substitute_after_s": 120,
+      "gate": false,
+      "scenarios": [
+        "D",
+        "E",
+        "H",
+        "J"
+      ],
+      "_note": "FAULT INJECTION without the original-request record (the 7 Nov failure mode)"
+    }
   },
   "splits": {
     "H1": {
       "_note": "within-distribution held-out homes: nominal generator, refrigerator, all scenarios",
-      "arms": ["proposed", "A_gain_frontier", "B_nearest_frontier", "C_room_priority", "abl_no_semantics", "abl_no_room_inference", "abl_no_info_gain", "abl_no_semantic_term", "abl_no_memory", "abl_single_view_verify", "abl_substitution_gated", "abl_substitution_ungated"],
+      "arms": [
+        "proposed",
+        "A_gain_frontier",
+        "B_nearest_frontier",
+        "C_room_priority",
+        "abl_no_semantics",
+        "abl_no_room_inference",
+        "abl_no_info_gain",
+        "abl_no_semantic_term",
+        "abl_no_memory",
+        "abl_single_view_verify",
+        "abl_substitution_gated",
+        "abl_substitution_ungated"
+      ],
       "conditions": [
-        {"scenario": "A", "seeds": [5000, 5010]}, {"scenario": "B", "seeds": [5000, 5010]},
-        {"scenario": "C", "seeds": [5000, 5010]}, {"scenario": "D", "seeds": [5000, 5010]},
-        {"scenario": "E", "seeds": [5000, 5010]}, {"scenario": "F", "seeds": [5000, 5010]},
-        {"scenario": "G", "seeds": [5000, 5010]}, {"scenario": "H", "seeds": [5000, 5010]},
-        {"scenario": "I", "seeds": [5000, 5010]}, {"scenario": "J", "seeds": [5000, 5010]},
-        {"scenario": "K", "seeds": [5000, 5010]}, {"scenario": "L", "seeds": [5000, 5010]}
+        {
+          "scenario": "A",
+          "seeds": [
+            5000,
+            5010
+          ]
+        },
+        {
+          "scenario": "B",
+          "seeds": [
+            5000,
+            5010
+          ]
+        },
+        {
+          "scenario": "C",
+          "seeds": [
+            5000,
+            5010
+          ]
+        },
+        {
+          "scenario": "D",
+          "seeds": [
+            5000,
+            5010
+          ]
+        },
+        {
+          "scenario": "E",
+          "seeds": [
+            5000,
+            5010
+          ]
+        },
+        {
+          "scenario": "F",
+          "seeds": [
+            5000,
+            5010
+          ]
+        },
+        {
+          "scenario": "G",
+          "seeds": [
+            5000,
+            5010
+          ]
+        },
+        {
+          "scenario": "H",
+          "seeds": [
+            5000,
+            5010
+          ]
+        },
+        {
+          "scenario": "I",
+          "seeds": [
+            5000,
+            5010
+          ]
+        },
+        {
+          "scenario": "J",
+          "seeds": [
+            5000,
+            5010
+          ]
+        },
+        {
+          "scenario": "K",
+          "seeds": [
+            5000,
+            5010
+          ]
+        },
+        {
+          "scenario": "L",
+          "seeds": [
+            5000,
+            5010
+          ]
+        }
       ]
     },
     "H2": {
       "_note": "generalisation: shifted generator (larger homes, other furnishing and sizes) and seven target classes never used in development",
-      "arms": ["proposed", "A_gain_frontier", "C_room_priority", "abl_no_semantics"],
+      "arms": [
+        "proposed",
+        "A_gain_frontier",
+        "C_room_priority",
+        "abl_no_semantics"
+      ],
       "conditions": [
-        {"scenario": "B", "target": "refrigerator", "generator": "shifted", "seeds": [6000, 6002]},
-        {"scenario": "D", "target": "refrigerator", "generator": "shifted", "seeds": [6000, 6002]},
-        {"scenario": "E", "target": "refrigerator", "generator": "shifted", "seeds": [6000, 6002]},
-        {"scenario": "B", "target": "bed", "generator": "shifted", "seeds": [6000, 6002]},
-        {"scenario": "D", "target": "bed", "generator": "shifted", "seeds": [6000, 6002]},
-        {"scenario": "E", "target": "bed", "generator": "shifted", "seeds": [6000, 6002]},
-        {"scenario": "B", "target": "toilet", "generator": "shifted", "seeds": [6000, 6002]},
-        {"scenario": "D", "target": "toilet", "generator": "shifted", "seeds": [6000, 6002]},
-        {"scenario": "E", "target": "toilet", "generator": "shifted", "seeds": [6000, 6002]},
-        {"scenario": "B", "target": "stove", "generator": "shifted", "seeds": [6000, 6002]},
-        {"scenario": "D", "target": "stove", "generator": "shifted", "seeds": [6000, 6002]},
-        {"scenario": "E", "target": "stove", "generator": "shifted", "seeds": [6000, 6002]},
-        {"scenario": "B", "target": "washing_machine", "generator": "shifted", "seeds": [6000, 6002]},
-        {"scenario": "D", "target": "washing_machine", "generator": "shifted", "seeds": [6000, 6002]},
-        {"scenario": "E", "target": "washing_machine", "generator": "shifted", "seeds": [6000, 6002]},
-        {"scenario": "B", "target": "workbench", "generator": "shifted", "seeds": [6000, 6002]},
-        {"scenario": "D", "target": "workbench", "generator": "shifted", "seeds": [6000, 6002]},
-        {"scenario": "E", "target": "workbench", "generator": "shifted", "seeds": [6000, 6002]},
-        {"scenario": "B", "target": "bathtub", "generator": "shifted", "seeds": [6000, 6002]},
-        {"scenario": "D", "target": "bathtub", "generator": "shifted", "seeds": [6000, 6002]},
-        {"scenario": "E", "target": "bathtub", "generator": "shifted", "seeds": [6000, 6002]},
-        {"scenario": "B", "target": "sofa", "generator": "shifted", "seeds": [6000, 6002]},
-        {"scenario": "D", "target": "sofa", "generator": "shifted", "seeds": [6000, 6002]},
-        {"scenario": "E", "target": "sofa", "generator": "shifted", "seeds": [6000, 6002]}
+        {
+          "scenario": "B",
+          "target": "refrigerator",
+          "generator": "shifted",
+          "seeds": [
+            6000,
+            6002
+          ]
+        },
+        {
+          "scenario": "D",
+          "target": "refrigerator",
+          "generator": "shifted",
+          "seeds": [
+            6000,
+            6002
+          ]
+        },
+        {
+          "scenario": "E",
+          "target": "refrigerator",
+          "generator": "shifted",
+          "seeds": [
+            6000,
+            6002
+          ]
+        },
+        {
+          "scenario": "B",
+          "target": "bed",
+          "generator": "shifted",
+          "seeds": [
+            6000,
+            6002
+          ]
+        },
+        {
+          "scenario": "D",
+          "target": "bed",
+          "generator": "shifted",
+          "seeds": [
+            6000,
+            6002
+          ]
+        },
+        {
+          "scenario": "E",
+          "target": "bed",
+          "generator": "shifted",
+          "seeds": [
+            6000,
+            6002
+          ]
+        },
+        {
+          "scenario": "B",
+          "target": "toilet",
+          "generator": "shifted",
+          "seeds": [
+            6000,
+            6002
+          ]
+        },
+        {
+          "scenario": "D",
+          "target": "toilet",
+          "generator": "shifted",
+          "seeds": [
+            6000,
+            6002
+          ]
+        },
+        {
+          "scenario": "E",
+          "target": "toilet",
+          "generator": "shifted",
+          "seeds": [
+            6000,
+            6002
+          ]
+        },
+        {
+          "scenario": "B",
+          "target": "stove",
+          "generator": "shifted",
+          "seeds": [
+            6000,
+            6002
+          ]
+        },
+        {
+          "scenario": "D",
+          "target": "stove",
+          "generator": "shifted",
+          "seeds": [
+            6000,
+            6002
+          ]
+        },
+        {
+          "scenario": "E",
+          "target": "stove",
+          "generator": "shifted",
+          "seeds": [
+            6000,
+            6002
+          ]
+        },
+        {
+          "scenario": "B",
+          "target": "washing_machine",
+          "generator": "shifted",
+          "seeds": [
+            6000,
+            6002
+          ]
+        },
+        {
+          "scenario": "D",
+          "target": "washing_machine",
+          "generator": "shifted",
+          "seeds": [
+            6000,
+            6002
+          ]
+        },
+        {
+          "scenario": "E",
+          "target": "washing_machine",
+          "generator": "shifted",
+          "seeds": [
+            6000,
+            6002
+          ]
+        },
+        {
+          "scenario": "B",
+          "target": "workbench",
+          "generator": "shifted",
+          "seeds": [
+            6000,
+            6002
+          ]
+        },
+        {
+          "scenario": "D",
+          "target": "workbench",
+          "generator": "shifted",
+          "seeds": [
+            6000,
+            6002
+          ]
+        },
+        {
+          "scenario": "E",
+          "target": "workbench",
+          "generator": "shifted",
+          "seeds": [
+            6000,
+            6002
+          ]
+        },
+        {
+          "scenario": "B",
+          "target": "bathtub",
+          "generator": "shifted",
+          "seeds": [
+            6000,
+            6002
+          ]
+        },
+        {
+          "scenario": "D",
+          "target": "bathtub",
+          "generator": "shifted",
+          "seeds": [
+            6000,
+            6002
+          ]
+        },
+        {
+          "scenario": "E",
+          "target": "bathtub",
+          "generator": "shifted",
+          "seeds": [
+            6000,
+            6002
+          ]
+        },
+        {
+          "scenario": "B",
+          "target": "sofa",
+          "generator": "shifted",
+          "seeds": [
+            6000,
+            6002
+          ]
+        },
+        {
+          "scenario": "D",
+          "target": "sofa",
+          "generator": "shifted",
+          "seeds": [
+            6000,
+            6002
+          ]
+        },
+        {
+          "scenario": "E",
+          "target": "sofa",
+          "generator": "shifted",
+          "seeds": [
+            6000,
+            6002
+          ]
+        }
       ]
     },
     "H3": {
       "_note": "perception shift: DEGRADED detector noise (double confusion, weaker detection, more false positives)",
-      "arms": ["proposed", "A_gain_frontier", "abl_single_view_verify"],
+      "arms": [
+        "proposed",
+        "A_gain_frontier",
+        "abl_single_view_verify"
+      ],
       "conditions": [
-        {"scenario": "B", "noise": "degraded", "seeds": [7000, 7004]},
-        {"scenario": "C", "noise": "degraded", "seeds": [7000, 7004]},
-        {"scenario": "E", "noise": "degraded", "seeds": [7000, 7004]},
-        {"scenario": "F", "noise": "degraded", "seeds": [7000, 7004]},
-        {"scenario": "G", "noise": "degraded", "seeds": [7000, 7004]},
-        {"scenario": "H", "noise": "degraded", "seeds": [7000, 7004]}
+        {
+          "scenario": "B",
+          "noise": "degraded",
+          "seeds": [
+            7000,
+            7004
+          ]
+        },
+        {
+          "scenario": "C",
+          "noise": "degraded",
+          "seeds": [
+            7000,
+            7004
+          ]
+        },
+        {
+          "scenario": "E",
+          "noise": "degraded",
+          "seeds": [
+            7000,
+            7004
+          ]
+        },
+        {
+          "scenario": "F",
+          "noise": "degraded",
+          "seeds": [
+            7000,
+            7004
+          ]
+        },
+        {
+          "scenario": "G",
+          "noise": "degraded",
+          "seeds": [
+            7000,
+            7004
+          ]
+        },
+        {
+          "scenario": "H",
+          "noise": "degraded",
+          "seeds": [
+            7000,
+            7004
+          ]
+        }
       ]
     },
     "H4": {
       "_note": "embodiment: the pretrained whole-body controller walking the G1 in MuJoCo, same homes logic",
       "base": "g1",
-      "arms": ["proposed", "A_gain_frontier"],
+      "arms": [
+        "proposed",
+        "A_gain_frontier"
+      ],
       "conditions": [
-        {"scenario": "A", "seeds": [8000, 8003]}, {"scenario": "B", "seeds": [8000, 8003]},
-        {"scenario": "C", "seeds": [8000, 8003]}, {"scenario": "D", "seeds": [8000, 8003]},
-        {"scenario": "E", "seeds": [8000, 8003]}, {"scenario": "G", "seeds": [8000, 8003]},
-        {"scenario": "H", "seeds": [8000, 8003]}, {"scenario": "L", "seeds": [8000, 8003]}
+        {
+          "scenario": "A",
+          "seeds": [
+            8000,
+            8003
+          ]
+        },
+        {
+          "scenario": "B",
+          "seeds": [
+            8000,
+            8003
+          ]
+        },
+        {
+          "scenario": "C",
+          "seeds": [
+            8000,
+            8003
+          ]
+        },
+        {
+          "scenario": "D",
+          "seeds": [
+            8000,
+            8003
+          ]
+        },
+        {
+          "scenario": "E",
+          "seeds": [
+            8000,
+            8003
+          ]
+        },
+        {
+          "scenario": "G",
+          "seeds": [
+            8000,
+            8003
+          ]
+        },
+        {
+          "scenario": "H",
+          "seeds": [
+            8000,
+            8003
+          ]
+        },
+        {
+          "scenario": "L",
+          "seeds": [
+            8000,
+            8003
+          ]
+        }
       ]
     }
   },
