@@ -14,14 +14,21 @@
  * - Force-directed positions are layout, not physics. Real coordinates live in node meta
  *   (with their frame: persistent map frame vs per-session odometry frame) and are shown
  *   in the detail inspector, never used as node positions.
+ * - The semantic graph (snapshot.semantic_graph) is drawn exactly as stated: one link per
+ *   edge, typed by its status, with relation/provenance/evidence/score and score_kind in meta.
+ *   Scores are heuristic weights, search-mass shares or counts, never probabilities.
  * - Nodes whose map frame matches the featured map are grouped; other maps are dropped
  *   with a note rather than mixed (different map frames are different coordinate systems).
  */
 
 export const MAX_NODES = 400;  // bounded render: rooms/places first, then the best-evidence objects
 
-export const NODE_TYPES = ['room', 'place', 'object'];
-export const LINK_TYPES = ['connects', 'located-in'];
+export const NODE_TYPES = ['room', 'place', 'object', 'region', 'category', 'class', 'unexplored', 'memory'];
+export const LINK_TYPES = [
+  'connects', 'located-in',
+  // semantic-graph edge statuses: each keeps a different kind of claim apart
+  'observed', 'verified', 'inferred', 'hypothesis', 'knowledge', 'remembered',
+];
 
 const byId = (a, b) => String(a.id).localeCompare(String(b.id));
 const linkOrder = (l) => `${l.source}\u2192${l.target}:${l.type}`;
@@ -138,11 +145,73 @@ function fromSession(objects) {
   return { source: 'session-candidates', mapId: null, nodes: [...nodeMap.values()], links: [], notes };
 }
 
+const prettyId = (id) => String(id).replace(/[:_]/g, ' ');
+
+/** The label with the most views on a tracked object (ties: by name); null when none recorded. */
+function topLabel(labels) {
+  const rows = Object.entries(labels && typeof labels === 'object' ? labels : {})
+    .filter(([, v]) => typeof v === 'number');
+  rows.sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0]));
+  return rows.length ? rows[0][0] : null;
+}
+
+/** The robot's per-episode semantic graph, converted one-to-one (see header honesty rules). */
+function fromSemantic(sg) {
+  const nodeMap = new Map();
+  for (const n of sg.nodes ?? []) {
+    if (!n || n.id == null) continue;
+    const attrs = n.attrs && typeof n.attrs === 'object' ? n.attrs : {};
+    const kind = String(n.kind);
+    const best = kind === 'object' ? topLabel(attrs.labels) : null;
+    const name = String(n.id).includes(':') ? String(n.id).split(':').slice(1).join(':') : String(n.id);
+    let label;
+    if (kind === 'object') label = best ? `${best} ${name}` : `object ${name}`;
+    else if (kind === 'category' || kind === 'class') label = name;
+    else label = prettyId(n.id);
+    nodeMap.set(`sem:${n.id}`, {
+      id: `sem:${n.id}`,
+      type: kind,
+      label,
+      value: kind === 'region' ? 5 : kind === 'object' ? 2.5 : 2,
+      meta: {
+        ...attrs,
+        label: best,
+        semanticId: n.id,
+        frame: attrs.frame ?? sg.frame ?? null,
+      },
+    });
+  }
+  const links = [];
+  for (const e of sg.edges ?? []) {
+    const source = `sem:${e?.source}`;
+    const target = `sem:${e?.target}`;
+    if (!nodeMap.has(source) || !nodeMap.has(target)) continue;  // never draw a dangling claim
+    links.push({
+      source, target, type: String(e.status),
+      meta: {
+        relation: e.relation, provenance: e.provenance ?? null,
+        evidence: Array.isArray(e.evidence) ? e.evidence : [],
+        score: typeof e.score === 'number' ? e.score : null, score_kind: e.score_kind ?? null,
+        time: e.time ?? null, frame: e.frame ?? null,
+      },
+    });
+  }
+  return {
+    source: 'semantic-graph', mapId: null, nodes: [...nodeMap.values()], links,
+    notes: [
+      'Semantic graph of this episode. Link type is the claim status; scores carry their own kind (heuristic weight, share of search mass, view count) and are not probabilities.',
+      'Layout is force-directed; coordinates are metadata (inspector), not physics.',
+    ],
+  };
+}
+
 /**
  * Build the graph from one snapshot:
+ * the robot's semantic graph when it has one, else
  * home memory (rooms + stored relationships) when connected, else session candidates.
  */
 export function buildSceneGraphData(snapshot, home = snapshot?.persistent_memory ?? null) {
+  if (snapshot?.semantic_graph?.nodes?.length) return fromSemantic(snapshot.semantic_graph);
   if (home?.available && (home.objects?.length || home.places?.length)) return fromHome(home);
   if (home?.available) {
     return { source: 'home-empty', mapId: null, nodes: [], links: [], notes: [] };

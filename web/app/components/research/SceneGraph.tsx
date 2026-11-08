@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { relativeAge, wallTime } from '../../lib/format';
 import { usePref } from '../../lib/prefs';
 import { useSession } from '../../lib/session';
-import type { GraphNode } from '../../types';
+import type { GraphLink, GraphNode } from '../../types';
 import { Quiet } from '../ui';
 import {
   applyFilters,
@@ -23,12 +23,19 @@ const Canvas = dynamic(() => import('./SceneGraphCanvas'), {
   loading: () => <div className="sgraph-loading faint small">Loading renderer…</div>,
 });
 
-const ENTITY_NAME: Record<string, string> = { room: 'Rooms', place: 'Places', object: 'Objects' };
-const ENTITY_KIND: Record<string, string> = { room: 'Room', place: 'Place', object: 'Object' };
+const ENTITY_NAME: Record<string, string> = {
+  room: 'Rooms', place: 'Places', object: 'Objects', region: 'Regions', category: 'Categories',
+  class: 'Classes', unexplored: 'Unexplored', memory: 'Memories',
+};
+const ENTITY_KIND: Record<string, string> = {
+  room: 'Room', place: 'Place', object: 'Object', region: 'Region', category: 'Category',
+  class: 'Class', unexplored: 'Unexplored', memory: 'Memory',
+};
 /** Every filter key the view persists; absent = enabled, unknown = rejected by the validator. */
 const ALL_FILTERS = [...NODE_TYPES, ...LINK_TYPES];
 
 const SOURCE_LABEL: Record<string, string> = {
+  'semantic-graph': 'Semantic graph',
   'home-memory': 'Home memory',
   'session-candidates': 'Session observations',
   'home-empty': 'Home memory (empty)',
@@ -45,7 +52,10 @@ const vec = (v: unknown): number[] | null =>
   (Array.isArray(v) && v.every((x) => typeof x === 'number') ? (v as number[]) : null);
 
 /** The inspector for one selected entity: what the robot actually recorded, with frames and provenance. */
-function Details({ node, onClose }: { node: GraphNode; onClose: () => void }) {
+function Details({ node, links, byId, onClose }: {
+  node: GraphNode; links: GraphLink[]; byId: Map<string, GraphNode>; onClose: () => void;
+}) {
+  const claims = links.filter((l) => l.meta && (l.source === node.id || l.target === node.id));
   const m = (node.meta ?? {}) as Record<string, unknown>;
   const history = Array.isArray(m.history) ? (m.history as Record<string, unknown>[]) : [];
   const affordances = Array.isArray(m.affordances) ? (m.affordances as Record<string, unknown>[]) : [];
@@ -91,6 +101,31 @@ function Details({ node, onClose }: { node: GraphNode; onClose: () => void }) {
           <Row k="Colour" v={<><span className="swatch" style={{ background: colour }} aria-hidden /> <span className="mono">{colour}</span></>} />
         )}
       </dl>
+      {claims.length > 0 && (
+        <section className="sgraph-history">
+          <div className="rail-label">Claims <span className="faint">· status, relation, score kind</span></div>
+          <ul>
+            {claims.map((l, i) => {
+              const cm = l.meta as Record<string, unknown>;
+              const score = num(cm.score);
+              const evidence = Array.isArray(cm.evidence) ? (cm.evidence as unknown[]).map(String) : [];
+              const outgoing = l.source === node.id;
+              const other = byId.get(outgoing ? l.target : l.source);
+              return (
+                <li key={i}>
+                  <b>{l.type}</b>
+                  <span>
+                    {outgoing ? '' : `${other?.label ?? l.source} `}{str(cm.relation) ?? '—'}{outgoing ? ` ${other?.label ?? l.target}` : ''}
+                  </span>
+                  {score != null && <span className="mono">{score} · {str(cm.score_kind) ?? 'score kind not stated'}</span>}
+                  {str(cm.provenance) && <span className="faint">{str(cm.provenance)}</span>}
+                  {evidence.length > 0 && <span className="faint mono">{evidence.join(', ')}</span>}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
       {affordances.length > 0 && (
         <section className="sgraph-history">
           <div className="rail-label">Affordances <span className="faint">· stored skill outcomes</span></div>
@@ -261,7 +296,7 @@ export function SceneGraph() {
 
       {stable.nodes.length > 0 && (
         selNode
-          ? <Details node={selNode} onClose={() => setSelected(null)} />
+          ? <Details node={selNode} links={stable.links} byId={byId} onClose={() => setSelected(null)} />
           : <p className="faint small sgraph-hint">Select a node to inspect what the robot recorded about it. Layout positions are semantic, not physical.</p>
       )}
     </div>

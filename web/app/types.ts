@@ -92,13 +92,13 @@ export type HomeMemory = {
 /** One force-graph entity from lib/sceneGraph.mjs. `value` scales the rendered sphere. */
 export type GraphNode = {
   id: string;
-  type: 'room' | 'place' | 'object';
+  type: 'room' | 'place' | 'object' | 'region' | 'category' | 'class' | 'unexplored' | 'memory';
   label: string;
   value?: number;
   meta?: Record<string, unknown>;
 };
 
-export type GraphLink = { source: string; target: string; type: string };
+export type GraphLink = { source: string; target: string; type: string; meta?: Record<string, unknown> };
 
 export type GraphDataLite = {
   source: 'home-memory' | 'session-candidates' | 'home-empty' | 'none' | string;
@@ -120,6 +120,12 @@ export type Snapshot = {
   map: MapData | null;
   objects: Candidate[];
   persistent_memory: HomeMemory | null;
+  semantic_graph?: {
+    frame: string;
+    nodes: { id: string; kind: string; attrs: Record<string, unknown> }[];
+    edges: Record<string, unknown>[];
+    statuses: string[];
+  } | null;
   task_graph: {
     kind: string;
     task_id: string;

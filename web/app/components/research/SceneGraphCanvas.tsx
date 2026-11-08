@@ -18,7 +18,7 @@ type Props = {
 type SceneNode = {
   id?: string | number;
   label?: string;
-  type?: 'room' | 'place' | 'object';
+  type?: string;
   value?: number;
   meta?: Record<string, unknown>;
   x?: number;
@@ -26,6 +26,14 @@ type SceneNode = {
   z?: number;
 };
 type SceneLink = { source?: string | number | SceneNode; target?: string | number | SceneNode; type?: string };
+
+/** Existing colour tokens reused for the semantic node kinds. */
+const NODE_TOKEN: Record<string, 'room' | 'place' | 'object'> = {
+  room: 'room', region: 'room', place: 'place', category: 'place', class: 'place',
+  unexplored: 'place', memory: 'place', object: 'object',
+};
+/** Claims that are not direct observations draw in the muted tone so they never read as measured. */
+const WEAK_LINKS = new Set(['hypothesis', 'inferred', 'knowledge']);
 
 const escape = (s: string) =>
   s.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch] as string));
@@ -144,11 +152,11 @@ const SceneGraphCanvas = function SceneGraphCanvas({ graph, selected, onSelect, 
       if (id === selected) return tokens.selected;
       if (highlight && !highlight.has(id)) return tokens.dim;
     }
-    return tokens[n.type === 'room' ? 'room' : n.type === 'place' ? 'place' : 'object'];
+    return tokens[NODE_TOKEN[n.type ?? ''] ?? 'object'];
   };
   const linkColor = (l: SceneLink) => {
     if (selected != null && (idOf(l.source) === selected || idOf(l.target) === selected)) return tokens.selected;
-    return tokens.link;
+    return WEAK_LINKS.has(l.type ?? '') ? tokens.dim : tokens.link;
   };
   const linkWidth = (l: SceneLink) =>
     selected != null && (idOf(l.source) === selected || idOf(l.target) === selected) ? 2.4 : 1;
@@ -180,7 +188,7 @@ const SceneGraphCanvas = function SceneGraphCanvas({ graph, selected, onSelect, 
           linkColor={linkColor}
           linkOpacity={0.55}
           linkWidth={linkWidth}
-          linkDirectionalArrowLength={(l: SceneLink) => (l.type === 'located-in' ? 3.2 : 0)}
+          linkDirectionalArrowLength={(l: SceneLink) => (l.type && l.type !== 'connects' ? 3.2 : 0)}
           linkDirectionalArrowRelPos={1}
           onEngineStop={autoFit}
         />
