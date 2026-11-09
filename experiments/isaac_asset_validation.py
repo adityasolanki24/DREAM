@@ -217,6 +217,7 @@ def main() -> None:  # pragma: no cover - needs Isaac Sim
     ap.add_argument("--budget-s", type=float, default=2400.0)
     ap.add_argument("--max-per-class", type=int, default=99)
     ap.add_argument("--no-snapshots", action="store_true", help="skip the four renders")
+    ap.add_argument("--indexes", default="", help="cls:i,cls:i - run only these candidates")
     ap.add_argument(
         "--stop-after-pass",
         action="store_true",
@@ -273,6 +274,12 @@ def _validate_all(app, args, ev, t0) -> None:  # pragma: no cover - needs Isaac 
     ev.stage("assets_root", root=root)
     cands = json.loads(CANDIDATES.read_text(encoding="utf-8"))["classes"]
     want = [c for c in args.classes.split(",") if c] or list(cands)
+    only: dict[str, set[int]] = {}
+    for pair in [p for p in args.indexes.split(",") if p]:
+        c, i = pair.split(":")
+        only.setdefault(c, set()).add(int(i))
+    if only and not args.classes:
+        want = [c for c in want if c in only]
     ctx = omni.usd.get_context()
     timeline = omni.timeline.get_timeline_interface()
     ctx.new_stage()
@@ -310,12 +317,14 @@ def _validate_all(app, args, ev, t0) -> None:  # pragma: no cover - needs Isaac 
     def shoot(centre, radius, tag, folder) -> list:
         shots = []
         for name, (ux, uy) in VIEWS.items():
-            dist = 2.4 * radius
+            dist = 1.7 * radius
             eye = [centre[0] + ux * dist, centre[1] + uy * dist, centre[2] + 0.35 * radius]
             cam_op.Set(_look_at(Gf, eye, centre))
+            for _ in range(3):  # job 2: three of four views of some assets were the first frame
+                app.update()
             img = np.asarray(rgb.get_data())
             for _ in range(6):
-                rep.orchestrator.step(rt_subframes=4, delta_time=0.0, pause_timeline=False)
+                rep.orchestrator.step(rt_subframes=8, delta_time=0.0, pause_timeline=False)
                 img = np.asarray(rgb.get_data())
                 if img.size and img.reshape(-1, img.shape[-1])[:, :3].std() > 1.0:
                     break
@@ -446,6 +455,8 @@ def _validate_all(app, args, ev, t0) -> None:  # pragma: no cover - needs Isaac 
 
     for cls in want:
         for i, rel in enumerate(cands[cls][: args.max_per_class]):
+            if only and cls in only and i not in only[cls]:
+                continue
             if time.monotonic() - t0 > args.budget_s:
                 ev.stage("budget_reached", next=f"{cls}/{i}")
                 return
