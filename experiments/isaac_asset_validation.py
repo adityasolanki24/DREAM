@@ -111,6 +111,15 @@ def failures(cls: str, rec: dict) -> list[str]:
             out.append(problem)
     if rec.get("bound_after_play") is not None and not finite_box(*rec["bound_after_play"]):
         out.append(f"bound after physics play non-finite: {rec['bound_after_play']}")
+    after, before = rec.get("bound_after_play"), rec.get("bound_normalised")
+    if after and before and finite_box(*after):
+        moved = max(
+            abs(a - b)
+            for u, v in zip(after, before, strict=True)
+            for a, b in zip(u, v, strict=True)
+        )
+        if moved > 0.05:
+            out.append(f"moved {moved:.2f} m under physics although made static")
     if rec.get("play_error"):
         out.append("physics play failed: " + str(rec["play_error"]))
     if rec.get("error"):
@@ -144,6 +153,7 @@ def manifest_entry(cls: str, url: str, rec: dict, front: str, note: dict) -> dic
         "authored_colliders": rec.get("colliders", 0),
         "rigid_body_paths": rec.get("rigid_body_paths", []),
         "joint_paths": rec.get("joint_paths", []),
+        "collider_paths": rec.get("collider_paths", []),
         "evidence": f"results/isaac_env_validation/assets/{cls}/{rec['tag']}.json",
         "warnings": rec.get("unresolved", []),
         **note,
@@ -206,6 +216,11 @@ def main() -> None:  # pragma: no cover - needs Isaac Sim
     ap.add_argument("--classes", default="")
     ap.add_argument("--budget-s", type=float, default=2400.0)
     ap.add_argument("--max-per-class", type=int, default=99)
+    ap.add_argument(
+        "--stop-after-pass",
+        action="store_true",
+        help="skip a class's remaining candidates once one validates",
+    )
     ap.add_argument("--environments", action="store_true", help="also inventory ready-made scenes")
     ap.add_argument("--build-manifest", type=pathlib.Path)
     ap.add_argument("--fronts", type=pathlib.Path)
@@ -298,8 +313,8 @@ def _validate_all(app, args, ev, t0) -> None:  # pragma: no cover - needs Isaac 
             eye = [centre[0] + ux * dist, centre[1] + uy * dist, centre[2] + 0.35 * radius]
             cam_op.Set(_look_at(Gf, eye, centre))
             img = np.asarray(rgb.get_data())
-            for _ in range(24):
-                app.update()
+            for _ in range(6):
+                rep.orchestrator.step(rt_subframes=4, delta_time=0.0, pause_timeline=False)
                 img = np.asarray(rgb.get_data())
                 if img.size and img.reshape(-1, img.shape[-1])[:, :3].std() > 1.0:
                     break
@@ -353,20 +368,22 @@ def _validate_all(app, args, ev, t0) -> None:  # pragma: no cover - needs Isaac 
             xform.AddTransformOp().Set(m)
             meshes = 0
             colliders = bodies = 0
-            rigid, joints = [], []
+            rigid, joints, collider_paths = [], [], []
             for p in Usd.PrimRange(prim, Usd.TraverseInstanceProxies()):
                 if p.IsA(UsdGeom.Mesh):
                     pts = UsdGeom.Mesh(p).GetPointsAttr().Get()
                     meshes += 1 if pts is not None and len(pts) > 0 else 0
                 if p.HasAPI(UsdPhysics.CollisionAPI):
                     colliders += 1
+                    collider_paths.append(str(p.GetPath())[len(prim_path) :])
                 if p.HasAPI(UsdPhysics.RigidBodyAPI):
                     bodies += 1
                     rigid.append(str(p.GetPath())[len(prim_path) :])
                 if p.IsA(UsdPhysics.Joint):
                     joints.append(str(p.GetPath())[len(prim_path) :])
             rec.update(meshes_with_points=meshes, colliders=colliders, rigid_bodies=bodies,
-                       rigid_body_paths=rigid, joint_paths=joints)  # fmt: skip
+                       rigid_body_paths=rigid, joint_paths=joints,
+                       collider_paths=collider_paths)  # fmt: skip
             box = bound(prim)
             rec["bound_normalised"] = box
             if box and finite_box(*box):
@@ -375,9 +392,32 @@ def _validate_all(app, args, ev, t0) -> None:  # pragma: no cover - needs Isaac 
                 folder = args.out / "snapshots" / cls
                 folder.mkdir(parents=True, exist_ok=True)
                 rec["snapshots"] = shoot(centre, radius, tag, folder)
-                try:  # short physics play with the asset present
+                try:  # physics play with the asset treated as the composer treats it: authored
+                    # bodies, joints and colliders disabled (the 664 s first candidate was PhysX
+                    # cooking 20 SDF colliders, and its dynamic bodies fell through the void), a
+                    # bounding-box collider in their place
+                    for rel in rigid:
+                        stage.OverridePrim(prim_path + rel).CreateAttribute(
+                            "physics:rigidBodyEnabled", Sdf.ValueTypeNames.Bool
+                        ).Set(False)
+                    for rel in joints:
+                        stage.OverridePrim(prim_path + rel).CreateAttribute(
+                            "physics:jointEnabled", Sdf.ValueTypeNames.Bool
+                        ).Set(False)
+                    for rel in collider_paths:
+                        stage.OverridePrim(prim_path + rel).CreateAttribute(
+                            "physics:collisionEnabled", Sdf.ValueTypeNames.Bool
+                        ).Set(False)
+                    half = [(b - a) / 2 for a, b in zip(*box, strict=True)]
+                    cube = UsdGeom.Cube.Define(stage, "/World/CandCollider")
+                    cube.CreateSizeAttr(2.0)
+                    cxf = UsdGeom.Xformable(cube.GetPrim())
+                    cxf.AddTranslateOp().Set(Gf.Vec3d(*centre))
+                    cxf.AddScaleOp().Set(Gf.Vec3f(*half))
+                    UsdPhysics.CollisionAPI.Apply(cube.GetPrim())
+                    UsdGeom.Imageable(cube.GetPrim()).CreatePurposeAttr(UsdGeom.Tokens.guide)
                     timeline.play()
-                    for _ in range(40):
+                    for _ in range(20):
                         app.update()
                     rec["bound_after_play"] = bound(prim)
                 except Exception as error:
@@ -393,6 +433,7 @@ def _validate_all(app, args, ev, t0) -> None:  # pragma: no cover - needs Isaac 
         finally:
             try:
                 stage.RemovePrim(prim_path)
+                stage.RemovePrim("/World/CandCollider")
                 app.update()
             except Exception:
                 pass
@@ -413,6 +454,8 @@ def _validate_all(app, args, ev, t0) -> None:  # pragma: no cover - needs Isaac 
                 {k: rec.get(k) for k in ("class", "tag", "path", "failures", "wall_s")},
             )
             print(f"[result] {cls} {rec['tag']} failures={rec.get('failures')}", flush=True)
+            if args.stop_after_pass and not rec.get("failures"):
+                break
         if not cands[cls]:
             (args.out / "assets").mkdir(exist_ok=True)
             ev.line("candidates.jsonl", {"class": cls, "failures": ["no candidate exists"]})

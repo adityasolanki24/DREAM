@@ -88,6 +88,7 @@ class Placement:
     size_m: tuple[float, float, float]  # placed (depth, width, height) in the object frame
     rigid_body_paths: tuple[str, ...] = ()  # asset-relative prims made static (furniture is fixed)
     joint_paths: tuple[str, ...] = ()  # asset-relative joints disabled for the same reason
+    collider_paths: tuple[str, ...] = ()  # authored colliders disabled: the bounding box stands in
 
 
 def load_manifest(path: pathlib.Path = MANIFEST) -> dict:
@@ -181,6 +182,7 @@ def plan_placements(home: HomeSpec, manifest: dict) -> list[Placement]:
                 tuple(tuple(float(v) for v in row) for row in m),
                 tuple(float(v * s) for v in entry["size_m"]),
                 tuple(entry.get("rigid_body_paths", ())), tuple(entry.get("joint_paths", ())),
+                tuple(entry.get("collider_paths", ())),
             )
         )  # fmt: skip
     return out
@@ -309,6 +311,12 @@ def build_stage(home: HomeSpec, placements: list[Placement], path: pathlib.Path)
         for rel in p.rigid_body_paths:  # furniture is static: an authored dynamic body would fall
             stage.OverridePrim(p.prim_path + rel).CreateAttribute(
                 "physics:rigidBodyEnabled", Sdf.ValueTypeNames.Bool
+            ).Set(False)
+        for (
+            rel
+        ) in p.collider_paths:  # authored SDF colliders cook for minutes and can be non-finite
+            stage.OverridePrim(p.prim_path + rel).CreateAttribute(
+                "physics:collisionEnabled", Sdf.ValueTypeNames.Bool
             ).Set(False)
         for rel in p.joint_paths:
             stage.OverridePrim(p.prim_path + rel).CreateAttribute(
