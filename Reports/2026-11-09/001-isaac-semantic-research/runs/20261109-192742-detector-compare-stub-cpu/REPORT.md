@@ -10,9 +10,9 @@
 - Seeds: none
 - Model and checkpoint: none (fixed stub boxes; not a detector)
 - Simulator and version: none (offline)
-- Renderer: _TO COMPLETE_
-- Robot embodiment: _TO COMPLETE_
-- Robot controller: _TO COMPLETE_
+- Renderer: Not applicable (offline replay of recorded frames; no simulator, robot or controller ran)
+- Robot embodiment: Not applicable (offline replay of recorded frames; no simulator, robot or controller ran)
+- Robot controller: Not applicable (offline replay of recorded frames; no simulator, robot or controller ran)
 - Hardware: local CPU
 - Command: `python experiments/detector_compare.py --stub --detectors owlv2-base --out results/detector_compare_stub_dev`
 - Exit status: 0
@@ -22,20 +22,20 @@
 
 ## Purpose
 
-_TO COMPLETE_
+Pipeline check of experiments/detector_compare.py end to end on the 39 development frames with a truth-blind stub detector (no model), before any GPU job.
 
 ## Results
 
 <!-- Passed and failed cases; quantitative metrics. -->
-_TO COMPLETE_
+Pipeline completed. The stub scores P/R 0.03/0.02 and produces 39 absent-class false positives for 'bed', as expected of a stub; these numbers say nothing about any detector.
 
 ## Regressions observed
 
-_TO COMPLETE_
+Not applicable (pipeline check).
 
 ## Interruptions and failures
 
-_TO COMPLETE_
+None.
 
 ## Evidence
 

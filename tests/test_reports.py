@@ -187,3 +187,19 @@ def test_amend_appends_without_editing(env):
     assert after.startswith(before.rstrip("\n"))
     assert after.count("## Amendments") == 1
     assert after.index("first correction") < after.index("second correction")
+
+
+def test_fill_writes_placeholders_only(env):
+    _, run, _, _ = env
+    task = new_task(env)
+    run("fill", "--task", task, "--section", "A. Objective", "--text", "the goal")
+    run("fill", "--task", task, "--section", "### Implementation", "--text", "built it")
+    run("fill", "--task", task, "--field", "Final commit", "--text", "abc123")
+    text = (task / "REPORT.md").read_text()
+    assert "## A. Objective\n\nthe goal" in text
+    assert "### Implementation\nbuilt it" in text and "### Evaluation\n" + TODO in text
+    assert "- Final commit: abc123" in text
+    for args in (("--section", "A. Objective"), ("--field", "Final commit")):
+        with pytest.raises(SystemExit):  # already written: revisions go through amend
+            run("fill", "--task", task, *args, "--text", "overwrite")
+    assert (task / "REPORT.md").read_text() == text

@@ -10,9 +10,9 @@
 - Seeds: none (deterministic replay of 39 captured frames)
 - Model and checkpoint: none (truth-derived boxes)
 - Simulator and version: none (offline replay of Isaac Sim 6.2 capture)
-- Renderer: _TO COMPLETE_
-- Robot embodiment: _TO COMPLETE_
-- Robot controller: _TO COMPLETE_
+- Renderer: Not applicable (offline replay of recorded frames; no simulator, robot or controller ran)
+- Robot embodiment: Not applicable (offline replay of recorded frames; no simulator, robot or controller ran)
+- Robot controller: Not applicable (offline replay of recorded frames; no simulator, robot or controller ran)
 - Hardware: local CPU
 - Command: `python experiments/nested_replay.py --raw <capture item> --source tight --out results/nested_association_dev/tight.json`
 - Exit status: 0
@@ -22,20 +22,20 @@
 
 ## Purpose
 
-_TO COMPLETE_
+Control for the nested-object association option. The l_shape development frames (39, job 4 capture) are replayed through SemanticMap with perfect class labels and tight boxes taken from the segmentation truth (sink rim, basin and sink merged), so any mixing left in the sink track comes from back-projection and association, not from the detector. Five variants: off, as shipped (containment exclusion plus size/height gate), exclusion only, gate only, smaller-detection-owns-shared-pixels; true poses and odometry-frame poses.
 
 ## Results
 
 <!-- Passed and failed cases; quantitative metrics. -->
-_TO COMPLETE_
+Verifier-view label purity, true pose. Option off: sink 0.24, countertop 0.31, cabinet 0.45, 16 tracks. As shipped: sink 0.26, countertop 0.75 (verified), cabinet 0.41, 24 tracks. In every variant and in the odometry frame the sink track stays mixed (0.21-0.28): the option does NOT fix the sink failure on these frames. Cause (from the replay): the sink's own tight box is largely countertop surface, and adjacent countertop and cabinet instances lie within the tracker's 0.35 m association distance. Development evidence only; the gate rule was changed from footprint area to longest side after the first replay split the refrigerator into 8 tracks.
 
 ## Regressions observed
 
-_TO COMPLETE_
+Fragmentation with the option on: tracks 16 -> 24, cabinet support 22 -> 17, refrigerator support 7 -> 4 (still verified).
 
 ## Interruptions and failures
 
-_TO COMPLETE_
+None in execution. Record flaws: the first run-finish recorded wrong case counts and a stale note metric; a second call corrected the counts, but the stale note and a duplicated evidence line remain in metadata.json. experiments/configs/detector_compare.json is listed as a config although it is not an input to this replay.
 
 ## Evidence
 

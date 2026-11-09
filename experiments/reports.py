@@ -467,6 +467,37 @@ def cmd_amend(root: Path, a: argparse.Namespace) -> None:
     write_text(report, f"{text}\n\n### {now().isoformat()}\n\n{a.text}\n")
 
 
+def cmd_fill(root: Path, a: argparse.Namespace) -> None:
+    """Fill a section or identification line that still holds the placeholder.
+
+    Lets agents complete reports from the command line. Text that is already written is never
+    replaced here (revisions go through `amend`), so a filled report cannot be silently edited.
+    """
+    task = find_task(root, a.task)
+    report = (find_run(task, a.run) if a.run else task) / "REPORT.md"
+    text = report.read_text(encoding="utf-8")
+    value = a.text
+    if value.startswith("@"):
+        value = Path(value[1:]).read_text(encoding="utf-8").strip()
+    if a.section:
+        heading = a.section if a.section.startswith("#") else f"## {a.section}"
+        level = len(heading) - len(heading.lstrip("#"))
+        stop = rf"(?=^#{{1,{level}}} |\Z)"  # next heading of the same or a higher level
+        pattern = rf"(^{re.escape(heading)}\n)(.*?){stop}"
+        m = re.search(pattern, text, flags=re.M | re.S)
+        if m is None or TODO not in m.group(2):
+            raise SystemExit(f"{heading} is missing or already filled; use amend to revise")
+        # replace only the placeholder: sub-headings, notes and comments in the section stay
+        body = m.group(2).replace(TODO, value, 1)
+        text = text[: m.start(2)] + body + text[m.end(2) :]
+    else:
+        m = re.search(rf"^- {re.escape(a.field)}:(.*)$", text, flags=re.M)
+        if m is None or TODO not in m.group(1):
+            raise SystemExit(f"field '{a.field}' is missing or already filled")
+        text = set_line(text, a.field, value)
+    write_text(report, text)
+
+
 def cmd_finish_task(root: Path, a: argparse.Namespace) -> None:
     task = find_task(root, a.task)
     old = {f: (task / f).read_text(encoding="utf-8") for f in ("metadata.json", "REPORT.md")}
@@ -672,6 +703,14 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--task", required=True)
     s.add_argument("--run", help="amend this run's report instead of the task's")
     s.add_argument("--text", required=True)
+
+    s = add("fill", cmd_fill, "fill a placeholder section or field (never overwrites text)")
+    s.add_argument("--task", required=True)
+    s.add_argument("--run", help="fill this run's report instead of the task's")
+    target = s.add_mutually_exclusive_group(required=True)
+    target.add_argument("--section", help="heading text, e.g. 'Purpose' or '### Evaluation'")
+    target.add_argument("--field", help="identification label, e.g. 'Renderer'")
+    s.add_argument("--text", required=True, help="text or @file")
 
     s = add("finish-task", cmd_finish_task, "finalise a task (refused if check fails)")
     s.add_argument("--task", required=True)
