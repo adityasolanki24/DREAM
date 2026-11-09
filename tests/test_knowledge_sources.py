@@ -106,3 +106,21 @@ def test_the_elicitation_prompt_holds_only_the_object_and_the_place_vocabulary()
     text = (SYSTEM + USER).lower()
     for word in ("furnish", "benchmark", "generator", "scenario", "table"):
         assert word not in text
+
+
+def test_k1_config_is_the_registered_design():
+    from experiments.semantic_search_eval import jobs_for
+
+    cfg = json.loads((ROOT / "experiments/configs/semantic_knowledge_xl.json").read_text())
+    split = cfg["splits"]["K1"]
+    jobs = jobs_for(cfg, "K1", split["arms"], split["base"])
+    assert len(jobs) == 576 and len(split["arms"]) == 6
+    assert {j["generator"] for j in jobs} == {"xl"} and {j["noise"] for j in jobs} == {"nominal"}
+    assert {j["seed"] for j in jobs} == {9300, 9301, 9302, 9303}
+    assert {j["scenario"] for j in jobs} == {"B", "D", "E"} and len(
+        {j["target"] for j in jobs}
+    ) == 8
+    for name in split["arms"]:
+        source = cfg["arms"][name].get("knowledge")
+        assert source is None or source in KNOWLEDGE_SOURCES
+    assert cfg["weights"]["kappa"] == 3.0 and cfg["time_budget_s"] == 600

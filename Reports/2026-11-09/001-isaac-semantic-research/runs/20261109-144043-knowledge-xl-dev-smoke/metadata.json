@@ -1,0 +1,53 @@
+{
+  "run_id": "2026-11-09-001/20261109-144043-knowledge-xl-dev-smoke",
+  "task_id": "2026-11-09-001",
+  "title": "Semantic knowledge xl: development smoke, all six arms",
+  "started": "2026-11-09T14:40:43+11:00",
+  "commit": "6825395d493290adfdce46e2d6b5bebedf731d74",
+  "dirty": true,
+  "branch": "worktree-agent-a6670edb145684437",
+  "configs": [
+    {
+      "path": "experiments/configs/semantic_knowledge_xl.json",
+      "sha256": "0bbd5efb8f68ef835a40f0264b9651c4963a23f8c85c3e092c242845eec73d64"
+    }
+  ],
+  "command": "python experiments/semantic_search_eval.py experiments/configs/semantic_knowledge_xl.json --split dev_smoke --workers 3 --out results/semantic_knowledge_xl/dev_smoke",
+  "seeds": "101 (development)",
+  "model": null,
+  "simulator": "MuJoCo 3.x",
+  "renderer": null,
+  "embodiment": "kinematic surrogate base, oracle-assisted detector",
+  "controller": "kinematic surrogate base",
+  "hardware": "owner laptop, CPU, 3 workers",
+  "status": "completed",
+  "ended": "2026-11-09T15:45:13+11:00",
+  "exit_status": 0,
+  "cases_attempted": 72,
+  "cases_completed": 72,
+  "metrics": {
+    "crashes": 0,
+    "scene_failures": 0,
+    "false_claims": 0,
+    "found_target_present_per_arm": "8/8 for all six arms",
+    "correct_refusal_E": "4/4 for all six arms",
+    "room_inference_top1": "conceptnet 36/64, qwen 35/64, combined 36/62, none 8/62",
+    "mean_wall_s_per_episode_all_arms": 50,
+    "k1_wall_estimate_h": "about 8 with 3 workers",
+    "mean_wall_s_per_episode": 149,
+    "wall_s_per_episode_by_arm": "frontier arms 96, utility arms 171-184"
+  },
+  "evidence": [
+    {
+      "path": "results/semantic_knowledge_xl/dev_smoke/summary.json",
+      "kind": "file",
+      "sha256": "99f66f2f4c79d88784bdfe22a62bd73360a239049cbb0f78f311585e55c69a67"
+    },
+    {
+      "path": "results/semantic_knowledge_xl/dev_smoke/summary.json",
+      "kind": "file",
+      "sha256": "99f66f2f4c79d88784bdfe22a62bd73360a239049cbb0f78f311585e55c69a67"
+    }
+  ],
+  "cloud": null
+}

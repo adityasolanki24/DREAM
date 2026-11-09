@@ -1,7 +1,7 @@
 {
   "name": "semantic_knowledge_xl",
-  "status": "development",
-  "frozen_date": null,
+  "status": "frozen",
+  "frozen_date": "2026-11-09",
   "frozen_commit": null,
   "research_question": "Does better semantic knowledge make DREAM's object search faster than frontier exploration in LARGER homes, without costing correctness?",
   "evidence_class": "held-out (fresh runner seeds 9300-9303, never used by any config or result in the repository; development used runner seeds 100-103 only, with the xl generator, which did not exist before this workstream)",
@@ -18,7 +18,7 @@
   ],
   "navigator": "classic",
   "time_budget_s": 600,
-  "time_budget_reason": "default 600 s (as H1-H4, V1); the 900 s alternative applies only if the development check shows A_frontier finds fewer than 80% of present targets on dev xl homes within 600 s",
+  "time_budget_reason": "Development check (results/semantic_knowledge_xl/dev_budget, runner seeds 100-103, 64 target-present xl homes): A_frontier found 58/64 = 90.6% within 600 s, above the 80% threshold, so the budget stays 600 s. Decided from dev seeds only.",
   "max_steps": 80,
   "weights": {
     "kappa": 3.0,
@@ -348,6 +348,245 @@
           ]
         }
       ]
+    },
+    "K1": {
+      "_note": "fresh runner seeds 9300-9303: xl generator, kinematic base, NOMINAL detector, scenarios B, D, E x 8 targets x 4 seeds = 96 homes; 6 arms = 576 episodes",
+      "arms": [
+        "A_frontier_point",
+        "A_frontier",
+        "sem_none",
+        "sem_conceptnet",
+        "sem_qwen",
+        "sem_combined"
+      ],
+      "base": "kinematic",
+      "conditions": [
+        {
+          "scenario": "B",
+          "target": "refrigerator",
+          "generator": "xl",
+          "seeds": [
+            9300,
+            9304
+          ]
+        },
+        {
+          "scenario": "B",
+          "target": "bed",
+          "generator": "xl",
+          "seeds": [
+            9300,
+            9304
+          ]
+        },
+        {
+          "scenario": "B",
+          "target": "toilet",
+          "generator": "xl",
+          "seeds": [
+            9300,
+            9304
+          ]
+        },
+        {
+          "scenario": "B",
+          "target": "stove",
+          "generator": "xl",
+          "seeds": [
+            9300,
+            9304
+          ]
+        },
+        {
+          "scenario": "B",
+          "target": "washing_machine",
+          "generator": "xl",
+          "seeds": [
+            9300,
+            9304
+          ]
+        },
+        {
+          "scenario": "B",
+          "target": "workbench",
+          "generator": "xl",
+          "seeds": [
+            9300,
+            9304
+          ]
+        },
+        {
+          "scenario": "B",
+          "target": "bathtub",
+          "generator": "xl",
+          "seeds": [
+            9300,
+            9304
+          ]
+        },
+        {
+          "scenario": "B",
+          "target": "sofa",
+          "generator": "xl",
+          "seeds": [
+            9300,
+            9304
+          ]
+        },
+        {
+          "scenario": "D",
+          "target": "refrigerator",
+          "generator": "xl",
+          "seeds": [
+            9300,
+            9304
+          ]
+        },
+        {
+          "scenario": "D",
+          "target": "bed",
+          "generator": "xl",
+          "seeds": [
+            9300,
+            9304
+          ]
+        },
+        {
+          "scenario": "D",
+          "target": "toilet",
+          "generator": "xl",
+          "seeds": [
+            9300,
+            9304
+          ]
+        },
+        {
+          "scenario": "D",
+          "target": "stove",
+          "generator": "xl",
+          "seeds": [
+            9300,
+            9304
+          ]
+        },
+        {
+          "scenario": "D",
+          "target": "washing_machine",
+          "generator": "xl",
+          "seeds": [
+            9300,
+            9304
+          ]
+        },
+        {
+          "scenario": "D",
+          "target": "workbench",
+          "generator": "xl",
+          "seeds": [
+            9300,
+            9304
+          ]
+        },
+        {
+          "scenario": "D",
+          "target": "bathtub",
+          "generator": "xl",
+          "seeds": [
+            9300,
+            9304
+          ]
+        },
+        {
+          "scenario": "D",
+          "target": "sofa",
+          "generator": "xl",
+          "seeds": [
+            9300,
+            9304
+          ]
+        },
+        {
+          "scenario": "E",
+          "target": "refrigerator",
+          "generator": "xl",
+          "seeds": [
+            9300,
+            9304
+          ]
+        },
+        {
+          "scenario": "E",
+          "target": "bed",
+          "generator": "xl",
+          "seeds": [
+            9300,
+            9304
+          ]
+        },
+        {
+          "scenario": "E",
+          "target": "toilet",
+          "generator": "xl",
+          "seeds": [
+            9300,
+            9304
+          ]
+        },
+        {
+          "scenario": "E",
+          "target": "stove",
+          "generator": "xl",
+          "seeds": [
+            9300,
+            9304
+          ]
+        },
+        {
+          "scenario": "E",
+          "target": "washing_machine",
+          "generator": "xl",
+          "seeds": [
+            9300,
+            9304
+          ]
+        },
+        {
+          "scenario": "E",
+          "target": "workbench",
+          "generator": "xl",
+          "seeds": [
+            9300,
+            9304
+          ]
+        },
+        {
+          "scenario": "E",
+          "target": "bathtub",
+          "generator": "xl",
+          "seeds": [
+            9300,
+            9304
+          ]
+        },
+        {
+          "scenario": "E",
+          "target": "sofa",
+          "generator": "xl",
+          "seeds": [
+            9300,
+            9304
+          ]
+        }
+      ]
     }
-  }
+  },
+  "gates": {
+    "_note": "Pre-registered before any K1 episode is run. Counts are over valid episodes (crashes and scene failures reported separately, never counted as passes). Evaluated by experiments/semantic_knowledge_gates.py.",
+    "K-G1": "safety: every arm using the current verifier makes 0 false success claims in K1 (each arm's count is reported with its zero-event 95% upper bound)",
+    "K-G2": "primary, confirmatory: on target-present episodes (scenarios B and D, 64 pairs per comparison), each of sem_conceptnet, sem_qwen, sem_combined against A_frontier: time to verified find, one-sided paired Wilcoxon signed-rank test with time censored at the budget for misses (the same censoring as the existing analysis), Holm-Bonferroni across the three comparisons at family alpha 0.05. A comparison passes if its adjusted p < 0.05 AND the median paired difference is negative.",
+    "K-G3": "non-inferiority of success: each semantic arm's target-present successes >= A_frontier's - 3, paired",
+    "K-G4": "descriptive: sem_qwen vs sem_conceptnet and sem_combined vs sem_qwen (two-sided Wilcoxon, McNemar), per-scenario breakdown (B vs D: knowledge should help B and may hurt D), path length, correct refusal on E, A_frontier_point vs A_frontier false claims, per-target results, room-inference accuracy per knowledge source (top-1 per room type, as the README reports for ConceptNet)"
+  },
+  "analysis": "experiments/semantic_knowledge_gates.py and experiments/summarise_semantic_search.py over results/semantic_knowledge_xl/K1/episodes.jsonl",
+  "seed_hygiene": "Seeds 9000-9019 (vision.json), 9100, 9200-9205 and 9500+ are used by other experiments. The block 9300-9303 was chosen after grepping every config under experiments/configs and every result under results/ for seed fields; none uses 9300-9303. Development used runner seeds 100-103 only."
 }
