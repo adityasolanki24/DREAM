@@ -1,0 +1,47 @@
+{
+  "run_id": "2026-11-09-001/20261109-154717-knowledge-xl-k1",
+  "task_id": "2026-11-09-001",
+  "title": "Semantic knowledge xl: K1 held-out comparison (6 arms, 576 episodes)",
+  "started": "2026-11-09T15:47:17+11:00",
+  "commit": "5a8ffedd7159fd33a78e7009d4c65f8da92f3f83",
+  "dirty": false,
+  "branch": "worktree-agent-a6670edb145684437",
+  "configs": [
+    {
+      "path": "experiments/configs/semantic_knowledge_xl.json",
+      "sha256": "5b1903c4014f2f66e03b77f2c160964c64b283db7fb57f2b21b52c0d625ba4aa"
+    }
+  ],
+  "command": "python experiments/semantic_search_eval.py experiments/configs/semantic_knowledge_xl.json --split K1 --workers 3 --out results/semantic_knowledge_xl/K1  (from detached worktree at 5a8ffed)",
+  "seeds": "9300-9303 (held-out, fresh)",
+  "model": null,
+  "simulator": "MuJoCo 3.x",
+  "renderer": null,
+  "embodiment": "kinematic surrogate base, oracle-assisted NOMINAL detector",
+  "controller": "kinematic surrogate base",
+  "hardware": "owner laptop, CPU, 3 workers",
+  "status": "completed",
+  "ended": "2026-11-09T23:48:02+11:00",
+  "exit_status": 0,
+  "cases_attempted": 576,
+  "cases_completed": 576,
+  "metrics": {
+    "episodes": 576,
+    "crashes": 0,
+    "scene_failures": 0,
+    "K-G1": "PASS (0 false claims in each of 5 current-verifier arms, 0/96, upper bound 3.07%)",
+    "K-G2": "FAIL (adjusted p = 1.0, 1.0, 1.0; median paired differences 0.0 s)",
+    "K-G3": "PASS (61, 61, 62 vs 59, threshold 56)",
+    "found_target_present": "A_frontier 59/64, A_frontier_point 59/64, sem_none 62/64, sem_conceptnet 61/64, sem_qwen 61/64, sem_combined 62/64",
+    "correct_refusal_E": "32/32 for every arm",
+    "wall_s": 28203
+  },
+  "evidence": [
+    {
+      "path": "results/semantic_knowledge_xl/gates.json",
+      "kind": "file",
+      "sha256": "b7cde34f626848808f98a3a019eef0e3207cefb56efd949d03a06be9f632f69d"
+    }
+  ],
+  "cloud": null
+}
