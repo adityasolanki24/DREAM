@@ -10,6 +10,10 @@ coding agent. `CLAUDE.md` is a symlink to this file, so there is exactly one set
 - **`README.md`** is the human-facing record. It holds the status table, install and run
   commands, measured results, the audit of environment simplifications and known failures,
   limitations and the next milestone. It is the source of truth for what is done.
+- **`Reports/`** is the chronological development and research record. **Every development or
+  research prompt gets its own dated report there, and every experimental run gets its own run
+  record, maintained with `experiments/reports.py` (section 15).** This is mandatory for every
+  prompt and every session, including failed, blocked or interrupted tasks.
 
 Read both before changing code. Then read the code you are about to change and the commit
 history of the files involved.
@@ -29,6 +33,7 @@ Contents:
 12. Experiments
 13. Source control, documentation and scope
 14. Layout
+15. Reports: mandatory for every development prompt
 
 ---
 
@@ -670,10 +675,12 @@ Before adding any dependency, pretrained model or upstream code:
 - Commit in small, meaningful checkpoints that pass the focused checks for the change
   (section 11). Commit messages say what changed, why, how it was verified, and the Rule 3
   class of any change that affects results.
-  No model identifiers in commits.
+  No model identifiers in commits: no `Co-Authored-By` lines naming a model, in any commit,
+  including subagents' commits.
 - Do not open pull requests unless asked.
-- There are exactly two Markdown files: `README.md` and this file. Do not add more. Design notes
-  belong in docstrings, and history belongs in commit messages.
+- Markdown lives only in `README.md`, this file and `Reports/` (section 15). Do not add Markdown
+  anywhere else. Design notes belong in docstrings, and history belongs in commit messages and
+  `Reports/`.
 - Update the README status table, results and audit table in the same commit as the change that
   affects them. Delete stale text rather than appending to it.
 - Never mark a milestone "implemented and tested" without execution evidence in `results/` or
@@ -702,4 +709,42 @@ experiments/          Reproducible runners, configs, calibration, demos, interac
 third_party/          Vendored external assets (pinned, with licence and PROVENANCE.txt)
 tests/                pytest suite, including the isolation guard
 results/              Saved outputs that back README claims
+Reports/              Dated task reports, one per development prompt, with one record per run
+                      (maintained by experiments/reports.py; section 15)
 ```
+
+## 15. Reports: mandatory for every development prompt
+
+Every DREAM development or research instruction gets a dated report under `Reports/`. That covers research, features, bug fixes, experiments, cloud evaluations, model comparisons, simulation, Android, frontend, integration, performance, refactoring and technical investigations. Only purely conversational questions that start no repository work are exempt. A task that fails, is blocked, is interrupted or is abandoned still gets a complete report of what happened. Reports document the work; they never replace doing it.
+
+Workflow, using `python experiments/reports.py <command>`:
+1. **Before substantial work**, run `new-task --slug <s> --title <t> --prompt-file <file> [--submitted <ISO time>]`.
+   - It creates `Reports/<YYYY-MM-DD>/<NNN>-<slug>/`, dated by Australia/Sydney time.
+   - `PROMPT.md` holds the complete original instructions, with secrets redacted.
+   - `REPORT.md` holds the template, sections A-N.
+   - `metadata.json` holds the task ID, branch and starting commit.
+   - Each submitted prompt gets its own task. Never reuse or overwrite one.
+2. **Each experimental execution is its own run**: an experiment, model evaluation, simulation campaign, or cloud session or job.
+   - Before it, run `run-start`, recording the command, configs (their SHA-256 is stored), seeds, model, simulator, renderer, embodiment, controller and hardware. Add `--cloud` for cloud runs.
+   - After it, run `run-finish`, recording the status (completed, partial, failed, crashed, timed_out, interrupted or cancelled), exit status, cases attempted and completed, metrics, evidence paths and cloud fields. Then write the run's `REPORT.md` prose.
+   - Ten experiments mean ten run records.
+   - Crashed and partial runs keep their partial results. Failed runs are never deleted or replaced by reruns.
+   - A cloud run is not complete until its results are uploaded and cleanup is verified. Record estimated and billed cost separately; an estimate is never a charge.
+3. **During the task**, update `REPORT.md` after each milestone. For a task that runs across days, record progress with `note`: the task keeps its ID and is listed in every day's index on which it was active.
+4. **Before declaring the task finished**:
+   - complete every section of `REPORT.md`, A to N;
+   - write "Not measured" or "Not applicable" instead of leaving a section empty;
+   - always fill section I (regressions), even when none were found; an unmeasured metric is "Not measured", never "No regression";
+   - run `finish-task --status <completed|partially_completed|failed|blocked|cancelled> --main-finding <text>`, which refuses while any `_TO COMPLETE_` marker remains;
+   - link the report in the final message to the owner.
+5. **Indexes.** Every command regenerates `Reports/INDEX.md` and the daily `Reports/<date>/INDEX.md`. After a merge, resolve conflicts in index files by running `index`. `check` validates completeness.
+
+Content rules:
+- Report what happened, with numbers and repository-relative evidence paths. Keep implementation, testing and scientific validation apart; code that builds is not a result.
+- Never fabricate a value. A field that cannot be filled stays explicitly marked until it is filled with a real one.
+- Raw data stays in `results/` or outside Git. Reports link to it, with SHA-256 where possible, and never copy large recordings, checkpoints or datasets.
+- Revise a final report only with `amend`, which appends a dated amendment. Never edit silently.
+- Do not invent run logs for work done before the Reports system. `Reports/HISTORY.md` indexes only verified earlier results.
+- No secrets, tokens or credentials in reports.
+- `README.md` remains the project-level scientific status. `Reports/` is the chronological record that complements it.
+- Every subagent brief names the task ID its runs are registered under. Subagents register their own runs.
