@@ -184,9 +184,12 @@ def build_manifest(records_dir: pathlib.Path, fronts: dict, validated_utc: str) 
             continue
         i, path, rec = chosen
         front = fronts.get(cls)
-        if front is None:
-            classes[cls] = {"status": "failed", "failure": "validated but front axis not read",
-                            "candidates": reasons}  # fmt: skip
+        if front is None:  # validated, orientation not yet read from a correct render
+            entry = manifest_entry(cls, rec["url"], rec, "+x", {})
+            entry.update(status="pending_front_read", front_axis=None, yaw_offset_deg=None,
+                         size_xyz_native=entry.pop("size_m"),
+                         failure="validated; the front face has not been read yet")  # fmt: skip
+            classes[cls] = {**entry, "candidates": reasons}
             continue
         note = fronts.get("_notes", {}).get(cls, {})
         classes[cls] = {**manifest_entry(cls, rec["url"], rec, front, note),
@@ -231,9 +234,11 @@ def main() -> None:  # pragma: no cover - needs Isaac Sim
         fronts = json.loads(args.fronts.read_text(encoding="utf-8"))
         out = build_manifest(args.build_manifest, fronts, time.strftime("%Y-%m-%d"))
         MANIFEST.write_text(json.dumps(out, indent=1), encoding="utf-8")
-        ok = [c for c, e in out["classes"].items() if e["status"] == "ok"]
-        print("validated:", ok)
-        print("failed:", [c for c in out["classes"] if c not in ok])
+        by: dict[str, list[str]] = {}
+        for c, e in out["classes"].items():
+            by.setdefault(e["status"], []).append(c)
+        for status, names in by.items():
+            print(f"{status} ({len(names)}):", names)
         return
     run(args)
 
