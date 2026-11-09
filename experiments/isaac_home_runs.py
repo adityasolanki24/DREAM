@@ -310,7 +310,7 @@ def run_item(app, args, cfg, kind, item, name, budget_s):  # noqa: C901  # pragm
     if kind == "kitchen":
         from isaacsim.core.utils.stage import get_current_stage
 
-        from experiments.isaac_kitchen_repair import apply_repairs
+        from experiments.isaac_kitchen_repair import apply_repairs, disable_nonfinite_physics
 
         before = labelled_objects(get_current_stage())
         result["kitchen_repair"] = {
@@ -321,6 +321,9 @@ def run_item(app, args, cfg, kind, item, name, budget_s):  # noqa: C901  # pragm
             result["kitchen_repair"].update(apply_repairs(get_current_stage()))
             for _ in range(240):  # the repaired asset streams in
                 app.update()
+            result["kitchen_repair"]["physics_disabled_on_nonfinite_prims"] = (
+                disable_nonfinite_physics(get_current_stage())
+            )
             after = labelled_objects(get_current_stage())
             result["kitchen_repair"]["labelled_after"] = sorted({o.label for o in after})
             result["kitchen_repair"]["refrigerator_bounds_after"] = [
@@ -434,6 +437,8 @@ def run_item(app, args, cfg, kind, item, name, budget_s):  # noqa: C901  # pragm
     rooms_seen, path_m, last = set(), 0.0, env.true_pose()[:2]
     calls = []
     explore = item.get("explore", True)
+    if explore:  # one look around first: the first frame alone leaves no frontier
+        toolbox.call("look_around")
     while (
         explore
         and time.monotonic() - t_start < explore_budget
@@ -443,7 +448,10 @@ def run_item(app, args, cfg, kind, item, name, budget_s):  # noqa: C901  # pragm
         fronts = obs.data.get("frontiers", [])
         if not fronts:
             calls.append({"call": "observe_scene", "note": "no frontier left"})
-            break
+            if len(calls) > 1 and calls[-2].get("note") == "no frontier left":
+                break
+            toolbox.call("look_around")
+            continue
         target = fronts[0]["xy"]
         res = toolbox.call("go_to", {"x": float(target[0]), "y": float(target[1])})
         calls.append(
