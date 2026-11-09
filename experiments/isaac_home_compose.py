@@ -423,11 +423,17 @@ def apply_static_overrides(stage, placements) -> int:
     joints and colliders (the bounding-box collider stands in). Idempotent. Called when the stage
     is written and again on the stage Isaac opened, because the written overrides only bind if
     the remote asset had composed (and un-instanced) at writing time. Returns prims touched."""
-    from pxr import Sdf
+    from pxr import Sdf, Usd, UsdPhysics
 
     n = 0
     for p in placements:
         uninstance(stage, p.prim_path)
+        # Some assets carry their own PhysicsScene (session 4 job 1 found three under the placed
+        # assets of home 100, next to ours): several scenes in one stage, so deactivate theirs.
+        for q in list(Usd.PrimRange(stage.GetPrimAtPath(p.prim_path))):
+            if q.IsA(UsdPhysics.Scene):
+                stage.OverridePrim(q.GetPath()).SetActive(False)
+                n += 1
         for rels, attr in ((p.rigid_body_paths, "physics:rigidBodyEnabled"),
                            (p.collider_paths, "physics:collisionEnabled"),
                            (p.joint_paths, "physics:jointEnabled")):  # fmt: skip

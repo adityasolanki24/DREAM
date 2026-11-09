@@ -51,6 +51,7 @@ def make_asset(path, size, y_up_cm=False):
     else:
         nxf.AddTranslateOp().Set(Gf.Vec3d(*nose_at))
         nxf.AddScaleOp().Set(Gf.Vec3f(0.05, 0.05, 0.05))
+    UsdPhysics.Scene.Define(stage, "/Asset/Physics/PhysicsScene")  # some real assets carry one
     UsdGeom.Scope.Define(stage, "/Asset/Joints")
     UsdPhysics.FixedJoint.Define(stage, "/Asset/Joints/j1")
     stage.GetRootLayer().Save()
@@ -170,7 +171,7 @@ def test_ground_is_one_continuous_collider_with_its_top_at_zero(tmp_path):
         p for p in stage.GetPrimAtPath(comp.ROOT_PRIM).GetChildren() if "Floor" in p.GetName()
     ]
     assert floors and not any(p.HasAPI(UsdPhysics.CollisionAPI) for p in floors)  # visual only
-    scenes = [p for p in stage.Traverse() if p.IsA(UsdPhysics.Scene)]
+    scenes = [p for p in stage.Traverse() if p.IsA(UsdPhysics.Scene) and p.IsActive()]
     assert [str(p.GetPath()) for p in scenes] == [comp.PHYSICS_SCENE]
 
 
