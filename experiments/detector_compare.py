@@ -535,15 +535,47 @@ def build_grounder(entry: dict, device: str):
     raise ValueError(f"unknown detector family {family!r}")
 
 
+class GrounderCache:
+    """Builds grounders, keeping the last one so entries that differ only in ``image_scale`` (or
+    name) share one loaded model. A different model replaces it, freeing its GPU memory."""
+
+    def __init__(self, build) -> None:
+        self.build, self.key, self.grounder = build, None, None
+
+    def __call__(self, entry: dict):
+        key = (entry["family"], entry["model_id"], entry["revision"])
+        if key != self.key:
+            self.grounder = self.key = None
+            gc.collect()
+            self.grounder, self.key = self.build(entry), key
+        g = self.grounder
+        g.name = entry["name"]
+        if hasattr(g, "image_scale"):
+            g.image_scale = float(entry.get("image_scale", 1.0))
+        return g
+
+
+def nvidia_smi_used_mb() -> list[int] | None:
+    try:
+        out = subprocess.check_output(
+            ["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"], text=True
+        )
+        return [int(x) for x in out.split()]
+    except (OSError, subprocess.CalledProcessError, ValueError):
+        return None
+
+
 def run_comparison(
     cfg: dict,
     frames: list[dict],
     entries: list[dict],
     make_grounder,
     out: pathlib.Path | None = None,
+    on_progress=None,
 ) -> dict:
     """Run ``entries`` over ``frames`` with grounders from ``make_grounder(entry)``. A detector
-    that fails to load or run is recorded and skipped; the others still run."""
+    that fails to load or run is recorded and skipped; the others still run.
+    ``on_progress(report)`` is called after each detector, so a timed-out job keeps what ran."""
     from dream.semantics.knowledge import load_knowledge
     from experiments import isaac_semantic as sem
 
@@ -582,6 +614,8 @@ def run_comparison(
         except ImportError:
             pass
         report[name] = record
+        if on_progress is not None:
+            on_progress(report)
     return report
 
 
@@ -740,13 +774,7 @@ def main() -> None:
     from experiments.code_version import code_dirty, code_sha
 
     notes = [] if args.stub else [ensure_scipy()]
-    report = run_comparison(
-        cfg,
-        frames,
-        entries,
-        stub_make if args.stub else (lambda e: build_grounder(e, args.device)),
-        args.out,
-    )
+    make = stub_make if args.stub else GrounderCache(lambda e: build_grounder(e, args.device))
     meta = {
         "config": cfg,
         "config_file": str(args.config),
@@ -759,14 +787,19 @@ def main() -> None:
         "code_dirty": code_dirty(ROOT),
         "versions": versions(),
         "gpu": gpu_state(),
+        "gpu_memory_used_mb_at_start": nvidia_smi_used_mb(),
         "notes": notes,
     }
-    (args.out / "detector_compare.json").write_text(
-        json.dumps({"meta": meta, "detectors": report}, indent=1), encoding="utf-8"
-    )
-    text = compact_summary(report)
-    (args.out / "summary.txt").write_text(text + "\n", encoding="utf-8")
-    print(text)
+
+    def write(report: dict) -> None:
+        (args.out / "detector_compare.json").write_text(
+            json.dumps({"meta": meta, "detectors": report}, indent=1), encoding="utf-8"
+        )
+        (args.out / "summary.txt").write_text(compact_summary(report) + "\n", encoding="utf-8")
+
+    report = run_comparison(cfg, frames, entries, make, args.out, on_progress=write)
+    write(report)
+    print(compact_summary(report))
     sys.exit(0 if any(r["status"] == "completed" for r in report.values()) else 1)
 
 
