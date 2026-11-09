@@ -726,7 +726,7 @@ Workflow, using `python experiments/reports.py <command>`:
    - Each submitted prompt gets its own task. Never reuse or overwrite one.
 2. **Each experimental execution is its own run**: an experiment, model evaluation, simulation campaign, or cloud session or job.
    - Before it, run `run-start`, recording the command, configs (their SHA-256 is stored), seeds, model, simulator, renderer, embodiment, controller and hardware. Add `--cloud` for cloud runs.
-   - After it, run `run-finish`, recording the status (completed, partial, failed, crashed, timed_out, interrupted or cancelled), exit status, cases attempted and completed, metrics, evidence paths and cloud fields. Then write the run's `REPORT.md` prose.
+   - After it, run `run-finish`, recording the status (completed, partial, failed, crashed, timed_out, interrupted or cancelled), exit status, cases attempted and completed, metrics, evidence paths and cloud fields. Then write the run's `REPORT.md` prose. `fill --task <id> [--run <run>] --section <heading> | --field <label> --text <text|@file>` writes a placeholder section or field from the command line, and works where an agent's file tools refuse Markdown. It never overwrites text that is already written.
    - Ten experiments mean ten run records.
    - Crashed and partial runs keep their partial results. Failed runs are never deleted or replaced by reruns.
    - A cloud run is not complete until its results are uploaded and cleanup is verified. Record estimated and billed cost separately; an estimate is never a charge.
