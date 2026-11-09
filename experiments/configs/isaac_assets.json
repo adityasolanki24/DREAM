@@ -1,6 +1,26 @@
 {
  "validated_utc": "2026-11-09",
  "isaac_sim": "6.2.0.0",
+ "excluded": {
+  "version": 1,
+  "decided": "2026-11-09",
+  "classes": [
+   "bathtub",
+   "dryer",
+   "chest_freezer",
+   "tv_stand",
+   "tool_rack",
+   "shower"
+  ],
+  "reason": {
+   "bathtub": "no asset on the Isaac 6.2 root",
+   "dryer": "no asset on the Isaac 6.2 root",
+   "chest_freezer": "no asset on the Isaac 6.2 root",
+   "tv_stand": "no asset on the root",
+   "tool_rack": "both candidates implausibly sized",
+   "shower": "the only candidate is an industrial eyewash-and-shower station, not a household shower: using it would mislabel scene truth and fake the bathtub/shower look-alike pair"
+  }
+ },
  "classes": {
   "refrigerator": {
    "status": "pending_front_read",
@@ -167,7 +187,9 @@
       "not run"
      ]
     }
-   ]
+   ],
+   "fidelity": "genuine",
+   "shares_asset_with": []
   },
   "countertop": {
    "status": "pending_front_read",
@@ -267,7 +289,9 @@
       "size (0.98, 0.98, 0.09) m vs nominal [0.6, 0.9, 1.2]"
      ]
     }
-   ]
+   ],
+   "fidelity": "genuine",
+   "shares_asset_with": []
   },
   "sink": {
    "status": "pending_front_read",
@@ -340,7 +364,9 @@
       "not run"
      ]
     }
-   ]
+   ],
+   "fidelity": "genuine (kitchen sink basin)",
+   "shares_asset_with": []
   },
   "stove": {
    "status": "pending_front_read",
@@ -574,7 +600,9 @@
       "not run"
      ]
     }
-   ]
+   ],
+   "fidelity": "genuine (range oven)",
+   "shares_asset_with": []
   },
   "kitchen_cabinet": {
    "status": "pending_front_read",
@@ -660,7 +688,9 @@
      "path": "SimReady/OEMs/ForgeCAD/Kitchen_Base_Cabinet/kitchen_base_cabinet.usda",
      "failures": []
     }
-   ]
+   ],
+   "fidelity": "genuine",
+   "shares_asset_with": []
   },
   "dining_table": {
    "status": "pending_front_read",
@@ -735,7 +765,9 @@
       "not run"
      ]
     }
-   ]
+   ],
+   "fidelity": "substitute: industrial metal table",
+   "shares_asset_with": []
   },
   "chair": {
    "status": "pending_front_read",
@@ -838,7 +870,9 @@
       "not run"
      ]
     }
-   ]
+   ],
+   "fidelity": "genuine",
+   "shares_asset_with": []
   },
   "microwave": {
    "status": "pending_front_read",
@@ -970,7 +1004,9 @@
       "not run"
      ]
     }
-   ]
+   ],
+   "fidelity": "genuine",
+   "shares_asset_with": []
   },
   "bed": {
    "status": "pending_front_read",
@@ -1064,7 +1100,9 @@
      "path": "SimReady/Hospital/Room_and_Furniture/Bed_Hospital_Standard_A01/sm_bed_hospital_standard_a01_01.usd",
      "failures": []
     }
-   ]
+   ],
+   "fidelity": "substitute: hospital bed",
+   "shares_asset_with": []
   },
   "wardrobe": {
    "status": "pending_front_read",
@@ -1155,7 +1193,9 @@
      "path": "SimReady/Industrial/Warehouse/Furniture/Multi_Door_Locker_Unit_A01/sm_facilityFurniture_lockerUnit_multiDoor_a01_01.usd",
      "failures": []
     }
-   ]
+   ],
+   "fidelity": "substitute: industrial locker",
+   "shares_asset_with": []
   },
   "nightstand": {
    "status": "pending_front_read",
@@ -1258,7 +1298,9 @@
      "path": "SimReady/Hospital/Room_and_Furniture/Table_Bedside_B01/sm_table_bedside_b01_01.usd",
      "failures": []
     }
-   ]
+   ],
+   "fidelity": "genuine",
+   "shares_asset_with": []
   },
   "desk": {
    "status": "pending_front_read",
@@ -1321,7 +1363,9 @@
      "path": "SimReady/Hospital/Room_and_Furniture/Desk_A01/sm_desk_a01_01.usd",
      "failures": []
     }
-   ]
+   ],
+   "fidelity": "genuine",
+   "shares_asset_with": []
   },
   "office_chair": {
    "status": "pending_front_read",
@@ -1390,7 +1434,9 @@
       "not run"
      ]
     }
-   ]
+   ],
+   "fidelity": "genuine",
+   "shares_asset_with": []
   },
   "bookshelf": {
    "status": "pending_front_read",
@@ -1465,6 +1511,10 @@
       "not run"
      ]
     }
+   ],
+   "fidelity": "substitute: industrial storage shelf (same asset as storage_shelf)",
+   "shares_asset_with": [
+    "storage_shelf"
    ]
   },
   "sofa": {
@@ -1540,7 +1590,9 @@
       "not run"
      ]
     }
-   ]
+   ],
+   "fidelity": "substitute: hospital sofa",
+   "shares_asset_with": []
   },
   "coffee_table": {
    "status": "pending_front_read",
@@ -1603,7 +1655,9 @@
      "path": "SimReady/Residential/Furnishing/Tables/Furniture_Table_Coffee_Low_A01/sm_furniture_table_coffee_low_a01_01.usd",
      "failures": []
     }
-   ]
+   ],
+   "fidelity": "genuine",
+   "shares_asset_with": []
   },
   "tv_stand": {
    "status": "failed",
@@ -1702,7 +1756,9 @@
       "not run"
      ]
     }
-   ]
+   ],
+   "fidelity": "substitute: hospital patient chair",
+   "shares_asset_with": []
   },
   "toilet": {
    "status": "pending_front_read",
@@ -1778,7 +1834,9 @@
       "not run"
      ]
     }
-   ]
+   ],
+   "fidelity": "genuine",
+   "shares_asset_with": []
   },
   "washbasin": {
    "status": "pending_front_read",
@@ -1847,7 +1905,9 @@
       "not run"
      ]
     }
-   ]
+   ],
+   "fidelity": "genuine",
+   "shares_asset_with": []
   },
   "shower": {
    "status": "pending_front_read",
@@ -1926,7 +1986,9 @@
      "path": "SimReady/Industrial/Safety/Safety_EyewashStation_Combo_Shower_A01/sm_safety_eyewashStation_combo_shower_a01_01.usd",
      "failures": []
     }
-   ]
+   ],
+   "fidelity": "genuine",
+   "shares_asset_with": []
   },
   "bathtub": {
    "status": "failed",
@@ -2013,7 +2075,9 @@
       "not run"
      ]
     }
-   ]
+   ],
+   "fidelity": "genuine",
+   "shares_asset_with": []
   },
   "tool_rack": {
    "status": "failed",
@@ -2112,6 +2176,10 @@
       "not run"
      ]
     }
+   ],
+   "fidelity": "substitute: industrial storage shelf (same asset as bookshelf)",
+   "shares_asset_with": [
+    "bookshelf"
    ]
   },
   "washing_machine": {
@@ -2355,7 +2423,9 @@
      "path": "SimReady/OEMs/ForgeCAD/Front_Load_Washer/front_load_washer.usda",
      "failures": []
     }
-   ]
+   ],
+   "fidelity": "genuine",
+   "shares_asset_with": []
   },
   "dryer": {
    "status": "failed",
@@ -2471,7 +2541,9 @@
       "not run"
      ]
     }
-   ]
+   ],
+   "fidelity": "genuine",
+   "shares_asset_with": []
   },
   "dishwasher": {
    "status": "pending_front_read",
@@ -2556,7 +2628,9 @@
       "not run"
      ]
     }
-   ]
+   ],
+   "fidelity": "genuine",
+   "shares_asset_with": []
   },
   "kettle": {
    "status": "pending_front_read",
@@ -2641,7 +2715,9 @@
       "not run"
      ]
     }
-   ]
+   ],
+   "fidelity": "genuine",
+   "shares_asset_with": []
   },
   "tv": {
    "status": "pending_front_read",
@@ -2710,7 +2786,9 @@
       "not run"
      ]
     }
-   ]
+   ],
+   "fidelity": "genuine",
+   "shares_asset_with": []
   },
   "plant": {
    "status": "pending_front_read",
@@ -2818,7 +2896,9 @@
       "not run"
      ]
     }
-   ]
+   ],
+   "fidelity": "genuine",
+   "shares_asset_with": []
   }
  }
 }

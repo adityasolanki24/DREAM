@@ -42,6 +42,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from dream.sim.home import (  # noqa: E402
+    TARGETS,
     WALL_HEIGHT,
     HomeSpec,
     ObjectSpec,
@@ -72,6 +73,53 @@ class MissingAssetError(RuntimeError):
             "no validated asset for: "
             + "; ".join(f"{c} ({why})" for c, why in sorted(classes.items()))
         )
+
+
+class CaseRefused(RuntimeError):
+    """The case cannot be composed without changing what it means (see ``check_case``)."""
+
+    def __init__(self, reasons: list[str]) -> None:
+        self.reasons = reasons
+        super().__init__("; ".join(reasons))
+
+
+def excluded_classes(manifest: dict) -> frozenset[str]:
+    """Classes the Isaac environment omits (owner decision of 9 Nov 2026: no loadable or no
+    faithful asset). Versioned in the manifest. Rule 3 class: environment simplification; the
+    full-class generator stays the MuJoCo challenge case."""
+    return frozenset(manifest.get("excluded", {}).get("classes", ()))
+
+
+def omissions(home: HomeSpec, manifest: dict) -> list[dict]:
+    """Every instance the composer leaves out, with its class, pose and room."""
+    gone = excluded_classes(manifest)
+    version = manifest.get("excluded", {}).get("version")
+    return [
+        {"instance_id": o.instance_id, "class": o.cls, "xy": list(o.xy), "room_id": o.room_id,
+         "reason": f"class excluded from the Isaac environment (list version {version})"}
+        for o in home.objects if o.cls in gone
+    ]  # fmt: skip
+
+
+def check_case(home: HomeSpec, manifest: dict) -> None:
+    """Refuse, rather than silently change, a case whose meaning depends on an excluded class:
+    an excluded target; a look-alike scenario (F) with no look-alike left; a conflicting-evidence
+    scenario (K) that placed an excluded mismatch object."""
+    gone = excluded_classes(manifest)
+    target = home.target_class
+    why = []
+    if target in gone:
+        why.append(f"target class {target} is excluded")
+    info = TARGETS.get(target) if target else None
+    if info and home.scenario[:1] == "F":
+        if not any(o.cls in info.confusers and o.cls not in gone for o in home.objects):
+            why.append("no look-alike of the target remains after omissions")
+    if info and home.scenario[:1] == "K":
+        hit = sorted({o.cls for o in home.objects if o.cls in info.mismatch and o.cls in gone})
+        if hit:
+            why.append(f"mismatch object(s) {hit} are excluded")
+    if why:
+        raise CaseRefused(why)
 
 
 @dataclass(frozen=True)
@@ -149,14 +197,16 @@ def fit_scale(entry: dict, obj: ObjectSpec) -> float:
 def plan_placements(home: HomeSpec, manifest: dict) -> list[Placement]:
     """One placement per furniture instance; raises ``MissingAssetError`` for all gaps."""
     classes = manifest.get("classes", {})
+    gone = excluded_classes(manifest)
+    kept = [o for o in home.objects if o.cls not in gone]
     missing: dict[str, str] = {}
-    for cls in sorted({o.cls for o in home.objects}):
+    for cls in sorted({o.cls for o in kept}):
         problem = _entry_problem(classes.get(cls))
         if problem:
             missing[cls] = problem
     scales: dict[str, float] = {}
     if not missing:
-        for o in home.objects:
+        for o in kept:
             try:
                 scales[o.instance_id] = fit_scale(classes[o.cls], o)
             except ValueError as error:
@@ -164,7 +214,7 @@ def plan_placements(home: HomeSpec, manifest: dict) -> list[Placement]:
     if missing:
         raise MissingAssetError(missing)
     out = []
-    for n, o in enumerate(home.objects):
+    for n, o in enumerate(kept):
         entry = classes[o.cls]
         s = scales[o.instance_id]
         m = placement_matrix(
@@ -223,6 +273,9 @@ def truth_manifest(home: HomeSpec, placements: list[Placement], manifest: dict) 
             }
             for p in placements
         ],  # fmt: skip
+        "omitted": omissions(home, manifest),
+        "exclusion_list": manifest.get("excluded"),
+        "rule3_class": "environment simplification (excluded classes omitted)",
         "asset_manifest_validated_utc": manifest.get("validated_utc"),
     }
 
@@ -238,6 +291,7 @@ def compose_plan(
 ) -> tuple[HomeSpec, list[Placement], dict]:
     home = sample_home(np.random.default_rng(seed), scenario, target, variant, seed)
     manifest = load_manifest() if manifest is None else manifest
+    check_case(home, manifest)
     placements = plan_placements(home, manifest)
     return home, placements, truth_manifest(home, placements, manifest)
 

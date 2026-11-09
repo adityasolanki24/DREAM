@@ -51,6 +51,29 @@ EXTRA_LARGEST_M = {"dishwasher": (0.5, 1.1), "kettle": (0.15, 0.4), "tv": (0.5, 
 TEXTURE_EXT = (".png", ".jpg", ".jpeg", ".exr", ".dds", ".tga", ".tif", ".tiff", ".hdr", ".mdl")
 VIEWS = {"px": (1, 0), "py": (0, 1), "nx": (-1, 0), "ny": (0, -1)}  # camera side -> unit (x, y)
 SHOT_PX = 384
+# Owner decision of 9 Nov 2026 (Rule 3 class: environment simplification; the full-class generator
+# stays the MuJoCo challenge case). Versioned: change the list only with a new version.
+EXCLUDED = {
+    "version": 1,
+    "decided": "2026-11-09",
+    "classes": ["bathtub", "dryer", "chest_freezer", "tv_stand", "tool_rack", "shower"],
+    "reason": {
+        "bathtub": "no asset on the Isaac 6.2 root", "dryer": "no asset on the Isaac 6.2 root",
+        "chest_freezer": "no asset on the Isaac 6.2 root", "tv_stand": "no asset on the root",
+        "tool_rack": "both candidates implausibly sized",
+        "shower": "the only candidate is an industrial eyewash-and-shower station, not a household "
+        "shower: using it would mislabel scene truth and fake the bathtub/shower look-alike pair",
+    },
+}  # fmt: skip
+# Classes whose validated asset is a different kind of object (owner decision: kept, labelled).
+FIDELITY = {
+    "bed": "substitute: hospital bed", "sofa": "substitute: hospital sofa",
+    "armchair": "substitute: hospital patient chair", "wardrobe": "substitute: industrial locker",
+    "dining_table": "substitute: industrial metal table",
+    "bookshelf": "substitute: industrial storage shelf (same asset as storage_shelf)",
+    "storage_shelf": "substitute: industrial storage shelf (same asset as bookshelf)",
+    "stove": "genuine (range oven)", "sink": "genuine (kitchen sink basin)",
+}  # fmt: skip
 
 
 # -- pure helpers (tested on CPU) ------------------------------------------------------------
@@ -194,7 +217,16 @@ def build_manifest(records_dir: pathlib.Path, fronts: dict, validated_utc: str) 
         note = fronts.get("_notes", {}).get(cls, {})
         classes[cls] = {**manifest_entry(cls, rec["url"], rec, front, note),
                         "candidates": reasons}  # fmt: skip
-    return {"validated_utc": validated_utc, "isaac_sim": "6.2.0.0", "classes": classes}
+    by_url: dict[str, list[str]] = {}
+    for cls, e in classes.items():
+        if e.get("url"):
+            by_url.setdefault(e["url"], []).append(cls)
+    for cls, e in classes.items():
+        if e.get("url"):
+            e["fidelity"] = FIDELITY.get(cls, "genuine")
+            e["shares_asset_with"] = [c for c in by_url[e["url"]] if c != cls]
+    return {"validated_utc": validated_utc, "isaac_sim": "6.2.0.0", "excluded": EXCLUDED,
+            "classes": classes}  # fmt: skip
 
 
 # -- Isaac side -------------------------------------------------------------------------------

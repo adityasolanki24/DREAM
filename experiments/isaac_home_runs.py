@@ -161,7 +161,14 @@ def main() -> None:  # pragma: no cover - needs Isaac Sim
     ap.add_argument("--out", type=pathlib.Path, required=True)
     ap.add_argument("--raw-dir", type=pathlib.Path, required=True)
     ap.add_argument("--robot-dir", type=pathlib.Path, default=pathlib.Path("/work/g1_usd"))
-    ap.add_argument("--kitchen", default="", help="also capture in this development kitchen")
+    ap.add_argument("--kitchens", default="", help="comma list of NVIDIA kitchens to include")
+    ap.add_argument(
+        "--kitchen-repair",
+        action="store_true",
+        help="remap the kitchens' broken refrigerator reference (experiments/"
+        "isaac_kitchen_repair.py); the default keeps the unrepaired scene",
+    )
+    ap.add_argument("--no-homes", action="store_true", help="skip the composed homes")
     ap.add_argument("--homes", default="", help="comma list of seeds to run (default all)")
     ap.add_argument("--budget-s", type=float, default=3000.0)
     ap.add_argument("--qwen-port", type=int, default=8767)
@@ -203,22 +210,42 @@ def main() -> None:  # pragma: no cover - needs Isaac Sim
         app.close(wait_for_replicator=False, skip_cleanup=True)
 
 
+def comp_refusals():
+    from experiments import isaac_home_compose as comp
+
+    return (comp.CaseRefused, comp.MissingAssetError)
+
+
 def run_all(app, args, cfg) -> None:  # pragma: no cover - needs Isaac Sim
     t0 = time.monotonic()
     done = []
     wanted = {int(s) for s in args.homes.split(",") if s}
-    items = [("home", h) for h in cfg["homes"] if not wanted or h["seed"] in wanted]
-    if args.kitchen:
-        items.append(("kitchen", {"kitchen": args.kitchen, "seed": 1}))
+    items = (
+        []
+        if args.no_homes
+        else [("home", h) for h in cfg["homes"] if not wanted or h["seed"] in wanted]
+    )
+    dev = cfg["kitchens"]["development"]
+    for kitchen in [k for k in args.kitchens.split(",") if k]:
+        if kitchen not in dev and kitchen not in cfg["kitchens"]["held_out_candidates"]:
+            raise SystemExit(f"kitchen {kitchen} is not in the config")
+        # Held-out kitchens: load check and recognisability only, never exploration or search.
+        items.append(("kitchen", {"kitchen": kitchen, "seed": 1, "explore": kitchen in dev}))
     for kind, item in items:
         left = args.budget_s - (time.monotonic() - t0)
         if left < cfg["min_item_budget_s"]:
             print(f"[budget] stopping before {item}: {left:.0f} s left", flush=True)
             break
-        name = (f"{cfg['variant']}_{item['seed']}_{item['scenario']}_{item['target']}"
-                if kind == "home" else f"kitchen_{item['kitchen']}")  # fmt: skip
+        suffix = "_repaired" if args.kitchen_repair else ""
+        name = (
+            f"{cfg['variant']}_{item['seed']}_{item['scenario']}_{item['target']}"
+            if kind == "home"
+            else f"kitchen_{item['kitchen']}{suffix}"
+        )
         try:
             result = run_item(app, args, cfg, kind, item, name, min(left, cfg["max_item_budget_s"]))
+        except comp_refusals() as refusal:  # a refused case is listed, never silently changed
+            result = {"name": name, "refused": str(refusal), "case": item}
         except BaseException:
             result = {"name": name, "crashed": traceback.format_exc()}
             print(result["crashed"], flush=True)
@@ -280,9 +307,35 @@ def run_item(app, args, cfg, kind, item, name, budget_s):  # noqa: C901  # pragm
         raise RuntimeError(f"could not open {stage_url}")
     for _ in range(60):
         app.update()
+    if kind == "kitchen":
+        from isaacsim.core.utils.stage import get_current_stage
+
+        from experiments.isaac_kitchen_repair import apply_repairs
+
+        before = labelled_objects(get_current_stage())
+        result["kitchen_repair"] = {
+            "applied": bool(args.kitchen_repair),
+            "labelled_before": sorted({o.label for o in before}),
+        }
+        if args.kitchen_repair:
+            result["kitchen_repair"].update(apply_repairs(get_current_stage()))
+            for _ in range(240):  # the repaired asset streams in
+                app.update()
+            after = labelled_objects(get_current_stage())
+            result["kitchen_repair"]["labelled_after"] = sorted({o.label for o in after})
+            result["kitchen_repair"]["refrigerator_bounds_after"] = [
+                [o.lo.tolist(), o.hi.tolist()] for o in after if o.label == "refrigerator"
+            ]
     world = World(physics_dt=0.005, rendering_dt=0.005, stage_units_in_meters=1.0)
     stage = world.stage
     objects = labelled_objects(stage)
+    if kind == "home":  # remote assets stream in: wait until every instance has a finite bound
+        for _ in range(40):
+            if {p for p in inst_paths.values()} <= {o.path for o in objects}:
+                break
+            for _ in range(20):
+                app.update()
+            objects = labelled_objects(stage)
     if kind == "home":
         by_path = {o.path: o for o in objects}
         missing = [i for i, p in inst_paths.items() if p not in by_path]
@@ -318,6 +371,8 @@ def run_item(app, args, cfg, kind, item, name, budget_s):  # noqa: C901  # pragm
     intrinsics = {"fx": fx, "fy": fx, "cx": HEAD_CAMERA.width / 2, "cy": HEAD_CAMERA.height / 2,
                   "width": HEAD_CAMERA.width, "height": HEAD_CAMERA.height}  # fmt: skip
     result.update(prompt=prompt, intrinsics=intrinsics, start=list(start))
+    if kind == "home":
+        result["omitted"] = truth["omitted"]
     base = G1MobileBase(env, WBCLocomotion.from_cache())
     base.walk(0.0, 0.0, 0.0, STAND_S)
     result["stands"] = bool(base.stop_reason is None and env.true_height() > 0.6)
@@ -378,7 +433,12 @@ def run_item(app, args, cfg, kind, item, name, budget_s):  # noqa: C901  # pragm
     explore_budget = budget_s * cfg["explore_fraction"]
     rooms_seen, path_m, last = set(), 0.0, env.true_pose()[:2]
     calls = []
-    while time.monotonic() - t_start < explore_budget and counters["frames"] < cfg["max_frames"]:
+    explore = item.get("explore", True)
+    while (
+        explore
+        and time.monotonic() - t_start < explore_budget
+        and counters["frames"] < cfg["max_frames"]
+    ):
         obs = toolbox.call("observe_scene")
         fronts = obs.data.get("frontiers", [])
         if not fronts:
@@ -410,49 +470,64 @@ def run_item(app, args, cfg, kind, item, name, budget_s):  # noqa: C901  # pragm
                              "wall_s": time.monotonic() - t_start}  # fmt: skip
     # -- per-class recognisability at reset poses ---------------------------------------------
     rows = []
-    if home is not None and not base.stop_reason:
-        from experiments.isaac_semantic_dev import project_box
+    from experiments.isaac_semantic_dev import candidate_poses, project_box
 
+    targets = []  # (class, instance key, [(x, y, yaw)])
+    if home is not None:
         seen_classes: set[str] = set()
         for obj in home.objects:
-            if obj.cls in seen_classes:
-                continue
+            if obj.cls in seen_classes or obj.instance_id not in inst_paths:
+                continue  # omitted (excluded) classes have no instance in the scene
             seen_classes.add(obj.cls)
-            if time.monotonic() - t_start > budget_s:
-                result["recognisability_truncated_at"] = obj.cls
-                break
-            o_truth = by_path[inst_paths[obj.instance_id]]
-            for k, (x, y, yaw) in enumerate(viewpoints_for(home, obj, cfg["views"])):
-                env.reset(x, y, yaw, floor_z=0.0)
-                b2 = G1MobileBase(env, WBCLocomotion.from_cache())
-                b2.walk(0.0, 0.0, 0.0, STAND_S)
-                if b2.stop_reason or env.true_height() < 0.6:
-                    rows.append({"class": obj.cls, "view": k, "skipped": "not standing"})
-                    continue
-                pos, rot = env._torso_pose()
-                cam = head_camera_world(pos, rot, HEAD_CAMERA)
-                proj = project_box(cam, o_truth.lo, o_truth.hi, HEAD_CAMERA.width,
-                                   HEAD_CAMERA.height)  # fmt: skip
-                frame = env.capture_head()
-                ids, info = env.last_segmentation
-                gt = instance_boxes(
-                    ids,
-                    info.get("idToLabels", info),
-                    {obj.instance_id: inst_paths[obj.instance_id]},
-                )  # noqa: E501
-                q = qwen_on(frame)
-                Image.fromarray(frame.rgb).save(raw / f"view_{obj.cls}_{k}.png")
-                rows.append({"class": obj.cls, "instance": obj.instance_id, "view": k,
-                             "pose": [x, y, yaw], "projected": proj,
-                             "seg_pixels": gt.get(obj.instance_id, {}).get("pixels", 0),
-                             "seg_box": gt.get(obj.instance_id, {}).get("box"),
-                             "truth_box": (gt.get(obj.instance_id) or {}).get("box")
-                             or (proj or {}).get("box"),
-                             "qwen_raw": q["raw"], "detections": q["detections"]})  # fmt: skip
-        scored = [r for r in rows if "qwen_raw" in r and r["truth_box"]
-                  and r["seg_pixels"] >= cfg["min_visible_pixels"]]  # fmt: skip
-        result["recognisability"] = recognisability(scored)
-        result["recognisability_rows"] = rows
+            targets.append((obj.cls, obj.instance_id, viewpoints_for(home, obj, cfg["views"])))
+    else:
+        label_class = {"refrigerator": "refrigerator", "sink": "sink", "sink_basin": "sink",
+                       "sink_rim": "sink", "oven": "stove", "countertop": "countertop",
+                       "kitchen_cabinet": "kitchen_cabinet", "microwave": "microwave"}  # fmt: skip
+        path_key = {v: k for k, v in inst_paths.items()}
+        best: dict[str, object] = {}
+        for o in objects:
+            c = label_class.get(o.label)
+            if c and (c not in best or np.prod(o.hi - o.lo) > np.prod(best[c].hi - best[c].lo)):
+                best[c] = o
+        for c, o in best.items():
+            targets.append((c, path_key[o.path],
+                            candidate_poses(o.lo[:2], o.hi[:2], cells, limit=cfg["views"],
+                                            near=NEAR_M, far=FAR_M)))  # fmt: skip
+        result["kitchen_classes_without_bound"] = sorted(set(label_class.values()) - set(best))
+    for cls, key, poses in targets:
+        if base.stop_reason:
+            break
+        if time.monotonic() - t_start > budget_s:
+            result["recognisability_truncated_at"] = cls
+            break
+        o_truth = by_path[inst_paths[key]]
+        for k, (x, y, yaw) in enumerate(poses):
+            env.reset(x, y, yaw, floor_z=floor_z)
+            b2 = G1MobileBase(env, WBCLocomotion.from_cache())
+            b2.walk(0.0, 0.0, 0.0, STAND_S)
+            if b2.stop_reason or env.true_height() < floor_z + 0.6:
+                rows.append({"class": cls, "view": k, "skipped": "not standing"})
+                continue
+            pos, rot = env._torso_pose()
+            cam = head_camera_world(pos, rot, HEAD_CAMERA)
+            proj = project_box(cam, o_truth.lo, o_truth.hi, HEAD_CAMERA.width,
+                               HEAD_CAMERA.height)  # fmt: skip
+            frame = env.capture_head()
+            ids, info = env.last_segmentation
+            gt = instance_boxes(ids, info.get("idToLabels", info), {key: inst_paths[key]})
+            q = qwen_on(frame)
+            Image.fromarray(frame.rgb).save(raw / f"view_{cls}_{k}.png")
+            rows.append({"class": cls, "instance": key, "view": k,
+                         "pose": [x, y, yaw], "projected": proj,
+                         "seg_pixels": gt.get(key, {}).get("pixels", 0),
+                         "seg_box": gt.get(key, {}).get("box"),
+                         "truth_box": (gt.get(key) or {}).get("box") or (proj or {}).get("box"),
+                         "qwen_raw": q["raw"], "detections": q["detections"]})  # fmt: skip
+    scored = [r for r in rows if "qwen_raw" in r and r["truth_box"]
+              and r["seg_pixels"] >= cfg["min_visible_pixels"]]  # fmt: skip
+    result["recognisability"] = recognisability(scored)
+    result["recognisability_rows"] = rows
     result["wall_s"] = time.monotonic() - t_start
     result["frames_dir"] = str(frames_dir)
     return result
