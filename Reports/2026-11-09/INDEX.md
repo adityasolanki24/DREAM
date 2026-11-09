@@ -6,7 +6,7 @@
 
 | Date | Task ID | Prompt | Status | Main finding | Runs | Report |
 |---|---|---|---|---|---|---|
-| 2026-11-09 | 2026-11-09-001 | [Permanent Reports system; Isaac semantic exploration with learned perception, knowledge sources and larger homes](001-isaac-semantic-research/PROMPT.md) | in_progress | - | 9 | [REPORT](001-isaac-semantic-research/REPORT.md) |
+| 2026-11-09 | 2026-11-09-001 | [Permanent Reports system; Isaac semantic exploration with learned perception, knowledge sources and larger homes](001-isaac-semantic-research/PROMPT.md) | in_progress | - | 10 | [REPORT](001-isaac-semantic-research/REPORT.md) |
 
 ## Continued on this day
 
@@ -24,3 +24,4 @@
 | 20261109-160919-kitchen-repair-recognisability | 2026-11-09-001 | crashed | 2026-11-09T16:09:19+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-160919-kitchen-repair-recognisability/REPORT.md) |
 | 20261109-163121-asset-front-renders-2-and-scene-inventory | 2026-11-09-001 | timed_out | 2026-11-09T16:31:21+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-163121-asset-front-renders-2-and-scene-inventory/REPORT.md) |
 | 20261109-164552-kitchen-repair-rerun | 2026-11-09-001 | crashed | 2026-11-09T16:45:52+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-164552-kitchen-repair-rerun/REPORT.md) |
+| 20261109-192220-s3-asset-marker-renders | 2026-11-09-001 | running | 2026-11-09T19:22:20+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-192220-s3-asset-marker-renders/REPORT.md) |
