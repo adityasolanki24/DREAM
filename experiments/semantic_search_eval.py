@@ -51,7 +51,11 @@ from dream.runtime.semantic_search import (  # noqa: E402
     stop_outcome,
 )
 from dream.semantics.belief import BeliefConfig  # noqa: E402
-from dream.semantics.knowledge import load_knowledge, uniform_knowledge  # noqa: E402
+from dream.semantics.knowledge import (  # noqa: E402
+    load_knowledge,
+    load_source,
+    uniform_knowledge,
+)
 from dream.semantics.verify import VerifierThresholds, check_track  # noqa: E402
 from dream.semantics.world import SemanticWorld  # noqa: E402
 from dream.sim import home as homes  # noqa: E402
@@ -292,7 +296,10 @@ def episode(job: dict) -> dict:
 
 
 def _run(home, job, cfg, arm, t0) -> dict:
-    knowledge = load_knowledge() if arm.get("semantic", True) else uniform_knowledge()
+    if "knowledge" in arm:  # one coherent source for search priors and room inference
+        knowledge = load_source(arm["knowledge"])
+    else:
+        knowledge = load_knowledge() if arm.get("semantic", True) else uniform_knowledge()
     words = load_knowledge()  # synonyms for reading requests are not search knowledge
     objects, rooms = vocabularies(words)
     caps = Capabilities(
@@ -396,6 +403,10 @@ def jobs_for(cfg: dict, split: str, arms: list[str], base: str) -> list[dict]:
     return out
 
 
+def job_key(x: dict, arm: str = "arm_name") -> tuple:
+    return (x[arm], x["scenario"], x["target"], x["generator"], x["noise"], x["seed"])
+
+
 def summarise(rows: list[dict]) -> dict:
     from collections import Counter, defaultdict
 
@@ -427,6 +438,11 @@ def main() -> None:
     ap.add_argument("--workers", type=int, default=3)
     ap.add_argument("--out")
     ap.add_argument("--limit", type=int, help="run only the first N jobs (smoke)")
+    ap.add_argument(
+        "--resume",
+        action="store_true",
+        help="keep the episodes already in OUT/episodes.jsonl and run only the rest",
+    )
     args = ap.parse_args()
     cfg = json.loads(pathlib.Path(args.config).read_text())
     split = cfg["splits"][args.split]
@@ -440,14 +456,22 @@ def main() -> None:
     meta = {"config": cfg, "split": args.split, "arms": arms, "base": base,
             "git_sha": code_sha(ROOT), "dream_dirty_at_start": code_dirty(ROOT),
             "renderer": os.environ.get("MUJOCO_GL"), "machine": platform.platform(),
-            "jobs": len(jobs)}  # fmt: skip
+            "jobs": len(jobs), "resumed": args.resume}  # fmt: skip
     rows, t0 = [], time.perf_counter()
-    with ProcessPoolExecutor(args.workers) as pool, open(out / "episodes.jsonl", "w") as f:
+    if args.resume and (out / "episodes.jsonl").exists():
+        rows = [json.loads(x) for x in (out / "episodes.jsonl").read_text().splitlines()
+                if x.strip()]  # fmt: skip
+        done = {job_key(r) for r in rows}
+        jobs = [j for j in jobs if job_key(j, arm="arm_name") not in done]
+        print(f"resuming: {len(rows)} episodes kept, {len(jobs)} to run", flush=True)
+    total = len(rows) + len(jobs)
+    with (ProcessPoolExecutor(args.workers) as pool,
+          open(out / "episodes.jsonl", "a" if args.resume else "w") as f):  # fmt: skip
         for r in pool.map(episode, jobs):
             rows.append(r)
             f.write(json.dumps(r, default=float) + "\n")
             f.flush()
-            print(f"[{len(rows)}/{len(jobs)} {time.perf_counter() - t0:.0f}s] {r['arm_name']} "
+            print(f"[{len(rows)}/{total} {time.perf_counter() - t0:.0f}s] {r['arm_name']} "
                   f"{r['scenario']} {r['target']} s{r['seed']}: {r.get('result')} "
                   f"{r.get('completion')} sim={r.get('sim_s')} wall={r.get('wall_s')}",
                   flush=True)  # fmt: skip

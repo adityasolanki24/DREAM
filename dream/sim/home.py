@@ -40,6 +40,7 @@ Scenario recipes (T is the target's typical room type, see ``TARGETS``):
 
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass, replace
 from math import cos, pi, sin
 
@@ -66,6 +67,19 @@ CLASSES = (
 )  # fmt: skip
 ROOM_TYPES = (
     "kitchen", "bedroom", "bathroom", "living_room", "office", "garage", "laundry", "storage",
+)  # fmt: skip
+
+
+GENERATORS = ("nominal", "shifted", "xl")
+# The ``xl`` generator (a new environment for the semantic-knowledge comparison): a 4 x 3 grid
+# of 12 rooms of about 3.5 m, nominal furnishing and object scales, doorway logic as above.
+# Rooms are as small as the nominal and shifted ones; the home is larger and the travel longer.
+XL_GRID = (4, 3)  # columns, rows
+XL_WIDTH = (13.0, 14.5)  # m
+XL_DEPTH = (10.0, 11.5)  # m
+XL_TYPES = (  # kitchen, living room, 3 bedrooms, 2 bathrooms, office, garage, laundry, storage
+    "kitchen", "living_room", "bedroom", "bedroom", "bedroom", "bathroom", "bathroom", "office",
+    "garage", "laundry", "storage",
 )  # fmt: skip
 
 
@@ -1003,12 +1017,13 @@ class _Gen:
     def __init__(self, rng, scenario: str, target: str, generator: str, seed: int) -> None:
         if target not in TARGETS:
             raise ValueError(f"unknown target {target}")
-        if generator not in ("nominal", "shifted"):
+        if generator not in GENERATORS:
             raise ValueError(f"unknown generator {generator}")
         if scenario[:1] not in SCENARIOS:
             raise ValueError(f"unknown scenario {scenario}")
         self.rng, self.target, self.generator, self.seed = rng, target, generator, seed
         self.shifted = generator == "shifted"
+        self.xl = generator == "xl"  # nominal furnishing and scales in a larger home
         self.info = TARGETS[target]
         self.furn = FURNISHING_SHIFTED if self.shifted else FURNISHING_NOMINAL
         if scenario == "I":
@@ -1023,6 +1038,9 @@ class _Gen:
         if self.shifted:
             cols, rows = [(3, 2), (2, 3), (3, 3)][int(rng.integers(3))]
             w, d, alpha = rng.uniform(9.0, 12.0), rng.uniform(7.5, 10.0), 3.0
+        elif self.xl:
+            cols, rows = XL_GRID
+            w, d, alpha = rng.uniform(*XL_WIDTH), rng.uniform(*XL_DEPTH), 6.0
         else:
             cols, rows = [(2, 2), (2, 2), (3, 2), (2, 3)][int(rng.integers(4))]
             w, d, alpha = rng.uniform(7.0, 10.0), rng.uniform(6.0, 9.0), 6.0
@@ -1109,9 +1127,16 @@ class _Gen:
         if sc == "I_moved":
             required.append(str(rng.choice([t for t in ROOM_TYPES if t != T])))
         types = list(required)
+        if self.xl:  # every room type the generator knows, with spare bedrooms and bathrooms
+            need = Counter(XL_TYPES)
+            for t in required:
+                if need[t] > 0:
+                    need[t] -= 1
+            rest = [t for t in need.elements() if t not in forbidden]
+            types += [str(t) for t in rng.permutation(rest)[: max(n - len(types), 0)]]
         allowed = [t for t in ROOM_TYPES if t not in forbidden and t != "studio"]
         while len(types) < n:
-            pool = [t for t in allowed if self.shifted or t not in types] or allowed
+            pool = [t for t in allowed if self.shifted or self.xl or t not in types] or allowed
             w = np.array([TYPE_WEIGHTS[t] for t in pool])
             types.append(str(rng.choice(pool, p=w / w.sum())))
         if len(types) > n:

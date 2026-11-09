@@ -1,0 +1,44 @@
+{
+  "run_id": "2026-11-09-001/20261109-141107-knowledge-xl-dev-budget",
+  "task_id": "2026-11-09-001",
+  "title": "Semantic knowledge xl: development budget check",
+  "started": "2026-11-09T14:11:07+11:00",
+  "commit": "6825395d493290adfdce46e2d6b5bebedf731d74",
+  "dirty": false,
+  "branch": "worktree-agent-a6670edb145684437",
+  "configs": [
+    {
+      "path": "experiments/configs/semantic_knowledge_xl.json",
+      "sha256": "0bbd5efb8f68ef835a40f0264b9651c4963a23f8c85c3e092c242845eec73d64"
+    }
+  ],
+  "command": "python experiments/semantic_search_eval.py experiments/configs/semantic_knowledge_xl.json --split dev_budget --workers 3 --out results/semantic_knowledge_xl/dev_budget",
+  "seeds": "100-103 (development)",
+  "model": null,
+  "simulator": "MuJoCo 3.x",
+  "renderer": null,
+  "embodiment": "kinematic surrogate base, oracle-assisted detector",
+  "controller": "kinematic surrogate base",
+  "hardware": "owner laptop, CPU, 3 workers",
+  "status": "completed",
+  "ended": "2026-11-09T14:40:43+11:00",
+  "exit_status": 0,
+  "cases_attempted": 64,
+  "cases_completed": 64,
+  "metrics": {
+    "A_frontier_found_target_present": "58/64 (90.6%)",
+    "threshold": "80%",
+    "budget_decision": "keep 600 s",
+    "misses_at_budget": 1,
+    "median_success_sim_s": 109.75,
+    "mean_wall_s_per_episode": 78.5
+  },
+  "evidence": [
+    {
+      "path": "results/semantic_knowledge_xl/dev_budget/summary.json",
+      "kind": "file",
+      "sha256": "4d637b763241e758a0ae53c9c81756f5a1153709d9ee05ce6b579565edc28539"
+    }
+  ],
+  "cloud": null
+}
