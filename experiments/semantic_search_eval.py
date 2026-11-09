@@ -350,6 +350,7 @@ def _run(home, job, cfg, arm, t0) -> dict:
         semantic=arm.get("semantic", True),
         room_inference=arm.get("room_inference", True),
         memory=arm.get("memory", True),
+        unexplored_rooms=arm.get("unexplored_rooms", False),
     )
     thresholds = VerifierThresholds(**{**cfg.get("verifier", {}), **arm.get("verifier", {})})
     memory = SpatialMemory(np.random.default_rng([job["seed"], 2]), GRID_SIZE, boxes=False)
@@ -371,7 +372,22 @@ def _run(home, job, cfg, arm, t0) -> dict:
             for o in home.objects
         ]  # fmt: skip
         shadow = ShadowAcceptances(world, target, meter, true_pose, instances)
-        episode = agent.run(goal, on_event=shadow.on_event,
+        diag = None
+        if job.get("diagnose"):  # EVALUATION ONLY, read-only (semantic_search_diagnosis.py)
+            from experiments.semantic_search_diagnosis import Diagnosis
+
+            planner.diagnose = True
+            typical = homes.TARGETS[target].typical if target in homes.TARGETS else None
+            diag = Diagnosis(world, planner, meter, true_pose, instances,
+                             lambda xy: getattr(homes.room_at(home, xy), "type", None),
+                             target, typical)  # fmt: skip
+
+        def on_event(kind, data):
+            shadow.on_event(kind, data)
+            if diag is not None:
+                diag.on_event(kind, data)
+
+        episode = agent.run(goal, on_event=on_event,
                             spec=spec if arm.get("gate", True) else None)  # fmt: skip
         shadow.check()  # the state after the last step
         verdict = toolbox.call("verify_goal", {"goal": goal}).data
@@ -419,10 +435,12 @@ def _run(home, job, cfg, arm, t0) -> dict:
         "memory_hints": len(hints), "memory_write_back": stored,
         "shadow_acceptances": shadow.rows(),
         "trace": planner.trace[-40:],
+        **({"diagnosis": diag.result(), "decisions": planner.diagnostics} if diag else {}),
     }  # fmt: skip
 
 
-def jobs_for(cfg: dict, split: str, arms: list[str], base: str) -> list[dict]:
+def jobs_for(cfg: dict, split: str, arms: list[str], base: str,
+             diagnose: bool = False) -> list[dict]:
     s = cfg["splits"][split]
     out = []
     for cond in s["conditions"]:
@@ -434,7 +452,8 @@ def jobs_for(cfg: dict, split: str, arms: list[str], base: str) -> list[dict]:
                 out.append({"cfg": cfg, "arm": arm, "arm_name": arm_name, "seed": seed,
                             "scenario": cond["scenario"], "target": cond.get("target",
                             "refrigerator"), "generator": cond.get("generator", "nominal"),
-                            "noise": cond.get("noise", "nominal"), "base": base})  # fmt: skip
+                            "noise": cond.get("noise", "nominal"), "base": base,
+                            "diagnose": diagnose})  # fmt: skip
     return out
 
 
@@ -472,6 +491,8 @@ def main() -> None:
     ap.add_argument("--base", choices=["kinematic", "g1"], default=None)
     ap.add_argument("--workers", type=int, default=3)
     ap.add_argument("--out")
+    ap.add_argument("--diagnose", action="store_true",
+                    help="log per-decision terms and ground-truth timelines (read-only)")
     ap.add_argument("--limit", type=int, help="run only the first N jobs (smoke)")
     ap.add_argument(
         "--resume",
@@ -483,7 +504,7 @@ def main() -> None:
     split = cfg["splits"][args.split]
     arms = args.arms.split(",") if args.arms else split["arms"]
     base = args.base or split.get("base", "kinematic")
-    jobs = jobs_for(cfg, args.split, arms, base)[: args.limit]
+    jobs = jobs_for(cfg, args.split, arms, base, args.diagnose)[: args.limit]
     out = pathlib.Path(args.out or ROOT / "results" / cfg["name"] / args.split)
     out.mkdir(parents=True, exist_ok=True)
     from experiments.code_version import code_dirty, code_sha

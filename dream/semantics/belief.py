@@ -28,6 +28,17 @@ review of search with uncertain detection):
   by it made every semantic difference vanish on development home 100-B. Its information
   gain is the unknown area its rays reach (m^2).
 
+Optional ``unexplored_rooms`` (off by default): room evidence for space the robot has not
+entered. Region labels exist only where the robot has mapped room floor, so on their own they
+can re-weight places already seen but cannot say that unexplored space is probably a kitchen.
+Objects the robot has seen from afar, whose front is more than ``FAR_FROM_CORE`` from every
+well-mapped room core (typically across a doorway), are evidence about the room they stand in.
+Candidate cells in that unplaced space take the soft room weights built from the objects within
+``EVIDENCE_RADIUS`` of them (the same rule and tempering as region labels, with the explicit
+``unknown`` option), instead of the factor of the region they happen to be near. It only rescales
+the search prior on cells that already were hypotheses: it adds no object, track or relation,
+and a weak or conflicting cue leaves the factor near 1.
+
 ``unobserved_pockets`` measures what the search could not see: unknown space inside the
 explored area large enough to hide an object. A search is only "exhausted" without it.
 """
@@ -42,7 +53,15 @@ from scipy import ndimage
 from dream.perception.occupancy import CELL, OccupancyGrid
 from dream.perception.semantic import SemanticMap, Track, detection_quality
 from dream.semantics.knowledge import UNKNOWN_ROOM, SemanticKnowledge
-from dream.semantics.rooms import Region, RoomSegmenter, category_weights, label_confidence
+from dream.semantics.rooms import (
+    DOOR_CLEARANCE,
+    MIN_CORE_AREA,
+    Region,
+    RoomSegmenter,
+    category_weights,
+    label_confidence,
+    object_front,
+)
 
 UNKNOWN_REACH = 2.5  # m: unexplored space credited with mass (the frontier gain's sense range)
 UNKNOWN_SEE_THROUGH = 1.5  # m of unknown cells a hypothetical ray may cross (optimistic)
@@ -52,6 +71,9 @@ NEAR_OBJECTS = 2.5  # m: neighbourhood used instead of regions when room_inferen
 MEMORY_PEAK = 5.0  # prior density at a remembered sighting relative to a neutral cell
 MEMORY_SIGMA = 0.5  # m
 DETECTION_UNIT = 1000.0  # neutral cells (~2.5 m^2 at 5 cm): a room's walls and furniture faces
+FAR_FROM_CORE = 1.2  # m: an object fronted farther than this from every room core is "unplaced"
+EVIDENCE_RADIUS = 2.0  # m: how far an unplaced object's room evidence reaches over candidate cells
+EVIDENCE_LATTICE = 0.5  # m: candidate cells share one evidence lookup per lattice block
 POCKET_RADIUS = 0.2  # m: an unseen region must fit a 0.4 m object (a toilet's width) to count
 
 
@@ -62,6 +84,7 @@ class BeliefConfig:
     semantic: bool = True  # knowledge-based room priors
     room_inference: bool = True  # False: object co-occurrence within NEAR_OBJECTS instead
     memory: bool = True  # remembered sightings from persistent memory
+    unexplored_rooms: bool = False  # room evidence from unplaced objects for unexplored space
 
 
 @dataclass
@@ -82,6 +105,7 @@ class TargetBelief:
     prior: np.ndarray | None = None  # (n, n) float
     mass: np.ndarray | None = None  # prior * (1 - coverage) on candidate cells
     region_factor: dict[int, float] = field(default_factory=dict)
+    unplaced: dict = field(default_factory=dict)  # last unexplored_rooms update, for logging
 
     # ----- update ------------------------------------------------------------------------------
     def update(
@@ -125,6 +149,11 @@ class TargetBelief:
                         factor[(ext == rid) & cand] = f
             else:
                 factor = _local_factor(grid, semantic.tracks, self.knowledge, lr, cand)
+        self.unplaced = {}
+        if self.config.semantic and self.config.unexplored_rooms:
+            factor, self.unplaced = _unplaced_factor(
+                grid, semantic.tracks, self.knowledge, lr, cand, factor
+            )
         prior = np.where(cand, factor, 0.0).astype(np.float32)
         if self.config.memory and self.memory_hints:
             ii, jj = np.nonzero(cand)
@@ -169,6 +198,66 @@ def _expected_ratio(weights: dict[str, float], cats, lr: np.ndarray) -> float:
     for k, c in enumerate(cats):
         f += weights.get(c, 0.0) * float(lr[k])
     return float(f) if weights else 1.0
+
+
+def _unplaced_factor(grid, tracks: list[Track], knowledge, lr, cand, factor):
+    """Factor of candidate cells outside every room core from the unplaced objects near them.
+
+    Returns (factor, info). A cell is outside the cores when it is farther than
+    ``FAR_FROM_CORE`` from every core cell (free floor farther than ``DOOR_CLEARANCE`` from
+    anything not free, in clusters of at least ``MIN_CORE_AREA``: the segmenter's cores). An
+    object is unplaced when its front point (``object_front``) is such a cell. A cell with no
+    unplaced object within ``EVIDENCE_RADIUS`` keeps its factor."""
+    info = {"far_tracks": 0, "cells": 0, "max_factor": 1.0, "min_factor": 1.0}
+    free = grid.free()
+    if not tracks or not cand.any():
+        return factor, info
+    core = ndimage.distance_transform_edt(free) * CELL > DOOR_CLEARANCE
+    lab, n = ndimage.label(core, structure=np.ones((3, 3)))
+    if n:
+        sizes = ndimage.sum_labels(np.ones_like(lab), lab, index=np.arange(1, n + 1))
+        core = np.isin(lab, np.flatnonzero(sizes * CELL * CELL >= MIN_CORE_AREA) + 1)
+    d_core = (
+        ndimage.distance_transform_edt(~core) * CELL if core.any() else np.full(core.shape, np.inf)
+    )
+    far = []
+    for tr in tracks:
+        i, j = grid.cell(object_front(tr))
+        if not grid.inside(i, j) or d_core[i, j] > FAR_FROM_CORE:
+            far.append(tr)
+    info["far_tracks"] = len(far)
+    ii, jj = np.nonzero(cand & (d_core > FAR_FROM_CORE))
+    if not far or not len(ii):
+        return factor, info
+    step = int(EVIDENCE_LATTICE / CELL)
+    keys = np.stack([ii // step, jj // step], 1)
+    uniq, inverse = np.unique(keys, axis=0, return_inverse=True)
+    centres = grid.centre(uniq[:, 0] * step + step // 2, uniq[:, 1] * step + step // 2)
+    lo = np.array([t.lo[:2] for t in far])
+    hi = np.array([t.hi[:2] for t in far])
+    cache: dict[tuple, float | None] = {}
+    vals = np.full(len(uniq), np.nan, np.float32)
+    for k, c in enumerate(centres):
+        gap = np.linalg.norm(np.maximum(np.maximum(lo - c, c - hi), 0.0), axis=1)
+        near = tuple(int(n) for n in np.flatnonzero(gap <= EVIDENCE_RADIUS))
+        if not near:
+            continue
+        if near not in cache:
+            evidence: dict[str, float] = {}
+            for n in near:
+                for label in far[n].labels:
+                    evidence[label] = max(evidence.get(label, 0.0), label_confidence(far[n], label))
+            cache[near] = _expected_ratio(
+                category_weights(evidence, knowledge), knowledge.categories, lr
+            )
+        vals[k] = cache[near]
+    hit = ~np.isnan(vals[inverse.ravel()])
+    out = factor.copy()
+    out[ii[hit], jj[hit]] = vals[inverse.ravel()][hit]
+    if hit.any():
+        info.update(cells=int(hit.sum()), max_factor=float(np.nanmax(vals)),
+                    min_factor=float(np.nanmin(vals)))  # fmt: skip
+    return out, info
 
 
 def _local_factor(grid, tracks: list[Track], knowledge, lr, cand) -> np.ndarray:

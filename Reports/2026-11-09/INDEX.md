@@ -6,7 +6,7 @@
 
 | Date | Task ID | Prompt | Status | Main finding | Runs | Report |
 |---|---|---|---|---|---|---|
-| 2026-11-09 | 2026-11-09-001 | [Permanent Reports system; Isaac semantic exploration with learned perception, knowledge sources and larger homes](001-isaac-semantic-research/PROMPT.md) | in_progress | - | 21 | [REPORT](001-isaac-semantic-research/REPORT.md) |
+| 2026-11-09 | 2026-11-09-001 | [Permanent Reports system; Isaac semantic exploration with learned perception, knowledge sources and larger homes](001-isaac-semantic-research/PROMPT.md) | in_progress | - | 23 | [REPORT](001-isaac-semantic-research/REPORT.md) |
 
 ## Continued on this day
 
@@ -36,3 +36,4 @@
 | 20261109-235333-s4-stand-check | 2026-11-09-001 | failed | 2026-11-09T23:53:33+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-235333-s4-stand-check/REPORT.md) |
 | 20261109-235334-s4-closeup-renders | 2026-11-09-001 | completed | 2026-11-09T23:53:34+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-235334-s4-closeup-renders/REPORT.md) |
 | 20261109-235334-s4-lshape-capture | 2026-11-09-001 | completed | 2026-11-09T23:53:34+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-235334-s4-lshape-capture/REPORT.md) |
+| 20261109-235922-exploration-diagnosis-dev | 2026-11-09-001 | completed | 2026-11-09T23:59:22+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-235922-exploration-diagnosis-dev/REPORT.md) |
