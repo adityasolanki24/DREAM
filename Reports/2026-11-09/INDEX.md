@@ -18,7 +18,7 @@
 | 20261109-141043-asset-validation-smoke | 2026-11-09-001 | partial | 2026-11-09T14:10:43+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-141043-asset-validation-smoke/REPORT.md) |
 | 20261109-144157-asset-validation | 2026-11-09-001 | partial | 2026-11-09T14:41:57+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-144157-asset-validation/REPORT.md) |
 | 20261109-153008-asset-validation-recheck | 2026-11-09-001 | completed | 2026-11-09T15:30:08+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-153008-asset-validation-recheck/REPORT.md) |
-| 20261109-155656-asset-front-renders-and-scene-inventory | 2026-11-09-001 | running | 2026-11-09T15:56:56+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-155656-asset-front-renders-and-scene-inventory/REPORT.md) |
-| 20261109-160919-kitchen-repair-recognisability | 2026-11-09-001 | running | 2026-11-09T16:09:19+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-160919-kitchen-repair-recognisability/REPORT.md) |
-| 20261109-163121-asset-front-renders-2-and-scene-inventory | 2026-11-09-001 | running | 2026-11-09T16:31:21+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-163121-asset-front-renders-2-and-scene-inventory/REPORT.md) |
-| 20261109-164552-kitchen-repair-rerun | 2026-11-09-001 | running | 2026-11-09T16:45:52+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-164552-kitchen-repair-rerun/REPORT.md) |
+| 20261109-155656-asset-front-renders-and-scene-inventory | 2026-11-09-001 | partial | 2026-11-09T15:56:56+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-155656-asset-front-renders-and-scene-inventory/REPORT.md) |
+| 20261109-160919-kitchen-repair-recognisability | 2026-11-09-001 | crashed | 2026-11-09T16:09:19+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-160919-kitchen-repair-recognisability/REPORT.md) |
+| 20261109-163121-asset-front-renders-2-and-scene-inventory | 2026-11-09-001 | timed_out | 2026-11-09T16:31:21+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-163121-asset-front-renders-2-and-scene-inventory/REPORT.md) |
+| 20261109-164552-kitchen-repair-rerun | 2026-11-09-001 | crashed | 2026-11-09T16:45:52+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-164552-kitchen-repair-rerun/REPORT.md) |

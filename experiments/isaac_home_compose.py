@@ -51,7 +51,13 @@ from dream.sim.home import (  # noqa: E402
 )
 
 MANIFEST = ROOT / "experiments/configs/isaac_assets.json"
-SCALE_MIN, SCALE_MAX = 0.6, 1.5  # uniform scale of an asset into the generator's footprint
+# Per-axis scale of an asset into the generator's footprint (depth along the front, width), each
+# within [AXIS_MIN, AXIS_MAX]; the height scale is the geometric mean of the two, clamped to
+# HEIGHT_RANGE so furniture is squashed or stretched as little as the footprint allows. Chosen
+# after the first local check: with a uniform scale of at least 0.6 a 3.0 m asset counter did
+# not fit the generator's 1.2 m counter and most dev homes were refused.
+AXIS_MIN, AXIS_MAX = 0.35, 1.5
+HEIGHT_RANGE = (0.7, 1.3)
 FLOOR_THICKNESS = 0.1  # m, slab below z = 0
 ROOT_PRIM = "/World/Home"
 # Plain colours per room type for the floor (rooms stay visually distinguishable to the camera
@@ -131,7 +137,7 @@ class Placement:
     xy: tuple[float, float]
     z0: float
     yaw: float  # world yaw of the object's front (+x of the generator frame), rad
-    scale: float
+    scale: tuple[float, float, float]  # (depth, width, height) scale
     matrix: tuple[tuple[float, ...], ...]  # 4x4, column-vector convention: world = M @ native
     size_m: tuple[float, float, float]  # placed (depth, width, height) in the object frame
     rigid_body_paths: tuple[str, ...] = ()  # asset-relative prims made static (furniture is fixed)
@@ -159,13 +165,14 @@ def _entry_problem(entry: dict | None) -> str | None:
 def placement_matrix(
     base_centre_native,
     yaw_offset_deg: float,
-    scale: float,
+    scale,
     xy,
     z0: float,
     yaw: float,
     normalise=None,
 ) -> np.ndarray:
-    """world = T(xy, z0) Rz(yaw + offset) S(scale) T(-base_centre_native), column vectors.
+    """world = T(xy, z0) Rz(yaw + offset) S(scale) T(-base_centre_native) Norm, column vectors;
+    ``scale`` is a scalar or a triple along the native axes.
 
     ``normalise`` maps the asset's native frame to metres, z up (up-axis and metres-per-unit,
     measured by experiments/isaac_asset_validation.py); ``base_centre_native`` is the centre of
@@ -175,7 +182,7 @@ def placement_matrix(
     a = yaw + radians(yaw_offset_deg)
     c, s = cos(a), sin(a)
     rot = np.array([[c, -s, 0, 0], [s, c, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], float)
-    scl = np.diag([scale, scale, scale, 1.0])
+    scl = np.diag([*np.broadcast_to(np.asarray(scale, float), 3), 1.0])
     to_base = np.eye(4)
     to_base[:3, 3] = -np.asarray(base_centre_native, float)
     move = np.eye(4)
@@ -184,14 +191,22 @@ def placement_matrix(
     return move @ rot @ scl @ to_base @ norm
 
 
-def fit_scale(entry: dict, obj: ObjectSpec) -> float:
-    """Uniform scale that fits the asset's footprint inside the generator's footprint (which
-    the generator checked for clearance and reachability), within [SCALE_MIN, SCALE_MAX]."""
+def fit_scale(entry: dict, obj: ObjectSpec) -> tuple[float, float, float]:
+    """(depth, width, height) scale fitting the asset's footprint to the generator's (which the
+    generator checked for clearance and reachability). Raises when a ratio is below AXIS_MIN."""
     depth, width, _ = entry["size_m"]
-    s = min(2 * obj.half[0] / depth, 2 * obj.half[1] / width)
-    if s < SCALE_MIN:
+    sd, sw = 2 * obj.half[0] / depth, 2 * obj.half[1] / width
+    if min(sd, sw) < AXIS_MIN:
         raise ValueError(f"asset footprint {depth:.2f}x{width:.2f} m too large for the object")
-    return min(s, SCALE_MAX)
+    sd, sw = min(sd, AXIS_MAX), min(sw, AXIS_MAX)
+    sh = min(max((sd * sw) ** 0.5, HEIGHT_RANGE[0]), HEIGHT_RANGE[1])
+    return sd, sw, sh
+
+
+def native_scale(entry: dict, fit: tuple[float, float, float]) -> tuple[float, float, float]:
+    """The (depth, width, height) scale as a triple along the asset's native x, y, z."""
+    sd, sw, sh = fit
+    return (sd, sw, sh) if entry.get("front_axis", "+x") in ("+x", "-x") else (sw, sd, sh)
 
 
 def plan_placements(home: HomeSpec, manifest: dict) -> list[Placement]:
@@ -204,7 +219,7 @@ def plan_placements(home: HomeSpec, manifest: dict) -> list[Placement]:
         problem = _entry_problem(classes.get(cls))
         if problem:
             missing[cls] = problem
-    scales: dict[str, float] = {}
+    scales: dict[str, tuple[float, float, float]] = {}
     if not missing:
         for o in kept:
             try:
@@ -220,7 +235,7 @@ def plan_placements(home: HomeSpec, manifest: dict) -> list[Placement]:
         m = placement_matrix(
             entry["base_centre_native"],
             entry["yaw_offset_deg"],
-            s,
+            native_scale(entry, s),
             o.xy,
             o.z0,
             o.yaw,
@@ -230,7 +245,7 @@ def plan_placements(home: HomeSpec, manifest: dict) -> list[Placement]:
             Placement(
                 o.instance_id, o.cls, f"{ROOT_PRIM}/o{n:03d}", entry["url"], o.xy, o.z0, o.yaw, s,
                 tuple(tuple(float(v) for v in row) for row in m),
-                tuple(float(v * s) for v in entry["size_m"]),
+                tuple(float(v * k) for v, k in zip(entry["size_m"], s, strict=True)),
                 tuple(entry.get("rigid_body_paths", ())), tuple(entry.get("joint_paths", ())),
                 tuple(entry.get("collider_paths", ())),
             )

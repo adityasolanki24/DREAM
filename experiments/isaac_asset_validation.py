@@ -150,6 +150,26 @@ def failures(cls: str, rec: dict) -> list[str]:
     return out
 
 
+PERPENDICULAR = {"+x": "+y", "-x": "-y", "+y": "+x", "-y": "-x"}
+
+
+def reconcile_front(cls: str, front: str, size_xyz) -> tuple[str, bool]:
+    """Keep a read front unless it puts the asset's long side along the front where the
+    generator's class is long across it (a counter, a shelf, a sofa): then the read cannot be
+    right whichever way it faces, so turn it to the perpendicular axis. Returns (front, changed).
+    Only the axis is touched; the sign stays a by-eye reading."""
+    from dream.sim.home import DIMS
+
+    if cls not in DIMS:
+        return front, False
+    dx, dy = size_xyz[0], size_xyz[1]
+    depth, width = (dx, dy) if front in ("+x", "-x") else (dy, dx)
+    gd, gw = DIMS[cls][0], DIMS[cls][1]
+    if max(gd / gw, gw / gd) > 1.3 and (depth > width) != (gd > gw):
+        return PERPENDICULAR[front], True
+    return front, False
+
+
 def front_to_yaw_offset(front: str) -> float:
     """Degrees to rotate the asset about z so the face toward ``front`` (+x, +y, -x, -y of the
     normalised asset frame) faces the generator's +x."""
@@ -214,7 +234,9 @@ def build_manifest(records_dir: pathlib.Path, fronts: dict, validated_utc: str) 
                          failure="validated; the front face has not been read yet")  # fmt: skip
             classes[cls] = {**entry, "candidates": reasons}
             continue
-        note = fronts.get("_notes", {}).get(cls, {})
+        lo, hi = rec["bound_normalised"]
+        front, turned = reconcile_front(cls, front, [b - a for a, b in zip(lo, hi, strict=True)])
+        note = {**fronts.get("_notes", {}).get(cls, {}), "front_turned_for_footprint": turned}
         classes[cls] = {**manifest_entry(cls, rec["url"], rec, front, note),
                         "candidates": reasons}  # fmt: skip
     by_url: dict[str, list[str]] = {}
