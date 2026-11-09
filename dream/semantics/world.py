@@ -11,7 +11,7 @@ from __future__ import annotations
 import numpy as np
 
 from dream.perception.occupancy import OccupancyGrid
-from dream.perception.semantic import SemanticMap
+from dream.perception.semantic import NestedOptions, SemanticMap
 from dream.semantics.belief import BeliefConfig, TargetBelief
 from dream.semantics.graph import SemanticGraph
 from dream.semantics.knowledge import SemanticKnowledge
@@ -28,11 +28,12 @@ class SemanticWorld:
         belief: BeliefConfig | None = None,
         thresholds: VerifierThresholds | None = None,
         frame_name: str = "odometry",
+        nested: NestedOptions | None = None,
     ) -> None:
         self.grid, self.knowledge = grid, knowledge
         self.thresholds = thresholds or VerifierThresholds()
         self.belief_config = belief or BeliefConfig()
-        self.map = SemanticMap(grid)
+        self.map = SemanticMap(grid, nested)  # nested=None: the frozen behaviour
         self.segmenter = RoomSegmenter()
         self.regions: dict = {}
         self.target: TargetBelief | None = None

@@ -16,6 +16,13 @@ detection is a fallible observation, never a fact:
   (``detection_quality``). A surface covered well without a target detection is evidence the
   target is not there; an unseen or poorly seen one is not.
 
+Nested objects (optional, ``NestedOptions``, off by default): a detector's box for a large
+support surface contains the pixels of objects mounted in it, so their 3-D points overlap and
+fuse into one label-mixed track. The option is purely geometric and label-agnostic: inside a
+frame, a detection mostly contained in a clearly larger one is removed from the larger one's
+back-projection; across frames, association refuses to merge a detection with a track whose
+size is several times larger or smaller, or whose height range does not overlap.
+
 Per-episode state; persistent memory is dream/memory/home.py.
 """
 
@@ -35,6 +42,30 @@ ASSOCIATE_IOU = 0.25  # footprint IoU joining a detection to a track
 ASSOCIATE_DISTANCE = 0.35  # m: or centroids this close
 CLOSE_RANGE = 2.5  # m: a miss only counts within this range (the coverage model's good band)
 COVERAGE_STRIDE = 4  # pixels
+
+
+@dataclass(frozen=True)
+class NestedOptions:
+    """Geometric handling of objects nested inside larger detections. All values are design
+    choices (not calibrated); the replay on development frames reports their effect.
+
+    ``exclude_contained``: in one frame, a detection whose mask lies at least
+    ``contained_fraction`` inside another's, and whose area is at most ``max_area_ratio`` of it,
+    is *inner*; its pixels are removed from the outer region before back-projection.
+    ``gate_extent``: a detection joins a track only if the two longest horizontal sides are
+    within ``max_size_ratio`` of each other and their height ranges overlap by at least
+    ``min_height_overlap`` of the shorter one (heights from the points themselves, not forced
+    to the floor). Labels are never consulted."""
+
+    exclude_contained: bool = True
+    contained_fraction: float = 0.8
+    max_area_ratio: float = 0.7
+    gate_extent: bool = True
+    max_size_ratio: float = 4.0
+    min_height_overlap: float = 0.2
+
+
+MIN_HEIGHT = 0.05  # m: a flat sheet's height range is no thinner than this when comparing
 
 
 def detection_quality(range_m) -> np.ndarray:
@@ -94,6 +125,20 @@ def _iou_xy(lo_a, hi_a, lo_b, hi_b) -> float:
     return inter / (area(lo_a, hi_a) + area(lo_b, hi_b) - inter)
 
 
+def _compatible_extent(lo_a, hi_a, lo_b, hi_b, opt: NestedOptions) -> bool:
+    """Could two boxes be one object? Longest horizontal sides within ``max_size_ratio`` of each
+    other (the longest side, not the footprint area: a flat face seen head-on has almost no
+    depth, so its area is arbitrary), and height ranges overlapping by ``min_height_overlap`` of
+    the shorter (geometry only)."""
+    side = lambda lo, hi: float(np.max(np.maximum(hi[:2] - lo[:2], 1e-2)))  # noqa: E731
+    ratio = side(lo_a, hi_a) / side(lo_b, hi_b)
+    if not 1.0 / opt.max_size_ratio <= ratio <= opt.max_size_ratio:
+        return False
+    heights = (max(hi_a[2] - lo_a[2], MIN_HEIGHT), max(hi_b[2] - lo_b[2], MIN_HEIGHT))
+    overlap = min(hi_a[2], hi_b[2]) - max(lo_a[2], lo_b[2])
+    return overlap >= opt.min_height_overlap * min(heights) - 1e-9
+
+
 def region_points(points: np.ndarray, mask: np.ndarray, cam: np.ndarray) -> np.ndarray:
     """3-D points of a detection region, background removed: a bounding-box region from a
     VLM includes whatever is behind the object, so keep points within DEPTH_BAND of the
@@ -115,8 +160,9 @@ def region_points(points: np.ndarray, mask: np.ndarray, cam: np.ndarray) -> np.n
 class SemanticMap:
     """Object tracks and surface coverage for one episode, on the robot's occupancy grid."""
 
-    def __init__(self, grid: OccupancyGrid) -> None:
+    def __init__(self, grid: OccupancyGrid, nested: NestedOptions | None = None) -> None:
         self.grid = grid
+        self.nested = nested
         self.tracks: list[Track] = []
         self.coverage = np.zeros_like(grid.logodds, np.float32)
         self.frames = 0
@@ -134,14 +180,34 @@ class SemanticMap:
         self._cover(points, frame, cam)
         valid = np.isfinite(frame.depth) & ~frame.self_mask
         seen: list[int] = []
-        for det in frame.detections:
-            pts = region_points(points, det.mask & valid, cam)
+        masks = self._region_masks(frame.detections, valid)
+        for det, mask in zip(frame.detections, masks, strict=True):
+            pts = region_points(points, mask, cam)
             if len(pts) < MIN_PIXELS:
                 continue
             seen.append(self._associate(det, pts, cam, frame.time))
         self._count_misses(frame, set(seen))
         self.frames += 1
         return seen
+
+    def _region_masks(self, detections, valid: np.ndarray) -> list[np.ndarray]:
+        """Pixels each detection back-projects: its mask on valid depth, less the pixels of any
+        detection nested inside it when ``nested.exclude_contained``."""
+        masks = [d.mask & valid for d in detections]
+        if self.nested is None or not self.nested.exclude_contained:
+            return masks
+        raw = [d.mask for d in detections]
+        areas = [int(m.sum()) for m in raw]
+        out = []
+        for j, mj in enumerate(masks):
+            inner = np.zeros_like(mj)
+            for i, mi in enumerate(raw):
+                if i == j or areas[i] == 0 or areas[i] > self.nested.max_area_ratio * areas[j]:
+                    continue
+                if np.count_nonzero(mi & raw[j]) >= self.nested.contained_fraction * areas[i]:
+                    inner |= mi
+            out.append(mj & ~inner)
+        return out
 
     def _cover(self, points: np.ndarray, frame: RGBDFrame, cam: np.ndarray) -> None:
         s = COVERAGE_STRIDE
@@ -159,11 +225,15 @@ class SemanticMap:
 
     def _associate(self, det: SemanticDetection, pts: np.ndarray, cam, t: float) -> int:
         lo, hi = np.percentile(pts, 5, axis=0), np.percentile(pts, 95, axis=0)
-        lo[2], hi[2] = 0.0, float(np.percentile(pts[:, 2], 98))  # standing on the floor
+        gate = self.nested is not None and self.nested.gate_extent
+        if not gate:
+            lo[2], hi[2] = 0.0, float(np.percentile(pts[:, 2], 98))  # standing on the floor
         centre = np.median(pts, axis=0)
         rng = float(np.linalg.norm(centre - cam))
         best, best_score = None, 0.0
         for tr in self.tracks:
+            if gate and not _compatible_extent(lo, hi, tr.lo, tr.hi, self.nested):
+                continue
             iou = _iou_xy(lo, hi, tr.lo, tr.hi)
             close = float(np.linalg.norm(tr.position[:2] - centre[:2])) < ASSOCIATE_DISTANCE
             score = max(iou, 1.0 if close else 0.0)
