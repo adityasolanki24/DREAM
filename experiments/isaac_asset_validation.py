@@ -150,6 +150,45 @@ def failures(cls: str, rec: dict) -> list[str]:
     return out
 
 
+# Orientation markers: four coloured spheres on the ground just outside the asset, one on each of
+# its +x (red), -x (yellow), +y (green) and -y (blue) sides, so every render shows which side of
+# the asset it was taken from whatever the render lag does. For a camera on side (ux, uy) looking at
+# the asset with z up, image-right is f x up with f = -(ux, uy): the marker listed first is to the
+# LEFT of the one listed second.
+MARKERS = {"+x": (1, 0, (255, 0, 0)), "-x": (-1, 0, (255, 255, 0)), "+y": (0, 1, (0, 255, 0)),
+           "-y": (0, -1, (0, 80, 255))}  # fmt: skip
+LEFT_OF = {"px": ("-y", "+y"), "py": ("+x", "-x"), "nx": ("+y", "-y"), "ny": ("-x", "+x")}
+
+
+def _marker_x(img, colour) -> float | None:
+    """Mean image column of the pixels that are clearly this marker colour, or None."""
+    import numpy as np
+
+    px = np.asarray(img)[..., :3].astype(int)
+    r, g, b = px[..., 0], px[..., 1], px[..., 2]
+    if colour == (255, 0, 0):
+        m = (r > 150) & (g < 0.4 * r) & (b < 0.4 * r)
+    elif colour == (255, 255, 0):
+        m = (r > 150) & (g > 150) & (b < 0.45 * r)
+    elif colour == (0, 255, 0):
+        m = (g > 150) & (r < 0.4 * g) & (b < 0.4 * g)
+    else:
+        m = (b > 150) & (r < 0.4 * b) & (g < 0.75 * b)
+    cols = np.nonzero(m.any(axis=0))[0]
+    return float(np.nonzero(m)[1].mean()) if m.sum() >= 12 and len(cols) else None
+
+
+def marker_check(img, side: str) -> bool | None:
+    """True when the render shows the asset from ``side`` (px, py, nx, ny: the camera stands on
+    +x, +y, -x, -y): the two lateral markers appear in the order that side predicts. None when
+    a marker is not visible (no verdict)."""
+    left, right = LEFT_OF[side]
+    xl, xr = _marker_x(img, MARKERS[left][2]), _marker_x(img, MARKERS[right][2])
+    if xl is None or xr is None:
+        return None
+    return xl < xr
+
+
 PERPENDICULAR = {"+x": "+y", "-x": "-y", "+y": "+x", "-y": "-x"}
 
 
@@ -206,7 +245,8 @@ def manifest_entry(cls: str, url: str, rec: dict, front: str, note: dict) -> dic
 def build_manifest(records_dir: pathlib.Path, fronts: dict, validated_utc: str) -> dict:
     """Select per class: the first candidate (file order = preference) with no failure. Classes
     without one are written as ``status: failed`` with every candidate's reasons."""
-    cands = json.loads(CANDIDATES.read_text(encoding="utf-8"))["classes"]
+    spec = json.loads(CANDIDATES.read_text(encoding="utf-8"))
+    cands, preferred = spec["classes"], spec.get("preferred_index", {})
     classes = {}
     for cls, paths in cands.items():
         reasons, chosen = [], None
@@ -217,8 +257,8 @@ def build_manifest(records_dir: pathlib.Path, fronts: dict, validated_utc: str) 
                 continue
             rec = json.loads(f.read_text(encoding="utf-8"))
             why = failures(cls, rec)
-            if not why and chosen is None:
-                chosen = (i, path, rec)
+            if not why and (chosen is None or preferred.get(cls) == i):
+                chosen = (i, path, rec)  # first passing, unless a preferred candidate passes
             reasons.append({"path": path, "failures": why})
         if chosen is None:
             classes[cls] = {"status": "failed", "failure": "; ".join(
@@ -353,7 +393,7 @@ def _validate_all(app, args, ev, t0) -> None:  # pragma: no cover - needs Isaac 
     sun.CreateIntensityAttr(2500.0)
     UsdGeom.Xformable(sun.GetPrim()).AddRotateXYZOp().Set(Gf.Vec3f(-50, 0, 40))
     cam = UsdGeom.Camera.Define(stage, "/World/ValCam")
-    cam.CreateFocalLengthAttr(18.0)
+    cam.CreateFocalLengthAttr(14.0)
     cam.CreateClippingRangeAttr(Gf.Vec2f(0.05, 200.0))
     xf = UsdGeom.Xformable(cam.GetPrim())
     xf.ClearXformOpOrder()
@@ -373,24 +413,48 @@ def _validate_all(app, args, ev, t0) -> None:  # pragma: no cover - needs Isaac 
             return None
         return [lo, hi]
 
-    def shoot(centre, radius, tag, folder) -> list:
+    def shoot(centre, radius, tag, folder, box) -> list:
+        """Four views with orientation markers; each view is re-rendered until the markers show
+        the camera really is on the side named (the one-view lag of jobs 1 and 3 of session 2)."""
+        from pxr import UsdGeom as G
+
+        ext = max(box[1][0] - box[0][0], box[1][1] - box[0][1]) / 2 + 0.3
+        zlo = box[0][2] + 0.08
+        r_m = 0.06 * radius + 0.02
+        marker_paths = []
+        for key, (mx, my, colour) in MARKERS.items():
+            path = "/World/Marker" + key.replace("+", "p").replace("-", "n")
+            sphere = G.Sphere.Define(stage, path)
+            sphere.CreateRadiusAttr(r_m)
+            xf = G.Xformable(sphere.GetPrim())
+            xf.AddTranslateOp().Set(Gf.Vec3d(centre[0] + mx * ext, centre[1] + my * ext, zlo))
+            sphere.CreateDisplayColorAttr([Gf.Vec3f(*(c / 255 for c in colour))])
+            marker_paths.append(path)
         shots = []
-        for name, (ux, uy) in VIEWS.items():
-            dist = 1.7 * radius
-            eye = [centre[0] + ux * dist, centre[1] + uy * dist, centre[2] + 0.35 * radius]
-            cam_op.Set(_look_at(Gf, eye, centre))
-            for _ in range(3):  # job 2: three of four views of some assets were the first frame
-                app.update()
-            img = np.asarray(rgb.get_data())
-            for _ in range(6):
-                rep.orchestrator.step(rt_subframes=8, delta_time=0.0, pause_timeline=False)
-                img = np.asarray(rgb.get_data())
-                if img.size and img.reshape(-1, img.shape[-1])[:, :3].std() > 1.0:
-                    break
-            if img.size:
-                path = folder / f"{tag}_{name}.png"
-                Image.fromarray(img[..., :3].astype(np.uint8)).save(path)
-                shots.append(path.name)
+        try:
+            for name, (ux, uy) in VIEWS.items():
+                dist = 1.7 * radius + ext
+                eye = [centre[0] + ux * dist, centre[1] + uy * dist, centre[2] + 0.35 * radius]
+                cam_op.Set(_look_at(Gf, eye, centre))
+                verdict, img = None, np.zeros(0)
+                for attempt in range(5):
+                    for _ in range(3 + 3 * attempt):
+                        app.update()
+                    rep.orchestrator.step(rt_subframes=8, delta_time=0.0, pause_timeline=False)
+                    img = np.asarray(rgb.get_data())
+                    if not img.size:
+                        continue
+                    verdict = marker_check(img[..., :3], name)
+                    if verdict is not False:
+                        break
+                if img.size:
+                    path = folder / f"{tag}_{name}.png"
+                    Image.fromarray(img[..., :3].astype(np.uint8)).save(path)
+                    shots.append({"file": path.name, "side": name, "marker_order_ok": verdict,
+                                  "attempts": attempt + 1})  # fmt: skip
+        finally:
+            for path in marker_paths:
+                stage.RemovePrim(path)
         return shots
 
     def one(cls: str, index: int, rel: str) -> dict:
@@ -463,7 +527,9 @@ def _validate_all(app, args, ev, t0) -> None:  # pragma: no cover - needs Isaac 
                 radius = 0.5 * math.dist(*box)
                 folder = args.out / "snapshots" / cls
                 folder.mkdir(parents=True, exist_ok=True)
-                rec["snapshots"] = [] if args.no_snapshots else shoot(centre, radius, tag, folder)
+                rec["snapshots"] = (
+                    [] if args.no_snapshots else shoot(centre, radius, tag, folder, box)
+                )
                 try:  # physics play with the asset treated as the composer treats it: authored
                     # bodies, joints and colliders disabled (the 664 s first candidate was PhysX
                     # cooking 20 SDF colliders, and its dynamic bodies fell through the void), a

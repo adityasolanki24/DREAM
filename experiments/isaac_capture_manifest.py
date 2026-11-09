@@ -17,6 +17,37 @@ import hashlib
 import json
 import pathlib
 
+FORMAT = {
+    "per_item_folder": "<item>/ with frames.jsonl, frames/NNNNN.png, frames/NNNNN.npz",
+    "rgb": "frames/NNNNN.png, uint8 H x W x 3, 240 x 320, sRGB, head camera after sensor noise",
+    "npz_depth": "frames/NNNNN.npz['depth'], float16 H x W, metres along the optical axis "
+    "(distance_to_image_plane) after sensor noise; non-finite where there is no return",
+    "npz_instance_ids": "frames/NNNNN.npz['instance_ids'], int32 H x W, Isaac instance_id_"
+    "segmentation_fast ids; frames.jsonl row 'instance_id_to_prim' maps an id (string) to its "
+    "prim path for the placed instances; 0 and ids of the robot or the shell are not listed",
+    "frames.jsonl row": {
+        "i": "frame index within the item",
+        "trajectory": "trajectory index within the item",
+        "sim_time_s": "simulated seconds since the item began",
+        "odometry_pose": "[x, y, yaw] the AGENT's odometry estimate (oracle-assisted with noise), "
+        "metres and radians, in the odometry frame whose origin is the start pose",
+        "true_pose": "[x, y, yaw] torso pose in the world frame (EVALUATION ONLY)",
+        "true_camera": "world pose of the head camera (EVALUATION ONLY): position (m), forward and "
+        "up unit vectors, fovy_deg, aspect; right = forward x up; world frame z up",
+        "true_room_id": "composed homes only: generator room id at the robot (EVALUATION ONLY)",
+        "gt": "per visible placed instance (EVALUATION ONLY): class, pixel count and tight 2D "
+        "box [x1, y1, x2, y2] in pixels (x1, y1 inclusive, x2, y2 exclusive) from the "
+        "segmentation, keyed by instance id of scene_truth.json",
+        "png_sha256": "checksum of the RGB file",
+    },
+    "intrinsics": "pinhole, fx = fy = (H/2) / tan(fovy/2) with fovy 58 degrees, cx = W/2, "
+    "cy = H/2, principal point at pixel centres of a 320 x 240 image; stored per item in the "
+    "run result JSON under 'intrinsics'",
+    "frame_conventions": "world: z up, metres; image origin top-left, x right, y down; camera "
+    "optical axis = forward, up as given; head camera pitched 35 degrees down on the torso",
+    "no_model_output": "Qwen3-VL is not run during capture; detector comparison is offline",
+}
+
 
 def read_checksums(manifest: pathlib.Path) -> dict[str, str]:
     rows = {}
@@ -60,6 +91,7 @@ def main() -> None:
     root = args.job_out / args.raw_subdir
     items = sorted(p.name for p in root.iterdir() if p.is_dir()) if root.is_dir() else []
     out = {
+        "format": FORMAT,
         "raw_location": str(root),
         "outside_git_and_onedrive": True,
         "manifest_sha256_of_job": hashlib.sha256(

@@ -46,18 +46,22 @@ from dream.sim.home import (  # noqa: E402
     WALL_HEIGHT,
     HomeSpec,
     ObjectSpec,
+    Rect,
     RoomBox,
+    _overlap,
+    footprint,
     sample_home,
 )
 
 MANIFEST = ROOT / "experiments/configs/isaac_assets.json"
-# Per-axis scale of an asset into the generator's footprint (depth along the front, width), each
-# within [AXIS_MIN, AXIS_MAX]; the height scale is the geometric mean of the two, clamped to
-# HEIGHT_RANGE so furniture is squashed or stretched as little as the footprint allows. Chosen
-# after the first local check: with a uniform scale of at least 0.6 a 3.0 m asset counter did
-# not fit the generator's 1.2 m counter and most dev homes were refused.
-AXIS_MIN, AXIS_MAX = 0.35, 1.5
-HEIGHT_RANGE = (0.7, 1.3)
+# Scale rule (coordinator, 9 Nov 2026): no visibly squashed furniture, which would make perception
+# results meaningless. A uniform scale in [SCALE_MIN, SCALE_MAX] with each axis within AXIS_DEV of
+# it. An asset that does not fit the generator footprint under that rule is placed at native size
+# against the same wall (back face fixed) when that is collision-free, else the home is refused.
+SCALE_MIN, SCALE_MAX = 0.75, 1.3
+AXIS_DEV = 0.15
+SHIFTS_M = (0.0, 0.1, -0.1, 0.2, -0.2, 0.3, -0.3, 0.5, -0.5)  # lateral shifts tried, native mode
+TOUCH_TOL_M = 0.02  # flush contact is not a collision
 FLOOR_THICKNESS = 0.1  # m, slab below z = 0
 ROOT_PRIM = "/World/Home"
 # Plain colours per room type for the floor (rooms stay visually distinguishable to the camera
@@ -143,6 +147,8 @@ class Placement:
     rigid_body_paths: tuple[str, ...] = ()  # asset-relative prims made static (furniture is fixed)
     joint_paths: tuple[str, ...] = ()  # asset-relative joints disabled for the same reason
     collider_paths: tuple[str, ...] = ()  # authored colliders disabled: the bounding box stands in
+    mode: str = "fit"  # "fit" (scaled into the generator footprint) or "native_anchored"
+    shift_m: tuple[float, float] = (0.0, 0.0)  # centre shift from the generator pose (x, y)
 
 
 def load_manifest(path: pathlib.Path = MANIFEST) -> dict:
@@ -191,22 +197,51 @@ def placement_matrix(
     return move @ rot @ scl @ to_base @ norm
 
 
-def fit_scale(entry: dict, obj: ObjectSpec) -> tuple[float, float, float]:
-    """(depth, width, height) scale fitting the asset's footprint to the generator's (which the
-    generator checked for clearance and reachability). Raises when a ratio is below AXIS_MIN."""
+def fit_scale(entry: dict, obj: ObjectSpec) -> tuple[float, float, float] | None:
+    """(depth, width, height) scale fitting the asset's footprint inside the generator's under the
+    scale rule, or None when the rule cannot fit it."""
     depth, width, _ = entry["size_m"]
-    sd, sw = 2 * obj.half[0] / depth, 2 * obj.half[1] / width
-    if min(sd, sw) < AXIS_MIN:
-        raise ValueError(f"asset footprint {depth:.2f}x{width:.2f} m too large for the object")
-    sd, sw = min(sd, AXIS_MAX), min(sw, AXIS_MAX)
-    sh = min(max((sd * sw) ** 0.5, HEIGHT_RANGE[0]), HEIGHT_RANGE[1])
-    return sd, sw, sh
+    rd, rw = 2 * obj.half[0] / depth, 2 * obj.half[1] / width
+    m = min(rd, rw)
+    if m >= SCALE_MIN:  # uniform: no distortion at all
+        s = min(m, SCALE_MAX)
+        return s, s, s
+    s = SCALE_MIN  # smallest uniform scale; axes may shrink to (1 - AXIS_DEV) of it
+    lo, hi = s * (1 - AXIS_DEV), s * (1 + AXIS_DEV)
+    if min(rd, rw) < lo:
+        return None
+    return min(max(rd, lo), hi), min(max(rw, lo), hi), s
 
 
 def native_scale(entry: dict, fit: tuple[float, float, float]) -> tuple[float, float, float]:
     """The (depth, width, height) scale as a triple along the asset's native x, y, z."""
     sd, sw, sh = fit
     return (sd, sw, sh) if entry.get("front_axis", "+x") in ("+x", "-x") else (sw, sd, sh)
+
+
+def _rect(xy, depth: float, width: float, yaw: float) -> Rect:
+    return Rect(xy[0], xy[1], depth / 2, width / 2, yaw)
+
+
+def anchored_native(entry: dict, obj: ObjectSpec, others: list[Rect], walls: list[Rect]):
+    """Native-size placement anchored where the generator put the object: the back face stays on
+    the generator's back line and the footprint is centred laterally. Tries small lateral shifts
+    along the wall; returns (xy, shift) or raises ValueError naming the collision."""
+    depth, width, _ = entry["size_m"]
+    fx, fy = cos(obj.yaw), sin(obj.yaw)
+    grow = (depth - 2 * obj.half[0]) / 2  # centre moves forward by this to keep the back face
+    base = (obj.xy[0] + fx * grow, obj.xy[1] + fy * grow)
+    why = "no collision-free anchored position"
+    for shift in SHIFTS_M:
+        xy = (base[0] - fy * shift, base[1] + fx * shift)  # lateral = (-fy, fx)
+        r = _rect(xy, depth - TOUCH_TOL_M, width - TOUCH_TOL_M, obj.yaw)
+        hit = next((("wall", w) for w in walls if _overlap(r, w)), None) or next(
+            (("object", o) for o in others if _overlap(r, o)), None
+        )
+        if hit is None:
+            return xy, (xy[0] - obj.xy[0], xy[1] - obj.xy[1])
+        why = f"native footprint {depth:.2f} x {width:.2f} m collides with a {hit[0]}"
+    raise ValueError(why)
 
 
 def plan_placements(home: HomeSpec, manifest: dict) -> list[Placement]:
@@ -219,35 +254,50 @@ def plan_placements(home: HomeSpec, manifest: dict) -> list[Placement]:
         problem = _entry_problem(classes.get(cls))
         if problem:
             missing[cls] = problem
-    scales: dict[str, tuple[float, float, float]] = {}
-    if not missing:
-        for o in kept:
-            try:
-                scales[o.instance_id] = fit_scale(classes[o.cls], o)
-            except ValueError as error:
-                missing[o.cls] = f"{o.instance_id}: {error}"
+    if missing:
+        raise MissingAssetError(missing)
+    walls = [Rect(w.centre[0], w.centre[1], w.half[0], w.half[1]) for w in home.walls]
+    rects = {o.instance_id: footprint(o) for o in kept}  # replaced by the placed footprint
+    plans: dict[str, tuple] = {}
+    for o in kept:
+        entry = classes[o.cls]
+        fit = fit_scale(entry, o)
+        if fit is not None:
+            plans[o.instance_id] = ("fit", fit, o.xy, (0.0, 0.0))
+            rects[o.instance_id] = _rect(
+                o.xy, entry["size_m"][0] * fit[0], entry["size_m"][1] * fit[1], o.yaw
+            )
+            continue
+        others = [r for i, r in rects.items() if i != o.instance_id]
+        try:
+            xy, shift = anchored_native(entry, o, others, walls)
+        except ValueError as error:
+            missing[o.cls] = f"{o.instance_id}: {error}"
+            continue
+        plans[o.instance_id] = ("native_anchored", (1.0, 1.0, 1.0), xy, shift)
+        rects[o.instance_id] = _rect(xy, entry["size_m"][0], entry["size_m"][1], o.yaw)
     if missing:
         raise MissingAssetError(missing)
     out = []
     for n, o in enumerate(kept):
         entry = classes[o.cls]
-        s = scales[o.instance_id]
+        mode, s, xy, shift = plans[o.instance_id]
         m = placement_matrix(
             entry["base_centre_native"],
             entry["yaw_offset_deg"],
             native_scale(entry, s),
-            o.xy,
+            xy,
             o.z0,
             o.yaw,
             entry.get("normalise"),
         )
         out.append(
             Placement(
-                o.instance_id, o.cls, f"{ROOT_PRIM}/o{n:03d}", entry["url"], o.xy, o.z0, o.yaw, s,
+                o.instance_id, o.cls, f"{ROOT_PRIM}/o{n:03d}", entry["url"], xy, o.z0, o.yaw, s,
                 tuple(tuple(float(v) for v in row) for row in m),
                 tuple(float(v * k) for v, k in zip(entry["size_m"], s, strict=True)),
                 tuple(entry.get("rigid_body_paths", ())), tuple(entry.get("joint_paths", ())),
-                tuple(entry.get("collider_paths", ())),
+                tuple(entry.get("collider_paths", ())), mode, (float(shift[0]), float(shift[1])),
             )
         )  # fmt: skip
     return out
@@ -283,6 +333,8 @@ def truth_manifest(home: HomeSpec, placements: list[Placement], manifest: dict) 
                 "z0": p.z0,
                 "yaw": p.yaw,
                 "scale": p.scale,
+                "mode": p.mode,
+                "shift_m": list(p.shift_m),
                 "size_m": list(p.size_m),
                 "room_id": next(o.room_id for o in home.objects if o.instance_id == p.instance_id),
             }
@@ -360,6 +412,27 @@ def _box(stage, path, centre, half, material=None, collide=True, guide=False, ya
     return cube
 
 
+def apply_static_overrides(stage, placements) -> int:
+    """Make every placed asset static: un-instance it, then switch off its authored rigid bodies,
+    joints and colliders (the bounding-box collider stands in). Idempotent. Called when the stage
+    is written and again on the stage Isaac opened, because the written overrides only bind if
+    the remote asset had composed (and un-instanced) at writing time. Returns prims touched."""
+    from pxr import Sdf
+
+    n = 0
+    for p in placements:
+        uninstance(stage, p.prim_path)
+        for rels, attr in ((p.rigid_body_paths, "physics:rigidBodyEnabled"),
+                           (p.collider_paths, "physics:collisionEnabled"),
+                           (p.joint_paths, "physics:jointEnabled")):  # fmt: skip
+            for rel in rels:
+                stage.OverridePrim(p.prim_path + rel).CreateAttribute(
+                    attr, Sdf.ValueTypeNames.Bool
+                ).Set(False)
+                n += 1
+    return n
+
+
 def build_stage(home: HomeSpec, placements: list[Placement], path: pathlib.Path) -> None:
     """Write the home as a USD layer. Furniture is a plain reference to the asset URL (a
     file:// URI for local files; Isaac 6.2 does not compose bare paths under an https layer)."""
@@ -395,21 +468,7 @@ def build_stage(home: HomeSpec, placements: list[Placement], path: pathlib.Path)
     for p in placements:
         prim = UsdGeom.Xform.Define(stage, p.prim_path).GetPrim()
         prim.GetReferences().AddReference(p.url)
-        uninstance(stage, p.prim_path)
-        for rel in p.rigid_body_paths:  # furniture is static: an authored dynamic body would fall
-            stage.OverridePrim(p.prim_path + rel).CreateAttribute(
-                "physics:rigidBodyEnabled", Sdf.ValueTypeNames.Bool
-            ).Set(False)
-        for (
-            rel
-        ) in p.collider_paths:  # authored SDF colliders cook for minutes and can be non-finite
-            stage.OverridePrim(p.prim_path + rel).CreateAttribute(
-                "physics:collisionEnabled", Sdf.ValueTypeNames.Bool
-            ).Set(False)
-        for rel in p.joint_paths:
-            stage.OverridePrim(p.prim_path + rel).CreateAttribute(
-                "physics:jointEnabled", Sdf.ValueTypeNames.Bool
-            ).Set(False)
+        apply_static_overrides(stage, [p])
         xf = UsdGeom.Xformable(prim)
         m = Gf.Matrix4d()
         mat = np.asarray(p.matrix, float)

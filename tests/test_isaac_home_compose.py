@@ -48,8 +48,10 @@ def test_every_instance_gets_a_placement_inside_its_footprint():
     by_id = {o.instance_id: o for o in h.objects}
     for p in plan:
         o = by_id[p.instance_id]
-        assert all(comp.AXIS_MIN <= k <= comp.AXIS_MAX for k in p.scale[:2])
-        assert comp.HEIGHT_RANGE[0] <= p.scale[2] <= comp.HEIGHT_RANGE[1]
+        assert p.mode == "fit"  # the fake assets are near the generator's sizes
+        base = p.scale[2]
+        assert comp.SCALE_MIN - 1e-9 <= base <= comp.SCALE_MAX + 1e-9
+        assert all(abs(k / base - 1) <= comp.AXIS_DEV + 1e-9 for k in p.scale)
         assert p.size_m[0] <= 2 * o.half[0] + 1e-9 and p.size_m[1] <= 2 * o.half[1] + 1e-9
         assert p.cls == o.cls and p.xy == o.xy
 

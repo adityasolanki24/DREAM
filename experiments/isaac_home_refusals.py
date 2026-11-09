@@ -49,6 +49,11 @@ def case_row(variant: str, seed: int, scenario: str, target: str, manifest: dict
     om = comp.omissions(home, manifest)
     if missing:
         return {**row, "status": "refused", "why": [f"no validated asset for {missing}"]}
+    try:
+        placements = comp.plan_placements(home, manifest)
+    except comp.MissingAssetError as refusal:
+        return {**row, "status": "refused", "why": refusal.classes}
+    row["native_anchored"] = [p.cls for p in placements if p.mode == "native_anchored"]
     return {**row, "status": "composable", "omitted": [{"class": o["class"],
             "room_id": o["room_id"]} for o in om]}  # fmt: skip
 

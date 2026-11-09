@@ -307,6 +307,12 @@ def run_item(app, args, cfg, kind, item, name, budget_s):  # noqa: C901  # pragm
         raise RuntimeError(f"could not open {stage_url}")
     for _ in range(60):
         app.update()
+    if kind == "home":  # remote assets have composed by now: make them static on this stage
+        from isaacsim.core.utils.stage import get_current_stage
+
+        result["static_overrides"] = comp.apply_static_overrides(get_current_stage(), placements)
+        for _ in range(30):
+            app.update()
     if kind == "kitchen":
         from isaacsim.core.utils.stage import get_current_stage
 
@@ -417,10 +423,25 @@ def run_item(app, args, cfg, kind, item, name, budget_s):  # noqa: C901  # pragm
         cam = head_camera_world(pos, rot, HEAD_CAMERA)
         gt = instance_boxes(ids, info.get("idToLabels", info) if isinstance(info, dict) else {},
                             inst_paths)  # fmt: skip
-        row = {"i": i, "sim_time_s": env.time, "odometry_pose": env.odometry().tolist(),
-               "true_pose": env.true_pose().tolist(), "true_camera": cam,
+        id_map = info.get("idToLabels", info) if isinstance(info, dict) else {}
+        prefixes = tuple(inst_paths.values())
+        keep = {
+            str(k): str(v)
+            for k, v in id_map.items()
+            if any(str(v) == q or str(v).startswith(q + "/") for q in prefixes)
+        }
+        row = {"i": i, "trajectory": counters.get("traj", 0), "sim_time_s": env.time,
+               "odometry_pose": env.odometry().tolist(), "true_pose": env.true_pose().tolist(),
+               "true_camera": cam,
+               "true_room_id": None,
                "gt": {iid: {"class": inst_class[iid], **v} for iid, v in gt.items()},
+               "instance_id_to_prim": keep,
                "png_sha256": sha256_of(pathlib.Path(str(stem) + ".png"))}  # fmt: skip
+        if home is not None:
+            from dream.sim.home import room_at
+
+            r_here = room_at(home, env.true_pose()[:2])
+            row["true_room_id"] = None if r_here is None else r_here.id
         if with_qwen:
             row["qwen"] = qwen_on(frame)
             counters["qwen"] += 1
@@ -429,53 +450,70 @@ def run_item(app, args, cfg, kind, item, name, budget_s):  # noqa: C901  # pragm
             f.flush()
         return frame
 
-    base.capture = lambda: capture_logged(False)
-
-    toolbox = MobileToolbox(base, SpatialMemory(np.random.default_rng([item["seed"], 2])),
-                            navigator="rpp")  # fmt: skip
-    explore_budget = budget_s * cfg["explore_fraction"]
-    rooms_seen, path_m, last = set(), 0.0, env.true_pose()[:2]
-    calls = []
+    cap = cfg.get("capture", {})
+    use_qwen = bool(cap.get("qwen", False))  # Qwen is not run during capture (offline comparison)
     explore = item.get("explore", True)
-    if explore:  # one look around first: the first frame alone leaves no frontier
-        toolbox.call("look_around")
-    while (
-        explore
-        and time.monotonic() - t_start < explore_budget
-        and counters["frames"] < cfg["max_frames"]
-    ):
-        obs = toolbox.call("observe_scene")
-        fronts = obs.data.get("frontiers", [])
-        if not fronts:
-            calls.append({"call": "observe_scene", "note": "no frontier left"})
-            if len(calls) > 1 and calls[-2].get("note") == "no frontier left":
-                break
-            toolbox.call("look_around")
-            continue
-        target = fronts[0]["xy"]
-        res = toolbox.call("go_to", {"x": float(target[0]), "y": float(target[1])})
-        calls.append(
-            {"call": "go_to", "xy": target, "status": res.status, "text": res.message[:120]}
+    seeds = list(cap.get("kitchen_start_seeds", [item["seed"]])) if kind == "kitchen" else [None]
+    explore_budget = budget_s * cfg["explore_fraction"]
+    rooms_seen: set[int] = set()
+    path_m, calls, trajectories = 0.0, [], []
+    for t_index, t_seed in enumerate(seeds if explore else []):
+        if t_index > 0:  # a new start pose, fresh map: a separate trajectory
+            x, y, yaw, _ = choose_start(cells, boxes, "explore", t_seed)
+            env.reset(x, y, yaw, floor_z=floor_z)
+            base = G1MobileBase(env, WBCLocomotion.from_cache())
+            base.walk(0.0, 0.0, 0.0, STAND_S)
+        counters["traj"] = t_index
+        base.capture = lambda: capture_logged(False)
+        toolbox = MobileToolbox(
+            base, SpatialMemory(np.random.default_rng([item["seed"], 2, t_index])), navigator="rpp"
         )
-        capture_logged(with_qwen=True)  # a stationary frame with Qwen's answer at every stop
-        if res.status == "stopped" or base.stop_reason:
-            break
-        p = env.true_pose()[:2]
-        path_m += float(np.linalg.norm(p - last))
-        last = p
-        if home is not None:
-            from dream.sim.home import room_at
+        t_begin, f_begin = time.monotonic(), counters["frames"]
+        t_budget = explore_budget / len(seeds)
+        last = env.true_pose()[:2]
+        toolbox.call("look_around")  # the first frame alone leaves no frontier
+        while (
+            time.monotonic() - t_begin < t_budget
+            and counters["frames"] - f_begin < cap.get("frames_per_trajectory", cfg["max_frames"])
+            and counters["frames"] < cfg["max_frames"]
+        ):
+            obs = toolbox.call("observe_scene")
+            fronts = obs.data.get("frontiers", [])
+            if not fronts:
+                calls.append({"traj": t_index, "call": "observe_scene", "note": "no frontier left"})
+                if len(calls) > 1 and calls[-2].get("note") == "no frontier left":
+                    break
+                toolbox.call("look_around")
+                continue
+            target = fronts[0]["xy"]
+            res = toolbox.call("go_to", {"x": float(target[0]), "y": float(target[1])})
+            calls.append({"traj": t_index, "call": "go_to", "xy": target, "status": res.status,
+                          "text": res.message[:120]})  # fmt: skip
+            capture_logged(with_qwen=use_qwen)  # a stationary frame at every stop
+            if res.status == "stopped" or base.stop_reason:
+                break
+            p_now = env.true_pose()[:2]
+            path_m += float(np.linalg.norm(p_now - last))
+            last = p_now
+            if home is not None:
+                from dream.sim.home import room_at
 
-            r = room_at(home, p)
-            if r is not None:
-                rooms_seen.add(r.id)
-    result["exploration"] = {"calls": calls, "path_length_m": path_m, "frames": counters["frames"],
-                             "qwen_calls": counters["qwen"],
-        "rooms_visited_true": sorted(rooms_seen),
+                r = room_at(home, p_now)
+                if r is not None:
+                    rooms_seen.add(r.id)
+        trajectories.append({"index": t_index, "start_seed": t_seed,
+                             "frames": counters["frames"] - f_begin,
                              "explored_m2": float(toolbox.memory.grid.free().sum()) * 0.05**2,
-                             "fell": env.true_height() < FALL_HEIGHT_M,
-                             "stop_reason": base.stop_reason, "contact_steps": env.contact_steps,
-                             "wall_s": time.monotonic() - t_start}  # fmt: skip
+                             "wall_s": time.monotonic() - t_begin})  # fmt: skip
+        if base.stop_reason:
+            break
+    result["exploration"] = {
+        "calls": calls, "trajectories": trajectories, "path_length_m": path_m,
+        "frames": counters["frames"], "qwen_calls": counters["qwen"],
+        "rooms_visited_true": sorted(rooms_seen), "fell": env.true_height() < FALL_HEIGHT_M,
+        "stop_reason": base.stop_reason, "contact_steps": env.contact_steps,
+        "wall_s": time.monotonic() - t_start,
+    }  # fmt: skip
     # -- per-class recognisability at reset poses ---------------------------------------------
     rows = []
     from experiments.isaac_semantic_dev import candidate_poses, project_box
