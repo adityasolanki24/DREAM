@@ -21,7 +21,7 @@ support surface contains the pixels of objects mounted in it, so their 3-D point
 fuse into one label-mixed track. The option is purely geometric and label-agnostic: inside a
 frame, a detection mostly contained in a clearly larger one is removed from the larger one's
 back-projection; across frames, association refuses to merge a detection with a track whose
-footprint is several times larger or smaller, or whose height range does not overlap.
+size is several times larger or smaller, or whose height range does not overlap.
 
 Per-episode state; persistent memory is dream/memory/home.py.
 """
@@ -52,8 +52,8 @@ class NestedOptions:
     ``exclude_contained``: in one frame, a detection whose mask lies at least
     ``contained_fraction`` inside another's, and whose area is at most ``max_area_ratio`` of it,
     is *inner*; its pixels are removed from the outer region before back-projection.
-    ``gate_extent``: a detection joins a track only if the two footprints (XY box areas) are
-    within ``max_footprint_ratio`` of each other and their height ranges overlap by at least
+    ``gate_extent``: a detection joins a track only if the two longest horizontal sides are
+    within ``max_size_ratio`` of each other and their height ranges overlap by at least
     ``min_height_overlap`` of the shorter one (heights from the points themselves, not forced
     to the floor). Labels are never consulted."""
 
@@ -61,7 +61,7 @@ class NestedOptions:
     contained_fraction: float = 0.8
     max_area_ratio: float = 0.7
     gate_extent: bool = True
-    max_footprint_ratio: float = 4.0
+    max_size_ratio: float = 4.0
     min_height_overlap: float = 0.2
 
 
@@ -126,11 +126,13 @@ def _iou_xy(lo_a, hi_a, lo_b, hi_b) -> float:
 
 
 def _compatible_extent(lo_a, hi_a, lo_b, hi_b, opt: NestedOptions) -> bool:
-    """Could two boxes be one object? Footprints within ``max_footprint_ratio`` of each other,
-    and height ranges overlapping by ``min_height_overlap`` of the shorter (geometry only)."""
-    fp = lambda lo, hi: float(np.prod(np.maximum(hi[:2] - lo[:2], 1e-3)))  # noqa: E731
-    ratio = fp(lo_a, hi_a) / fp(lo_b, hi_b)
-    if not 1.0 / opt.max_footprint_ratio <= ratio <= opt.max_footprint_ratio:
+    """Could two boxes be one object? Longest horizontal sides within ``max_size_ratio`` of each
+    other (the longest side, not the footprint area: a flat face seen head-on has almost no
+    depth, so its area is arbitrary), and height ranges overlapping by ``min_height_overlap`` of
+    the shorter (geometry only)."""
+    side = lambda lo, hi: float(np.max(np.maximum(hi[:2] - lo[:2], 1e-2)))  # noqa: E731
+    ratio = side(lo_a, hi_a) / side(lo_b, hi_b)
+    if not 1.0 / opt.max_size_ratio <= ratio <= opt.max_size_ratio:
         return False
     heights = (max(hi_a[2] - lo_a[2], MIN_HEIGHT), max(hi_b[2] - lo_b[2], MIN_HEIGHT))
     overlap = min(hi_a[2], hi_b[2]) - max(lo_a[2], lo_b[2])
