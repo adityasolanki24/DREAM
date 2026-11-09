@@ -98,6 +98,11 @@ class SemanticSearchPlanner:
     _looked: list = field(default_factory=list)  # odometry xy of every full turn issued
     _visited: list = field(default_factory=list)  # exploration destinations chosen
     _verify_sites: dict = field(default_factory=dict)  # track id -> standing points used
+    # DIAGNOSTICS (evaluation only, off by default): when True every utility decision is logged
+    # to ``diagnostics`` with each candidate's terms and two counterfactual choices. Logging
+    # reads the planner's own state and writes only to ``diagnostics``; the action is unchanged.
+    diagnose: bool = False
+    diagnostics: list = field(default_factory=list)
 
     def __post_init__(self) -> None:
         if self.policy not in POLICIES:
@@ -288,6 +293,8 @@ class SemanticSearchPlanner:
                     v["value"] - FRONTIER_COST_WEIGHT * (v["cost_m"] + turn) - (w.gamma * v["risk"])
                 )
             choice = max(views, key=lambda v: v["utility"])
+            if self.diagnose:
+                self._record_decision(world, views, choice, len(history))
         if choice is None:
             return self._stop(world, target, "no reachable look is expected to reveal more")
         info = {k: (round(v, 4) if isinstance(v, float) else v) for k, v in choice.items()
@@ -299,6 +306,69 @@ class SemanticSearchPlanner:
         self._visited.append(np.asarray(xy, float))
         return self._act(ToolCall("go_to", {"x": float(xy[0]), "y": float(xy[1])}),
                          "explore", **info)  # fmt: skip
+
+    def _record_decision(self, world, views, choice, step: int) -> None:
+        """Log the decision's terms and what it would have been without the semantic term.
+
+        Two counterfactuals, on the same candidate set: ``no_detection`` drops the whole
+        kappa * detection term (leaving information gain, cost and risk); ``uniform`` keeps the
+        detection term but computes it with every room factor at 1 (what ``sem_none`` sees).
+        Nothing here feeds back into the choice."""
+        import copy
+
+        w, grid = self.weights, world.grid
+        belief = copy.copy(world.target)
+        belief.mass = belief.candidate.astype(np.float32) * (1.0 - world.map.coverage)
+        for v in views:
+            v["detection_uniform"] = belief.view(grid, world.map, v["xy"]).detection
+            turn = 0.0 if v["frontier"] else TURN_M
+            rest = -FRONTIER_COST_WEIGHT * (v["cost_m"] + turn) - w.gamma * v["risk"]
+            v["u_no_detection"] = w.ig * v["gain_m2"] + rest
+            v["u_uniform"] = w.ig * v["gain_m2"] + w.kappa * v["detection_uniform"] + rest
+        index = {id(v): k for k, v in enumerate(views)}
+        pick_nd = max(views, key=lambda v: v["u_no_detection"])
+        pick_un = max(views, key=lambda v: v["u_uniform"])
+        factor = world.target.region_factor
+
+        def brief(v) -> dict:
+            rid = v["region"]
+            reg = world.regions.get(rid)
+            cat, wt, _ = reg.leading() if reg is not None else ("none", 0.0, 0.0)
+            return {
+                "i": index[id(v)], "xy": [round(float(x), 2) for x in v["xy"]],
+                "here": v["here"], "frontier": v["frontier"], "region": rid,
+                "label": cat if reg is not None and reg.evidence else "none",
+                "label_w": round(wt, 3), "factor": round(float(factor.get(rid, 1.0)), 3),
+                "gain_m2": round(v["gain_m2"], 3), "detection": round(v["detection"], 4),
+                "detection_uniform": round(v["detection_uniform"], 4),
+                "sem_term": round(w.kappa * v["detection"], 3),
+                "sem_shift": round(w.kappa * (v["detection"] - v["detection_uniform"]), 3),
+                "cost_m": round(v["cost_m"], 2), "risk": round(v["risk"], 3),
+                "utility": round(v["utility"], 3),
+            }  # fmt: skip
+
+        ranked = sorted(views, key=lambda v: -v["utility"])
+        self.diagnostics.append({
+            "step": step, "t": round(float(self.toolbox.base.time), 1),
+            "n_views": len(views), "n_frontier": sum(v["frontier"] for v in views),
+            "n_in_region": sum(v["region"] >= 0 for v in views),
+            "n_factor_off_1": sum(abs(factor.get(v["region"], 1.0) - 1.0) > 0.25 for v in views),
+            "chosen": brief(choice), "no_detection": brief(pick_nd), "uniform": brief(pick_un),
+            "changed_no_detection": pick_nd is not choice,
+            "changed_uniform": pick_un is not choice,
+            "gap_to_second": round(ranked[0]["utility"] - ranked[1]["utility"], 3)
+            if len(ranked) > 1 else None,
+            "max_abs_sem_shift": round(max(abs(w.kappa * (v["detection"] - v["detection_uniform"]))
+                                           for v in views), 3),
+            "top": [brief(v) for v in ranked[:5]],
+            "regions": [
+                {"id": r.id, "xy": [round(float(x), 2) for x in r.centroid],
+                 "label": r.leading()[0] if r.evidence else "none",
+                 "w": round(r.leading()[1], 3), "class": r.classification(),
+                 "factor": round(float(factor.get(r.id, 1.0)), 3)}
+                for r in world.regions.values()
+            ],
+        })  # fmt: skip
 
     def _views(self, world, passable, dist, fr, pose, history, alive) -> list[dict]:
         grid = world.grid
