@@ -1,0 +1,64 @@
+{
+  "name": "isaac_home_dev",
+  "status": "development",
+  "_note": "Development only (9 Nov 2026): validates composed Isaac homes, measures per-class Qwen3-VL recognisability and records a perception-capture dataset (no Qwen during capture). Not an evaluation. Perception development data comes ONLY from the l_shape kitchen and these composed homes (generator seeds 100-103). g_shape was viewed once for a recognisability check in session 2 of the cloud work; g_shape, peninsula and u_shape (and l_island, unloadable) are held-out candidates and are not captured or measured any further. Homes use the generator's development seeds 100-103 (the held-out seeds of the MuJoCo evaluation are 6000+). Home 101 D refrigerator was REFUSED by the composer (the native refrigerator footprint 0.67 x 1.23 m collides with a wall) and is replaced by 101 D sofa, chosen before any perception result. Targets come from the Isaac target set (refrigerator, bed, toilet, stove, washing_machine, workbench, sofa). Excluded classes (experiments/configs/isaac_assets.json 'excluded', version 1) are omitted and logged per home; assets that do not fit the generator footprint under the scale rule are placed natively or the home is refused (reported). Rule 3 class: environment simplification.",
+  "variant": "nominal",
+  "homes": [
+    {
+      "seed": 100,
+      "scenario": "B",
+      "target": "refrigerator"
+    },
+    {
+      "seed": 101,
+      "scenario": "D",
+      "target": "sofa"
+    },
+    {
+      "seed": 102,
+      "scenario": "E",
+      "target": "stove"
+    },
+    {
+      "seed": 103,
+      "scenario": "F",
+      "target": "stove"
+    }
+  ],
+  "kitchens": {
+    "development": [
+      "l_shape"
+    ],
+    "held_out_candidates": [],
+    "not_to_be_used_further": [
+      "g_shape",
+      "peninsula",
+      "u_shape"
+    ],
+    "unloadable": {
+      "l_island": "segfault in PhysX between robot_contract_checked and world_reset after the refrigerator remap and the non-finite-collider repair; cause unknown (a hypothesis, not a finding: some prim PhysX cannot parse)"
+    },
+    "max_item_budget_s": 1500
+  },
+  "capture": {
+    "qwen": false,
+    "kitchen_start_seeds": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "frames_per_trajectory": 60,
+    "hires": [
+      640,
+      480
+    ]
+  },
+  "views": 3,
+  "min_visible_pixels": 150,
+  "max_frames": 260,
+  "explore_fraction": 0.6,
+  "min_item_budget_s": 420,
+  "max_item_budget_s": 900,
+  "qwen_max_new_tokens": 512
+}

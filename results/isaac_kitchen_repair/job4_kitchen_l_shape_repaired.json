@@ -1,0 +1,675 @@
+{
+ "name": "kitchen_l_shape_repaired",
+ "kind": "kitchen",
+ "item": {
+  "kitchen": "l_shape",
+  "seed": 1,
+  "explore": true
+ },
+ "kitchen_repair": {
+  "applied": true,
+  "labelled_before": [
+   "backsplash",
+   "bagel",
+   "banana",
+   "bowl",
+   "cabinet_door",
+   "cabinet_false_front",
+   "cabinet_pull",
+   "countertop",
+   "drain",
+   "drawer",
+   "faucet",
+   "kitchen_cabinet",
+   "range_hood",
+   "range_hood_upper",
+   "serving_tray",
+   "shelf",
+   "sink",
+   "sink_basin",
+   "sink_rim"
+  ],
+  "repaired": [
+   {
+    "prim": "/World/Fridge/Fridge_OnlineVisual",
+    "from": "../../SimReady/Residential/Kitchen/Appliances/Refrigerator_A01_2/sm_rc_appliance_refrigerator_a01_01.usd",
+    "to": "../../SimReady/Residential/Kitchen/Appliances/Refrigerator_A01/sm_refrigerator_a01_01.usd"
+   }
+  ],
+  "unrepaired": [
+   {
+    "prim": "/World/Range/Range_OnlineVisual",
+    "reference": "../../SimReady/Residential/Kitchen/Appliances/Oven_A01/sm_rc_appliance_oven_a01_01.usd",
+    "why": "no oven asset exists under SimReady/Residential/Kitchen/Appliances (listing of 9 Nov 2026)"
+   }
+  ],
+  "physics_disabled_on_nonfinite_prims": [],
+  "labelled_after": [
+   "backsplash",
+   "bagel",
+   "banana",
+   "bowl",
+   "cabinet_door",
+   "cabinet_false_front",
+   "cabinet_pull",
+   "countertop",
+   "drain",
+   "drawer",
+   "faucet",
+   "kitchen_cabinet",
+   "range_hood",
+   "range_hood_upper",
+   "refrigerator",
+   "serving_tray",
+   "shelf",
+   "sink",
+   "sink_basin",
+   "sink_rim"
+  ],
+  "refrigerator_bounds_after": [
+   [
+    [
+     -1.9954925688757097,
+     -1.6473837223478416,
+     -0.00029999876156024645
+    ],
+    [
+     -1.3217726082785366,
+     -0.42150351671658526,
+     1.5212841544151494
+    ]
+   ]
+  ]
+ },
+ "prompt": "List every object of these classes that is visible in the image: armchair, bathtub, bed, bookshelf, chair, chest freezer, coffee table, countertop, desk, dining table, dryer, filing cabinet, kitchen cabinet, microwave, nightstand, office chair, refrigerator, shower, sink, sofa, storage shelf, stove, toilet, tool rack, tv stand, wardrobe, washbasin, washing machine, workbench. Answer with JSON only: a list of {\"label\": <one of the classes>, \"bbox_2d\": [x1, y1, x2, y2]} with coordinates scaled 0-1000 across the image width and height. Answer [] if none is visible. Do not list objects you cannot see.",
+ "intrinsics": {
+  "fx": 216.48573063257084,
+  "fy": 216.48573063257084,
+  "cx": 160.0,
+  "cy": 120.0,
+  "width": 320,
+  "height": 240
+ },
+ "start": [
+  1.111982679367053,
+  0.7276060104370017,
+  0.7322824131079924
+ ],
+ "stands": true,
+ "stand_height_m": 0.7488703727722168,
+ "exploration": {
+  "calls": [
+   {
+    "call": "go_to",
+    "xy": [
+     -1.525,
+     1.725
+    ],
+    "status": "succeeded",
+    "text": ""
+   },
+   {
+    "call": "go_to",
+    "xy": [
+     -1.875,
+     -1.175
+    ],
+    "status": "succeeded",
+    "text": ""
+   }
+  ],
+  "path_length_m": 4.820474789807793,
+  "frames": 39,
+  "qwen_calls": 2,
+  "rooms_visited_true": [],
+  "explored_m2": 14.295000000000003,
+  "fell": false,
+  "stop_reason": null,
+  "contact_steps": 0,
+  "wall_s": 552.9575853770002
+ },
+ "kitchen_classes_without_bound": [
+  "microwave",
+  "stove"
+ ],
+ "recognisability": {
+  "refrigerator": {
+   "views": 3,
+   "label_hit": 1,
+   "iou_hit": 1,
+   "confused_as": {}
+  },
+  "kitchen_cabinet": {
+   "views": 1,
+   "label_hit": 1,
+   "iou_hit": 0,
+   "confused_as": {}
+  },
+  "sink": {
+   "views": 2,
+   "label_hit": 0,
+   "iou_hit": 0,
+   "confused_as": {}
+  }
+ },
+ "recognisability_rows": [
+  {
+   "class": "refrigerator",
+   "instance": "k000",
+   "view": 0,
+   "pose": [
+    0.21198267936705628,
+    -1.5223939895629903,
+    2.8864283927482064
+   ],
+   "projected": {
+    "box": [
+     39.567016908756244,
+     0.0,
+     284.7622953700518,
+     127.7334682720086
+    ],
+    "full_box": [
+     39.567016908756244,
+     -144.6665419589674,
+     284.7622953700518,
+     127.7334682720086
+    ],
+    "visible_fraction": 0.4689187352221449,
+    "depth_m": 0.9192480368943164
+   },
+   "seg_pixels": 28344,
+   "seg_box": [
+    55.0,
+    0.0,
+    320.0,
+    132.0
+   ],
+   "truth_box": [
+    55.0,
+    0.0,
+    320.0,
+    132.0
+   ],
+   "qwen_raw": "[{\"label\": \"refrigerator\", \"bbox_2d\": [173, 0, 1000, 546]}]",
+   "detections": [
+    {
+     "label": "refrigerator",
+     "box": [
+      55.0,
+      0.0,
+      320.0,
+      132.0
+     ]
+    }
+   ]
+  },
+  {
+   "class": "refrigerator",
+   "instance": "k000",
+   "view": 1,
+   "pose": [
+    0.36198267936705575,
+    -0.42239398956299423,
+    -2.8474750499735633
+   ],
+   "projected": {
+    "box": [
+     46.983331560262585,
+     0.0,
+     260.06674442478675,
+     116.73024198569426
+    ],
+    "full_box": [
+     46.983331560262585,
+     -131.76372348009073,
+     260.06674442478675,
+     116.73024198569426
+    ],
+    "visible_fraction": 0.46975081172249555,
+    "depth_m": 1.0496458852747856
+   },
+   "seg_pixels": 26046,
+   "seg_box": [
+    59.0,
+    0.0,
+    320.0,
+    151.0
+   ],
+   "truth_box": [
+    59.0,
+    0.0,
+    320.0,
+    151.0
+   ],
+   "qwen_raw": "[]",
+   "detections": []
+  },
+  {
+   "class": "refrigerator",
+   "instance": "k000",
+   "view": 2,
+   "pose": [
+    -0.538017320632941,
+    0.8776060104370011,
+    -2.100918127107332
+   ],
+   "projected": {
+    "box": [
+     86.80443784841268,
+     0.0,
+     263.79059332998725,
+     123.10434520055168
+    ],
+    "full_box": [
+     86.80443784841268,
+     -138.72712541654835,
+     263.79059332998725,
+     123.10434520055168
+    ],
+    "visible_fraction": 0.4701663436805821,
+    "depth_m": 0.9731282331029967
+   },
+   "seg_pixels": 12134,
+   "seg_box": [
+    79.0,
+    0.0,
+    209.0,
+    160.0
+   ],
+   "truth_box": [
+    79.0,
+    0.0,
+    209.0,
+    160.0
+   ],
+   "qwen_raw": "[{\"label\": \"kitchen cabinet\", \"bbox_2d\": [583, 56, 1000, 788]}]",
+   "detections": [
+    {
+     "label": "kitchen_cabinet",
+     "box": [
+      186.0,
+      13.0,
+      320.0,
+      190.0
+     ]
+    }
+   ]
+  },
+  {
+   "class": "kitchen_cabinet",
+   "view": 0,
+   "skipped": "not standing"
+  },
+  {
+   "class": "kitchen_cabinet",
+   "view": 1,
+   "skipped": "not standing"
+  },
+  {
+   "class": "kitchen_cabinet",
+   "instance": "k072",
+   "view": 2,
+   "pose": [
+    1.8119826793670506,
+    0.8776060104370011,
+    2.997061370534576
+   ],
+   "projected": {
+    "box": [
+     99.79291541269411,
+     0.0,
+     228.0533495379325,
+     66.45019801762082
+    ],
+    "full_box": [
+     99.79291541269411,
+     -23.90331729065116,
+     228.0533495379325,
+     66.45019801762082
+    ],
+    "visible_fraction": 0.7354467370849181,
+    "depth_m": 2.294117717618264
+   },
+   "seg_pixels": 2729,
+   "seg_box": [
+    106.0,
+    0.0,
+    174.0,
+    52.0
+   ],
+   "truth_box": [
+    106.0,
+    0.0,
+    174.0,
+    52.0
+   ],
+   "qwen_raw": "[{\"label\": \"kitchen cabinet\", \"bbox_2d\": [500, 0, 950, 486]}, {\"label\": \"kitchen cabinet\", \"bbox_2d\": [0, 0, 500, 196]}]",
+   "detections": [
+    {
+     "label": "kitchen_cabinet",
+     "box": [
+      160.0,
+      0.0,
+      304.0,
+      117.0
+     ]
+    },
+    {
+     "label": "kitchen_cabinet",
+     "box": [
+      0.0,
+      0.0,
+      160.0,
+      48.0
+     ]
+    }
+   ]
+  },
+  {
+   "class": "countertop",
+   "instance": "k081",
+   "view": 0,
+   "pose": [
+    -1.7880173206329366,
+    -1.1223939895629917,
+    1.5222944648653882
+   ],
+   "projected": {
+    "box": [
+     90.08903491307728,
+     0.0,
+     229.85826769118776,
+     -7.170141509547847
+    ],
+    "full_box": [
+     90.08903491307728,
+     -19.618974502397037,
+     229.85826769118776,
+     -7.170141509547847
+    ],
+    "visible_fraction": 0.0,
+    "depth_m": 2.1859257666546106
+   },
+   "seg_pixels": 0,
+   "seg_box": null,
+   "truth_box": [
+    90.08903491307728,
+    0.0,
+    229.85826769118776,
+    -7.170141509547847
+   ],
+   "qwen_raw": "[{\"label\": \"countertop\", \"bbox_2d\": [0, 0, 514, 442]}, {\"label\": \"sink\", \"bbox_2d\": [177, 0, 427, 100]}]",
+   "detections": [
+    {
+     "label": "countertop",
+     "box": [
+      0.0,
+      0.0,
+      165.0,
+      107.0
+     ]
+    },
+    {
+     "label": "sink",
+     "box": [
+      56.0,
+      0.0,
+      137.0,
+      24.0
+     ]
+    }
+   ]
+  },
+  {
+   "class": "countertop",
+   "instance": "k081",
+   "view": 1,
+   "pose": [
+    0.11198267936705664,
+    -0.27239398956299476,
+    2.276681007975253
+   ],
+   "projected": {
+    "box": [
+     90.9299575079864,
+     0.0,
+     232.11510764323214,
+     4.823031656866021
+    ],
+    "full_box": [
+     90.9299575079864,
+     -21.305325854630183,
+     232.11510764323214,
+     4.823031656866021
+    ],
+    "visible_fraction": 0.18458992895913712,
+    "depth_m": 1.7539787246436898
+   },
+   "seg_pixels": 76,
+   "seg_box": [
+    171.0,
+    0.0,
+    199.0,
+    5.0
+   ],
+   "truth_box": [
+    171.0,
+    0.0,
+    199.0,
+    5.0
+   ],
+   "qwen_raw": "[]",
+   "detections": []
+  },
+  {
+   "class": "countertop",
+   "instance": "k081",
+   "view": 2,
+   "pose": [
+    1.8119826793670506,
+    0.8776060104370011,
+    2.883468659793686
+   ],
+   "projected": {
+    "box": [
+     130.95732000144122,
+     0.0,
+     202.57449034266952,
+     -10.175846345652673
+    ],
+    "full_box": [
+     130.95732000144122,
+     -27.53895978174924,
+     202.57449034266952,
+     -10.175846345652673
+    ],
+    "visible_fraction": 0.0,
+    "depth_m": 2.3699506003095063
+   },
+   "seg_pixels": 0,
+   "seg_box": null,
+   "truth_box": [
+    130.95732000144122,
+    0.0,
+    202.57449034266952,
+    -10.175846345652673
+   ],
+   "qwen_raw": "[{\"label\": \"kitchen cabinet\", \"bbox_2d\": [428, 0, 867, 456]}, {\"label\": \"kitchen cabinet\", \"bbox_2d\": [728, 256, 1000, 998]}]",
+   "detections": [
+    {
+     "label": "kitchen_cabinet",
+     "box": [
+      136.0,
+      0.0,
+      278.0,
+      110.0
+     ]
+    },
+    {
+     "label": "kitchen_cabinet",
+     "box": [
+      232.0,
+      61.0,
+      320.0,
+      240.0
+     ]
+    }
+   ]
+  },
+  {
+   "class": "sink",
+   "instance": "k092",
+   "view": 0,
+   "pose": [
+    -1.7880173206329366,
+    -1.5223939895629903,
+    1.720214039938424
+   ],
+   "projected": {
+    "box": [
+     119.96343025949315,
+     0.0,
+     198.4813165282263,
+     39.65734400776431
+    ],
+    "full_box": [
+     119.96343025949315,
+     -55.449495250312225,
+     198.4813165282263,
+     39.65734400776431
+    ],
+    "visible_fraction": 0.4169767843945732,
+    "depth_m": 1.2740645220827975
+   },
+   "seg_pixels": 383,
+   "seg_box": [
+    130.0,
+    0.0,
+    193.0,
+    8.0
+   ],
+   "truth_box": [
+    130.0,
+    0.0,
+    193.0,
+    8.0
+   ],
+   "qwen_raw": "[{\"label\": \"kitchen cabinet\", \"bbox_2d\": [223, 0, 658, 748]}]",
+   "detections": [
+    {
+     "label": "kitchen_cabinet",
+     "box": [
+      71.0,
+      0.0,
+      211.0,
+      180.0
+     ]
+    }
+   ]
+  },
+  {
+   "class": "sink",
+   "instance": "k092",
+   "view": 1,
+   "pose": [
+    0.7619826793670543,
+    -0.6223939895629935,
+    2.799046156550233
+   ],
+   "projected": {
+    "box": [
+     133.39969807826924,
+     0.0,
+     188.32287656221467,
+     8.474263489801345
+    ],
+    "full_box": [
+     133.39969807826924,
+     -54.36221767428907,
+     188.32287656221467,
+     8.474263489801345
+    ],
+    "visible_fraction": 0.13486215861884052,
+    "depth_m": 2.089810270727548
+   },
+   "seg_pixels": 14,
+   "seg_box": [
+    153.0,
+    5.0,
+    174.0,
+    7.0
+   ],
+   "truth_box": [
+    153.0,
+    5.0,
+    174.0,
+    7.0
+   ],
+   "qwen_raw": "[]",
+   "detections": []
+  },
+  {
+   "class": "sink",
+   "instance": "k092",
+   "view": 2,
+   "pose": [
+    -0.33801732063294176,
+    0.8776060104370011,
+    -2.8678238530618185
+   ],
+   "projected": {
+    "box": [
+     110.9541103095868,
+     0.0,
+     200.6764796324633,
+     47.060699844573875
+    ],
+    "full_box": [
+     110.9541103095868,
+     -55.51562122513084,
+     200.6764796324633,
+     47.060699844573875
+    ],
+    "visible_fraction": 0.4587871679721701,
+    "depth_m": 1.1549856927889417
+   },
+   "seg_pixels": 886,
+   "seg_box": [
+    118.0,
+    0.0,
+    194.0,
+    28.0
+   ],
+   "truth_box": [
+    118.0,
+    0.0,
+    194.0,
+    28.0
+   ],
+   "qwen_raw": "[{\"label\": \"kitchen cabinet\", \"bbox_2d\": [101, 0, 988, 598]},{\"label\": \"countertop\", \"bbox_2d\": [328, 0, 1000, 138]}]",
+   "detections": [
+    {
+     "label": "kitchen_cabinet",
+     "box": [
+      32.0,
+      0.0,
+      317.0,
+      144.0
+     ]
+    },
+    {
+     "label": "countertop",
+     "box": [
+      104.0,
+      0.0,
+      320.0,
+      34.0
+     ]
+    }
+   ]
+  }
+ ],
+ "wall_s": 743.4517102549999,
+ "frames_dir": "/work/out/jobs/4/raw/kitchen_l_shape_repaired/frames"
+}

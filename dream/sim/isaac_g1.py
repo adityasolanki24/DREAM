@@ -394,6 +394,63 @@ class IsaacG1Env:
             raise RuntimeError(f"media camera returned {rgb.shape}")
         return SimpleNamespace(time=self.time, rgb=rgb[..., :3].astype(np.uint8).copy())
 
+    def capture_hires(self, size: tuple[int, int] = (640, 480)):
+        """CAPTURE-ONLY second render product of the head camera at a higher resolution: RGB,
+        distance-to-image-plane depth and instance segmentation from the identical pose, so frames
+        exist at both resolutions. The agent's camera (``capture_head``, 320 x 240) is unchanged and
+        this never feeds an agent. Noise uses its own generator so the agent's noise stream is not
+        disturbed. Returns a namespace with rgb, depth, ids, id_to_path, width, height."""
+        from dataclasses import replace
+        from types import SimpleNamespace
+
+        import omni.replicator.core as rep
+        from pxr import UsdGeom
+
+        w, h = size
+        if not hasattr(self, "_hires"):
+            path = self.camera_path + "_hires"
+            cam = UsdGeom.Camera.Define(self.stage, path)
+            horizontal, vertical = apertures(replace(self.head, width=w, height=h))
+            cam.CreateFocalLengthAttr(10.0)
+            cam.CreateHorizontalApertureAttr(horizontal)
+            cam.CreateVerticalApertureAttr(vertical)
+            original = UsdGeom.Camera(self.stage.GetPrimAtPath(self.camera_path))
+            cam.CreateClippingRangeAttr(original.GetClippingRangeAttr().Get())
+            source = UsdGeom.Xformable(self.stage.GetPrimAtPath(self.camera_path))
+            UsdGeom.Xformable(cam.GetPrim()).AddTransformOp().Set(source.GetLocalTransformation())
+            product = rep.create.render_product(path, (w, h))
+            annotators = {}
+            for name in ("rgb", "distance_to_image_plane", "instance_id_segmentation_fast"):
+                a = rep.AnnotatorRegistry.get_annotator(name)
+                a.attach([product])
+                annotators[name] = a
+            self._hires = (product, annotators, np.random.default_rng(20261109))
+        _product, annotators, rng = self._hires
+        before, steps = np.concatenate(self._root()), self.physics_steps
+        for _ in range(3):
+            self.world.render()
+        rgb = np.asarray(annotators["rgb"].get_data())
+        for _ in range(EMPTY_CAPTURE_RETRIES):
+            if rgb.shape[:2] == (h, w):
+                break
+            self.world.render()
+            rgb = np.asarray(annotators["rgb"].get_data())
+        dist = np.asarray(annotators["distance_to_image_plane"].get_data())
+        seg = annotators["instance_id_segmentation_fast"].get_data()
+        ids, info = np.asarray(seg["data"]), seg["info"].get("idToLabels", {})
+        if (
+            self.physics_steps != steps
+            or np.max(np.abs(np.concatenate(self._root()) - before)) > 1e-9
+        ):
+            raise RuntimeError("hires rendering advanced physics")
+        if rgb.shape[:2] != (h, w) or dist.shape != (h, w) or ids.shape != (h, w):
+            raise RuntimeError(f"hires camera returned {rgb.shape}/{dist.shape}/{ids.shape}")
+        spec = replace(self.head, width=w, height=h)
+        return SimpleNamespace(
+            time=self.time, rgb=sensor_rgb(rgb, spec, rng), depth=sensor_depth(dist, spec, rng),
+            ids=ids, id_to_path=info, width=w, height=h,
+        )  # fmt: skip
+
     def _odom_calibration(self) -> CameraCalibration:
         pelvis_p, quat = self._root()
         rp = quat_matrix(quat)
