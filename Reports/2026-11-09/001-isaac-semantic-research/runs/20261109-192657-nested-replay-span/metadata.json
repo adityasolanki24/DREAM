@@ -1,0 +1,44 @@
+{
+  "run_id": "2026-11-09-001/20261109-192657-nested-replay-span",
+  "task_id": "2026-11-09-001",
+  "title": "Nested-object replay, l_shape development frames, span-inflated surrogate boxes (mechanism test)",
+  "started": "2026-11-09T19:26:57+11:00",
+  "commit": "87d746ec84057d8675b060ea6b718907dc44cef1",
+  "dirty": true,
+  "branch": "worktree-agent-ab8c50d8ef4f5ed08",
+  "configs": [],
+  "command": "python experiments/nested_replay.py --raw <capture item> --source span --out results/nested_association_dev/span.json",
+  "seeds": "none (deterministic replay of 39 captured frames)",
+  "model": "none (truth-derived surrogate boxes, countertop box encloses the sink)",
+  "simulator": "none (offline replay of Isaac Sim 6.2 capture)",
+  "renderer": null,
+  "embodiment": null,
+  "controller": null,
+  "hardware": "local CPU",
+  "status": "completed",
+  "ended": "2026-11-09T19:27:33+11:00",
+  "exit_status": 0,
+  "cases_attempted": 10,
+  "cases_completed": 10,
+  "metrics": {
+    "frames": 39,
+    "replays": 10,
+    "true_pose_sink_purity_off": 0.7,
+    "true_pose_sink_purity_nested": 0.88,
+    "odometry_sink_purity_off": 0.7,
+    "odometry_sink_purity_nested": 0.93,
+    "true_pose_countertop_purity_off_to_nested": "0.50->0.78",
+    "true_pose_cabinet_purity_off_to_nested": "0.50->0.40",
+    "true_pose_tracks_off_to_nested": "15->19",
+    "sink_verified_off": true,
+    "surrogate_note": "span surrogate does not reproduce the reported sink failure: sink already verified with option off"
+  },
+  "evidence": [
+    {
+      "path": "results/nested_association_dev/span.json",
+      "kind": "file",
+      "sha256": "6c1aca1258d05ced1a7456d122e0d3967580a31777a6c3162615d5a206e80152"
+    }
+  ],
+  "cloud": null
+}

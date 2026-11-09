@@ -1,0 +1,416 @@
+{
+ "meta": {
+  "config": {
+   "purpose": "Choose the Isaac perception detector on DEVELOPMENT data, then freeze. Never evaluate on g_shape, peninsula, u_shape, l_island or held-out seeds.",
+   "split": "development",
+   "dataset": {
+    "default_root": "experiments/data/detector_dev",
+    "items": [
+     "kitchen_l_shape_repaired"
+    ],
+    "source": "cloud session dream-qwen-isaac-20261109-160004-5f4423, job 4, manifest results/isaac_perception_capture/manifest_job4_l_shape.json (frames.jsonl sha256 218970704dee76ccd317b52dff151e5f1e1e0f643b6083f980d2d032c12c92e5)"
+   },
+   "gt_classes": {
+    "sink": {
+     "raw": [
+      "sink",
+      "sink_basin",
+      "sink_rim"
+     ],
+     "merge": true
+    },
+    "countertop": {
+     "raw": [
+      "countertop"
+     ]
+    },
+    "kitchen_cabinet": {
+     "raw": [
+      "kitchen_cabinet"
+     ]
+    },
+    "refrigerator": {
+     "raw": [
+      "refrigerator"
+     ]
+    }
+   },
+   "gt_notes": "Scene classes outside this map (cabinet_door, cabinet_pull, backsplash, faucet, shelf, drawer, bowl, bagel, banana, serving_tray) stay in the truth only as look-alike targets for the false-positive table. Vocabulary classes without a scene class here (stove, microwave, dishwasher, wardrobe, bed, toilet, sofa, washing_machine, bathtub, kettle) are absent from this kitchen's labelled truth: any detection of them is an absent-class false positive.",
+   "operating_thresholds_note": "Starting values (library defaults), to be CHOSEN from the printed development sweep and recorded here before any other split is touched. Qwen has no score.",
+   "detectors": [
+    {
+     "name": "qwen3vl-4b",
+     "family": "qwen3vl",
+     "model_id": "Qwen/Qwen3-VL-4B-Instruct",
+     "revision": "ebb281ec70b05090aa6165b016eac8ec08e71b17",
+     "license": "Apache-2.0",
+     "coordinates": "relative1000",
+     "image_scale": 1.0
+    },
+    {
+     "name": "qwen3vl-4b-x2",
+     "family": "qwen3vl",
+     "model_id": "Qwen/Qwen3-VL-4B-Instruct",
+     "revision": "ebb281ec70b05090aa6165b016eac8ec08e71b17",
+     "license": "Apache-2.0",
+     "coordinates": "relative1000",
+     "image_scale": 2.0
+    },
+    {
+     "name": "qwen3vl-8b",
+     "family": "qwen3vl",
+     "model_id": "Qwen/Qwen3-VL-8B-Instruct",
+     "revision": "0c351dd01ed87e9c1b53cbc748cba10e6187ff3b",
+     "license": "Apache-2.0",
+     "coordinates": "relative1000",
+     "image_scale": 1.0
+    },
+    {
+     "name": "qwen3vl-8b-x2",
+     "family": "qwen3vl",
+     "model_id": "Qwen/Qwen3-VL-8B-Instruct",
+     "revision": "0c351dd01ed87e9c1b53cbc748cba10e6187ff3b",
+     "license": "Apache-2.0",
+     "coordinates": "relative1000",
+     "image_scale": 2.0
+    },
+    {
+     "name": "owlv2-base",
+     "family": "owlv2",
+     "model_id": "google/owlv2-base-patch16-ensemble",
+     "revision": "cfd3195ba4ea9592eec887ded089f4c08eff231d",
+     "license": "Apache-2.0",
+     "score_floor": 0.05,
+     "operating_threshold": 0.1
+    },
+    {
+     "name": "owlv2-large",
+     "family": "owlv2",
+     "model_id": "google/owlv2-large-patch14-ensemble",
+     "revision": "95e26936e865f87db1742128404b3c035d47d89d",
+     "license": "Apache-2.0",
+     "score_floor": 0.05,
+     "operating_threshold": 0.1
+    },
+    {
+     "name": "gdino-tiny",
+     "family": "grounding-dino",
+     "model_id": "IDEA-Research/grounding-dino-tiny",
+     "revision": "a2bb814dd30d776dcf7e30523b00659f4f141c71",
+     "license": "Apache-2.0",
+     "operating_threshold": 0.3
+    },
+    {
+     "name": "gdino-base",
+     "family": "grounding-dino",
+     "model_id": "IDEA-Research/grounding-dino-base",
+     "revision": "12bdfa3120f3e7ec7b434d90674b3396eccf88eb",
+     "license": "Apache-2.0",
+     "operating_threshold": 0.3
+    }
+   ]
+  },
+  "config_file": "C:\\Users\\24adi\\OneDrive\\DREAM\\.claude\\worktrees\\agent-ab8c50d8ef4f5ed08\\experiments\\configs\\detector_compare.json",
+  "dataset_root": "C:\\Users\\24adi\\OneDrive\\DREAM\\.claude\\worktrees\\agent-ab8c50d8ef4f5ed08\\experiments\\data\\detector_dev",
+  "items": [
+   "kitchen_l_shape_repaired"
+  ],
+  "frames": 39,
+  "min_gt_pixels": 400,
+  "stub": true,
+  "code_sha": "87d746ec84057d8675b060ea6b718907dc44cef1",
+  "code_dirty": false,
+  "versions": {
+   "python": "3.13.14",
+   "numpy": "2.5.4",
+   "platform": "Windows-11-10.0.26100-SP0",
+   "torch": null,
+   "transformers": null,
+   "PIL": "13.0.0",
+   "scipy": "1.18.1",
+   "torchvision": null,
+   "accelerate": null
+  },
+  "gpu": null,
+  "notes": []
+ },
+ "detectors": {
+  "owlv2-base": {
+   "entry": {
+    "name": "owlv2-base",
+    "family": "owlv2",
+    "model_id": "google/owlv2-base-patch16-ensemble",
+    "revision": "cfd3195ba4ea9592eec887ded089f4c08eff231d",
+    "license": "Apache-2.0",
+    "score_floor": 0.05,
+    "operating_threshold": 0.1
+   },
+   "load_s": 0.01353160000871867,
+   "gpu_gb_after_load": null,
+   "provenance": {
+    "name": "owlv2-base",
+    "stub": true
+   },
+   "summary": {
+    "operating_threshold": 0.1,
+    "has_scores": true,
+    "iou_0.5": {
+     "per_class": {
+      "sink": {
+       "tp": 0,
+       "fp": 39,
+       "fn": 14,
+       "precision": 0.0,
+       "recall": 0.0,
+       "ignored": 0
+      },
+      "countertop": {
+       "tp": 3,
+       "fp": 36,
+       "fn": 54,
+       "precision": 0.07692307692307693,
+       "recall": 0.05263157894736842,
+       "ignored": 0
+      },
+      "kitchen_cabinet": {
+       "tp": 0,
+       "fp": 0,
+       "fn": 69,
+       "precision": null,
+       "recall": 0.0,
+       "ignored": 0
+      },
+      "refrigerator": {
+       "tp": 0,
+       "fp": 0,
+       "fn": 10,
+       "precision": null,
+       "recall": 0.0,
+       "ignored": 0
+      }
+     },
+     "micro": {
+      "tp": 3,
+      "fp": 114,
+      "fn": 147,
+      "precision": 0.02564102564102564,
+      "recall": 0.02
+     },
+     "absent_class_fp": {
+      "bed": 39
+     },
+     "micro_excluding_absent_classes": {
+      "tp": 3,
+      "fp": 75,
+      "fn": 147,
+      "precision": 0.038461538461538464,
+      "recall": 0.02
+     }
+    },
+    "iou_0.3": {
+     "per_class": {
+      "sink": {
+       "tp": 2,
+       "fp": 37,
+       "fn": 12,
+       "precision": 0.05128205128205128,
+       "recall": 0.14285714285714285,
+       "ignored": 0
+      },
+      "countertop": {
+       "tp": 14,
+       "fp": 25,
+       "fn": 43,
+       "precision": 0.358974358974359,
+       "recall": 0.24561403508771928,
+       "ignored": 0
+      },
+      "kitchen_cabinet": {
+       "tp": 0,
+       "fp": 0,
+       "fn": 69,
+       "precision": null,
+       "recall": 0.0,
+       "ignored": 0
+      },
+      "refrigerator": {
+       "tp": 0,
+       "fp": 0,
+       "fn": 10,
+       "precision": null,
+       "recall": 0.0,
+       "ignored": 0
+      }
+     },
+     "micro": {
+      "tp": 16,
+      "fp": 101,
+      "fn": 134,
+      "precision": 0.13675213675213677,
+      "recall": 0.10666666666666667
+     },
+     "absent_class_fp": {
+      "bed": 39
+     },
+     "micro_excluding_absent_classes": {
+      "tp": 16,
+      "fp": 62,
+      "fn": 134,
+      "precision": 0.20512820512820512,
+      "recall": 0.10666666666666667
+     }
+    },
+    "sweep_iou_0.5": {
+     "0.05": {
+      "tp": 3,
+      "fp": 114,
+      "fn": 147,
+      "precision": 0.02564102564102564,
+      "recall": 0.02
+     },
+     "0.1": {
+      "tp": 3,
+      "fp": 114,
+      "fn": 147,
+      "precision": 0.02564102564102564,
+      "recall": 0.02
+     },
+     "0.15": {
+      "tp": 3,
+      "fp": 114,
+      "fn": 147,
+      "precision": 0.02564102564102564,
+      "recall": 0.02
+     },
+     "0.2": {
+      "tp": 3,
+      "fp": 114,
+      "fn": 147,
+      "precision": 0.02564102564102564,
+      "recall": 0.02
+     },
+     "0.25": {
+      "tp": 3,
+      "fp": 114,
+      "fn": 147,
+      "precision": 0.02564102564102564,
+      "recall": 0.02
+     },
+     "0.3": {
+      "tp": 3,
+      "fp": 114,
+      "fn": 147,
+      "precision": 0.02564102564102564,
+      "recall": 0.02
+     },
+     "0.35": {
+      "tp": 3,
+      "fp": 114,
+      "fn": 147,
+      "precision": 0.02564102564102564,
+      "recall": 0.02
+     },
+     "0.4": {
+      "tp": 3,
+      "fp": 114,
+      "fn": 147,
+      "precision": 0.02564102564102564,
+      "recall": 0.02
+     },
+     "0.5": {
+      "tp": 0,
+      "fp": 78,
+      "fn": 150,
+      "precision": 0.0,
+      "recall": 0.0
+     },
+     "0.6": {
+      "tp": 0,
+      "fp": 39,
+      "fn": 150,
+      "precision": 0.0,
+      "recall": 0.0
+     },
+     "0.7": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 150,
+      "precision": null,
+      "recall": 0.0
+     },
+     "0.8": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 150,
+      "precision": null,
+      "recall": 0.0
+     }
+    },
+    "look_alike_false_positives": {
+     "bed": {
+      "bowl": 1,
+      "serving_tray": 1,
+      "sink": 2
+     },
+     "sink": {
+      "cabinet_door": 1,
+      "cabinet_false_front": 1
+     }
+    },
+    "nested": {
+     "0.5": {
+      "countertop in kitchen_cabinet": {
+       "pairs": 3,
+       "inner_found": 0,
+       "outer_found": 0,
+       "both_found": 0,
+       "nested_detected": 0,
+       "swallowed": 0
+      },
+      "sink in countertop": {
+       "pairs": 1,
+       "inner_found": 0,
+       "outer_found": 0,
+       "both_found": 0,
+       "nested_detected": 0,
+       "swallowed": 0
+      }
+     },
+     "0.3": {
+      "countertop in kitchen_cabinet": {
+       "pairs": 3,
+       "inner_found": 1,
+       "outer_found": 0,
+       "both_found": 0,
+       "nested_detected": 0,
+       "swallowed": 0
+      },
+      "sink in countertop": {
+       "pairs": 1,
+       "inner_found": 0,
+       "outer_found": 1,
+       "both_found": 0,
+       "nested_detected": 0,
+       "swallowed": 1
+      }
+     }
+    },
+    "box_validation": {
+     "raw_boxes": 117,
+     "rejected": 0,
+     "clipped": 0,
+     "rejection_reasons": {}
+    },
+    "latency": {
+     "n": 39,
+     "mean_s": 0.0002369794797582122,
+     "median_s": 0.00021709996508434415,
+     "p90_s": 0.00025151998270303013,
+     "max_s": 0.0004960999940522015
+    },
+    "peak_gpu_gb_during_inference": null
+   },
+   "status": "completed"
+  }
+ }
+}
