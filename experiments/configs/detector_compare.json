@@ -1,0 +1,27 @@
+{
+  "purpose": "Choose the Isaac perception detector on DEVELOPMENT data, then freeze. Never evaluate on g_shape, peninsula, u_shape, l_island or held-out seeds.",
+  "split": "development",
+  "dataset": {
+    "default_root": "experiments/data/detector_dev",
+    "items": ["kitchen_l_shape_repaired"],
+    "source": "cloud session dream-qwen-isaac-20261109-160004-5f4423, job 4, manifest results/isaac_perception_capture/manifest_job4_l_shape.json (frames.jsonl sha256 218970704dee76ccd317b52dff151e5f1e1e0f643b6083f980d2d032c12c92e5)"
+  },
+  "gt_classes": {
+    "sink": {"raw": ["sink", "sink_basin", "sink_rim"], "merge": true},
+    "countertop": {"raw": ["countertop"]},
+    "kitchen_cabinet": {"raw": ["kitchen_cabinet"]},
+    "refrigerator": {"raw": ["refrigerator"]}
+  },
+  "gt_notes": "Scene classes outside this map (cabinet_door, cabinet_pull, backsplash, faucet, shelf, drawer, bowl, bagel, banana, serving_tray) stay in the truth only as look-alike targets for the false-positive table. Vocabulary classes without a scene class here (stove, microwave, dishwasher, wardrobe, bed, toilet, sofa, washing_machine, bathtub, kettle) are absent from this kitchen's labelled truth: any detection of them is an absent-class false positive.",
+  "operating_thresholds_note": "Starting values (library defaults), to be CHOSEN from the printed development sweep and recorded here before any other split is touched. Qwen has no score.",
+  "detectors": [
+    {"name": "qwen3vl-4b", "family": "qwen3vl", "model_id": "Qwen/Qwen3-VL-4B-Instruct", "revision": "ebb281ec70b05090aa6165b016eac8ec08e71b17", "license": "Apache-2.0", "coordinates": "relative1000", "image_scale": 1.0},
+    {"name": "qwen3vl-4b-x2", "family": "qwen3vl", "model_id": "Qwen/Qwen3-VL-4B-Instruct", "revision": "ebb281ec70b05090aa6165b016eac8ec08e71b17", "license": "Apache-2.0", "coordinates": "relative1000", "image_scale": 2.0},
+    {"name": "qwen3vl-8b", "family": "qwen3vl", "model_id": "Qwen/Qwen3-VL-8B-Instruct", "revision": "0c351dd01ed87e9c1b53cbc748cba10e6187ff3b", "license": "Apache-2.0", "coordinates": "relative1000", "image_scale": 1.0},
+    {"name": "qwen3vl-8b-x2", "family": "qwen3vl", "model_id": "Qwen/Qwen3-VL-8B-Instruct", "revision": "0c351dd01ed87e9c1b53cbc748cba10e6187ff3b", "license": "Apache-2.0", "coordinates": "relative1000", "image_scale": 2.0},
+    {"name": "owlv2-base", "family": "owlv2", "model_id": "google/owlv2-base-patch16-ensemble", "revision": "cfd3195ba4ea9592eec887ded089f4c08eff231d", "license": "Apache-2.0", "score_floor": 0.05, "operating_threshold": 0.1},
+    {"name": "owlv2-large", "family": "owlv2", "model_id": "google/owlv2-large-patch14-ensemble", "revision": "95e26936e865f87db1742128404b3c035d47d89d", "license": "Apache-2.0", "score_floor": 0.05, "operating_threshold": 0.1},
+    {"name": "gdino-tiny", "family": "grounding-dino", "model_id": "IDEA-Research/grounding-dino-tiny", "revision": "a2bb814dd30d776dcf7e30523b00659f4f141c71", "license": "Apache-2.0", "operating_threshold": 0.3},
+    {"name": "gdino-base", "family": "grounding-dino", "model_id": "IDEA-Research/grounding-dino-base", "revision": "12bdfa3120f3e7ec7b434d90674b3396eccf88eb", "license": "Apache-2.0", "operating_threshold": 0.3}
+  ]
+}
