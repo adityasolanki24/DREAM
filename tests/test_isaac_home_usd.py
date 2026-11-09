@@ -146,3 +146,40 @@ def test_placed_footprint_centre_and_facing(tmp_path):
         direction = (nc - c)[:2] / np.linalg.norm((nc - c)[:2])
         assert np.allclose(direction, [np.cos(yaw), np.sin(yaw)], atol=5e-2), p.cls
         assert prim.IsValid()
+
+
+def _colliders(stage):
+    cache = UsdGeom.BBoxCache(Usd.TimeCode.Default(), ["default", "render", "proxy", "guide"])
+    for prim in stage.Traverse():
+        if prim.HasAPI(UsdPhysics.CollisionAPI):
+            box = cache.ComputeWorldBound(prim).ComputeAlignedRange()
+            yield str(prim.GetPath()), np.array(box.GetMin()), np.array(box.GetMax())
+
+
+def test_ground_is_one_continuous_collider_with_its_top_at_zero(tmp_path):
+    """(a) the surface the G1's feet meet is z = 0, one collider with no seams."""
+    home, _, stage = build(tmp_path, seed=100, scenario="B", target="refrigerator")
+    sx, sy, _ = home.start
+    under = [
+        (path, hi[2])
+        for path, lo, hi in _colliders(stage)
+        if lo[0] <= sx <= hi[0] and lo[1] <= sy <= hi[1] and lo[2] < 0.05
+    ]
+    assert under == [(comp.GROUND, pytest.approx(0.0, abs=1e-9))]
+    floors = [
+        p for p in stage.GetPrimAtPath(comp.ROOT_PRIM).GetChildren() if "Floor" in p.GetName()
+    ]
+    assert floors and not any(p.HasAPI(UsdPhysics.CollisionAPI) for p in floors)  # visual only
+    scenes = [p for p in stage.Traverse() if p.IsA(UsdPhysics.Scene)]
+    assert [str(p.GetPath()) for p in scenes] == [comp.PHYSICS_SCENE]
+
+
+@pytest.mark.parametrize("seed,scenario,target", [(100, "B", "refrigerator"), (102, "E", "stove")])
+def test_no_collider_intersects_the_spawn_volume(tmp_path, seed, scenario, target):
+    """(b) a box around the start pose, from just above the ground to 1.4 m, 0.6 m across, meets
+    no collider (floor slabs, walls, bounding boxes, assets' own)."""
+    home, _, stage = build(tmp_path, seed=seed, scenario=scenario, target=target)
+    sx, sy, _ = home.start
+    lo_v, hi_v = np.array([sx - 0.3, sy - 0.3, 0.05]), np.array([sx + 0.3, sy + 0.3, 1.4])
+    hits = [path for path, lo, hi in _colliders(stage) if np.all(lo <= hi_v) and np.all(hi >= lo_v)]
+    assert hits == []

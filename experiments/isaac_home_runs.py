@@ -169,6 +169,11 @@ def main() -> None:  # pragma: no cover - needs Isaac Sim
         "isaac_kitchen_repair.py); the default keeps the unrepaired scene",
     )
     ap.add_argument("--no-homes", action="store_true", help="skip the composed homes")
+    ap.add_argument(
+        "--stand-only",
+        action="store_true",
+        help="stop after the spawn and standing check (with a height trace)",
+    )
     ap.add_argument("--homes", default="", help="comma list of seeds to run (default all)")
     ap.add_argument("--budget-s", type=float, default=3000.0)
     ap.add_argument("--qwen-port", type=int, default=8767)
@@ -210,6 +215,28 @@ def main() -> None:  # pragma: no cover - needs Isaac Sim
         app.close(wait_for_replicator=False, skip_cleanup=True)
 
 
+def spawn_diagnostics(stage, start) -> dict:  # pragma: no cover - needs pxr
+    """What the G1's spawn volume (0.6 m across, 0.05 to 1.4 m above the ground) touches on the
+    live stage: every collider whose bound meets it, every physics scene, the ground's top."""
+    import numpy as np
+    from pxr import Usd, UsdGeom, UsdPhysics
+
+    cache = UsdGeom.BBoxCache(Usd.TimeCode.Default(), ["default", "render", "proxy", "guide"])
+    lo_v = np.array([start[0] - 0.3, start[1] - 0.3, 0.05])
+    hi_v = np.array([start[0] + 0.3, start[1] + 0.3, 1.4])
+    hits, scenes = [], []
+    for prim in stage.Traverse():
+        if prim.IsA(UsdPhysics.Scene):
+            scenes.append(str(prim.GetPath()))
+        if not prim.HasAPI(UsdPhysics.CollisionAPI):
+            continue
+        box = cache.ComputeWorldBound(prim).ComputeAlignedRange()
+        lo, hi = np.array(box.GetMin()), np.array(box.GetMax())
+        if np.all(np.isfinite(lo)) and np.all(lo <= hi_v) and np.all(hi >= lo_v):
+            hits.append({"prim": str(prim.GetPath()), "lo": lo.tolist(), "hi": hi.tolist()})
+    return {"colliders_in_spawn_volume": hits, "physics_scenes": scenes}
+
+
 def comp_refusals():
     from experiments import isaac_home_compose as comp
 
@@ -243,7 +270,10 @@ def run_all(app, args, cfg) -> None:  # pragma: no cover - needs Isaac Sim
             else f"kitchen_{item['kitchen']}{suffix}"
         )
         try:
-            result = run_item(app, args, cfg, kind, item, name, min(left, cfg["max_item_budget_s"]))
+            cap_s = cfg["max_item_budget_s"]
+            if kind == "kitchen":
+                cap_s = cfg["kitchens"].get("max_item_budget_s", cap_s)
+            result = run_item(app, args, cfg, kind, item, name, min(left, cap_s))
         except comp_refusals() as refusal:  # a refused case is listed, never silently changed
             result = {"name": name, "refused": str(refusal), "case": item}
         except BaseException:
@@ -294,7 +324,7 @@ def run_item(app, args, cfg, kind, item, name, budget_s):  # noqa: C901  # pragm
         view = comp.write_composition(home, placements, truth, raw / "scene")
         stage_url = view["stage"]
         (args.out / f"{name}_scene_truth.json").write_text(json.dumps(truth, indent=1))
-        floors = tuple(f"{comp.ROOT_PRIM}/Floor{r.id}" for r in home.rooms)
+        floors = (comp.GROUND,)
         start = tuple(home.start)
         inst_paths = {p.instance_id: p.prim_path for p in placements}
         inst_class = {p.instance_id: p.cls for p in placements}
@@ -373,6 +403,8 @@ def run_item(app, args, cfg, kind, item, name, budget_s):  # noqa: C901  # pragm
     env.reset(*obstacle_start, floor_z=floor_z)
     frames_dir = raw / "frames"
     frames_dir.mkdir(exist_ok=True)
+    hires_dir = raw / "frames_hires"
+    hires_dir.mkdir(exist_ok=True)
     backend = OpenAICompatibleBackend(f"http://127.0.0.1:{args.qwen_port}", timeout_s=180)
     detector = VLMDetector(backend, vocab)
     prompt = PROMPT.format(classes=", ".join(detector.classes))
@@ -383,11 +415,24 @@ def run_item(app, args, cfg, kind, item, name, budget_s):  # noqa: C901  # pragm
     if kind == "home":
         result["omitted"] = truth["omitted"]
     base = G1MobileBase(env, WBCLocomotion.from_cache())
-    base.walk(0.0, 0.0, 0.0, STAND_S)
+    if kind == "home":
+        result["spawn_diagnostics"] = spawn_diagnostics(stage, start)
+    trace = []  # root height and torso tilt every 0.25 s: does it launch at once or drift?
+    for k in range(int(STAND_S / 0.25)):
+        base.walk(0.0, 0.0, 0.0, 0.25)
+        pos, rot = env._root()
+        trace.append({"t": 0.25 * (k + 1), "root_xyz": [float(v) for v in pos],
+                      "height_m": env.true_height(), "stop": base.stop_reason})  # fmt: skip
+        if base.stop_reason or env.true_height() > 3.0:
+            break
+    result["stand_trace"] = trace
     result["stands"] = bool(base.stop_reason is None and env.true_height() > 0.6)
     result["stand_height_m"] = env.true_height()
     if not result["stands"]:
         result["failed"] = f"did not stand: {base.stop_reason}"
+        return result
+    if args.stand_only:
+        result["stand_only"] = True
         return result
 
     # -- exploration with per-frame capture ---------------------------------------------------
@@ -442,6 +487,26 @@ def run_item(app, args, cfg, kind, item, name, budget_s):  # noqa: C901  # pragm
 
             r_here = room_at(home, env.true_pose()[:2])
             row["true_room_id"] = None if r_here is None else r_here.id
+        row["resolution"] = {"base": [frame.rgb.shape[1], frame.rgb.shape[0]]}
+        if cap.get("hires"):
+            hr = env.capture_hires(tuple(cap["hires"]))
+            hstem = hires_dir / f"{i:05d}"
+            Image.fromarray(hr.rgb).save(str(hstem) + ".png")
+            np.savez_compressed(str(hstem) + ".npz", depth=hr.depth.astype(np.float16),
+                                instance_ids=np.asarray(hr.ids).astype(np.int32))  # fmt: skip
+            hmap = (
+                hr.id_to_path.get("idToLabels", hr.id_to_path)
+                if isinstance(hr.id_to_path, dict)
+                else {}
+            )
+            hgt = instance_boxes(hr.ids, hmap, inst_paths)
+            row["resolution"]["hires"] = [hr.width, hr.height]
+            row["gt_hires"] = {iid: {"class": inst_class[iid], **v} for iid, v in hgt.items()}
+            row["instance_id_to_prim_hires"] = {
+                str(k): str(v) for k, v in hmap.items()
+                if any(str(v) == q or str(v).startswith(q + "/") for q in prefixes)
+            }  # fmt: skip
+            row["png_hires_sha256"] = sha256_of(pathlib.Path(str(hstem) + ".png"))
         if with_qwen:
             row["qwen"] = qwen_on(frame)
             counters["qwen"] += 1

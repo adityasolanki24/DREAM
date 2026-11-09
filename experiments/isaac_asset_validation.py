@@ -314,6 +314,9 @@ def main() -> None:  # pragma: no cover - needs Isaac Sim
     ap.add_argument("--budget-s", type=float, default=2400.0)
     ap.add_argument("--max-per-class", type=int, default=99)
     ap.add_argument("--no-snapshots", action="store_true", help="skip the four renders")
+    ap.add_argument(
+        "--dist-factor", type=float, default=1.7, help="camera distance in radii (close-ups: 0.9)"
+    )
     ap.add_argument("--indexes", default="", help="cls:i,cls:i - run only these candidates")
     ap.add_argument(
         "--stop-after-pass",
@@ -433,7 +436,7 @@ def _validate_all(app, args, ev, t0) -> None:  # pragma: no cover - needs Isaac 
         shots = []
         try:
             for name, (ux, uy) in VIEWS.items():
-                dist = 1.7 * radius + ext
+                dist = args.dist_factor * radius + ext
                 eye = [centre[0] + ux * dist, centre[1] + uy * dist, centre[2] + 0.35 * radius]
                 cam_op.Set(_look_at(Gf, eye, centre))
                 verdict, img = None, np.zeros(0)

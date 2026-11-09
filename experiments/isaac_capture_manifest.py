@@ -45,6 +45,12 @@ FORMAT = {
     "run result JSON under 'intrinsics'",
     "frame_conventions": "world: z up, metres; image origin top-left, x right, y down; camera "
     "optical axis = forward, up as given; head camera pitched 35 degrees down on the torso",
+    "hires": "capture-only second render product of the same head camera at 640 x 480, rendered "
+    "from the identical pose right after the 320 x 240 frame: frames_hires/NNNNN.png (uint8 "
+    "480 x 640 x 3), frames_hires/NNNNN.npz (depth float16 metres, instance_ids int32), "
+    "frames.jsonl keys gt_hires, instance_id_to_prim_hires, png_hires_sha256; intrinsics scale "
+    "with the resolution (fx = fy = 240 / tan(fovy/2) at 640 x 480, cx = 320, cy = 240); the "
+    "agent's camera stays 320 x 240; each row has 'resolution': base and hires [w, h]",
     "no_model_output": "Qwen3-VL is not run during capture; detector comparison is offline",
 }
 

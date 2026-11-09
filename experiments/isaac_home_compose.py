@@ -64,6 +64,12 @@ SHIFTS_M = (0.0, 0.1, -0.1, 0.2, -0.2, 0.3, -0.3, 0.5, -0.5)  # lateral shifts t
 TOUCH_TOL_M = 0.02  # flush contact is not a collision
 FLOOR_THICKNESS = 0.1  # m, slab below z = 0
 ROOT_PRIM = "/World/Home"
+# Isaac's World() defines its own scene at /physicsScene unless one exists there; a scene at any
+# other path left two scenes in the first composed-home job (the G1 was thrown 40 m at spawn).
+PHYSICS_SCENE = "/physicsScene"
+GROUND = f"{ROOT_PRIM}/Ground"  # the one continuous ground collider, top at z = 0 like the kitchens
+GROUND_MARGIN_M = 1.0
+VISUAL_FLOOR_M = 0.001  # room floors are visual only, a millimetre above the ground
 # Plain colours per room type for the floor (rooms stay visually distinguishable to the camera
 # without a texture library). Appearance only; the agent is never told the room type.
 FLOOR_RGB = {
@@ -444,10 +450,8 @@ def build_stage(home: HomeSpec, placements: list[Placement], path: pathlib.Path)
     world = UsdGeom.Xform.Define(stage, "/World")
     stage.SetDefaultPrim(world.GetPrim())
     UsdGeom.Xform.Define(stage, ROOT_PRIM)
-    UsdPhysics.Scene.Define(stage, "/World/PhysicsScene").CreateGravityDirectionAttr(
-        Gf.Vec3f(0, 0, -1)
-    )
-    stage.GetPrimAtPath("/World/PhysicsScene").CreateAttribute(
+    UsdPhysics.Scene.Define(stage, PHYSICS_SCENE).CreateGravityDirectionAttr(Gf.Vec3f(0, 0, -1))
+    stage.GetPrimAtPath(PHYSICS_SCENE).CreateAttribute(
         "physics:gravityMagnitude", Sdf.ValueTypeNames.Float
     ).Set(9.81)
     UsdLux.DomeLight.Define(stage, "/World/Dome").CreateIntensityAttr(900.0)
@@ -455,13 +459,16 @@ def build_stage(home: HomeSpec, placements: list[Placement], path: pathlib.Path)
     sun.CreateIntensityAttr(1500.0)
     UsdGeom.Xformable(sun.GetPrim()).AddRotateXYZOp().Set(Gf.Vec3f(-60, 0, 30))
 
+    half_w, half_d = home.width / 2 + GROUND_MARGIN_M, home.depth / 2 + GROUND_MARGIN_M
+    _box(stage, GROUND, (0.0, 0.0, -FLOOR_THICKNESS / 2), (half_w, half_d, FLOOR_THICKNESS / 2),
+         guide=True)  # fmt: skip
     wall_mat = _material(stage, f"{ROOT_PRIM}/Looks/wall", WALL_RGB)
     for r in home.rooms:  # one floor slab per room (floor colour hints at nothing semantic)
         c = ((r.lo[0] + r.hi[0]) / 2, (r.lo[1] + r.hi[1]) / 2)
         h = ((r.hi[0] - r.lo[0]) / 2, (r.hi[1] - r.lo[1]) / 2)
         mat = _material(stage, f"{ROOT_PRIM}/Looks/floor{r.id}", FLOOR_RGB.get(r.type, (0.6,) * 3))
-        _box(stage, f"{ROOT_PRIM}/Floor{r.id}", (*c, -FLOOR_THICKNESS / 2),
-             (h[0], h[1], FLOOR_THICKNESS / 2), material=mat)  # fmt: skip
+        _box(stage, f"{ROOT_PRIM}/Floor{r.id}", (*c, VISUAL_FLOOR_M / 2),
+             (h[0], h[1], VISUAL_FLOOR_M / 2), material=mat, collide=False)  # fmt: skip
     for w in home.walls:
         _box(stage, f"{ROOT_PRIM}/Wall_{w.name.replace(':', '_')}", (*w.centre, WALL_HEIGHT / 2),
              (w.half[0], w.half[1], WALL_HEIGHT / 2), material=wall_mat)  # fmt: skip
