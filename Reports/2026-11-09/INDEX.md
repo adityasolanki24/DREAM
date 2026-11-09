@@ -31,7 +31,7 @@
 | 20261109-192742-detector-compare-stub-cpu | 2026-11-09-001 | completed | 2026-11-09T19:27:42+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-192742-detector-compare-stub-cpu/REPORT.md) |
 | 20261109-194434-adapter-api-probe-cpu | 2026-11-09-001 | completed | 2026-11-09T19:44:34+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-194434-adapter-api-probe-cpu/REPORT.md) |
 | 20261109-195847-s3-home-smoke | 2026-11-09-001 | failed | 2026-11-09T19:58:47+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-195847-s3-home-smoke/REPORT.md) |
-| 20261109-235333-s4-home-capture | 2026-11-09-001 | running | 2026-11-09T23:53:33+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-235333-s4-home-capture/REPORT.md) |
-| 20261109-235333-s4-stand-check | 2026-11-09-001 | running | 2026-11-09T23:53:33+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-235333-s4-stand-check/REPORT.md) |
-| 20261109-235334-s4-closeup-renders | 2026-11-09-001 | running | 2026-11-09T23:53:34+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-235334-s4-closeup-renders/REPORT.md) |
-| 20261109-235334-s4-lshape-capture | 2026-11-09-001 | running | 2026-11-09T23:53:34+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-235334-s4-lshape-capture/REPORT.md) |
+| 20261109-235333-s4-home-capture | 2026-11-09-001 | partial | 2026-11-09T23:53:33+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-235333-s4-home-capture/REPORT.md) |
+| 20261109-235333-s4-stand-check | 2026-11-09-001 | failed | 2026-11-09T23:53:33+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-235333-s4-stand-check/REPORT.md) |
+| 20261109-235334-s4-closeup-renders | 2026-11-09-001 | completed | 2026-11-09T23:53:34+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-235334-s4-closeup-renders/REPORT.md) |
+| 20261109-235334-s4-lshape-capture | 2026-11-09-001 | completed | 2026-11-09T23:53:34+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-235334-s4-lshape-capture/REPORT.md) |

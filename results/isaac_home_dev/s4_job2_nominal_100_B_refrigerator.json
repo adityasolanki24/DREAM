@@ -1,0 +1,75 @@
+{
+ "name": "nominal_100_B_refrigerator",
+ "kind": "home",
+ "item": {
+  "seed": 100,
+  "scenario": "B",
+  "target": "refrigerator"
+ },
+ "static_overrides": 284,
+ "load_check": {
+  "labelled": 14,
+  "instances": 14,
+  "instances_without_finite_bound": []
+ },
+ "prompt": "List every object of these classes that is visible in the image: armchair, bathtub, bed, bookshelf, chair, chest freezer, coffee table, countertop, desk, dining table, dryer, filing cabinet, kitchen cabinet, microwave, nightstand, office chair, refrigerator, shower, sink, sofa, storage shelf, stove, toilet, tool rack, tv stand, wardrobe, washbasin, washing machine, workbench. Answer with JSON only: a list of {\"label\": <one of the classes>, \"bbox_2d\": [x1, y1, x2, y2]} with coordinates scaled 0-1000 across the image width and height. Answer [] if none is visible. Do not list objects you cannot see.",
+ "intrinsics": {
+  "fx": 216.48573063257084,
+  "fy": 216.48573063257084,
+  "cx": 160.0,
+  "cy": 120.0,
+  "width": 320,
+  "height": 240
+ },
+ "start": [
+  2.130168959548169,
+  2.875000000000001,
+  -0.8664148317600917
+ ],
+ "omitted": [
+  {
+   "instance_id": "shower_0",
+   "class": "shower",
+   "xy": [
+    -3.666787561357511,
+    1.9469984873035193
+   ],
+   "room_id": 4,
+   "reason": "class excluded from the Isaac environment (list version 1)"
+  },
+  {
+   "instance_id": "tool_rack_0",
+   "class": "tool_rack",
+   "xy": [
+    4.307043959176195,
+    2.3916830547345618
+   ],
+   "room_id": 5,
+   "reason": "class excluded from the Isaac environment (list version 1)"
+  }
+ ],
+ "spawn_diagnostics": {
+  "colliders_in_spawn_volume": [],
+  "physics_scenes": [
+   "/World/Home/o007/Physics/PhysicsScene",
+   "/World/Home/o008/Physics/PhysicsScene",
+   "/World/Home/o009/Physics/PhysicsScene",
+   "/physicsScene"
+  ]
+ },
+ "stand_trace": [
+  {
+   "t": 0.25,
+   "root_xyz": [
+    2.7792885303497314,
+    2.198523998260498,
+    0.4634804427623749
+   ],
+   "height_m": 0.4634804427623749,
+   "stop": "fall: pelvis tilt 118 deg"
+  }
+ ],
+ "stands": false,
+ "stand_height_m": 0.4634804427623749,
+ "failed": "did not stand: fall: pelvis tilt 118 deg"
+}
