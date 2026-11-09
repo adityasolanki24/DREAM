@@ -1,0 +1,529 @@
+{
+  "meta": {
+    "config": {
+      "labels": [
+        "Odometry is ORACLE-ASSISTED (true increments plus noise, gyro bias std 0.002 rad/s, as dream/sim/g1_mobile.py).",
+        "The semantic detector is ORACLE-ASSISTED: rendered segmentation plus an ASSUMED, uncalibrated noise model (dream/sim/semantic_sensor.py); NOMINAL.",
+        "The base is the KINEMATIC SURROGATE (dream/sim/kinematic_base.py: no legged dynamics, no falls).",
+        "Room-type knowledge: ConceptNet 5.7 extract (third_party/household_knowledge) and/or the saved Qwen3-VL-4B text-only room priors (results/qwen_room_priors, elicited with a prompt that holds only the object name and the extract's place vocabulary). Both are uncalibrated association weights, not probabilities.",
+        "CAVEAT: the generator's furnishing tables and the evaluation were written by the same author, so agreement of a knowledge source with those tables can inflate its benefit; scenario D (atypical placement) and E (target absent) are the check against that.",
+        "The xl generator is a NEW ENVIRONMENT (dream/sim/home.py, generator 'xl'): 12 rooms in a 4 x 3 grid (13.0-14.5 m by 10.0-11.5 m), every room type the generator knows plus extra bedrooms and bathrooms, nominal furnishing tables and object scales, the nominal doorway logic.",
+        "Requests are read by the explicit grammar (dream/tools/intent.py); no language model runs in these episodes.",
+        "Qwen numerical guard: raw scores are floored at 0.01 before normalising (log of a zero ratio is undefined); no other scaling, temperature or tuned weight."
+      ],
+      "navigator": "classic",
+      "time_budget_s": 600,
+      "max_steps": 80,
+      "weights": {
+        "kappa": 3.0,
+        "ig": 1.0,
+        "gamma": 1.0
+      },
+      "verifier": {
+        "min_support": 3,
+        "min_viewpoints": 2,
+        "min_purity": 0.6,
+        "close_range": 2.5,
+        "max_miss_ratio": 0.34,
+        "reach_distance": 1.2,
+        "reach_facing_deg": 35.0,
+        "fresh_s": 6.0,
+        "purity_rule": "wilson_lower",
+        "purity_confidence_z": 1.645,
+        "purity_majority": 0.5
+      },
+      "name": "semantic_exploration_dev",
+      "status": "development",
+      "research_question": "Why does room knowledge not make the utility planner faster than frontier exploration in xl homes, and does predicting the room type of unexplored space from the robot's own observations help?",
+      "evidence_class": "development only (runner seeds 100-103, xl generator). Nothing here is held-out; K1 episodes were used only to describe the finding.",
+      "arms": {
+        "A_frontier": {
+          "policy": "frontier_gain",
+          "semantic": false,
+          "memory": false,
+          "_note": "gain-frontier explorer, current verifier (Wilson lower bound); the reference arm"
+        },
+        "sem_none": {
+          "policy": "utility",
+          "knowledge": "none",
+          "_note": "utility planner, uniform knowledge: information gain and inspection points only"
+        },
+        "sem_conceptnet": {
+          "policy": "utility",
+          "knowledge": "conceptnet",
+          "_note": "the proposed utility planner as in H1-H4 and V1 (ConceptNet 5.7 extract)"
+        },
+        "sem_qwen": {
+          "policy": "utility",
+          "knowledge": "qwen",
+          "_note": "same planner; priors and room inference from results/qwen_room_priors"
+        },
+        "sem_combined": {
+          "policy": "utility",
+          "knowledge": "combined",
+          "_note": "same planner; equal-weight mixture of ConceptNet and Qwen per class"
+        },
+        "sem_conceptnet_unexp": {
+          "policy": "utility",
+          "knowledge": "conceptnet",
+          "unexplored_rooms": true,
+          "_note": "sem_conceptnet plus BeliefConfig.unexplored_rooms: room evidence from objects seen across doorways (unplaced) for the unexplored space around them"
+        },
+        "sem_qwen_unexp": {
+          "policy": "utility",
+          "knowledge": "qwen",
+          "unexplored_rooms": true,
+          "_note": "sem_qwen plus BeliefConfig.unexplored_rooms: room evidence from objects seen across doorways (unplaced) for the unexplored space around them"
+        },
+        "sem_combined_unexp": {
+          "policy": "utility",
+          "knowledge": "combined",
+          "unexplored_rooms": true,
+          "_note": "sem_combined plus BeliefConfig.unexplored_rooms: room evidence from objects seen across doorways (unplaced) for the unexplored space around them"
+        }
+      },
+      "splits": {
+        "smoke": {
+          "_note": "DEVELOPMENT ONLY: crash/timing check of the instrumentation",
+          "arms": [
+            "sem_qwen"
+          ],
+          "base": "kinematic",
+          "conditions": [
+            {
+              "scenario": "B",
+              "target": "refrigerator",
+              "generator": "xl",
+              "seeds": [
+                100,
+                101
+              ]
+            }
+          ]
+        },
+        "dev_diag": {
+          "_note": "DEVELOPMENT ONLY: instrumented diagnosis, 8 targets x scenarios B,D x runner seeds 100-103 (64 target-present homes)",
+          "arms": [
+            "sem_none",
+            "sem_conceptnet",
+            "sem_qwen"
+          ],
+          "base": "kinematic",
+          "conditions": [
+            {
+              "scenario": "B",
+              "target": "refrigerator",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "bed",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "toilet",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "stove",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "washing_machine",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "workbench",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "bathtub",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "sofa",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "refrigerator",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "bed",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "toilet",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "stove",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "washing_machine",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "workbench",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "bathtub",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "sofa",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            }
+          ]
+        },
+        "dev_check": {
+          "_note": "DEVELOPMENT ONLY: arms with the improvement and the arms not yet run without it (sem_none, sem_conceptnet, sem_qwen without it come from dev_diag, same homes). sem_none with the option is identical by construction (uniform ratios) and not run.",
+          "arms": [
+            "A_frontier",
+            "sem_combined",
+            "sem_conceptnet_unexp",
+            "sem_qwen_unexp",
+            "sem_combined_unexp"
+          ],
+          "base": "kinematic",
+          "conditions": [
+            {
+              "scenario": "B",
+              "target": "refrigerator",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "bed",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "toilet",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "stove",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "washing_machine",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "workbench",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "bathtub",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "B",
+              "target": "sofa",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "refrigerator",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "bed",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "toilet",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "stove",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "washing_machine",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "workbench",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "bathtub",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            },
+            {
+              "scenario": "D",
+              "target": "sofa",
+              "generator": "xl",
+              "seeds": [
+                100,
+                104
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "split": "dev_check",
+    "arms": [
+      "A_frontier",
+      "sem_combined",
+      "sem_conceptnet_unexp",
+      "sem_qwen_unexp",
+      "sem_combined_unexp"
+    ],
+    "base": "kinematic",
+    "git_sha": "27d653514c7bddaa321034981c0efe76f4da3038",
+    "dream_dirty_at_start": false,
+    "renderer": null,
+    "machine": "Windows-11-10.0.26100-SP0",
+    "jobs": 320,
+    "resumed": false,
+    "wall_s": 9481.6
+  },
+  "by_arm_scenario": {
+    "A_frontier|B": {
+      "n": 32,
+      "success": 27,
+      "missed": 5,
+      "median_success_sim_s": 86.62,
+      "mean_path_m": 31.8
+    },
+    "A_frontier|D": {
+      "n": 32,
+      "success": 30,
+      "missed": 2,
+      "median_success_sim_s": 112.42,
+      "mean_path_m": 29.6
+    },
+    "sem_combined|B": {
+      "n": 32,
+      "success": 28,
+      "missed": 4,
+      "median_success_sim_s": 96.72,
+      "mean_path_m": 28.6
+    },
+    "sem_combined|D": {
+      "n": 32,
+      "success": 27,
+      "missed": 5,
+      "median_success_sim_s": 73.2,
+      "mean_path_m": 33.1
+    },
+    "sem_combined_unexp|B": {
+      "n": 32,
+      "success": 31,
+      "missed": 1,
+      "median_success_sim_s": 94.64,
+      "mean_path_m": 23.3
+    },
+    "sem_combined_unexp|D": {
+      "n": 32,
+      "success": 29,
+      "missed": 3,
+      "median_success_sim_s": 78.14,
+      "mean_path_m": 31.8
+    },
+    "sem_conceptnet_unexp|B": {
+      "n": 32,
+      "success": 29,
+      "missed": 3,
+      "median_success_sim_s": 96.72,
+      "mean_path_m": 24.8
+    },
+    "sem_conceptnet_unexp|D": {
+      "n": 32,
+      "success": 26,
+      "missed": 6,
+      "median_success_sim_s": 73.2,
+      "mean_path_m": 33.8
+    },
+    "sem_qwen_unexp|B": {
+      "n": 32,
+      "success": 28,
+      "missed": 4,
+      "median_success_sim_s": 94.1,
+      "mean_path_m": 31.0
+    },
+    "sem_qwen_unexp|D": {
+      "n": 32,
+      "success": 27,
+      "missed": 5,
+      "median_success_sim_s": 73.2,
+      "mean_path_m": 32.2
+    }
+  },
+  "totals": {
+    "A_frontier": {
+      "success": 57,
+      "missed": 7
+    },
+    "sem_combined": {
+      "success": 55,
+      "missed": 9
+    },
+    "sem_conceptnet_unexp": {
+      "success": 55,
+      "missed": 9
+    },
+    "sem_qwen_unexp": {
+      "success": 55,
+      "missed": 9
+    },
+    "sem_combined_unexp": {
+      "success": 60,
+      "missed": 4
+    }
+  }
+}

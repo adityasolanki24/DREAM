@@ -1,0 +1,56 @@
+{
+  "run_id": "2026-11-09-001/20261110-044518-unexplored-rooms-dev-check",
+  "task_id": "2026-11-09-001",
+  "title": "Dev check of unexplored-room evidence: with and without it, all knowledge sources (seeds 100-103)",
+  "started": "2026-11-10T04:45:18+11:00",
+  "commit": "27d653514c7bddaa321034981c0efe76f4da3038",
+  "dirty": true,
+  "branch": "worktree-agent-a88fa05480d69c248",
+  "configs": [
+    {
+      "path": "experiments/configs/semantic_exploration_dev.json",
+      "sha256": "4a4913d3a1fd449a8e61ceedde4c336a249baa561bcfe33e5bf4950f6328c158"
+    }
+  ],
+  "command": "python experiments/semantic_search_eval.py experiments/configs/semantic_exploration_dev.json --split dev_check --diagnose --workers 3 --out results/semantic_exploration_dev/dev_check (detached worktree at 27d6535)",
+  "seeds": "100-103 (development)",
+  "model": null,
+  "simulator": "MuJoCo 3.x",
+  "renderer": null,
+  "embodiment": "kinematic surrogate base, oracle-assisted NOMINAL detector",
+  "controller": "kinematic surrogate base",
+  "hardware": "owner laptop, CPU, 3 workers",
+  "status": "completed",
+  "ended": "2026-11-10T09:44:13+11:00",
+  "exit_status": 0,
+  "cases_attempted": 320,
+  "cases_completed": 320,
+  "metrics": {
+    "episodes": 320,
+    "found_of_64": {
+      "A_frontier": 57,
+      "sem_none": 59,
+      "sem_conceptnet": 60,
+      "sem_qwen": 60,
+      "sem_combined": 55,
+      "sem_conceptnet_unexp": 55,
+      "sem_qwen_unexp": 55,
+      "sem_combined_unexp": 60
+    },
+    "median_paired_diff_s_unexp_vs_without": "0.0 for all three sources",
+    "mean_paired_diff_s_unexp_vs_without": {
+      "conceptnet": 26.9,
+      "qwen": 32.5,
+      "combined": -14.2
+    },
+    "verdict": "no consistent benefit on dev; not frozen"
+  },
+  "evidence": [
+    {
+      "path": "results/semantic_exploration_dev/dev_compare.json",
+      "kind": "file",
+      "sha256": "846916c9db6a6fec7d4093c3fd8074f7f53d395df0449fe8f0a661b7f03bad88"
+    }
+  ],
+  "cloud": null
+}

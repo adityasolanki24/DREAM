@@ -15,3 +15,4 @@
 
 | Run | Task | Status | Started | Report |
 |---|---|---|---|---|
+| 20261110-044518-unexplored-rooms-dev-check | 2026-11-09-001 | completed | 2026-11-10T04:45:18+11:00 | [REPORT](../2026-11-09/001-isaac-semantic-research/runs/20261110-044518-unexplored-rooms-dev-check/REPORT.md) |

@@ -82,7 +82,8 @@ def main() -> None:
     pairs = [p.split(":") for p in (args.pairs.split(",") if args.pairs else DEFAULT_PAIRS)]
     pairs = [(a, b) for a, b in pairs if a in present and b in present]
     out = {"arms": sorted(present), "episodes": len(rows), "budget_s": args.budget,
-           "pairs": {f"{a} vs {b}": compare(rows, a, b, args.budget) for a, b in pairs}}  # fmt: skip
+           "pairs": {f"{a} vs {b}": compare(rows, a, b, args.budget)
+                     for a, b in pairs}}  # fmt: skip
     raw = {k: v["p_one_sided_a_faster"] for k, v in out["pairs"].items()}
     out["holm_over_listed_pairs"] = holm(raw, 0.05) if raw else {}
     text = json.dumps(out, indent=1, default=float)
