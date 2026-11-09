@@ -216,6 +216,7 @@ def main() -> None:  # pragma: no cover - needs Isaac Sim
     ap.add_argument("--classes", default="")
     ap.add_argument("--budget-s", type=float, default=2400.0)
     ap.add_argument("--max-per-class", type=int, default=99)
+    ap.add_argument("--no-snapshots", action="store_true", help="skip the four renders")
     ap.add_argument(
         "--stop-after-pass",
         action="store_true",
@@ -359,6 +360,9 @@ def _validate_all(app, args, ev, t0) -> None:  # pragma: no cover - needs Isaac 
                 app.update()
                 waited += 1
             rec["composed_children"] = [c.GetName() for c in prim.GetChildren()]
+            from experiments.isaac_home_compose import uninstance
+
+            rec["uninstanced_prims"] = uninstance(stage, prim_path)
             norm = np.array(normalise_matrix(rec["up_axis"], rec["meters_per_unit"]))
             xform = UsdGeom.Xformable(prim)
             xform.ClearXformOpOrder()
@@ -391,7 +395,7 @@ def _validate_all(app, args, ev, t0) -> None:  # pragma: no cover - needs Isaac 
                 radius = 0.5 * math.dist(*box)
                 folder = args.out / "snapshots" / cls
                 folder.mkdir(parents=True, exist_ok=True)
-                rec["snapshots"] = shoot(centre, radius, tag, folder)
+                rec["snapshots"] = [] if args.no_snapshots else shoot(centre, radius, tag, folder)
                 try:  # physics play with the asset treated as the composer treats it: authored
                     # bodies, joints and colliders disabled (the 664 s first candidate was PhysX
                     # cooking 20 SDF colliders, and its dynamic bodies fell through the void), a

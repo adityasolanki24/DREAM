@@ -243,6 +243,24 @@ def compose_plan(
 
 
 # -- USD (needs pxr) -----------------------------------------------------------------------------
+def uninstance(stage, root_path: str) -> int:
+    """Make every instanceable prim under ``root_path`` an ordinary prim, so that opinions can be
+    authored on its descendants (SimReady Residential, Hospital and Industrial assets are
+    instanced: the first validation job's ``OverridePrim`` calls failed with "_ValidateEditPrim"
+    inside them). Returns the number of prims changed. Needs pxr."""
+    from pxr import Usd
+
+    changed = 0
+    for _ in range(8):  # nested instancing
+        todo = [p for p in Usd.PrimRange(stage.GetPrimAtPath(root_path)) if p.IsInstanceable()]
+        if not todo:
+            break
+        for p in todo:
+            p.SetInstanceable(False)
+        changed += len(todo)
+    return changed
+
+
 def _material(stage, path: str, rgb):
     from pxr import Gf, Sdf, UsdShade
 
@@ -308,6 +326,7 @@ def build_stage(home: HomeSpec, placements: list[Placement], path: pathlib.Path)
     for p in placements:
         prim = UsdGeom.Xform.Define(stage, p.prim_path).GetPrim()
         prim.GetReferences().AddReference(p.url)
+        uninstance(stage, p.prim_path)
         for rel in p.rigid_body_paths:  # furniture is static: an authored dynamic body would fall
             stage.OverridePrim(p.prim_path + rel).CreateAttribute(
                 "physics:rigidBodyEnabled", Sdf.ValueTypeNames.Bool
