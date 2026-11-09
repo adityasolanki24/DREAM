@@ -1,0 +1,1337 @@
+{
+  "config": "semantic_knowledge_xl",
+  "frozen_commit": "1f06db2bfa07e7bc1a6a35567e40c87cd98accce",
+  "episodes": 576,
+  "K-G1": {
+    "gate": "every arm using the current verifier makes 0 false success claims",
+    "arms": {
+      "A_frontier": {
+        "false_success_claims": 0,
+        "valid_episodes": 96,
+        "zero_upper_95": 0.0307,
+        "false_claim_episodes": []
+      },
+      "sem_combined": {
+        "false_success_claims": 0,
+        "valid_episodes": 96,
+        "zero_upper_95": 0.0307,
+        "false_claim_episodes": []
+      },
+      "sem_conceptnet": {
+        "false_success_claims": 0,
+        "valid_episodes": 96,
+        "zero_upper_95": 0.0307,
+        "false_claim_episodes": []
+      },
+      "sem_none": {
+        "false_success_claims": 0,
+        "valid_episodes": 96,
+        "zero_upper_95": 0.0307,
+        "false_claim_episodes": []
+      },
+      "sem_qwen": {
+        "false_success_claims": 0,
+        "valid_episodes": 96,
+        "zero_upper_95": 0.0307,
+        "false_claim_episodes": []
+      }
+    },
+    "passed": true
+  },
+  "K-G2": {
+    "gate": "semantic arm vs A_frontier, B+D, one-sided paired Wilcoxon, Holm family 0.05",
+    "comparisons": {
+      "sem_conceptnet": {
+        "pairs": 64,
+        "found": [
+          61,
+          59
+        ],
+        "median_paired_diff_s": 0.0,
+        "mean_paired_diff_s": 8.3,
+        "only_sem_found": 3,
+        "only_ref_found": 1,
+        "p": 0.5940847662707114,
+        "p_holm": 1.0,
+        "reject": false,
+        "passed": false
+      },
+      "sem_qwen": {
+        "pairs": 64,
+        "found": [
+          61,
+          59
+        ],
+        "median_paired_diff_s": 0.0,
+        "mean_paired_diff_s": 10.0,
+        "only_sem_found": 2,
+        "only_ref_found": 0,
+        "p": 0.9541985109116808,
+        "p_holm": 1.0,
+        "reject": false,
+        "passed": false
+      },
+      "sem_combined": {
+        "pairs": 64,
+        "found": [
+          62,
+          59
+        ],
+        "median_paired_diff_s": 0.0,
+        "mean_paired_diff_s": 8.9,
+        "only_sem_found": 4,
+        "only_ref_found": 1,
+        "p": 0.7951900335107354,
+        "p_holm": 1.0,
+        "reject": false,
+        "passed": false
+      }
+    },
+    "passed_arms": [],
+    "passed": false
+  },
+  "K-G3": {
+    "gate": "semantic successes >= A_frontier successes - 3, B+D paired",
+    "arms": {
+      "sem_conceptnet": {
+        "pairs": 64,
+        "successes": [
+          61,
+          59
+        ],
+        "threshold": 56,
+        "passed": true
+      },
+      "sem_qwen": {
+        "pairs": 64,
+        "successes": [
+          61,
+          59
+        ],
+        "threshold": 56,
+        "passed": true
+      },
+      "sem_combined": {
+        "pairs": 64,
+        "successes": [
+          62,
+          59
+        ],
+        "threshold": 56,
+        "passed": true
+      }
+    },
+    "passed": true
+  },
+  "K-G4": {
+    "descriptive": true,
+    "qwen_vs_conceptnet": {
+      "all": {
+        "pairs": 64,
+        "success": [
+          61,
+          61
+        ],
+        "discordant": {
+          "only_sem_qwen": 1,
+          "only_sem_conceptnet": 1
+        },
+        "mcnemar_exact_p": 1.0,
+        "median_time_diff_s": 0.0,
+        "median_time_diff_ci95": [
+          0.0,
+          0.0
+        ],
+        "wilcoxon_p": 0.6117,
+        "note": "time censored at the budget for unsuccessful episodes; negative = a faster"
+      }
+    },
+    "combined_vs_qwen": {
+      "all": {
+        "pairs": 64,
+        "success": [
+          62,
+          61
+        ],
+        "discordant": {
+          "only_sem_combined": 2,
+          "only_sem_qwen": 1
+        },
+        "mcnemar_exact_p": 1.0,
+        "median_time_diff_s": 0.0,
+        "median_time_diff_ci95": [
+          0.0,
+          0.0
+        ],
+        "wilcoxon_p": 0.8532,
+        "note": "time censored at the budget for unsuccessful episodes; negative = a faster"
+      }
+    },
+    "each_vs_none": {
+      "sem_conceptnet": {
+        "pairs": 64,
+        "success": [
+          61,
+          62
+        ],
+        "discordant": {
+          "only_sem_conceptnet": 0,
+          "only_sem_none": 1
+        },
+        "mcnemar_exact_p": 1.0,
+        "median_time_diff_s": 0.0,
+        "median_time_diff_ci95": [
+          0.0,
+          0.0
+        ],
+        "wilcoxon_p": 0.5483,
+        "note": "time censored at the budget for unsuccessful episodes; negative = a faster"
+      },
+      "sem_qwen": {
+        "pairs": 64,
+        "success": [
+          61,
+          62
+        ],
+        "discordant": {
+          "only_sem_qwen": 1,
+          "only_sem_none": 2
+        },
+        "mcnemar_exact_p": 1.0,
+        "median_time_diff_s": 0.0,
+        "median_time_diff_ci95": [
+          0.0,
+          0.5
+        ],
+        "wilcoxon_p": 0.3892,
+        "note": "time censored at the budget for unsuccessful episodes; negative = a faster"
+      },
+      "sem_combined": {
+        "pairs": 64,
+        "success": [
+          62,
+          62
+        ],
+        "discordant": {
+          "only_sem_combined": 1,
+          "only_sem_none": 1
+        },
+        "mcnemar_exact_p": 1.0,
+        "median_time_diff_s": 0.0,
+        "median_time_diff_ci95": [
+          0.0,
+          0.6
+        ],
+        "wilcoxon_p": 0.2613,
+        "note": "time censored at the budget for unsuccessful episodes; negative = a faster"
+      }
+    },
+    "by_scenario_vs_A_frontier": {
+      "sem_conceptnet": {
+        "B": {
+          "pairs": 32,
+          "success": [
+            32,
+            30
+          ],
+          "discordant": {
+            "only_sem_conceptnet": 2,
+            "only_A_frontier": 0
+          },
+          "mcnemar_exact_p": 0.5,
+          "median_time_diff_s": 0.0,
+          "median_time_diff_ci95": [
+            -2.2,
+            3.7
+          ],
+          "wilcoxon_p": 0.754,
+          "note": "time censored at the budget for unsuccessful episodes; negative = a faster"
+        },
+        "D": {
+          "pairs": 32,
+          "success": [
+            29,
+            29
+          ],
+          "discordant": {
+            "only_sem_conceptnet": 1,
+            "only_A_frontier": 1
+          },
+          "mcnemar_exact_p": 1.0,
+          "median_time_diff_s": 0.0,
+          "median_time_diff_ci95": [
+            -10.8,
+            0.0
+          ],
+          "wilcoxon_p": 0.9881,
+          "note": "time censored at the budget for unsuccessful episodes; negative = a faster"
+        }
+      },
+      "sem_qwen": {
+        "B": {
+          "pairs": 32,
+          "success": [
+            32,
+            30
+          ],
+          "discordant": {
+            "only_sem_qwen": 2,
+            "only_A_frontier": 0
+          },
+          "mcnemar_exact_p": 0.5,
+          "median_time_diff_s": 1.4,
+          "median_time_diff_ci95": [
+            0.0,
+            15.2
+          ],
+          "wilcoxon_p": 0.2304,
+          "note": "time censored at the budget for unsuccessful episodes; negative = a faster"
+        },
+        "D": {
+          "pairs": 32,
+          "success": [
+            29,
+            29
+          ],
+          "discordant": {
+            "only_sem_qwen": 0,
+            "only_A_frontier": 0
+          },
+          "mcnemar_exact_p": 1.0,
+          "median_time_diff_s": 0.0,
+          "median_time_diff_ci95": [
+            -2.5,
+            8.9
+          ],
+          "wilcoxon_p": 0.1982,
+          "note": "time censored at the budget for unsuccessful episodes; negative = a faster"
+        }
+      },
+      "sem_combined": {
+        "B": {
+          "pairs": 32,
+          "success": [
+            32,
+            30
+          ],
+          "discordant": {
+            "only_sem_combined": 2,
+            "only_A_frontier": 0
+          },
+          "mcnemar_exact_p": 0.5,
+          "median_time_diff_s": 0.0,
+          "median_time_diff_ci95": [
+            -2.2,
+            7.6
+          ],
+          "wilcoxon_p": 0.5803,
+          "note": "time censored at the budget for unsuccessful episodes; negative = a faster"
+        },
+        "D": {
+          "pairs": 32,
+          "success": [
+            30,
+            29
+          ],
+          "discordant": {
+            "only_sem_combined": 2,
+            "only_A_frontier": 1
+          },
+          "mcnemar_exact_p": 1.0,
+          "median_time_diff_s": 0.0,
+          "median_time_diff_ci95": [
+            -10.8,
+            10.2
+          ],
+          "wilcoxon_p": 0.5646,
+          "note": "time censored at the budget for unsuccessful episodes; negative = a faster"
+        }
+      },
+      "sem_none": {
+        "B": {
+          "pairs": 32,
+          "success": [
+            32,
+            30
+          ],
+          "discordant": {
+            "only_sem_none": 2,
+            "only_A_frontier": 0
+          },
+          "mcnemar_exact_p": 0.5,
+          "median_time_diff_s": 0.0,
+          "median_time_diff_ci95": [
+            -2.2,
+            0.0
+          ],
+          "wilcoxon_p": 0.7854,
+          "note": "time censored at the budget for unsuccessful episodes; negative = a faster"
+        },
+        "D": {
+          "pairs": 32,
+          "success": [
+            30,
+            29
+          ],
+          "discordant": {
+            "only_sem_none": 2,
+            "only_A_frontier": 1
+          },
+          "mcnemar_exact_p": 1.0,
+          "median_time_diff_s": 0.0,
+          "median_time_diff_ci95": [
+            -10.8,
+            0.0
+          ],
+          "wilcoxon_p": 0.9746,
+          "note": "time censored at the budget for unsuccessful episodes; negative = a faster"
+        }
+      }
+    },
+    "by_scenario_qwen_vs_conceptnet": {
+      "B": {
+        "pairs": 32,
+        "success": [
+          32,
+          32
+        ],
+        "discordant": {
+          "only_sem_qwen": 0,
+          "only_sem_conceptnet": 0
+        },
+        "mcnemar_exact_p": 1.0,
+        "median_time_diff_s": 0.0,
+        "median_time_diff_ci95": [
+          0.0,
+          0.0
+        ],
+        "wilcoxon_p": 0.6112,
+        "note": "time censored at the budget for unsuccessful episodes; negative = a faster"
+      },
+      "D": {
+        "pairs": 32,
+        "success": [
+          29,
+          29
+        ],
+        "discordant": {
+          "only_sem_qwen": 1,
+          "only_sem_conceptnet": 1
+        },
+        "mcnemar_exact_p": 1.0,
+        "median_time_diff_s": 0.0,
+        "median_time_diff_ci95": [
+          0.0,
+          1.3
+        ],
+        "wilcoxon_p": 0.2293,
+        "note": "time censored at the budget for unsuccessful episodes; negative = a faster"
+      }
+    },
+    "A_frontier_point_vs_A_frontier": {
+      "false_claims": {
+        "A_frontier_point": [
+          0,
+          96
+        ],
+        "A_frontier": [
+          0,
+          96
+        ]
+      },
+      "paired": {
+        "pairs": 64,
+        "success": [
+          59,
+          59
+        ],
+        "discordant": {
+          "only_A_frontier_point": 0,
+          "only_A_frontier": 0
+        },
+        "mcnemar_exact_p": 1.0,
+        "median_time_diff_s": 0.0,
+        "median_time_diff_ci95": [
+          0.0,
+          0.0
+        ],
+        "wilcoxon_p": 0.0001,
+        "note": "time censored at the budget for unsuccessful episodes; negative = a faster"
+      }
+    },
+    "per_arm": {
+      "A_frontier": {
+        "found_target_present": [
+          59,
+          64,
+          [
+            0.83,
+            0.966
+          ]
+        ],
+        "false_success_claims": [
+          0,
+          96,
+          [
+            0.0,
+            0.038
+          ],
+          0.0307
+        ],
+        "correct_refusal_absent": [
+          32,
+          32,
+          [
+            0.893,
+            1.0
+          ]
+        ],
+        "false_absence": [
+          0,
+          64,
+          [
+            0.0,
+            0.057
+          ]
+        ],
+        "median_success_sim_s": 77.84,
+        "mean_path_m": 44.56,
+        "mean_sim_s": 219.39,
+        "episodes_with_contact": 22,
+        "crashes": 0,
+        "scene_failures": 0
+      },
+      "A_frontier_point": {
+        "found_target_present": [
+          59,
+          64,
+          [
+            0.83,
+            0.966
+          ]
+        ],
+        "false_success_claims": [
+          0,
+          96,
+          [
+            0.0,
+            0.038
+          ],
+          0.0307
+        ],
+        "correct_refusal_absent": [
+          32,
+          32,
+          [
+            0.893,
+            1.0
+          ]
+        ],
+        "false_absence": [
+          0,
+          64,
+          [
+            0.0,
+            0.057
+          ]
+        ],
+        "median_success_sim_s": 75.3,
+        "mean_path_m": 44.49,
+        "mean_sim_s": 217.81,
+        "episodes_with_contact": 22,
+        "crashes": 0,
+        "scene_failures": 0
+      },
+      "sem_combined": {
+        "found_target_present": [
+          62,
+          64,
+          [
+            0.893,
+            0.991
+          ]
+        ],
+        "false_success_claims": [
+          0,
+          96,
+          [
+            0.0,
+            0.038
+          ],
+          0.0307
+        ],
+        "correct_refusal_absent": [
+          32,
+          32,
+          [
+            0.893,
+            1.0
+          ]
+        ],
+        "false_absence": [
+          0,
+          64,
+          [
+            0.0,
+            0.057
+          ]
+        ],
+        "median_success_sim_s": 118.48,
+        "mean_path_m": 57.7,
+        "mean_sim_s": 291.25,
+        "episodes_with_contact": 24,
+        "crashes": 0,
+        "scene_failures": 0
+      },
+      "sem_conceptnet": {
+        "found_target_present": [
+          61,
+          64,
+          [
+            0.871,
+            0.984
+          ]
+        ],
+        "false_success_claims": [
+          0,
+          96,
+          [
+            0.0,
+            0.038
+          ],
+          0.0307
+        ],
+        "correct_refusal_absent": [
+          32,
+          32,
+          [
+            0.893,
+            1.0
+          ]
+        ],
+        "false_absence": [
+          0,
+          64,
+          [
+            0.0,
+            0.057
+          ]
+        ],
+        "median_success_sim_s": 100.38,
+        "mean_path_m": 58.14,
+        "mean_sim_s": 286.22,
+        "episodes_with_contact": 22,
+        "crashes": 0,
+        "scene_failures": 0
+      },
+      "sem_none": {
+        "found_target_present": [
+          62,
+          64,
+          [
+            0.893,
+            0.991
+          ]
+        ],
+        "false_success_claims": [
+          0,
+          96,
+          [
+            0.0,
+            0.038
+          ],
+          0.0307
+        ],
+        "correct_refusal_absent": [
+          32,
+          32,
+          [
+            0.893,
+            1.0
+          ]
+        ],
+        "false_absence": [
+          0,
+          64,
+          [
+            0.0,
+            0.057
+          ]
+        ],
+        "median_success_sim_s": 95.21000000000001,
+        "mean_path_m": 58.08,
+        "mean_sim_s": 284.77,
+        "episodes_with_contact": 23,
+        "crashes": 0,
+        "scene_failures": 0
+      },
+      "sem_qwen": {
+        "found_target_present": [
+          61,
+          64,
+          [
+            0.871,
+            0.984
+          ]
+        ],
+        "false_success_claims": [
+          0,
+          96,
+          [
+            0.0,
+            0.038
+          ],
+          0.0307
+        ],
+        "correct_refusal_absent": [
+          32,
+          32,
+          [
+            0.893,
+            1.0
+          ]
+        ],
+        "false_absence": [
+          0,
+          64,
+          [
+            0.0,
+            0.057
+          ]
+        ],
+        "median_success_sim_s": 98.26,
+        "mean_path_m": 58.71,
+        "mean_sim_s": 292.89,
+        "episodes_with_contact": 24,
+        "crashes": 0,
+        "scene_failures": 0
+      }
+    },
+    "per_arm_by_scenario": {
+      "A_frontier": {
+        "B": [
+          30,
+          32,
+          [
+            0.799,
+            0.983
+          ]
+        ],
+        "D": [
+          29,
+          32,
+          [
+            0.758,
+            0.968
+          ]
+        ],
+        "E": [
+          32,
+          32,
+          [
+            0.893,
+            1.0
+          ]
+        ]
+      },
+      "A_frontier_point": {
+        "B": [
+          30,
+          32,
+          [
+            0.799,
+            0.983
+          ]
+        ],
+        "D": [
+          29,
+          32,
+          [
+            0.758,
+            0.968
+          ]
+        ],
+        "E": [
+          32,
+          32,
+          [
+            0.893,
+            1.0
+          ]
+        ]
+      },
+      "sem_combined": {
+        "B": [
+          32,
+          32,
+          [
+            0.893,
+            1.0
+          ]
+        ],
+        "D": [
+          30,
+          32,
+          [
+            0.799,
+            0.983
+          ]
+        ],
+        "E": [
+          32,
+          32,
+          [
+            0.893,
+            1.0
+          ]
+        ]
+      },
+      "sem_conceptnet": {
+        "B": [
+          32,
+          32,
+          [
+            0.893,
+            1.0
+          ]
+        ],
+        "D": [
+          29,
+          32,
+          [
+            0.758,
+            0.968
+          ]
+        ],
+        "E": [
+          32,
+          32,
+          [
+            0.893,
+            1.0
+          ]
+        ]
+      },
+      "sem_none": {
+        "B": [
+          32,
+          32,
+          [
+            0.893,
+            1.0
+          ]
+        ],
+        "D": [
+          30,
+          32,
+          [
+            0.799,
+            0.983
+          ]
+        ],
+        "E": [
+          32,
+          32,
+          [
+            0.893,
+            1.0
+          ]
+        ]
+      },
+      "sem_qwen": {
+        "B": [
+          32,
+          32,
+          [
+            0.893,
+            1.0
+          ]
+        ],
+        "D": [
+          29,
+          32,
+          [
+            0.758,
+            0.968
+          ]
+        ],
+        "E": [
+          32,
+          32,
+          [
+            0.893,
+            1.0
+          ]
+        ]
+      }
+    },
+    "per_target_found": {
+      "bathtub": {
+        "A_frontier_point": [
+          8,
+          8
+        ],
+        "A_frontier": [
+          8,
+          8
+        ],
+        "sem_none": [
+          8,
+          8
+        ],
+        "sem_conceptnet": [
+          8,
+          8
+        ],
+        "sem_qwen": [
+          8,
+          8
+        ],
+        "sem_combined": [
+          8,
+          8
+        ]
+      },
+      "bed": {
+        "A_frontier_point": [
+          8,
+          8
+        ],
+        "A_frontier": [
+          8,
+          8
+        ],
+        "sem_none": [
+          8,
+          8
+        ],
+        "sem_conceptnet": [
+          8,
+          8
+        ],
+        "sem_qwen": [
+          8,
+          8
+        ],
+        "sem_combined": [
+          8,
+          8
+        ]
+      },
+      "refrigerator": {
+        "A_frontier_point": [
+          8,
+          8
+        ],
+        "A_frontier": [
+          8,
+          8
+        ],
+        "sem_none": [
+          8,
+          8
+        ],
+        "sem_conceptnet": [
+          8,
+          8
+        ],
+        "sem_qwen": [
+          8,
+          8
+        ],
+        "sem_combined": [
+          8,
+          8
+        ]
+      },
+      "sofa": {
+        "A_frontier_point": [
+          8,
+          8
+        ],
+        "A_frontier": [
+          8,
+          8
+        ],
+        "sem_none": [
+          7,
+          8
+        ],
+        "sem_conceptnet": [
+          7,
+          8
+        ],
+        "sem_qwen": [
+          8,
+          8
+        ],
+        "sem_combined": [
+          7,
+          8
+        ]
+      },
+      "stove": {
+        "A_frontier_point": [
+          6,
+          8
+        ],
+        "A_frontier": [
+          6,
+          8
+        ],
+        "sem_none": [
+          8,
+          8
+        ],
+        "sem_conceptnet": [
+          8,
+          8
+        ],
+        "sem_qwen": [
+          8,
+          8
+        ],
+        "sem_combined": [
+          8,
+          8
+        ]
+      },
+      "toilet": {
+        "A_frontier_point": [
+          8,
+          8
+        ],
+        "A_frontier": [
+          8,
+          8
+        ],
+        "sem_none": [
+          8,
+          8
+        ],
+        "sem_conceptnet": [
+          8,
+          8
+        ],
+        "sem_qwen": [
+          8,
+          8
+        ],
+        "sem_combined": [
+          8,
+          8
+        ]
+      },
+      "washing_machine": {
+        "A_frontier_point": [
+          6,
+          8
+        ],
+        "A_frontier": [
+          6,
+          8
+        ],
+        "sem_none": [
+          7,
+          8
+        ],
+        "sem_conceptnet": [
+          6,
+          8
+        ],
+        "sem_qwen": [
+          6,
+          8
+        ],
+        "sem_combined": [
+          7,
+          8
+        ]
+      },
+      "workbench": {
+        "A_frontier_point": [
+          7,
+          8
+        ],
+        "A_frontier": [
+          7,
+          8
+        ],
+        "sem_none": [
+          8,
+          8
+        ],
+        "sem_conceptnet": [
+          8,
+          8
+        ],
+        "sem_qwen": [
+          7,
+          8
+        ],
+        "sem_combined": [
+          8,
+          8
+        ]
+      }
+    },
+    "room_inference_by_knowledge": {
+      "sem_conceptnet": {
+        "top1_accuracy": 0.544,
+        "top_correct": 326,
+        "top_with_evidence": 599,
+        "accuracy_when_decided": 0.783,
+        "by_true_type": {
+          "bathroom": {
+            "regions": 127,
+            "top_correct": 111,
+            "top_with_evidence": 127,
+            "classified": 85,
+            "correct": 83
+          },
+          "bedroom": {
+            "regions": 131,
+            "top_correct": 109,
+            "top_with_evidence": 128,
+            "classified": 39,
+            "correct": 35
+          },
+          "garage": {
+            "regions": 60,
+            "top_correct": 24,
+            "top_with_evidence": 60,
+            "classified": 5,
+            "correct": 0
+          },
+          "kitchen": {
+            "regions": 51,
+            "top_correct": 19,
+            "top_with_evidence": 51,
+            "classified": 4,
+            "correct": 0
+          },
+          "laundry": {
+            "regions": 57,
+            "top_correct": 0,
+            "top_with_evidence": 57,
+            "classified": 2,
+            "correct": 0
+          },
+          "living_room": {
+            "regions": 53,
+            "top_correct": 32,
+            "top_with_evidence": 53,
+            "classified": 4,
+            "correct": 0
+          },
+          "office": {
+            "regions": 68,
+            "top_correct": 30,
+            "top_with_evidence": 67,
+            "classified": 8,
+            "correct": 1
+          },
+          "storage": {
+            "regions": 56,
+            "top_correct": 1,
+            "top_with_evidence": 56,
+            "classified": 5,
+            "correct": 0
+          }
+        }
+      },
+      "sem_qwen": {
+        "top1_accuracy": 0.623,
+        "top_correct": 365,
+        "top_with_evidence": 586,
+        "accuracy_when_decided": 0.745,
+        "by_true_type": {
+          "bathroom": {
+            "regions": 115,
+            "top_correct": 99,
+            "top_with_evidence": 115,
+            "classified": 93,
+            "correct": 88
+          },
+          "bedroom": {
+            "regions": 131,
+            "top_correct": 107,
+            "top_with_evidence": 130,
+            "classified": 96,
+            "correct": 85
+          },
+          "garage": {
+            "regions": 62,
+            "top_correct": 30,
+            "top_with_evidence": 62,
+            "classified": 16,
+            "correct": 5
+          },
+          "kitchen": {
+            "regions": 49,
+            "top_correct": 36,
+            "top_with_evidence": 49,
+            "classified": 24,
+            "correct": 18
+          },
+          "laundry": {
+            "regions": 53,
+            "top_correct": 29,
+            "top_with_evidence": 53,
+            "classified": 17,
+            "correct": 6
+          },
+          "living_room": {
+            "regions": 53,
+            "top_correct": 42,
+            "top_with_evidence": 53,
+            "classified": 37,
+            "correct": 32
+          },
+          "office": {
+            "regions": 69,
+            "top_correct": 18,
+            "top_with_evidence": 68,
+            "classified": 14,
+            "correct": 0
+          },
+          "storage": {
+            "regions": 56,
+            "top_correct": 4,
+            "top_with_evidence": 56,
+            "classified": 17,
+            "correct": 0
+          }
+        }
+      },
+      "sem_combined": {
+        "top1_accuracy": 0.608,
+        "top_correct": 360,
+        "top_with_evidence": 592,
+        "accuracy_when_decided": 0.733,
+        "by_true_type": {
+          "bathroom": {
+            "regions": 121,
+            "top_correct": 101,
+            "top_with_evidence": 121,
+            "classified": 86,
+            "correct": 82
+          },
+          "bedroom": {
+            "regions": 121,
+            "top_correct": 103,
+            "top_with_evidence": 120,
+            "classified": 74,
+            "correct": 66
+          },
+          "garage": {
+            "regions": 67,
+            "top_correct": 28,
+            "top_with_evidence": 67,
+            "classified": 17,
+            "correct": 0
+          },
+          "kitchen": {
+            "regions": 49,
+            "top_correct": 33,
+            "top_with_evidence": 49,
+            "classified": 18,
+            "correct": 13
+          },
+          "laundry": {
+            "regions": 51,
+            "top_correct": 21,
+            "top_with_evidence": 51,
+            "classified": 6,
+            "correct": 0
+          },
+          "living_room": {
+            "regions": 54,
+            "top_correct": 44,
+            "top_with_evidence": 54,
+            "classified": 33,
+            "correct": 28
+          },
+          "office": {
+            "regions": 72,
+            "top_correct": 26,
+            "top_with_evidence": 71,
+            "classified": 14,
+            "correct": 0
+          },
+          "storage": {
+            "regions": 59,
+            "top_correct": 4,
+            "top_with_evidence": 59,
+            "classified": 10,
+            "correct": 0
+          }
+        }
+      },
+      "sem_none": {
+        "top1_accuracy": 0.098,
+        "top_correct": 57,
+        "top_with_evidence": 581,
+        "accuracy_when_decided": null,
+        "by_true_type": {
+          "bathroom": {
+            "regions": 117,
+            "top_correct": 0,
+            "top_with_evidence": 117,
+            "classified": 0,
+            "correct": 0
+          },
+          "bedroom": {
+            "regions": 129,
+            "top_correct": 0,
+            "top_with_evidence": 127,
+            "classified": 0,
+            "correct": 0
+          },
+          "garage": {
+            "regions": 56,
+            "top_correct": 0,
+            "top_with_evidence": 56,
+            "classified": 0,
+            "correct": 0
+          },
+          "kitchen": {
+            "regions": 57,
+            "top_correct": 57,
+            "top_with_evidence": 57,
+            "classified": 0,
+            "correct": 0
+          },
+          "laundry": {
+            "regions": 53,
+            "top_correct": 0,
+            "top_with_evidence": 53,
+            "classified": 0,
+            "correct": 0
+          },
+          "living_room": {
+            "regions": 53,
+            "top_correct": 0,
+            "top_with_evidence": 53,
+            "classified": 0,
+            "correct": 0
+          },
+          "office": {
+            "regions": 67,
+            "top_correct": 0,
+            "top_with_evidence": 66,
+            "classified": 0,
+            "correct": 0
+          },
+          "storage": {
+            "regions": 52,
+            "top_correct": 0,
+            "top_with_evidence": 52,
+            "classified": 0,
+            "correct": 0
+          }
+        }
+      }
+    }
+  }
+}
