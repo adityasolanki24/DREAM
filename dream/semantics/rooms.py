@@ -204,10 +204,10 @@ def _shift(a: np.ndarray, di: int, dj: int) -> np.ndarray:
     return out
 
 
-def object_region(grid: OccupancyGrid, segmenter: RoomSegmenter, track: Track) -> int:
-    """The region an object faces: from its centre, step toward the camera of its closest
-    view (it was seen from that side, so that side is open floor), then take that region.
-    A centre alone would put a refrigerator against a wall into the room behind the wall."""
+def object_front(track: Track) -> np.ndarray:
+    """The point an object faces: its centre stepped toward the camera of its closest view
+    (it was seen from that side, so that side is open floor). A centre alone would put a
+    refrigerator against a wall into the room behind the wall."""
     cams = [c for views in track.label_views.values() for c in views]
     centre = track.position[:2]
     if cams:
@@ -217,7 +217,14 @@ def object_region(grid: OccupancyGrid, segmenter: RoomSegmenter, track: Track) -
         if n > 1e-6:
             half = float(np.max(track.hi[:2] - track.lo[:2])) / 2
             centre = centre + d / n * min(n, half + 0.3)
-    return segmenter.region_of(grid, centre)
+    return centre
+
+
+def object_region(grid: OccupancyGrid, segmenter: RoomSegmenter, track: Track) -> int:
+    """The region an object faces: from its centre, step toward the camera of its closest
+    view (it was seen from that side, so that side is open floor), then take that region.
+    A centre alone would put a refrigerator against a wall into the room behind the wall."""
+    return segmenter.region_of(grid, object_front(track))
 
 
 def build_regions(

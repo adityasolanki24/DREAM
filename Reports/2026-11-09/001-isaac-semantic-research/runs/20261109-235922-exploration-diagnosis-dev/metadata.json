@@ -1,0 +1,69 @@
+{
+  "run_id": "2026-11-09-001/20261109-235922-exploration-diagnosis-dev",
+  "task_id": "2026-11-09-001",
+  "title": "Instrumented diagnosis of room knowledge in xl dev homes (sem_none, sem_conceptnet, sem_qwen; B and D; seeds 100-103)",
+  "started": "2026-11-09T23:59:22+11:00",
+  "commit": "6acf99745f05196fc6873971aa8dfbd8fe106a27",
+  "dirty": true,
+  "branch": "worktree-agent-a88fa05480d69c248",
+  "configs": [
+    {
+      "path": "experiments/configs/semantic_exploration_dev.json",
+      "sha256": "d0f745325bcba24bf7e487d48a00ab710f470da4735c7e6f9bd180123b68eb1a"
+    }
+  ],
+  "command": "python experiments/semantic_search_eval.py experiments/configs/semantic_exploration_dev.json --split dev_diag --diagnose --workers 3 --out results/semantic_exploration_dev/dev_diag (from detached worktree at 6acf997)",
+  "seeds": "100-103 (development)",
+  "model": null,
+  "simulator": "MuJoCo 3.x",
+  "renderer": null,
+  "embodiment": "kinematic surrogate base, oracle-assisted NOMINAL detector",
+  "controller": "kinematic surrogate base",
+  "hardware": "owner laptop, CPU, 3 workers",
+  "status": "completed",
+  "ended": "2026-11-10T04:43:37+11:00",
+  "exit_status": 0,
+  "cases_attempted": 192,
+  "cases_completed": 192,
+  "metrics": {
+    "episodes": 192,
+    "found_of_64": {
+      "sem_none": 59,
+      "sem_conceptnet": 60,
+      "sem_qwen": 60
+    },
+    "decisions_changed_by_knowledge": {
+      "sem_conceptnet": "6.7% of 571",
+      "sem_qwen": "12.1% of 561",
+      "sem_none": "0 by construction"
+    },
+    "episodes_with_any_change": {
+      "sem_conceptnet": "22/64",
+      "sem_qwen": "28/64"
+    },
+    "median_time_to_first_view_of_target_s": {
+      "sem_none": 85.8,
+      "sem_conceptnet": 86.1,
+      "sem_qwen": 85.0
+    },
+    "median_t_typical_room_labelled_s": {
+      "sem_conceptnet": 54.8,
+      "sem_qwen": 59.3
+    },
+    "typical_room_labelled_correct_ever": {
+      "sem_none": "8/64",
+      "sem_conceptnet": "23/64",
+      "sem_qwen": "33/64"
+    },
+    "explore_vs_verify_share_of_time": "about 91-93% vs 7-9%",
+    "note": "development seeds 100-103 only; the usage cutoff interrupted the agent session, not this background run, which completed 192/192"
+  },
+  "evidence": [
+    {
+      "path": "results/semantic_exploration_dev/dev_diag/diagnosis.json",
+      "kind": "file",
+      "sha256": "f33a1d2de86c2070192456022177b897e28d69833f1cc1bd650880ae6b81e1e2"
+    }
+  ],
+  "cloud": null
+}

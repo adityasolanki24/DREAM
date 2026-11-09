@@ -6,7 +6,7 @@
 
 | Date | Task ID | Prompt | Status | Main finding | Runs | Report |
 |---|---|---|---|---|---|---|
-| 2026-11-09 | 2026-11-09-001 | [Permanent Reports system; Isaac semantic exploration with learned perception, knowledge sources and larger homes](001-isaac-semantic-research/PROMPT.md) | in_progress | - | 8 | [REPORT](001-isaac-semantic-research/REPORT.md) |
+| 2026-11-09 | 2026-11-09-001 | [Permanent Reports system; Isaac semantic exploration with learned perception, knowledge sources and larger homes](001-isaac-semantic-research/PROMPT.md) | in_progress | - | 9 | [REPORT](001-isaac-semantic-research/REPORT.md) |
 
 ## Continued on this day
 
@@ -23,3 +23,4 @@
 | 20261109-192733-nested-replay-qwen-recorded | 2026-11-09-001 | completed | 2026-11-09T19:27:33+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-192733-nested-replay-qwen-recorded/REPORT.md) |
 | 20261109-192742-detector-compare-stub-cpu | 2026-11-09-001 | completed | 2026-11-09T19:27:42+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-192742-detector-compare-stub-cpu/REPORT.md) |
 | 20261109-194434-adapter-api-probe-cpu | 2026-11-09-001 | completed | 2026-11-09T19:44:34+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-194434-adapter-api-probe-cpu/REPORT.md) |
+| 20261109-235922-exploration-diagnosis-dev | 2026-11-09-001 | completed | 2026-11-09T23:59:22+11:00 | [REPORT](001-isaac-semantic-research/runs/20261109-235922-exploration-diagnosis-dev/REPORT.md) |

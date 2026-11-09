@@ -350,7 +350,8 @@ class SemanticSearchPlanner:
         ranked = sorted(views, key=lambda v: -v["utility"])
         self.diagnostics.append({
             "step": step, "t": round(float(self.toolbox.base.time), 1),
-            "n_views": len(views), "n_frontier": sum(v["frontier"] for v in views),
+            "unplaced": dict(world.target.unplaced), "n_views": len(views),
+            "n_frontier": sum(v["frontier"] for v in views),
             "n_in_region": sum(v["region"] >= 0 for v in views),
             "n_factor_off_1": sum(abs(factor.get(v["region"], 1.0) - 1.0) > 0.25 for v in views),
             "chosen": brief(choice), "no_detection": brief(pick_nd), "uniform": brief(pick_un),

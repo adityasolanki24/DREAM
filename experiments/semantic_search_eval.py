@@ -350,6 +350,7 @@ def _run(home, job, cfg, arm, t0) -> dict:
         semantic=arm.get("semantic", True),
         room_inference=arm.get("room_inference", True),
         memory=arm.get("memory", True),
+        unexplored_rooms=arm.get("unexplored_rooms", False),
     )
     thresholds = VerifierThresholds(**{**cfg.get("verifier", {}), **arm.get("verifier", {})})
     memory = SpatialMemory(np.random.default_rng([job["seed"], 2]), GRID_SIZE, boxes=False)
