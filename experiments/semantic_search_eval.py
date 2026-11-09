@@ -118,35 +118,70 @@ class SubstitutingPlanner:
         return ToolCall("go_to", {"x": float(r.centroid[0]), "y": float(r.centroid[1])})
 
 
-class PathMeter:
-    """Wraps a MobileBase to measure the true path length (evaluation only)."""
+AGENT_BASE_PROTOCOL = ("capture", "odometry", "stop_reason", "time", "walk")
 
-    def __init__(self, base, true_pose) -> None:
-        self.inner, self.true_pose, self.path_m = base, true_pose, 0.0
-        self.frames = 0
 
-    def __getattr__(self, name):
-        return getattr(self.inner, name)
+class AgentBase:
+    """What the agent is handed in place of the simulator's base: exactly the ``MobileBase``
+    protocol (``time``, ``stop_reason``, ``odometry``, ``capture``, ``walk``) and nothing else.
+
+    No ``__getattr__``, no reference to the inner base or to ``true_pose`` as an attribute:
+    the members are closures built by ``PathMeter``, so decision code cannot reach the
+    simulator base's ``home``, ``model``, ``data`` or ground-truth pose through this object
+    (AGENTS.md invariant 1).
+    """
+
+    __slots__ = ("_time", "_stop_reason", "_odometry", "_capture", "_walk")
+
+    def __init__(self, time, stop_reason, odometry, capture, walk) -> None:
+        self._time, self._stop_reason, self._odometry = time, stop_reason, odometry
+        self._capture, self._walk = capture, walk
 
     @property
     def time(self):
-        return self.inner.time
+        return self._time()
 
     @property
     def stop_reason(self):
-        return self.inner.stop_reason
+        return self._stop_reason()
 
     def odometry(self):
-        return self.inner.odometry()
+        return self._odometry()
 
     def capture(self):
-        self.frames += 1
-        return self.inner.capture()
+        return self._capture()
 
     def walk(self, forward, lateral, turn, seconds):
-        a = self.true_pose()[:2]
-        ok = self.inner.walk(forward, lateral, turn, seconds)
-        self.path_m += float(np.linalg.norm(self.true_pose()[:2] - a))
+        return self._walk(forward, lateral, turn, seconds)
+
+
+class PathMeter:
+    """EVALUATION ONLY: measures the true path length and frame count around a base.
+
+    The agent never sees this object; it is given ``agent_base`` (an ``AgentBase``). The true
+    pose stays here."""
+
+    def __init__(self, base, true_pose) -> None:
+        self._inner, self._true_pose, self.path_m = base, true_pose, 0.0
+        self.frames = 0
+        self.agent_base = AgentBase(
+            lambda: base.time, lambda: base.stop_reason, base.odometry, self._capture, self._walk
+        )
+
+    time = property(lambda self: self._inner.time)
+    stop_reason = property(lambda self: self._inner.stop_reason)
+
+    def odometry(self):
+        return self._inner.odometry()
+
+    def _capture(self):
+        self.frames += 1
+        return self._inner.capture()
+
+    def _walk(self, forward, lateral, turn, seconds):
+        a = self._true_pose()[:2]
+        ok = self._inner.walk(forward, lateral, turn, seconds)
+        self.path_m += float(np.linalg.norm(self._true_pose()[:2] - a))
         return ok
 
 
@@ -319,7 +354,7 @@ def _run(home, job, cfg, arm, t0) -> dict:
     thresholds = VerifierThresholds(**{**cfg.get("verifier", {}), **arm.get("verifier", {})})
     memory = SpatialMemory(np.random.default_rng([job["seed"], 2]), GRID_SIZE, boxes=False)
     world = SemanticWorld(memory.grid, knowledge, belief, thresholds)
-    toolbox = MobileToolbox(meter, memory, navigator=cfg["navigator"], semantic=world)
+    toolbox = MobileToolbox(meter.agent_base, memory, navigator=cfg["navigator"], semantic=world)
     with tempfile.TemporaryDirectory() as folder:
         target = getattr(goal, "target", spec.target_class) or ""
         hints, mem = memory_hints(home, target, belief.memory, folder)

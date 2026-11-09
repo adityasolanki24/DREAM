@@ -22,6 +22,21 @@ def backproject(frame: RGBDFrame) -> np.ndarray:
     return cam @ cal.rotation.T + cal.position
 
 
+def calibration_from_look(
+    position, forward, up, fovy_deg: float, width: int, height: int
+) -> CameraCalibration:
+    """Pinhole calibration (MuJoCo convention: x right, y up, looks along -z) of a camera at
+    ``position`` looking along ``forward`` with approximate ``up``, all in one frame (world or
+    odometry): the calibration equivalent of a camera pose given as forward and up vectors."""
+    f = np.asarray(forward, float)
+    f = f / np.linalg.norm(f)
+    right = np.cross(f, np.asarray(up, float))
+    right = right / np.linalg.norm(right)
+    true_up = np.cross(right, f)
+    rotation = np.stack([right, true_up, -f], axis=1)  # columns: camera x, y, z in the frame
+    return CameraCalibration(width, height, float(fovy_deg), np.asarray(position, float), rotation)
+
+
 def project(cal: CameraCalibration, points: np.ndarray) -> np.ndarray:
     """Pixel coordinates (u, v) of world points, (..., 2); for overlays."""
     cam = (np.asarray(points) - cal.position) @ cal.rotation
