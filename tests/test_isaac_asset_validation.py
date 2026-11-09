@@ -16,7 +16,10 @@ def good(cls="refrigerator", size=(0.7, 0.7, 1.8)):
             [-size[0] / 2, -size[1] / 2, 0.0],
             [size[0] / 2, size[1] / 2, size[2]],
         ],
-        "bound_after_play": [[-0.3, -0.3, 0.0], [0.3, 0.3, 1.0]],
+        "bound_after_play": [
+            [-size[0] / 2, -size[1] / 2, 0.0],
+            [size[0] / 2, size[1] / 2, size[2]],
+        ],
         "path": f"SimReady/{cls}.usd", "tag": "c00", "url": f"https://x/{cls}.usd",
     }  # fmt: skip
 
@@ -65,6 +68,7 @@ def test_manifest_selects_first_passing_candidate_and_lists_failures(tmp_path):
             rec = good(cls) if cls == "toilet" and i == 1 else {"resolves": False}
             if cls == "toilet" and i == 1:
                 rec["bound_normalised"] = [[-0.2, -0.35, 0.0], [0.2, 0.35, 0.75]]
+                rec["bound_after_play"] = rec["bound_normalised"]
             (tmp_path / cls).mkdir(exist_ok=True)
             (tmp_path / cls / f"c{i:02d}.json").write_text(json.dumps(rec))
     out = v.build_manifest(tmp_path, {"toilet": "-y"}, "2026-11-09")
