@@ -62,7 +62,21 @@ def attempt(cfg: dict) -> dict:
     )
     predicted = _attempt(predicted_cfg)
     proposed = predicted["phases"].get("grasp_geometry", {}).get("rank", 0)
-    rank = proposed if predicted["grasp_verified"] else 0
+    attempts = [_preview_outcome(predicted, proposed)]
+    if cfg.get("grasp_depth_search", False) and not predicted["grasp_verified"]:
+        # Give the controller up to two other predictions with distinct depth
+        # targets. A stage prediction alone does not establish whole-body reach.
+        alternatives = predicted["phases"].get("rehearsal_alternatives", [])
+        for candidate in alternatives[:2]:
+            predicted = _attempt(predicted_cfg, planned_rank=candidate)
+            attempts.append(_preview_outcome(predicted, candidate))
+            if predicted["grasp_verified"]:
+                break
+    if cfg.get("grasp_depth_search", False) and not predicted["grasp_verified"]:
+        result = attempt(dict(cfg, grasp_depth_search=False))
+        result["phases"]["grasp_depth_fallback"] = attempts
+        return result
+    rank = attempts[-1]["rank"] if predicted["grasp_verified"] else 0
     result = _attempt(cfg, planned_rank=rank)
     result["phases"]["whole_body_grasp_preview"] = {
         "proposed_rank": proposed,
@@ -70,8 +84,18 @@ def attempt(cfg: dict) -> dict:
         "predicted_verified": predicted["grasp_verified"],
         "predicted_peak_lift_m": predicted["peak_lift_m"],
         "predicted_stop": predicted["stop"],
+        "attempts": attempts,
     }
     return result
+
+
+def _preview_outcome(predicted: dict, rank: int) -> dict:
+    return {
+        "rank": rank,
+        "verified": predicted["grasp_verified"],
+        "peak_lift_m": predicted["peak_lift_m"],
+        "stop": predicted["stop"],
+    }
 
 
 def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
@@ -138,6 +162,7 @@ def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
     monitor = WholeBodySupervisor(planner.pm, SafetyLimits(contact_force=35.0))
     backend = WBCBackend(env, ctrl, caps, contact_force=backend_force)
     fingers = env.hand_targets.copy()
+    selected_closed = CLOSED
     fingers[RIGHT] = OPEN
     env.set_hand(fingers)
     rows, phases = [], {}
@@ -211,7 +236,7 @@ def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
         scratch.qpos[box_pose_qpos : box_pose_qpos + 7] = observe_box_pose()
         opposing_gap = 0.10
         for alpha in np.linspace(0.0, 1.0, 17):
-            scratch.qpos[env.hand_qadr[RIGHT]] = OPEN + alpha * (CLOSED - OPEN)
+            scratch.qpos[env.hand_qadr[RIGHT]] = OPEN + alpha * (selected_closed - OPEN)
             mujoco.mj_kinematics(model, scratch)
             clearance = min(clearance, table_distance())
             gaps = [
@@ -510,7 +535,7 @@ def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
         )
         rows[-1]["relative_box_motion_m"] = displacement
         rows[-1]["grip_target_n"] = normal_goal
-        fingers[RIGHT] = OPEN + fraction * (CLOSED - OPEN)
+        fingers[RIGHT] = OPEN + fraction * (selected_closed - OPEN)
         env.set_hand(fingers)
         return None
 
@@ -615,32 +640,53 @@ def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
     pinch_offset = np.array([0.0, 0.0, half_height])
     pinch_rotation = np.eye(3)
     rehearsal_search = planned_rank is None and cfg.get("contact_rehearsal_search", False)
+    depth_search = cfg.get("grasp_depth_search", False)
     if cfg.get("contact_geometry_search", False) or rehearsal_search or planned_rank is not None:
         set_scratch(backend.observe())
         object_pose = observe_box_pose()
-        pinches = rank_pinches(
-            model,
-            scratch.qpos,
-            object_pose,
-            size,
-            env.hand_qadr[RIGHT],
-            OPEN,
-            CLOSED,
-            GRASP_OFFSET,
-            TABLE_CLEARANCE_M,
-            object_geom=box_geom,
-            support_geom=table_geom,
-        )
-        if pinches:
-            rank = planned_rank if planned_rank is not None and planned_rank < len(pinches) else 0
-            if rehearsal_search:
-                # Nominal material prior shared across shapes and seeds. This
-                # separate scene never reads the real object's mass or contacts.
-                prediction = build_grasp_rehearsal(lambda spec: scene(spec, mass=REHEARSAL_MASS_KG))
-                rehearsals = rehearse_pinches(
+
+        def rank_candidates(thumb_biases=(0.0,)):
+            return rank_pinches(
+                model,
+                scratch.qpos,
+                object_pose,
+                size,
+                env.hand_qadr[RIGHT],
+                OPEN,
+                CLOSED,
+                GRASP_OFFSET,
+                TABLE_CLEARANCE_M,
+                object_geom=box_geom,
+                support_geom=table_geom,
+                depth_search=depth_search,
+                thumb_biases=thumb_biases,
+            )
+
+        pinches = rank_candidates()
+        # Changing thumb abduction changes where the pad wraps around an
+        # object. Consider both directions when the usual closure cannot hold.
+        thumb_variants = (-np.pi / 12, np.pi / 12)
+        if depth_search and planned_rank is not None and planned_rank >= len(pinches):
+            pinches.extend(rank_candidates(thumb_variants))
+        rank = planned_rank if planned_rank is not None and planned_rank < len(pinches) else 0
+        if rehearsal_search and (pinches or depth_search):
+            # Separate scene with a nominal material prior across all fixtures.
+            prediction = build_grasp_rehearsal(lambda spec: scene(spec, mass=REHEARSAL_MASS_KG))
+
+            def screen(first):
+                shortlist = list(enumerate(pinches[first:], start=first))
+                if depth_search:
+                    bands = {}
+                    for index, pinch in shortlist:
+                        band = pinch.offset[0], pinch.thumb_bias_rad
+                        bands.setdefault(band, []).append((index, pinch))
+                    shortlist = [entry for band in bands.values() for entry in band[:4]]
+                else:
+                    shortlist = shortlist[:12]
+                return rehearse_pinches(
                     prediction,
                     object_pose,
-                    pinches[:12],
+                    shortlist,
                     tuple(model.actuator(index).name for index in env.finger_actuators[RIGHT]),
                     OPEN,
                     CLOSED,
@@ -652,17 +698,38 @@ def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
                     lift_height=LIFT_M + 0.02,
                     hold_duration=HOLD_S,
                 )
-                retained = [r for r in rehearsals if r.minimum_hold_lift_m >= LIFT_M]
-                if retained:
-                    rank = min(retained, key=lambda r: r.maximum_slip_m).rank
-                phases["rehearsal"] = [asdict(r) for r in rehearsals]
+
+            rehearsals = screen(0)
+            if depth_search and not any(r.minimum_hold_lift_m >= LIFT_M for r in rehearsals):
+                first = len(pinches)
+                pinches.extend(rank_candidates(thumb_variants))
+                rehearsals.extend(screen(first))
+            retained = [r for r in rehearsals if r.minimum_hold_lift_m >= LIFT_M]
+            if retained:
+                retained.sort(key=lambda r: r.maximum_slip_m)
+                rank = retained[0].rank
+                if depth_search:
+                    used = {(pinches[rank].offset[0], pinches[rank].thumb_bias_rad)}
+                    alternatives = []
+                    for candidate in retained[1:]:
+                        pinch = pinches[candidate.rank]
+                        band = pinch.offset[0], pinch.thumb_bias_rad
+                        if band not in used:
+                            used.add(band)
+                            alternatives.append(candidate.rank)
+                    phases["rehearsal_alternatives"] = alternatives
+            phases["rehearsal"] = [asdict(r) for r in rehearsals]
+        if pinches:
             selected = pinches[rank]
             pinch_offset, pinch_rotation = selected.offset, selected.rotation
+            selected_closed = CLOSED.copy()
+            selected_closed[0] += selected.thumb_bias_rad
             phases["grasp_geometry"] = {
                 "candidates": len(pinches), "rank": rank, "offset_m": pinch_offset.tolist(),
                 "rotation": pinch_rotation.tolist(), "score": selected.score,
                 "support_links": selected.support_links,
                 "predicted_closure_fraction": selected.closure_fraction,
+                "thumb_bias_rad": selected.thumb_bias_rad,
             }  # fmt: skip
         else:
             phases["grasp_geometry"] = {"candidates": 0}
@@ -714,7 +781,7 @@ def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
     if can_close:
         stable_ticks = 0
         for _ in range(round(1.5 / TICK)):
-            fingers[RIGHT] = OPEN + fraction * (CLOSED - OPEN)
+            fingers[RIGHT] = OPEN + fraction * (selected_closed - OPEN)
             env.set_hand(fingers)
             if not tick("close"):
                 break

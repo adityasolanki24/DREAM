@@ -20,6 +20,7 @@ class PinchCandidate:
     clearance_m: float
     support_links: int
     closure_fraction: float
+    thumb_bias_rad: float
 
 
 @dataclass(frozen=True)
@@ -45,7 +46,7 @@ def regulate_closure(
 def rehearse_pinches(
     model: mujoco.MjModel,
     object_pose: np.ndarray,
-    candidates: list[PinchCandidate],
+    candidates: list[tuple[int, PinchCandidate]],
     hand_joints: tuple[str, ...],
     opening: np.ndarray,
     closing: np.ndarray,
@@ -74,8 +75,8 @@ def rehearse_pinches(
     results = []
     model.actuator_biasprm[lift_actuator, 0] = -model.body_subtreemass[stage] * model.opt.gravity[2]
 
-    def step(fraction, lift):
-        data.ctrl[actuators] = opening + fraction * (closing - opening)
+    def step(fraction, lift, end):
+        data.ctrl[actuators] = opening + fraction * (end - opening)
         data.ctrl[lift_actuator] = lift
         mujoco.mj_step(model, data, nstep=step_count)
         thumb_force = opposing_force = 0.0
@@ -91,7 +92,7 @@ def rehearse_pinches(
                 opposing_force += wrench[0]
         return min(thumb_force, opposing_force)
 
-    for rank, candidate in enumerate(candidates):
+    for rank, candidate in candidates:
         mujoco.mj_resetData(model, data)
         model.body_pos[stage] = (
             object_pose[:3] + candidate.offset - candidate.rotation @ tool_offset
@@ -103,8 +104,10 @@ def rehearse_pinches(
         data.qpos[object_qpos : object_qpos + 7] = object_pose
         fraction = 0.0
         dwell = 0
+        end = closing.copy()
+        end[0] += candidate.thumb_bias_rad
         for _ in range(round(1.5 / control_period)):
-            if step(fraction, 0.0) >= grip_force:
+            if step(fraction, 0.0, end) >= grip_force:
                 dwell += 1
                 if dwell >= round(grip_dwell / control_period):
                     break
@@ -123,7 +126,7 @@ def rehearse_pinches(
         max_slip = 0.0
         for tick in range(lift_steps + round(hold_duration / control_period)):
             lift = min((tick + 1) / lift_steps, 1.0) * lift_height
-            weakest = step(fraction, lift)
+            weakest = step(fraction, lift, end)
             position = data.qpos[object_qpos : object_qpos + 3]
             stage_rise = data.qpos[lift_qpos] - start_slide
             relative = position - grasped_position - [0.0, 0.0, stage_rise]
@@ -151,6 +154,8 @@ def rank_pinches(
     *,
     object_geom: int,
     support_geom: int,
+    depth_search: bool = False,
+    thumb_biases: tuple[float, ...] = (0.0,),
 ) -> list[PinchCandidate]:
     """Use the observed object pose and mesh geometry in a separate kinematic state."""
     data = mujoco.MjData(model)
@@ -169,10 +174,10 @@ def rank_pinches(
     root_to_wrist = data.xpos[wrist].copy() - reference[:3]
     root_rot = Rotation.from_quat(reference[[4, 5, 6, 3]]).as_matrix()
     centre = object_pose[:3]
-    width, height_extent = half_extents[1:]
+    depth_extent, width, height_extent = half_extents
     candidates = []
 
-    def evaluate(rot, offset):
+    def evaluate(rot, offset, thumb_bias):
         change = rot @ wrist_to_world.T
         root_quat = Rotation.from_matrix(change @ root_rot).as_quat()
         data.qpos[:] = reference
@@ -181,8 +186,10 @@ def rank_pinches(
         data.qpos[object_qpos : object_qpos + 7] = object_pose
         closest_table = 0.10
         best = None
+        end = closing.copy()
+        end[0] += thumb_bias
         for fraction in np.linspace(0.0, 1.0, 17):
-            data.qpos[hand_joints] = opening + fraction * (closing - opening)
+            data.qpos[hand_joints] = opening + fraction * (end - opening)
             mujoco.mj_forward(model, data)
             closest_table = min(
                 closest_table,
@@ -233,15 +240,17 @@ def rank_pinches(
         if best is None:
             return None
         score, support, fraction = best
-        return PinchCandidate(offset, rot, score, closest_table, support, fraction)
+        return PinchCandidate(offset, rot, score, closest_table, support, fraction, thumb_bias)
 
-    # Search around the observed box. The signed offsets scale with its width.
-    for roll, pitch, height, lateral in product(
-        (-15, 0, 15), (0, 15, 30), (0.5, 0.75, 1.0, 1.25), (-0.2, 0.0, 0.2)
+    # Sample between the centre and the front and back surfaces. Changing how
+    # far the fingers wrap around an object changes which links carry the load.
+    depths = (-0.8, -0.4, 0.0, 0.4, 0.8) if depth_search else (0.0,)
+    for thumb_bias, depth, roll, pitch, height, lateral in product(
+        thumb_biases, depths, (-15, 0, 15), (0, 15, 30), (0.5, 0.75, 1.0, 1.25), (-0.2, 0.0, 0.2)
     ):
         rot = Rotation.from_euler("xy", [roll, pitch], degrees=True).as_matrix()
-        offset = np.array([0.0, lateral * width, height * height_extent])
-        candidate = evaluate(rot, offset)
+        offset = np.array([depth * depth_extent, lateral * width, height * height_extent])
+        candidate = evaluate(rot, offset, thumb_bias)
         if candidate is not None:
             candidates.append(candidate)
     return sorted(candidates, key=lambda candidate: candidate.score, reverse=True)

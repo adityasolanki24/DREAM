@@ -93,3 +93,15 @@ def test_whole_body_preview_filters_the_proposed_grasp(fixture, preview_holds):
     assert result["phases"]["grasp_geometry"]["rank"] == expected_rank
     assert result["stop"] is None
     assert result["grasp_verified"], result["phases"]
+
+
+@pytest.mark.parametrize(("fixture", "uses_thumb_bias"), [("cylinder", False), ("shift_in", True)])
+def test_expanded_contact_search_retains_the_object(fixture, uses_thumb_bias):
+    cfg = json.loads((CONFIG / f"g1_grasp_bringup_{fixture}.json").read_text())
+    result = attempt(dict(cfg, whole_body_grasp_preview=True, grasp_depth_search=True))
+    geometry = result["phases"]["grasp_geometry"]
+    assert geometry["offset_m"][0] != 0.0
+    assert bool(geometry["thumb_bias_rad"]) is uses_thumb_bias
+    assert result["phases"]["whole_body_grasp_preview"]["predicted_verified"]
+    assert result["stop"] is None
+    assert result["grasp_verified"], result["phases"]
