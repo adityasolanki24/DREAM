@@ -318,8 +318,10 @@ def _read_anatomy() -> _Anatomy:
 class PlanningModel:
     """Robot-only model, hand/foot sites, and parked box slots for perceived obstacles."""
 
-    def __init__(self) -> None:
+    def __init__(self, grip_offsets=None) -> None:
         self.anatomy = _read_anatomy()
+        if grip_offsets is not None:
+            self.anatomy.grip.update(grip_offsets)
         spec = _load_spec()
         for side in ARMS:
             spec.body(f"{side}_wrist_yaw_link").add_site(
@@ -621,10 +623,16 @@ def _support_points(pm: PlanningModel, d: mujoco.MjData) -> np.ndarray:
 
 
 class PosturePlanner:
-    def __init__(self, capabilities: ControllerCapabilities, config: PlannerConfig | None = None):
+    def __init__(
+        self,
+        capabilities: ControllerCapabilities,
+        config: PlannerConfig | None = None,
+        *,
+        grip_offsets=None,
+    ):
         self.caps = capabilities
         self.config = config or PlannerConfig()
-        self.pm = PlanningModel()
+        self.pm = PlanningModel(grip_offsets)
         self._self_pairs = self.pm.self_pairs()
         self._shoulder_pairs = self.pm.shoulder_pairs()
         self.last_timings: list[float] = []  # seconds per evaluated (stance, arm) candidate
@@ -708,6 +716,7 @@ class PosturePlanner:
         feet=None,
         hold_body=False,
         hold_waist=False,
+        orientation=None,
     ) -> np.ndarray | None:
         pm, m = self.pm, self.pm.model
         feet = feet or self._feet_targets(stance)
@@ -717,8 +726,15 @@ class PosturePlanner:
             t = mink.FrameTask(f"{s}_sole", "site", COST_FOOT, COST_FOOT, gain=IK_GAIN)
             t.set_target(feet[s])
             tasks.append(t)
-        hand = mink.FrameTask(f"{arm}_grip", "site", COST_HAND, 0.0, gain=IK_GAIN)
-        hand.set_target(mink.SE3.from_translation(np.asarray(target, float)))
+        rotation = mink.SO3.identity() if orientation is None else mink.SO3.from_matrix(orientation)
+        hand = mink.FrameTask(
+            f"{arm}_grip",
+            "site",
+            COST_HAND,
+            0.0 if orientation is None else COST_AXIS,
+            gain=IK_GAIN,
+        )
+        hand.set_target(mink.SE3.from_rotation_and_translation(rotation, np.asarray(target, float)))
         tasks.append(hand)
         if approach is not None:  # finger direction (grip frame +x) along the approach axis
             axis = mink.AxisAlignTask(f"{arm}_grip", "site", (1.0, 0.0, 0.0), COST_AXIS, IK_GAIN)
@@ -978,13 +994,16 @@ class PosturePlanner:
         approach_axis=None,
         stances=None,
         arms=None,
+        *,
+        orientation=None,
     ) -> PlanResult:
         """Rank feasible (stance, arm) postures reaching ``target`` (odometry/world frame).
 
         ``obstacles`` are PERCEIVED boxes only. The result lists failures with reasons.
         ``stances``: explicit (x, y, yaw) candidates (for example the robot's measured pose,
         where it already stands); default: sample rings around the target. ``arms``: restrict the
-        candidate arms (default: ``config.arms``)."""
+        candidate arms (default: ``config.arms``). ``orientation`` is the requested 3D grip rotation
+        in the odometry frame. The caller can verify task-specific angular tolerances."""
         target = np.asarray(target, float)
         if target.shape != (3,) or not np.isfinite(target).all():
             raise ValueError("target must be a finite 3-vector")
@@ -1004,7 +1023,15 @@ class PosturePlanner:
         for stance in stances:
             for arm in arms or self.config.arms:
                 t0 = time.perf_counter()
-                q = self._ik(self._q_start(stance), stance, arm, target, approach_axis, limits)
+                q = self._ik(
+                    self._q_start(stance),
+                    stance,
+                    arm,
+                    target,
+                    approach_axis,
+                    limits,
+                    orientation=orientation,
+                )
                 if q is None:
                     result.failures.append(PlanFailure(stance, arm, ("solver",), {}))
                     self.last_timings.append(time.perf_counter() - t0)
@@ -1013,7 +1040,7 @@ class PosturePlanner:
                     q, stance, arm, target, regular, touch, approach_axis
                 )
                 metrics["axis_relaxed"] = 0.0
-                if reasons and approach_axis is not None:
+                if reasons and approach_axis is not None and orientation is None:
                     # The approach axis is a preference, not a requirement: a candidate that
                     # only fails because of it is tried again without it (H3: low targets).
                     q2 = self._ik(self._q_start(stance), stance, arm, target, None, limits)

@@ -34,7 +34,9 @@ The Dex3 actuator path is opt-in. W6 remains a failed development evaluation.
 For the fixed-stance grasp diagnostic, install the `wholebody` and `locomotion` extras
 and use the cached WBC weights. See the
 [bring-up report](Reports/2026-11-10/003-r0-r1-start/REPORT.md) for the commands and
-development outcomes.
+development outcomes. The current R1 guard stops the hand at the table edge before
+closure in the reproduced failure case. A box lift remains unverified. See the
+[R1 tabletop report](Reports/2026-11-10/006-r1-tabletop-grasp/REPORT.md).
 
 ## Executive summary
 

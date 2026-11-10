@@ -12,7 +12,7 @@ import numpy as np
 from dream.robot.g1_posture import PerceivedBox, PosturePlanner
 from dream.robot.g1_supervisor import SafetyLimits, WholeBodySupervisor
 from dream.robot.g1_wbc import WBCLocomotion
-from dream.robot.wholebody import TICK, ControllerCapabilities, WBCBackend
+from dream.robot.wholebody import TICK, ControllerCapabilities, StopEvent, WBCBackend
 from dream.sim.g1_mobile import TOUCH_THRESHOLD, G1MobileEnv, build_mobile_g1
 
 # Right-hand targets mirror the supported G1's seven-joint closure in dream/robot/g1.py.
@@ -21,6 +21,14 @@ CLOSED = np.array([0, -0.7, -1.2, 1.1, 1.2, 1.1, 1.2])
 RIGHT = slice(7, 14)
 LIFT_M = 0.10
 HOLD_S = 3.0
+# Approximate overlap of the opposing Dex3 pads near the end of the commissioned closure.
+# The open fingertips lie much farther forward than this grasp centre.
+GRASP_OFFSET = np.array([0.13, 0.045, 0.0])
+# Sample the actual articulated hand sweep. The 3 mm allowance covers mm-scale
+# foot-height/odometry differences seen in the WBC reach diagnostic.
+TABLE_CLEARANCE_M = 0.003
+PROBE_M = 0.03
+MIN_RESPONSE_M = 0.01
 
 
 def attempt(cfg: dict) -> dict:
@@ -59,7 +67,7 @@ def attempt(cfg: dict) -> dict:
         ctrl.arm_target[:] = arm
         mujoco.mj_forward(model, env.data)
     caps = ControllerCapabilities.from_envelope_json()
-    planner = PosturePlanner(caps)
+    planner = PosturePlanner(caps, grip_offsets={"right": GRASP_OFFSET})
     # Engineering commissioning limit for this diagnostic, not a sensor calibration.
     backend_force = lambda: sum(env.touch("right").values())  # noqa: E731
     monitor = WholeBodySupervisor(planner.pm, SafetyLimits(contact_force=35.0))
@@ -84,6 +92,51 @@ def attempt(cfg: dict) -> dict:
         if model.body(model.geom_bodyid[g]).name.startswith(("left_hand_", "left_wrist_yaw"))
     }
     reference_z = env.data.xpos[box_id, 2]
+    scratch = mujoco.MjData(model)
+    table_geom = model.geom("tabletop").id
+    collision_geoms = sorted(g for g in hand_geoms | left_hand_geoms if model.geom_contype[g])
+    # Keep the generic obstacle guard on the body. For the hands this runner
+    # checks the articulated meshes against the known fixture dimensions.
+    obstacle = PerceivedBox(table, tuple(table_half), hand_may_touch=True)
+    wrist_body = model.body("right_wrist_yaw_link").id
+
+    def set_scratch(obs, planned=None):
+        # Use robot proprioception and the labelled table fixture. Do not copy the
+        # live scene or inspect what the tactile sensor touched.
+        if planned is None:
+            sensed = monitor.pm.kinematic_state(obs.prop.quat, obs.prop.q)
+            scratch.qpos[:3] = [*obs.pose[:2], sensed["height"]]
+            scratch.qpos[3:7] = obs.prop.quat
+            scratch.qpos[env.qadr] = obs.prop.q
+        else:
+            scratch.qpos[:7] = planned[:7]
+            scratch.qpos[env.qadr] = planned[planner.pm.qadr]
+        scratch.qpos[env.hand_qadr] = env.hand_positions()
+        mujoco.mj_kinematics(model, scratch)
+
+    def table_distance():
+        return min(
+            mujoco.mj_geomDistance(model, scratch, g, table_geom, 0.10, None)
+            for g in collision_geoms
+        )
+
+    def check_closure():
+        set_scratch(backend.observe())
+        rot = scratch.xmat[wrist_body].reshape(3, 3)
+        grasp = scratch.xpos[wrist_body] + rot @ GRASP_OFFSET
+        clearance = table_distance()
+        for alpha in np.linspace(0.0, 1.0, 17):
+            scratch.qpos[env.hand_qadr[RIGHT]] = OPEN + alpha * (CLOSED - OPEN)
+            mujoco.mj_kinematics(model, scratch)
+            clearance = min(clearance, table_distance())
+        return {
+            "grasp_xyz_m": grasp.tolist(), "wrist_rotation": rot.tolist(),
+            "table_clearance_m": clearance,
+        }  # fmt: skip
+
+    def observe_box_z():
+        # Labelled oracle-assisted perception for this development fixture.
+        return float(env.data.xpos[box_id, 2])
 
     def sample(phase):
         # Evaluation only. Decisions below use the touch sensors and labelled pose estimate.
@@ -116,20 +169,30 @@ def attempt(cfg: dict) -> dict:
         sample(phase)
         obs = backend.observe()
         stop = monitor(obs)
+        if stop is None and phase != "settle":
+            stop = clearance_stop(obs)
         if stop and not ctrl.stopped:
             backend.hold(stop)
         return stop is None and not ctrl.stopped
 
-    def reach(phase, point):
-        # The table and starting object pose are supplied as oracle-assisted fixture inputs.
-        obstacle = PerceivedBox(table, tuple(table_half))
-        result = planner.plan(
+    def clearance_stop(obs):
+        set_scratch(obs)
+        distance = table_distance()
+        if distance < TABLE_CLEARANCE_M:
+            return StopEvent(obs.t, "hand clearance", {"table_clearance_m": distance})
+        return None
+
+    def plan_at(point, stance):
+        return planner.plan(
             point,
-            stances=[env.odometry()],
+            stances=[stance],
             arms=["right"],
             obstacles=[obstacle],
-            approach_axis=(1.0, 0.0, 0.0),
+            orientation=np.eye(3),
         )
+
+    def reach(phase, point):
+        result = plan_at(point, env.odometry())
         if not result.plans:
             phases[phase] = {
                 "plan_failure": result.reasons(),
@@ -137,19 +200,46 @@ def attempt(cfg: dict) -> dict:
             }
             return False
 
+        target = result.plans[0].target
+        set_scratch(backend.observe(), planned=target.q)
+        distance = table_distance()
+        if distance < TABLE_CLEARANCE_M:
+            phases[phase] = {"refused": "planned hand clearance", "table_clearance_m": distance}
+            return False
+
         def watch(obs):
             sample(phase)
-            return monitor(obs)
+            return monitor(obs) or clearance_stop(obs)
 
-        run = backend.execute(result.plans[0].target, monitor=watch)
+        run = backend.execute(target, monitor=watch)
         phases[phase] = {
             "completed": run.completed, "refused": run.refused,
             "stops": [asdict(stop) for stop in run.stops],
         }  # fmt: skip
         return run.completed
 
+    # Keep the pinch near the upper part of the box. The wrist must be high
+    # enough to clear the table with the wider palm and fingers.
+    grip_point = np.array(center) + [0.0, 0.0, half]
+    # Raise on the near side of the table before moving over it. The open
+    # fingertip extends about 87 mm beyond the grasp centre along +x.
+    approach = grip_point + [-0.06, 0.0, 0.04]
+    raise_point = approach.copy()
+    raise_point[0] = min(approach[0], table[0] - table_half[0] - 0.11)
     settled = all(tick("settle") for _ in range(round(1.0 / TICK)))
-    if settled and reach("reach", center):
+
+    can_close = False
+    if (
+        settled
+        and reach("raise", raise_point)
+        and reach("pregrasp", approach)
+        and reach("reach", grip_point)
+    ):
+        clearance = check_closure()
+        error = np.abs(np.asarray(clearance["grasp_xyz_m"]) - grip_point)
+        can_close = clearance["table_clearance_m"] >= TABLE_CLEARANCE_M and error.max() <= half
+        phases["preclose"] = {**clearance, "position_error_m": error.tolist(), "clear": can_close}
+    if can_close:
         opposed = False
         for k in range(1, round(1.0 / TICK) + 1):
             fingers[RIGHT] = OPEN + k * TICK * (CLOSED - OPEN)
@@ -165,14 +255,21 @@ def attempt(cfg: dict) -> dict:
             if opposed:
                 break
         phases["close"] = {"opposed_touch": opposed}
-        if opposed and reach("lift", np.array(center) + [0.0, 0.0, LIFT_M + 0.02]):
-            all(tick("hold") for _ in range(round(HOLD_S / TICK)))
+        if opposed:
+            before = observe_box_z()
+            if reach("probe", grip_point + [0.0, 0.0, PROBE_M]):
+                response = observe_box_z() - before
+                phases["probe"]["object_rise_m"] = response
+                if response >= MIN_RESPONSE_M and reach(
+                    "lift", grip_point + [0.0, 0.0, LIFT_M + 0.02]
+                ):
+                    all(tick("hold") for _ in range(round(HOLD_S / TICK)))
 
     hold = [r for r in rows if r["phase"] == "hold"]
     return {
         "phases": phases, "rows": rows,
-        "stop": asdict(monitor.latched) if monitor.latched else ctrl.stopped,
-        "peak_lift_m": max(r["lift_m"] for r in rows),
+        "stop": asdict(backend.held) if backend.held else ctrl.stopped,
+        "peak_lift_m": max((r["lift_m"] for r in rows), default=0.0),
         "grasp_verified": len(hold) == round(HOLD_S / TICK)
         and all(r["lift_m"] >= LIFT_M and r["hand_only_contact"] for r in hold),
     }  # fmt: skip
