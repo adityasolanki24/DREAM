@@ -49,6 +49,18 @@ box, cylinder and sphere reached closure but did not pass the hold gate.
 [Matched results](results/g1_r1_contact_rank_dev_20261110/summary.json) and
 [retention report](Reports/2026-11-10/009-r1-contact-retention/REPORT.md).
 
+The opt-in `whole_body_grasp_preview` first rehearses the geometric candidates
+under gravity with an articulated Dex3 hand. The full balance and arm controller
+then tests the proposed pose in a separate scene using a shared 0.10 kg mass prior
+and independent odometry noise. A failed preview falls back to the static choice.
+Live evaluation still requires 10 cm of lift and 3 s of hand-only contact.
+This development comparison passed 5 of 6 matched cubes and the rectangular box,
+retaining all previous passes. The inward-shifted cube, cylinder and sphere
+failed. The stage-only selector lost two previous passes, so it remains a
+diagnostic. All cases started at a fixed stance and used oracle-assisted pose
+and odometry. [Matched results](results/g1_r1_rehearsal_dev_20261110/summary.json)
+and [rehearsal report](Reports/2026-11-10/010-r1-physical-rehearsal/REPORT.md).
+
 ## Executive summary
 
 **New on 8-9 November**, all in simulation:

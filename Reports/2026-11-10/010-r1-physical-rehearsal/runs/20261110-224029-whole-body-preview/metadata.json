@@ -1,0 +1,183 @@
+{
+  "run_id": "2026-11-10-010/20261110-224029-whole-body-preview",
+  "task_id": "2026-11-10-010",
+  "title": "Confirm the proposed grasp with an independent whole-body rollout",
+  "started": "2026-11-10T22:40:29+11:00",
+  "commit": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+  "dirty": true,
+  "branch": "codex/g1-integration",
+  "configs": [
+    {
+      "path": "results/g1_r1_contact_rank_dev_20261110/summary.json",
+      "sha256": "7ae701b1b4f3fd899c559cfca9586f25dde72bb2819d42cdb6975603b4964b70"
+    }
+  ],
+  "command": "python C:/Users/24adi/DREAM-r1-evidence/r1-whole-body-preview-001/run.py",
+  "seeds": "same nine matched cases",
+  "model": "Cached Decoupled WBC",
+  "simulator": "MuJoCo 3.16.0",
+  "renderer": "None",
+  "embodiment": "free-standing G1 Dex3",
+  "controller": "Decoupled WBC",
+  "hardware": "local CPU, 2 workers",
+  "status": "completed",
+  "ended": "2026-11-10T22:42:47+11:00",
+  "exit_status": 0,
+  "cases_attempted": 9,
+  "cases_completed": 9,
+  "metrics": {
+    "cubes_verified": 5,
+    "cubes_total": 6,
+    "additional_geometries_verified": 1,
+    "additional_geometries_total": 3,
+    "cases": [
+      {
+        "name": "pinch",
+        "verified": true,
+        "peak_lift_m": 0.14223391185328682,
+        "preview": {
+          "proposed_rank": 4,
+          "executed_rank": 0,
+          "predicted_verified": false,
+          "predicted_peak_lift_m": 0.02954741729154431,
+          "predicted_stop": {
+            "t": 19.140000000000477,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          }
+        }
+      },
+      {
+        "name": "lateral",
+        "verified": true,
+        "peak_lift_m": 0.14852186452469862,
+        "preview": {
+          "proposed_rank": 4,
+          "executed_rank": 4,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.14746779287708167,
+          "predicted_stop": null
+        }
+      },
+      {
+        "name": "shift_in",
+        "verified": false,
+        "peak_lift_m": 0.10254674394268204,
+        "preview": {
+          "proposed_rank": 0,
+          "executed_rank": 0,
+          "predicted_verified": false,
+          "predicted_peak_lift_m": 0.11002367569551552,
+          "predicted_stop": {
+            "t": 21.08000000000009,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          }
+        }
+      },
+      {
+        "name": "shift_out",
+        "verified": true,
+        "peak_lift_m": 0.14093875805459166,
+        "preview": {
+          "proposed_rank": 2,
+          "executed_rank": 2,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.14093875805459166,
+          "predicted_stop": null
+        }
+      },
+      {
+        "name": "fresh_near",
+        "verified": true,
+        "peak_lift_m": 0.13569821693369466,
+        "preview": {
+          "proposed_rank": 4,
+          "executed_rank": 0,
+          "predicted_verified": false,
+          "predicted_peak_lift_m": 0.009987580750281833,
+          "predicted_stop": {
+            "t": 15.680000000001051,
+            "reason": "hand clearance",
+            "detail": {
+              "table_clearance_m": 0.0024244133422246517
+            }
+          }
+        }
+      },
+      {
+        "name": "fresh_far",
+        "verified": true,
+        "peak_lift_m": 0.13671912608233272,
+        "preview": {
+          "proposed_rank": 4,
+          "executed_rank": 0,
+          "predicted_verified": false,
+          "predicted_peak_lift_m": 0.026322850648927476,
+          "predicted_stop": {
+            "t": 20.040000000000298,
+            "reason": "contact force",
+            "detail": {
+              "force": 35.13442626502756
+            }
+          }
+        }
+      },
+      {
+        "name": "rectangular",
+        "verified": true,
+        "peak_lift_m": 0.14472749411104147,
+        "preview": {
+          "proposed_rank": 10,
+          "executed_rank": 10,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.1425742469973732,
+          "predicted_stop": null
+        }
+      },
+      {
+        "name": "cylinder",
+        "verified": false,
+        "peak_lift_m": 0.05073144876173874,
+        "preview": {
+          "proposed_rank": 9,
+          "executed_rank": 0,
+          "predicted_verified": false,
+          "predicted_peak_lift_m": -0.0001081597314578353,
+          "predicted_stop": null
+        }
+      },
+      {
+        "name": "sphere",
+        "verified": false,
+        "peak_lift_m": -0.0002458796004892738,
+        "preview": {
+          "proposed_rank": 0,
+          "executed_rank": 0,
+          "predicted_verified": false,
+          "predicted_peak_lift_m": -0.00029266804774541466,
+          "predicted_stop": {
+            "t": 16.780000000000946,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          }
+        }
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-whole-body-preview-001",
+      "kind": "dir",
+      "sha256": "1ee524824877fbad4dbb404d450c72f1bb53a0f506724825becc9b9282870fd2",
+      "skipped": []
+    }
+  ],
+  "cloud": null
+}

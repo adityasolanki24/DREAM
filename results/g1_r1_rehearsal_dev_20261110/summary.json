@@ -1,0 +1,1552 @@
+{
+  "scope": "Matched fixed-stance development, oracle-assisted pose and odometry. Same nine live scenarios across variants.",
+  "live_gate": {
+    "height_m": 0.1,
+    "hold_s": 3,
+    "hand_only_contact": true
+  },
+  "planning_assumptions": {
+    "object_mass_kg": 0.1,
+    "friction": "MuJoCo fixture default",
+    "rehearsal_candidates_at_most": 12,
+    "independent_planning_noise": {
+      "seed_sequence_entropy": 0,
+      "spawn_key": [
+        1
+      ]
+    }
+  },
+  "baseline": "results/g1_r1_contact_rank_dev_20261110/summary.json",
+  "comparisons": {
+    "static_geometry": {
+      "matched_cubes_verified": 4,
+      "matched_cubes_total": 6,
+      "additional_geometries_verified": 0,
+      "additional_geometries_total": 3
+    },
+    "projected_wrist": {
+      "matched_cubes_verified": 4,
+      "matched_cubes_total": 6,
+      "additional_geometries_verified": 0,
+      "additional_geometries_total": 3
+    },
+    "actuated_stage": {
+      "matched_cubes_verified": 3,
+      "matched_cubes_total": 6,
+      "additional_geometries_verified": 1,
+      "additional_geometries_total": 3
+    },
+    "fixed_loaded_orientation": {
+      "matched_cubes_verified": 4,
+      "matched_cubes_total": 6,
+      "additional_geometries_verified": 0,
+      "additional_geometries_total": 3
+    },
+    "whole_body_shared_noise": {
+      "matched_cubes_verified": 5,
+      "matched_cubes_total": 6,
+      "additional_geometries_verified": 1,
+      "additional_geometries_total": 3
+    },
+    "whole_body_independent_noise": {
+      "matched_cubes_verified": 5,
+      "matched_cubes_total": 6,
+      "additional_geometries_verified": 1,
+      "additional_geometries_total": 3
+    }
+  },
+  "source_snapshots": {
+    "projected_wrist": {
+      "evidence_directory": "r1-rehearsal-screen-001",
+      "source_sha256": {
+        "g1_grasp_bringup.py": "cd9be798053b23cbf3be87774adfe1a57ed2ccc232c249feb79f40c4965e1837",
+        "g1_grasp_geometry.py": "03a65ccd56dfcda292aa78b9d2c32b2de952b82420146aa7a4cb21b2226528cc"
+      }
+    },
+    "actuated_stage": {
+      "evidence_directory": "r1-rehearsal-stage-001",
+      "source_sha256": {
+        "g1_grasp_bringup.py": "e17805b5b87086e3a735ce087ff2fc7398e909654db67270e67854a8eb95c31f",
+        "g1_grasp_geometry.py": "5a270e40eeecb5f3e21a5b522200229d46c5efec6b214ec0b6640614c2eb259a",
+        "g1_mobile.py": "8bcc27f1c6482414e2d51f05ca806aa2b72855d64eff143abde7a301a3ae547e"
+      }
+    },
+    "fixed_loaded_orientation": {
+      "evidence_directory": "r1-loaded-wrist-001",
+      "source_sha256": {
+        "g1_grasp_bringup.py": "ff87eed1ac6d7e5b03a3027125449664ddbec35ef678e5a773fa57e12fa6d133",
+        "g1_grasp_geometry.py": "5a270e40eeecb5f3e21a5b522200229d46c5efec6b214ec0b6640614c2eb259a",
+        "g1_mobile.py": "8bcc27f1c6482414e2d51f05ca806aa2b72855d64eff143abde7a301a3ae547e"
+      }
+    },
+    "whole_body_shared_noise": {
+      "evidence_directory": "r1-whole-body-preview-001",
+      "source_sha256": {
+        "g1_grasp_bringup.py": "8e37f6a003cf49fd85335e617a23799def3b69db921434a25ecb728cfe02be62",
+        "g1_grasp_geometry.py": "5a270e40eeecb5f3e21a5b522200229d46c5efec6b214ec0b6640614c2eb259a",
+        "g1_mobile.py": "8bcc27f1c6482414e2d51f05ca806aa2b72855d64eff143abde7a301a3ae547e",
+        "run.py": "e7754bf1379cd968b22b91291e177cfab3574fde662228cd71f4d358bad7ce07"
+      }
+    },
+    "whole_body_independent_noise": {
+      "evidence_directory": "r1-independent-preview-001",
+      "source_sha256": {
+        "g1_grasp_bringup.py": "44ab7e8ca285f85290abe696917e3fb8614b7a077a3c60bf8938cdb0151e7c3f",
+        "g1_grasp_geometry.py": "5a270e40eeecb5f3e21a5b522200229d46c5efec6b214ec0b6640614c2eb259a",
+        "g1_mobile.py": "8bcc27f1c6482414e2d51f05ca806aa2b72855d64eff143abde7a301a3ae547e",
+        "run.py": "e7754bf1379cd968b22b91291e177cfab3574fde662228cd71f4d358bad7ce07"
+      }
+    }
+  },
+  "episodes": [
+    {
+      "case": "pinch",
+      "base_config": {
+        "seed": 0,
+        "table_top_m": 0.75,
+        "table_center_xy_m": [
+          0.6,
+          -0.17
+        ],
+        "table_half_size_m": [
+          0.24,
+          0.24,
+          0.025
+        ],
+        "object_center_xy_m": [
+          0.47,
+          -0.17
+        ],
+        "object_half_size_m": 0.025,
+        "object_mass_kg": 0.075,
+        "starting_stance_xy_yaw": [
+          0.17,
+          0.0,
+          0.0
+        ],
+        "start_arms_down": true,
+        "start_right_shoulder_roll_rad": -0.35,
+        "start_left_shoulder_roll_rad": 0.35,
+        "contact_geometry_search": true
+      },
+      "variants": {
+        "static_geometry": {
+          "verified": true,
+          "peak_lift_m": 0.14223391185328682,
+          "stop": null,
+          "trace_sha256": "76667160252263703b6dd50615d3380a1142e2c721d17f74fd152e6ede72946f"
+        },
+        "projected_wrist": {
+          "verified": true,
+          "peak_lift_m": 0.14223391185328682,
+          "stop": null,
+          "hold_samples": 150,
+          "minimum_hold_lift_m": 0.12952562692980552,
+          "executed_rank": 0,
+          "screened_candidates": 12,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": null,
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "contact_rehearsal_search": true
+          },
+          "trace_sha256": "76667160252263703b6dd50615d3380a1142e2c721d17f74fd152e6ede72946f"
+        },
+        "actuated_stage": {
+          "verified": false,
+          "peak_lift_m": 0.030822687867224197,
+          "stop": {
+            "t": 18.92000000000052,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "hold_samples": 0,
+          "minimum_hold_lift_m": null,
+          "executed_rank": 4,
+          "screened_candidates": 12,
+          "predicted_stage_passes": 2,
+          "whole_body_preview": null,
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "contact_rehearsal_search": true
+          },
+          "trace_sha256": "9b603943ae1afa7ab063326df9203c159b493392c68e0f4e8a65f5603a463b69"
+        },
+        "fixed_loaded_orientation": {
+          "verified": true,
+          "peak_lift_m": 0.14222231337754465,
+          "stop": null,
+          "hold_samples": 150,
+          "minimum_hold_lift_m": 0.12941768750037586,
+          "executed_rank": 0,
+          "screened_candidates": 0,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": null,
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "contact_rehearsal_search": false,
+            "lock_loaded_wrist": true
+          },
+          "trace_sha256": "4561fed4b5e3f7af7685ece7e5846b91e7e0080bd0b14362e0ab3af0b7485f48"
+        },
+        "whole_body_shared_noise": {
+          "verified": true,
+          "peak_lift_m": 0.14223391185328682,
+          "stop": null,
+          "hold_samples": 150,
+          "minimum_hold_lift_m": 0.12952562692980552,
+          "executed_rank": 0,
+          "screened_candidates": 0,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": {
+            "proposed_rank": 4,
+            "executed_rank": 0,
+            "predicted_verified": false,
+            "predicted_peak_lift_m": 0.02954741729154431,
+            "predicted_stop": {
+              "t": 19.140000000000477,
+              "reason": "grip lost",
+              "detail": {
+                "weakest_normal_n": 0.0
+              }
+            }
+          },
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "whole_body_grasp_preview": true
+          },
+          "trace_sha256": "76667160252263703b6dd50615d3380a1142e2c721d17f74fd152e6ede72946f"
+        },
+        "whole_body_independent_noise": {
+          "verified": true,
+          "peak_lift_m": 0.14223391185328682,
+          "stop": null,
+          "hold_samples": 150,
+          "minimum_hold_lift_m": 0.12952562692980552,
+          "executed_rank": 0,
+          "screened_candidates": 0,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": {
+            "proposed_rank": 4,
+            "executed_rank": 0,
+            "predicted_verified": false,
+            "predicted_peak_lift_m": 0.05514775903968372,
+            "predicted_stop": {
+              "t": 19.48000000000041,
+              "reason": "grip lost",
+              "detail": {
+                "weakest_normal_n": 0.0
+              }
+            }
+          },
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "whole_body_grasp_preview": true
+          },
+          "trace_sha256": "76667160252263703b6dd50615d3380a1142e2c721d17f74fd152e6ede72946f"
+        }
+      }
+    },
+    {
+      "case": "lateral",
+      "base_config": {
+        "seed": 23,
+        "table_top_m": 0.75,
+        "table_center_xy_m": [
+          0.6,
+          -0.17
+        ],
+        "table_half_size_m": [
+          0.24,
+          0.24,
+          0.025
+        ],
+        "object_center_xy_m": [
+          0.47,
+          -0.19
+        ],
+        "object_half_size_m": 0.025,
+        "object_mass_kg": 0.09,
+        "starting_stance_xy_yaw": [
+          0.17,
+          0.0,
+          0.0
+        ],
+        "start_arms_down": true,
+        "start_right_shoulder_roll_rad": -0.35,
+        "start_left_shoulder_roll_rad": 0.35,
+        "contact_geometry_search": true
+      },
+      "variants": {
+        "static_geometry": {
+          "verified": true,
+          "peak_lift_m": 0.1364168488821902,
+          "stop": null,
+          "trace_sha256": "14077124c619a8edc0c1439c5e8b9b2c87064bea59c08548648bf74f0e327f2c"
+        },
+        "projected_wrist": {
+          "verified": true,
+          "peak_lift_m": 0.1364168488821902,
+          "stop": null,
+          "hold_samples": 150,
+          "minimum_hold_lift_m": 0.1239086970680453,
+          "executed_rank": 0,
+          "screened_candidates": 12,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": null,
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "contact_rehearsal_search": true
+          },
+          "trace_sha256": "14077124c619a8edc0c1439c5e8b9b2c87064bea59c08548648bf74f0e327f2c"
+        },
+        "actuated_stage": {
+          "verified": true,
+          "peak_lift_m": 0.14852186452469862,
+          "stop": null,
+          "hold_samples": 150,
+          "minimum_hold_lift_m": 0.13666550873055494,
+          "executed_rank": 4,
+          "screened_candidates": 12,
+          "predicted_stage_passes": 2,
+          "whole_body_preview": null,
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "contact_rehearsal_search": true
+          },
+          "trace_sha256": "30b1d835098eb99736b3f52f54430e9c02af359653b1a24c2089252c2de16797"
+        },
+        "fixed_loaded_orientation": {
+          "verified": true,
+          "peak_lift_m": 0.13668188597269892,
+          "stop": null,
+          "hold_samples": 150,
+          "minimum_hold_lift_m": 0.12399115900752689,
+          "executed_rank": 0,
+          "screened_candidates": 0,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": null,
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "contact_rehearsal_search": false,
+            "lock_loaded_wrist": true
+          },
+          "trace_sha256": "d1d86939f46d058a33a0e741b4b446de0248bc0b9eb02b970eaa367038efe1f3"
+        },
+        "whole_body_shared_noise": {
+          "verified": true,
+          "peak_lift_m": 0.14852186452469862,
+          "stop": null,
+          "hold_samples": 150,
+          "minimum_hold_lift_m": 0.13666550873055494,
+          "executed_rank": 4,
+          "screened_candidates": 0,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": {
+            "proposed_rank": 4,
+            "executed_rank": 4,
+            "predicted_verified": true,
+            "predicted_peak_lift_m": 0.14746779287708167,
+            "predicted_stop": null
+          },
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "whole_body_grasp_preview": true
+          },
+          "trace_sha256": "30b1d835098eb99736b3f52f54430e9c02af359653b1a24c2089252c2de16797"
+        },
+        "whole_body_independent_noise": {
+          "verified": true,
+          "peak_lift_m": 0.14852186452469862,
+          "stop": null,
+          "hold_samples": 150,
+          "minimum_hold_lift_m": 0.13666550873055494,
+          "executed_rank": 4,
+          "screened_candidates": 0,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": {
+            "proposed_rank": 4,
+            "executed_rank": 4,
+            "predicted_verified": true,
+            "predicted_peak_lift_m": 0.14754898239853664,
+            "predicted_stop": null
+          },
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "whole_body_grasp_preview": true
+          },
+          "trace_sha256": "30b1d835098eb99736b3f52f54430e9c02af359653b1a24c2089252c2de16797"
+        }
+      }
+    },
+    {
+      "case": "shift_in",
+      "base_config": {
+        "seed": 11,
+        "table_top_m": 0.75,
+        "table_center_xy_m": [
+          0.6,
+          -0.17
+        ],
+        "table_half_size_m": [
+          0.24,
+          0.24,
+          0.025
+        ],
+        "object_center_xy_m": [
+          0.458,
+          -0.158
+        ],
+        "object_half_size_m": 0.023,
+        "object_mass_kg": 0.06,
+        "starting_stance_xy_yaw": [
+          0.17,
+          0.0,
+          0.0
+        ],
+        "start_arms_down": true,
+        "start_right_shoulder_roll_rad": -0.35,
+        "start_left_shoulder_roll_rad": 0.35,
+        "contact_geometry_search": true
+      },
+      "variants": {
+        "static_geometry": {
+          "verified": false,
+          "peak_lift_m": 0.10254674394268204,
+          "stop": {
+            "t": 20.720000000000162,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "trace_sha256": "c8e085464d96a87afbbf6ff6dc9c67d71ccfd5e9720c1a443f777c06d1c2a1dd"
+        },
+        "projected_wrist": {
+          "verified": false,
+          "peak_lift_m": 0.10254674394268204,
+          "stop": {
+            "t": 20.720000000000162,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "hold_samples": 0,
+          "minimum_hold_lift_m": null,
+          "executed_rank": 0,
+          "screened_candidates": 6,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": null,
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "contact_rehearsal_search": true
+          },
+          "trace_sha256": "c8e085464d96a87afbbf6ff6dc9c67d71ccfd5e9720c1a443f777c06d1c2a1dd"
+        },
+        "actuated_stage": {
+          "verified": false,
+          "peak_lift_m": 0.10254674394268204,
+          "stop": {
+            "t": 20.720000000000162,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "hold_samples": 0,
+          "minimum_hold_lift_m": null,
+          "executed_rank": 0,
+          "screened_candidates": 6,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": null,
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "contact_rehearsal_search": true
+          },
+          "trace_sha256": "c8e085464d96a87afbbf6ff6dc9c67d71ccfd5e9720c1a443f777c06d1c2a1dd"
+        },
+        "fixed_loaded_orientation": {
+          "verified": false,
+          "peak_lift_m": 0.09881711691660222,
+          "stop": {
+            "t": 20.700000000000166,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "hold_samples": 0,
+          "minimum_hold_lift_m": null,
+          "executed_rank": 0,
+          "screened_candidates": 0,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": null,
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "contact_rehearsal_search": false,
+            "lock_loaded_wrist": true
+          },
+          "trace_sha256": "e5d3d7b8e926ab38208e16ff9e1e959b00a13b88ef1956fabebf947060229645"
+        },
+        "whole_body_shared_noise": {
+          "verified": false,
+          "peak_lift_m": 0.10254674394268204,
+          "stop": {
+            "t": 20.720000000000162,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "hold_samples": 0,
+          "minimum_hold_lift_m": null,
+          "executed_rank": 0,
+          "screened_candidates": 0,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": {
+            "proposed_rank": 0,
+            "executed_rank": 0,
+            "predicted_verified": false,
+            "predicted_peak_lift_m": 0.11002367569551552,
+            "predicted_stop": {
+              "t": 21.08000000000009,
+              "reason": "grip lost",
+              "detail": {
+                "weakest_normal_n": 0.0
+              }
+            }
+          },
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "whole_body_grasp_preview": true
+          },
+          "trace_sha256": "c8e085464d96a87afbbf6ff6dc9c67d71ccfd5e9720c1a443f777c06d1c2a1dd"
+        },
+        "whole_body_independent_noise": {
+          "verified": false,
+          "peak_lift_m": 0.10254674394268204,
+          "stop": {
+            "t": 20.720000000000162,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "hold_samples": 0,
+          "minimum_hold_lift_m": null,
+          "executed_rank": 0,
+          "screened_candidates": 0,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": {
+            "proposed_rank": 0,
+            "executed_rank": 0,
+            "predicted_verified": false,
+            "predicted_peak_lift_m": 0.10861352479832109,
+            "predicted_stop": {
+              "t": 20.060000000000294,
+              "reason": "grip lost",
+              "detail": {
+                "weakest_normal_n": 0.0
+              }
+            }
+          },
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "whole_body_grasp_preview": true
+          },
+          "trace_sha256": "c8e085464d96a87afbbf6ff6dc9c67d71ccfd5e9720c1a443f777c06d1c2a1dd"
+        }
+      }
+    },
+    {
+      "case": "shift_out",
+      "base_config": {
+        "seed": 17,
+        "table_top_m": 0.75,
+        "table_center_xy_m": [
+          0.6,
+          -0.17
+        ],
+        "table_half_size_m": [
+          0.24,
+          0.24,
+          0.025
+        ],
+        "object_center_xy_m": [
+          0.482,
+          -0.183
+        ],
+        "object_half_size_m": 0.028,
+        "object_mass_kg": 0.1,
+        "starting_stance_xy_yaw": [
+          0.17,
+          0.0,
+          0.0
+        ],
+        "start_arms_down": true,
+        "start_right_shoulder_roll_rad": -0.35,
+        "start_left_shoulder_roll_rad": 0.35,
+        "contact_geometry_search": true
+      },
+      "variants": {
+        "static_geometry": {
+          "verified": false,
+          "peak_lift_m": 0.002219579811586936,
+          "stop": {
+            "t": 17.32000000000084,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "trace_sha256": "11a90b14f205c58e621c6c6ba084591d76ad30e092746634350ca4b129da25ea"
+        },
+        "projected_wrist": {
+          "verified": false,
+          "peak_lift_m": 0.002219579811586936,
+          "stop": {
+            "t": 17.32000000000084,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "hold_samples": 0,
+          "minimum_hold_lift_m": null,
+          "executed_rank": 0,
+          "screened_candidates": 12,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": null,
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "contact_rehearsal_search": true
+          },
+          "trace_sha256": "11a90b14f205c58e621c6c6ba084591d76ad30e092746634350ca4b129da25ea"
+        },
+        "actuated_stage": {
+          "verified": true,
+          "peak_lift_m": 0.14093875805459166,
+          "stop": null,
+          "hold_samples": 150,
+          "minimum_hold_lift_m": 0.12987074768518725,
+          "executed_rank": 2,
+          "screened_candidates": 12,
+          "predicted_stage_passes": 9,
+          "whole_body_preview": null,
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "contact_rehearsal_search": true
+          },
+          "trace_sha256": "fe57a0bd539a958db473b186ceb9598fc86062de43556dd88d172ae0ef498c4e"
+        },
+        "fixed_loaded_orientation": {
+          "verified": false,
+          "peak_lift_m": 0.002219579811586936,
+          "stop": {
+            "t": 17.32000000000084,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "hold_samples": 0,
+          "minimum_hold_lift_m": null,
+          "executed_rank": 0,
+          "screened_candidates": 0,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": null,
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "contact_rehearsal_search": false,
+            "lock_loaded_wrist": true
+          },
+          "trace_sha256": "42b804ea01452cfbac95097b2bcfcaed721bb8a95e766540f908c5a670b9af69"
+        },
+        "whole_body_shared_noise": {
+          "verified": true,
+          "peak_lift_m": 0.14093875805459166,
+          "stop": null,
+          "hold_samples": 150,
+          "minimum_hold_lift_m": 0.12987074768518725,
+          "executed_rank": 2,
+          "screened_candidates": 0,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": {
+            "proposed_rank": 2,
+            "executed_rank": 2,
+            "predicted_verified": true,
+            "predicted_peak_lift_m": 0.14093875805459166,
+            "predicted_stop": null
+          },
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "whole_body_grasp_preview": true
+          },
+          "trace_sha256": "fe57a0bd539a958db473b186ceb9598fc86062de43556dd88d172ae0ef498c4e"
+        },
+        "whole_body_independent_noise": {
+          "verified": true,
+          "peak_lift_m": 0.14093875805459166,
+          "stop": null,
+          "hold_samples": 150,
+          "minimum_hold_lift_m": 0.12987074768518725,
+          "executed_rank": 2,
+          "screened_candidates": 0,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": {
+            "proposed_rank": 2,
+            "executed_rank": 2,
+            "predicted_verified": true,
+            "predicted_peak_lift_m": 0.14047100321500694,
+            "predicted_stop": null
+          },
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "whole_body_grasp_preview": true
+          },
+          "trace_sha256": "fe57a0bd539a958db473b186ceb9598fc86062de43556dd88d172ae0ef498c4e"
+        }
+      }
+    },
+    {
+      "case": "fresh_near",
+      "base_config": {
+        "seed": 29,
+        "table_top_m": 0.75,
+        "table_center_xy_m": [
+          0.6,
+          -0.17
+        ],
+        "table_half_size_m": [
+          0.24,
+          0.24,
+          0.025
+        ],
+        "object_center_xy_m": [
+          0.459,
+          -0.162
+        ],
+        "object_half_size_m": 0.025,
+        "object_mass_kg": 0.092,
+        "starting_stance_xy_yaw": [
+          0.17,
+          0.0,
+          0.0
+        ],
+        "start_arms_down": true,
+        "start_right_shoulder_roll_rad": -0.35,
+        "start_left_shoulder_roll_rad": 0.35,
+        "contact_geometry_search": true
+      },
+      "variants": {
+        "static_geometry": {
+          "verified": true,
+          "peak_lift_m": 0.13569821693369466,
+          "stop": null,
+          "trace_sha256": "456501e29c52ca830b3aa322b8cbecba4feca8c1f06f0cb1ccbae5346373a231"
+        },
+        "projected_wrist": {
+          "verified": true,
+          "peak_lift_m": 0.13569821693369466,
+          "stop": null,
+          "hold_samples": 150,
+          "minimum_hold_lift_m": 0.12290326523394879,
+          "executed_rank": 0,
+          "screened_candidates": 12,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": null,
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "contact_rehearsal_search": true
+          },
+          "trace_sha256": "456501e29c52ca830b3aa322b8cbecba4feca8c1f06f0cb1ccbae5346373a231"
+        },
+        "actuated_stage": {
+          "verified": true,
+          "peak_lift_m": 0.14639357668077813,
+          "stop": null,
+          "hold_samples": 150,
+          "minimum_hold_lift_m": 0.1328328853583749,
+          "executed_rank": 4,
+          "screened_candidates": 12,
+          "predicted_stage_passes": 2,
+          "whole_body_preview": null,
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "contact_rehearsal_search": true
+          },
+          "trace_sha256": "9605deb5e1258953ebdb8a2d74c6fe36a96b6ce308d41e411bfc84e71e39618e"
+        },
+        "fixed_loaded_orientation": {
+          "verified": true,
+          "peak_lift_m": 0.13582986941408903,
+          "stop": null,
+          "hold_samples": 150,
+          "minimum_hold_lift_m": 0.12284119808539307,
+          "executed_rank": 0,
+          "screened_candidates": 0,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": null,
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "contact_rehearsal_search": false,
+            "lock_loaded_wrist": true
+          },
+          "trace_sha256": "436a125c354b052d57307914d5ca2f02e6b67ec9134114891f537c6beda8d73b"
+        },
+        "whole_body_shared_noise": {
+          "verified": true,
+          "peak_lift_m": 0.13569821693369466,
+          "stop": null,
+          "hold_samples": 150,
+          "minimum_hold_lift_m": 0.12290326523394879,
+          "executed_rank": 0,
+          "screened_candidates": 0,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": {
+            "proposed_rank": 4,
+            "executed_rank": 0,
+            "predicted_verified": false,
+            "predicted_peak_lift_m": 0.009987580750281833,
+            "predicted_stop": {
+              "t": 15.680000000001051,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0024244133422246517
+              }
+            }
+          },
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "whole_body_grasp_preview": true
+          },
+          "trace_sha256": "456501e29c52ca830b3aa322b8cbecba4feca8c1f06f0cb1ccbae5346373a231"
+        },
+        "whole_body_independent_noise": {
+          "verified": true,
+          "peak_lift_m": 0.13569821693369466,
+          "stop": null,
+          "hold_samples": 150,
+          "minimum_hold_lift_m": 0.12290326523394879,
+          "executed_rank": 0,
+          "screened_candidates": 0,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": {
+            "proposed_rank": 4,
+            "executed_rank": 0,
+            "predicted_verified": false,
+            "predicted_peak_lift_m": 0.001871161984974945,
+            "predicted_stop": null
+          },
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "whole_body_grasp_preview": true
+          },
+          "trace_sha256": "456501e29c52ca830b3aa322b8cbecba4feca8c1f06f0cb1ccbae5346373a231"
+        }
+      }
+    },
+    {
+      "case": "fresh_far",
+      "base_config": {
+        "seed": 31,
+        "table_top_m": 0.75,
+        "table_center_xy_m": [
+          0.6,
+          -0.17
+        ],
+        "table_half_size_m": [
+          0.24,
+          0.24,
+          0.025
+        ],
+        "object_center_xy_m": [
+          0.48,
+          -0.178
+        ],
+        "object_half_size_m": 0.025,
+        "object_mass_kg": 0.083,
+        "starting_stance_xy_yaw": [
+          0.17,
+          0.0,
+          0.0
+        ],
+        "start_arms_down": true,
+        "start_right_shoulder_roll_rad": -0.35,
+        "start_left_shoulder_roll_rad": 0.35,
+        "contact_geometry_search": true
+      },
+      "variants": {
+        "static_geometry": {
+          "verified": true,
+          "peak_lift_m": 0.13671912608233272,
+          "stop": null,
+          "trace_sha256": "312dbb7798f0f75ed8024c59896f99b547064b1cc3ea1895f9050a39f55078a1"
+        },
+        "projected_wrist": {
+          "verified": true,
+          "peak_lift_m": 0.13671912608233272,
+          "stop": null,
+          "hold_samples": 150,
+          "minimum_hold_lift_m": 0.12780405992951838,
+          "executed_rank": 0,
+          "screened_candidates": 12,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": null,
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "contact_rehearsal_search": true
+          },
+          "trace_sha256": "312dbb7798f0f75ed8024c59896f99b547064b1cc3ea1895f9050a39f55078a1"
+        },
+        "actuated_stage": {
+          "verified": false,
+          "peak_lift_m": 0.04118444074430483,
+          "stop": {
+            "t": 21.060000000000095,
+            "reason": "contact force",
+            "detail": {
+              "force": 36.41252693281912
+            }
+          },
+          "hold_samples": 0,
+          "minimum_hold_lift_m": null,
+          "executed_rank": 4,
+          "screened_candidates": 12,
+          "predicted_stage_passes": 2,
+          "whole_body_preview": null,
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "contact_rehearsal_search": true
+          },
+          "trace_sha256": "15546dfb08d94c06ade992dea79335f29e5fd708a8d6a34c1515f537d186f3f3"
+        },
+        "fixed_loaded_orientation": {
+          "verified": true,
+          "peak_lift_m": 0.1344394458092082,
+          "stop": null,
+          "hold_samples": 150,
+          "minimum_hold_lift_m": 0.12341995987963905,
+          "executed_rank": 0,
+          "screened_candidates": 0,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": null,
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "contact_rehearsal_search": false,
+            "lock_loaded_wrist": true
+          },
+          "trace_sha256": "47013c41fcebf92b14a91401c9185f32765f96f25c981efca40468d71610d486"
+        },
+        "whole_body_shared_noise": {
+          "verified": true,
+          "peak_lift_m": 0.13671912608233272,
+          "stop": null,
+          "hold_samples": 150,
+          "minimum_hold_lift_m": 0.12780405992951838,
+          "executed_rank": 0,
+          "screened_candidates": 0,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": {
+            "proposed_rank": 4,
+            "executed_rank": 0,
+            "predicted_verified": false,
+            "predicted_peak_lift_m": 0.026322850648927476,
+            "predicted_stop": {
+              "t": 20.040000000000298,
+              "reason": "contact force",
+              "detail": {
+                "force": 35.13442626502756
+              }
+            }
+          },
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "whole_body_grasp_preview": true
+          },
+          "trace_sha256": "312dbb7798f0f75ed8024c59896f99b547064b1cc3ea1895f9050a39f55078a1"
+        },
+        "whole_body_independent_noise": {
+          "verified": true,
+          "peak_lift_m": 0.13671912608233272,
+          "stop": null,
+          "hold_samples": 150,
+          "minimum_hold_lift_m": 0.12780405992951838,
+          "executed_rank": 0,
+          "screened_candidates": 0,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": {
+            "proposed_rank": 4,
+            "executed_rank": 0,
+            "predicted_verified": false,
+            "predicted_peak_lift_m": 0.002624389289515583,
+            "predicted_stop": null
+          },
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "whole_body_grasp_preview": true
+          },
+          "trace_sha256": "312dbb7798f0f75ed8024c59896f99b547064b1cc3ea1895f9050a39f55078a1"
+        }
+      }
+    },
+    {
+      "case": "rectangular",
+      "base_config": {
+        "seed": 37,
+        "table_top_m": 0.75,
+        "table_center_xy_m": [
+          0.6,
+          -0.17
+        ],
+        "table_half_size_m": [
+          0.24,
+          0.24,
+          0.025
+        ],
+        "object_center_xy_m": [
+          0.465,
+          -0.175
+        ],
+        "object_half_size_m": 0.025,
+        "object_mass_kg": 0.082,
+        "starting_stance_xy_yaw": [
+          0.17,
+          0.0,
+          0.0
+        ],
+        "start_arms_down": true,
+        "start_right_shoulder_roll_rad": -0.35,
+        "start_left_shoulder_roll_rad": 0.35,
+        "object_shape": "box",
+        "object_half_extents_m": [
+          0.03,
+          0.025,
+          0.026
+        ],
+        "contact_geometry_search": true
+      },
+      "variants": {
+        "static_geometry": {
+          "verified": false,
+          "peak_lift_m": 0.0020334839638417312,
+          "stop": {
+            "t": 16.36000000000103,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "trace_sha256": "e8437285da8457492606dd2433fa56050d878c14954d57f0b555c83da8056cf5"
+        },
+        "projected_wrist": {
+          "verified": false,
+          "peak_lift_m": 0.0020334839638417312,
+          "stop": {
+            "t": 16.36000000000103,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "hold_samples": 0,
+          "minimum_hold_lift_m": null,
+          "executed_rank": 0,
+          "screened_candidates": 12,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": null,
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "contact_rehearsal_search": true
+          },
+          "trace_sha256": "e8437285da8457492606dd2433fa56050d878c14954d57f0b555c83da8056cf5"
+        },
+        "actuated_stage": {
+          "verified": true,
+          "peak_lift_m": 0.14472749411104147,
+          "stop": null,
+          "hold_samples": 150,
+          "minimum_hold_lift_m": 0.13792544829963793,
+          "executed_rank": 10,
+          "screened_candidates": 12,
+          "predicted_stage_passes": 2,
+          "whole_body_preview": null,
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "contact_rehearsal_search": true
+          },
+          "trace_sha256": "b17e0c41f1ef07fe5abca9aa9237a1c45893c1104bf50582a620974afea2d93b"
+        },
+        "fixed_loaded_orientation": {
+          "verified": false,
+          "peak_lift_m": 0.0020334839638417312,
+          "stop": {
+            "t": 16.36000000000103,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "hold_samples": 0,
+          "minimum_hold_lift_m": null,
+          "executed_rank": 0,
+          "screened_candidates": 0,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": null,
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "contact_rehearsal_search": false,
+            "lock_loaded_wrist": true
+          },
+          "trace_sha256": "1d84f0af2759defc405ec85e18a61eab97c6fbbbd9ad587af7340f6ed919d219"
+        },
+        "whole_body_shared_noise": {
+          "verified": true,
+          "peak_lift_m": 0.14472749411104147,
+          "stop": null,
+          "hold_samples": 150,
+          "minimum_hold_lift_m": 0.13792544829963793,
+          "executed_rank": 10,
+          "screened_candidates": 0,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": {
+            "proposed_rank": 10,
+            "executed_rank": 10,
+            "predicted_verified": true,
+            "predicted_peak_lift_m": 0.1425742469973732,
+            "predicted_stop": null
+          },
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "whole_body_grasp_preview": true
+          },
+          "trace_sha256": "b17e0c41f1ef07fe5abca9aa9237a1c45893c1104bf50582a620974afea2d93b"
+        },
+        "whole_body_independent_noise": {
+          "verified": true,
+          "peak_lift_m": 0.14472749411104147,
+          "stop": null,
+          "hold_samples": 150,
+          "minimum_hold_lift_m": 0.13792544829963793,
+          "executed_rank": 10,
+          "screened_candidates": 0,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": {
+            "proposed_rank": 10,
+            "executed_rank": 10,
+            "predicted_verified": true,
+            "predicted_peak_lift_m": 0.14247411655128928,
+            "predicted_stop": null
+          },
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "whole_body_grasp_preview": true
+          },
+          "trace_sha256": "b17e0c41f1ef07fe5abca9aa9237a1c45893c1104bf50582a620974afea2d93b"
+        }
+      }
+    },
+    {
+      "case": "cylinder",
+      "base_config": {
+        "seed": 41,
+        "table_top_m": 0.75,
+        "table_center_xy_m": [
+          0.6,
+          -0.17
+        ],
+        "table_half_size_m": [
+          0.24,
+          0.24,
+          0.025
+        ],
+        "object_center_xy_m": [
+          0.466,
+          -0.174
+        ],
+        "object_half_size_m": 0.025,
+        "object_mass_kg": 0.072,
+        "starting_stance_xy_yaw": [
+          0.17,
+          0.0,
+          0.0
+        ],
+        "start_arms_down": true,
+        "start_right_shoulder_roll_rad": -0.35,
+        "start_left_shoulder_roll_rad": 0.35,
+        "object_shape": "cylinder",
+        "object_half_extents_m": [
+          0.025,
+          0.025,
+          0.027
+        ],
+        "contact_geometry_search": true
+      },
+      "variants": {
+        "static_geometry": {
+          "verified": false,
+          "peak_lift_m": 0.05073144876173874,
+          "stop": {
+            "t": 19.200000000000465,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "trace_sha256": "53b5c5033d8c929afaf917ee9bb4c0ad3410f4332774a557282d331c1ea5104a"
+        },
+        "projected_wrist": {
+          "verified": false,
+          "peak_lift_m": 0.05073144876173874,
+          "stop": {
+            "t": 19.200000000000465,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "hold_samples": 0,
+          "minimum_hold_lift_m": null,
+          "executed_rank": 0,
+          "screened_candidates": 12,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": null,
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "contact_rehearsal_search": true
+          },
+          "trace_sha256": "53b5c5033d8c929afaf917ee9bb4c0ad3410f4332774a557282d331c1ea5104a"
+        },
+        "actuated_stage": {
+          "verified": false,
+          "peak_lift_m": -0.00010810431573338164,
+          "stop": null,
+          "hold_samples": 0,
+          "minimum_hold_lift_m": null,
+          "executed_rank": 9,
+          "screened_candidates": 12,
+          "predicted_stage_passes": 1,
+          "whole_body_preview": null,
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "contact_rehearsal_search": true
+          },
+          "trace_sha256": "91c95378e5034b859c18d5e3b7b08eb8ab8ae8897a3ad57d436e2094c39f7891"
+        },
+        "fixed_loaded_orientation": {
+          "verified": false,
+          "peak_lift_m": 0.05162908673483002,
+          "stop": {
+            "t": 19.200000000000465,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "hold_samples": 0,
+          "minimum_hold_lift_m": null,
+          "executed_rank": 0,
+          "screened_candidates": 0,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": null,
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "contact_rehearsal_search": false,
+            "lock_loaded_wrist": true
+          },
+          "trace_sha256": "98da259183dd32c81f835222af9bb231e31f110ee339f1cc39bf0f58d27b2ea2"
+        },
+        "whole_body_shared_noise": {
+          "verified": false,
+          "peak_lift_m": 0.05073144876173874,
+          "stop": {
+            "t": 19.200000000000465,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "hold_samples": 0,
+          "minimum_hold_lift_m": null,
+          "executed_rank": 0,
+          "screened_candidates": 0,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": {
+            "proposed_rank": 9,
+            "executed_rank": 0,
+            "predicted_verified": false,
+            "predicted_peak_lift_m": -0.0001081597314578353,
+            "predicted_stop": null
+          },
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "whole_body_grasp_preview": true
+          },
+          "trace_sha256": "53b5c5033d8c929afaf917ee9bb4c0ad3410f4332774a557282d331c1ea5104a"
+        },
+        "whole_body_independent_noise": {
+          "verified": false,
+          "peak_lift_m": 0.05073144876173874,
+          "stop": {
+            "t": 19.200000000000465,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "hold_samples": 0,
+          "minimum_hold_lift_m": null,
+          "executed_rank": 0,
+          "screened_candidates": 0,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": {
+            "proposed_rank": 9,
+            "executed_rank": 0,
+            "predicted_verified": false,
+            "predicted_peak_lift_m": -0.0001081597314578353,
+            "predicted_stop": null
+          },
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "whole_body_grasp_preview": true
+          },
+          "trace_sha256": "53b5c5033d8c929afaf917ee9bb4c0ad3410f4332774a557282d331c1ea5104a"
+        }
+      }
+    },
+    {
+      "case": "sphere",
+      "base_config": {
+        "seed": 43,
+        "table_top_m": 0.75,
+        "table_center_xy_m": [
+          0.6,
+          -0.17
+        ],
+        "table_half_size_m": [
+          0.24,
+          0.24,
+          0.025
+        ],
+        "object_center_xy_m": [
+          0.468,
+          -0.17
+        ],
+        "object_half_size_m": 0.025,
+        "object_mass_kg": 0.061,
+        "starting_stance_xy_yaw": [
+          0.17,
+          0.0,
+          0.0
+        ],
+        "start_arms_down": true,
+        "start_right_shoulder_roll_rad": -0.35,
+        "start_left_shoulder_roll_rad": 0.35,
+        "object_shape": "sphere",
+        "object_half_extents_m": [
+          0.025,
+          0.025,
+          0.025
+        ],
+        "contact_geometry_search": true
+      },
+      "variants": {
+        "static_geometry": {
+          "verified": false,
+          "peak_lift_m": -0.0002458796004892738,
+          "stop": {
+            "t": 16.820000000000938,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "trace_sha256": "234f7611b32e3863e9001ac8dd41bce43d8929ac553635b8bf7de1c00c461c58"
+        },
+        "projected_wrist": {
+          "verified": false,
+          "peak_lift_m": -0.0002458796004892738,
+          "stop": {
+            "t": 16.820000000000938,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "hold_samples": 0,
+          "minimum_hold_lift_m": null,
+          "executed_rank": 0,
+          "screened_candidates": 12,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": null,
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "contact_rehearsal_search": true
+          },
+          "trace_sha256": "234f7611b32e3863e9001ac8dd41bce43d8929ac553635b8bf7de1c00c461c58"
+        },
+        "actuated_stage": {
+          "verified": false,
+          "peak_lift_m": -0.0002458796004892738,
+          "stop": {
+            "t": 16.820000000000938,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "hold_samples": 0,
+          "minimum_hold_lift_m": null,
+          "executed_rank": 0,
+          "screened_candidates": 12,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": null,
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "contact_rehearsal_search": true
+          },
+          "trace_sha256": "234f7611b32e3863e9001ac8dd41bce43d8929ac553635b8bf7de1c00c461c58"
+        },
+        "fixed_loaded_orientation": {
+          "verified": false,
+          "peak_lift_m": -0.0002458796004892738,
+          "stop": {
+            "t": 16.820000000000938,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "hold_samples": 0,
+          "minimum_hold_lift_m": null,
+          "executed_rank": 0,
+          "screened_candidates": 0,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": null,
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "contact_rehearsal_search": false,
+            "lock_loaded_wrist": true
+          },
+          "trace_sha256": "62358e6ad6b5a42adfc5036fcf0736f6f3f4959930fec6fa33853384aa8c58e9"
+        },
+        "whole_body_shared_noise": {
+          "verified": false,
+          "peak_lift_m": -0.0002458796004892738,
+          "stop": {
+            "t": 16.820000000000938,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "hold_samples": 0,
+          "minimum_hold_lift_m": null,
+          "executed_rank": 0,
+          "screened_candidates": 0,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": {
+            "proposed_rank": 0,
+            "executed_rank": 0,
+            "predicted_verified": false,
+            "predicted_peak_lift_m": -0.00029266804774541466,
+            "predicted_stop": {
+              "t": 16.780000000000946,
+              "reason": "grip lost",
+              "detail": {
+                "weakest_normal_n": 0.0
+              }
+            }
+          },
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "whole_body_grasp_preview": true
+          },
+          "trace_sha256": "234f7611b32e3863e9001ac8dd41bce43d8929ac553635b8bf7de1c00c461c58"
+        },
+        "whole_body_independent_noise": {
+          "verified": false,
+          "peak_lift_m": -0.0002458796004892738,
+          "stop": {
+            "t": 16.820000000000938,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "hold_samples": 0,
+          "minimum_hold_lift_m": null,
+          "executed_rank": 0,
+          "screened_candidates": 0,
+          "predicted_stage_passes": 0,
+          "whole_body_preview": {
+            "proposed_rank": 0,
+            "executed_rank": 0,
+            "predicted_verified": false,
+            "predicted_peak_lift_m": -0.00027691897607995397,
+            "predicted_stop": {
+              "t": 16.76000000000095,
+              "reason": "grip lost",
+              "detail": {
+                "weakest_normal_n": 0.0
+              }
+            }
+          },
+          "git_sha": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+          "mujoco": "3.16.0",
+          "config_overrides": {
+            "whole_body_grasp_preview": true
+          },
+          "trace_sha256": "234f7611b32e3863e9001ac8dd41bce43d8929ac553635b8bf7de1c00c461c58"
+        }
+      }
+    }
+  ]
+}

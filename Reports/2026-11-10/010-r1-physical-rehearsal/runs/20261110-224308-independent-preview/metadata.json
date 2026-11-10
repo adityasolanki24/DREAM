@@ -1,0 +1,171 @@
+{
+  "run_id": "2026-11-10-010/20261110-224308-independent-preview",
+  "task_id": "2026-11-10-010",
+  "title": "Verify the whole-body preview with independent odometry noise",
+  "started": "2026-11-10T22:43:08+11:00",
+  "commit": "6fc17c5a0d6a718d032a54cd08b89f29a3688ea4",
+  "dirty": true,
+  "branch": "codex/g1-integration",
+  "configs": [
+    {
+      "path": "results/g1_r1_contact_rank_dev_20261110/summary.json",
+      "sha256": "7ae701b1b4f3fd899c559cfca9586f25dde72bb2819d42cdb6975603b4964b70"
+    }
+  ],
+  "command": "python C:/Users/24adi/DREAM-r1-evidence/r1-independent-preview-001/run.py",
+  "seeds": "same nine live cases with a fixed independent planning stream",
+  "model": "Cached Decoupled WBC",
+  "simulator": "MuJoCo 3.16.0",
+  "renderer": "None",
+  "embodiment": "free-standing G1 Dex3",
+  "controller": "Decoupled WBC",
+  "hardware": "local CPU, 2 workers",
+  "status": "completed",
+  "ended": "2026-11-10T22:45:44+11:00",
+  "exit_status": 0,
+  "cases_attempted": 9,
+  "cases_completed": 9,
+  "metrics": {
+    "cubes_verified": 5,
+    "cubes_total": 6,
+    "additional_geometries_verified": 1,
+    "additional_geometries_total": 3,
+    "cases": [
+      {
+        "name": "pinch",
+        "verified": true,
+        "peak_lift_m": 0.14223391185328682,
+        "preview": {
+          "proposed_rank": 4,
+          "executed_rank": 0,
+          "predicted_verified": false,
+          "predicted_peak_lift_m": 0.05514775903968372,
+          "predicted_stop": {
+            "t": 19.48000000000041,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          }
+        }
+      },
+      {
+        "name": "lateral",
+        "verified": true,
+        "peak_lift_m": 0.14852186452469862,
+        "preview": {
+          "proposed_rank": 4,
+          "executed_rank": 4,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.14754898239853664,
+          "predicted_stop": null
+        }
+      },
+      {
+        "name": "shift_in",
+        "verified": false,
+        "peak_lift_m": 0.10254674394268204,
+        "preview": {
+          "proposed_rank": 0,
+          "executed_rank": 0,
+          "predicted_verified": false,
+          "predicted_peak_lift_m": 0.10861352479832109,
+          "predicted_stop": {
+            "t": 20.060000000000294,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          }
+        }
+      },
+      {
+        "name": "shift_out",
+        "verified": true,
+        "peak_lift_m": 0.14093875805459166,
+        "preview": {
+          "proposed_rank": 2,
+          "executed_rank": 2,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.14047100321500694,
+          "predicted_stop": null
+        }
+      },
+      {
+        "name": "fresh_near",
+        "verified": true,
+        "peak_lift_m": 0.13569821693369466,
+        "preview": {
+          "proposed_rank": 4,
+          "executed_rank": 0,
+          "predicted_verified": false,
+          "predicted_peak_lift_m": 0.001871161984974945,
+          "predicted_stop": null
+        }
+      },
+      {
+        "name": "fresh_far",
+        "verified": true,
+        "peak_lift_m": 0.13671912608233272,
+        "preview": {
+          "proposed_rank": 4,
+          "executed_rank": 0,
+          "predicted_verified": false,
+          "predicted_peak_lift_m": 0.002624389289515583,
+          "predicted_stop": null
+        }
+      },
+      {
+        "name": "rectangular",
+        "verified": true,
+        "peak_lift_m": 0.14472749411104147,
+        "preview": {
+          "proposed_rank": 10,
+          "executed_rank": 10,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.14247411655128928,
+          "predicted_stop": null
+        }
+      },
+      {
+        "name": "cylinder",
+        "verified": false,
+        "peak_lift_m": 0.05073144876173874,
+        "preview": {
+          "proposed_rank": 9,
+          "executed_rank": 0,
+          "predicted_verified": false,
+          "predicted_peak_lift_m": -0.0001081597314578353,
+          "predicted_stop": null
+        }
+      },
+      {
+        "name": "sphere",
+        "verified": false,
+        "peak_lift_m": -0.0002458796004892738,
+        "preview": {
+          "proposed_rank": 0,
+          "executed_rank": 0,
+          "predicted_verified": false,
+          "predicted_peak_lift_m": -0.00027691897607995397,
+          "predicted_stop": {
+            "t": 16.76000000000095,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          }
+        }
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-independent-preview-001",
+      "kind": "dir",
+      "sha256": "7b290aa091a2826b7bc1b91755c7b259f20e038a1f326ed1e4c20f9e5b01ac2f",
+      "skipped": []
+    }
+  ],
+  "cloud": null
+}

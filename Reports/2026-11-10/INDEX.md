@@ -6,6 +6,7 @@
 
 | Date | Task ID | Prompt | Status | Main finding | Runs | Report |
 |---|---|---|---|---|---|---|
+| 2026-11-10 | 2026-11-10-010 | [R1 grasp retention rehearsal](010-r1-physical-rehearsal/PROMPT.md) | partially_completed | An independently seeded whole-body preview recovered two verified fixed-stance holds while retaining all four previous passes. | 29 | [REPORT](010-r1-physical-rehearsal/REPORT.md) |
 | 2026-11-10 | 2026-11-10-009 | [Improve R1 grasp retention and transfer](009-r1-contact-retention/PROMPT.md) | partially_completed | Geometry-ranked pinch recovered one matched cube hold and exercised three new shapes. Retention on wider and curved objects still fails the R1 gate. | 17 | [REPORT](009-r1-contact-retention/REPORT.md) |
 | 2026-11-10 | 2026-11-10-008 | [Continue R1 from the trajectory search evidence](008-r1-clearance-resume/PROMPT.md) | partially_completed | The initial fixed-stance box grasp passes on three development fixtures using the same controller. Width and hold transfer still limit the broader R1 gate. | 27 | [REPORT](008-r1-clearance-resume/REPORT.md) |
 | 2026-11-10 | 2026-11-10-007 | [Resolve the R1 trajectory and grasp without fixed answers](007-r1-trajectory-and-lift/PROMPT.md) | partially_completed | Sensor-initialised preview rejected the tested transitions. No safe approach was executed before interruption. | 4 | [REPORT](007-r1-trajectory-and-lift/REPORT.md) |
@@ -23,6 +24,35 @@
 
 | Run | Task | Status | Started | Report |
 |---|---|---|---|---|
+| 20261110-223207-rehearsal-pinch | 2026-11-10-010 | completed | 2026-11-10T22:32:07+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223207-rehearsal-pinch/REPORT.md) |
+| 20261110-223222-rehearsal-lateral | 2026-11-10-010 | completed | 2026-11-10T22:32:22+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223222-rehearsal-lateral/REPORT.md) |
+| 20261110-223240-rehearsal-shift-in | 2026-11-10-010 | completed | 2026-11-10T22:32:40+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223240-rehearsal-shift-in/REPORT.md) |
+| 20261110-223256-rehearsal-shift-out | 2026-11-10-010 | completed | 2026-11-10T22:32:56+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223256-rehearsal-shift-out/REPORT.md) |
+| 20261110-223313-rehearsal-fresh-near | 2026-11-10-010 | completed | 2026-11-10T22:33:13+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223313-rehearsal-fresh-near/REPORT.md) |
+| 20261110-223328-rehearsal-fresh-far | 2026-11-10-010 | completed | 2026-11-10T22:33:28+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223328-rehearsal-fresh-far/REPORT.md) |
+| 20261110-223343-rehearsal-rectangular | 2026-11-10-010 | completed | 2026-11-10T22:33:43+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223343-rehearsal-rectangular/REPORT.md) |
+| 20261110-223356-rehearsal-cylinder | 2026-11-10-010 | completed | 2026-11-10T22:33:56+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223356-rehearsal-cylinder/REPORT.md) |
+| 20261110-223408-rehearsal-sphere | 2026-11-10-010 | completed | 2026-11-10T22:34:08+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223408-rehearsal-sphere/REPORT.md) |
+| 20261110-223529-stage-pinch | 2026-11-10-010 | completed | 2026-11-10T22:35:29+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223529-stage-pinch/REPORT.md) |
+| 20261110-223542-stage-shift-out | 2026-11-10-010 | completed | 2026-11-10T22:35:42+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223542-stage-shift-out/REPORT.md) |
+| 20261110-223557-stage-shift-in | 2026-11-10-010 | completed | 2026-11-10T22:35:57+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223557-stage-shift-in/REPORT.md) |
+| 20261110-223611-stage-fresh-far | 2026-11-10-010 | completed | 2026-11-10T22:36:11+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223611-stage-fresh-far/REPORT.md) |
+| 20261110-223626-stage-lateral | 2026-11-10-010 | completed | 2026-11-10T22:36:26+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223626-stage-lateral/REPORT.md) |
+| 20261110-223641-stage-fresh-near | 2026-11-10-010 | completed | 2026-11-10T22:36:41+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223641-stage-fresh-near/REPORT.md) |
+| 20261110-223656-stage-rectangular | 2026-11-10-010 | completed | 2026-11-10T22:36:56+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223656-stage-rectangular/REPORT.md) |
+| 20261110-223710-stage-cylinder | 2026-11-10-010 | completed | 2026-11-10T22:37:10+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223710-stage-cylinder/REPORT.md) |
+| 20261110-223725-stage-sphere | 2026-11-10-010 | completed | 2026-11-10T22:37:25+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223725-stage-sphere/REPORT.md) |
+| 20261110-223753-wrist-shift-in | 2026-11-10-010 | completed | 2026-11-10T22:37:53+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223753-wrist-shift-in/REPORT.md) |
+| 20261110-223806-wrist-shift-out | 2026-11-10-010 | completed | 2026-11-10T22:38:06+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223806-wrist-shift-out/REPORT.md) |
+| 20261110-223818-wrist-pinch | 2026-11-10-010 | completed | 2026-11-10T22:38:18+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223818-wrist-pinch/REPORT.md) |
+| 20261110-223831-wrist-fresh-far | 2026-11-10-010 | completed | 2026-11-10T22:38:31+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223831-wrist-fresh-far/REPORT.md) |
+| 20261110-223846-wrist-lateral | 2026-11-10-010 | completed | 2026-11-10T22:38:46+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223846-wrist-lateral/REPORT.md) |
+| 20261110-223903-wrist-fresh-near | 2026-11-10-010 | completed | 2026-11-10T22:39:03+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223903-wrist-fresh-near/REPORT.md) |
+| 20261110-223918-wrist-rectangular | 2026-11-10-010 | completed | 2026-11-10T22:39:18+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223918-wrist-rectangular/REPORT.md) |
+| 20261110-223932-wrist-cylinder | 2026-11-10-010 | completed | 2026-11-10T22:39:32+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223932-wrist-cylinder/REPORT.md) |
+| 20261110-223947-wrist-sphere | 2026-11-10-010 | completed | 2026-11-10T22:39:47+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223947-wrist-sphere/REPORT.md) |
+| 20261110-224029-whole-body-preview | 2026-11-10-010 | completed | 2026-11-10T22:40:29+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-224029-whole-body-preview/REPORT.md) |
+| 20261110-224308-independent-preview | 2026-11-10-010 | completed | 2026-11-10T22:43:08+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-224308-independent-preview/REPORT.md) |
 | 20261110-221622-contact-wrench-baseline | 2026-11-10-009 | completed | 2026-11-10T22:16:22+11:00 | [REPORT](009-r1-contact-retention/runs/20261110-221622-contact-wrench-baseline/REPORT.md) |
 | 20261110-221844-geometry-quality | 2026-11-10-009 | completed | 2026-11-10T22:18:44+11:00 | [REPORT](009-r1-contact-retention/runs/20261110-221844-geometry-quality/REPORT.md) |
 | 20261110-222009-geometry-shift-out | 2026-11-10-009 | completed | 2026-11-10T22:20:09+11:00 | [REPORT](009-r1-contact-retention/runs/20261110-222009-geometry-shift-out/REPORT.md) |
