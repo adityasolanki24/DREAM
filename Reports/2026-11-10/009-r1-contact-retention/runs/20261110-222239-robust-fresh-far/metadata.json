@@ -1,0 +1,282 @@
+{
+  "run_id": "2026-11-10-009/20261110-222239-robust-fresh-far",
+  "task_id": "2026-11-10-009",
+  "title": "Evaluate uncertainty-screened pinch on fresh_far",
+  "started": "2026-11-10T22:22:39+11:00",
+  "commit": "d5cc887a41d441f7408d044d4b9e5f6e9a66e572",
+  "dirty": true,
+  "branch": "codex/g1-integration",
+  "configs": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-robust-contact-001/fresh_far.json",
+      "sha256": "4c3c24044ea38303db0b1d2090a4e75365fe6710b58b195e41b1ad8ae3a5ddee"
+    }
+  ],
+  "command": "python -m experiments.g1_grasp_bringup --config C:/Users/24adi/DREAM-r1-evidence/r1-robust-contact-001/fresh_far.json --out C:/Users/24adi/DREAM-r1-evidence/r1-robust-contact-001/fresh_far",
+  "seeds": "31",
+  "model": "Cached Decoupled WBC",
+  "simulator": "MuJoCo 3.16.0",
+  "renderer": "None",
+  "embodiment": "Free-standing G1 Dex3",
+  "controller": "WBC plus uncertainty-screened pinch",
+  "hardware": "Local CPU",
+  "status": "completed",
+  "ended": "2026-11-10T22:23:06+11:00",
+  "exit_status": 0,
+  "cases_attempted": 1,
+  "cases_completed": 1,
+  "metrics": {
+    "phases": {
+      "grasp_geometry": {
+        "candidates": 8,
+        "offset_m": [
+          0.0,
+          0.0,
+          0.025
+        ],
+        "rotation": [
+          [
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "score": 0.9895212752361499,
+        "support_links": 2,
+        "predicted_closure_fraction": 1.0
+      },
+      "settle": {
+        "stable": true
+      },
+      "raise": {
+        "predictions": [
+          {
+            "goal": "vertical raise in measured orientation",
+            "order": "direct",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "pregrasp": {
+        "predictions": [
+          {
+            "goal": "nominal",
+            "order": "direct",
+            "passed": false,
+            "stop": {
+              "t": 1.1799999999999968,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.002725939118681353
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "upper arm first 0.5",
+            "passed": false,
+            "stop": {
+              "t": 1.5799999999999883,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.002841670224055226
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "upper arm first 1",
+            "passed": false,
+            "stop": {
+              "t": 1.7199999999999853,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0010466058930374085
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "wrist first 0.5",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "reach": {
+        "predictions": [
+          {
+            "goal": "nominal",
+            "order": "direct",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "align_1": {
+        "predictions": [
+          {
+            "goal": "nominal",
+            "order": "direct",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "align_2": {
+        "predictions": [
+          {
+            "goal": "nominal",
+            "order": "direct",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "descend": {
+        "completed": true,
+        "corrections": [
+          {
+            "before_error_m": [
+              0.0030882284830983098,
+              -0.006382306105200103,
+              -0.04079419413993457
+            ],
+            "prediction_m": [
+              0.4738629864528878,
+              -0.17166825200757155,
+              0.8268180082329721
+            ],
+            "stops": []
+          },
+          {
+            "before_error_m": [
+              0.0006699315505528936,
+              -0.0010194967754774409,
+              -0.026637620492579672
+            ],
+            "prediction_m": [
+              0.47356960377017066,
+              -0.17274305519561264,
+              0.8141140882497684
+            ],
+            "stops": []
+          },
+          {
+            "before_error_m": [
+              0.0009439959327238179,
+              0.0004020153524331438,
+              -0.014191245790199924
+            ],
+            "prediction_m": [
+              0.4732830963778317,
+              -0.17317467319120403,
+              0.8023161187912793
+            ],
+            "stops": []
+          },
+          {
+            "before_error_m": [
+              0.0010601614174611251,
+              0.00035956235511688805,
+              -0.002221504991431922
+            ],
+            "prediction_m": [
+              0.47414195290309835,
+              -0.17297804214854548,
+              0.8001906606262474
+            ],
+            "stops": []
+          }
+        ]
+      },
+      "preclose": {
+        "grasp_xyz_m": [
+          0.4740521364051673,
+          -0.17297596184851805,
+          0.8000340617719401
+        ],
+        "wrist_rotation": [
+          [
+            0.9980828929087782,
+            -0.012927362062062912,
+            0.06052621079302159
+          ],
+          [
+            0.0125617232652896,
+            0.9999005036262807,
+            0.006417628574247698
+          ],
+          [
+            -0.06060315166269184,
+            -0.0056450117827206575,
+            0.9981459772250361
+          ]
+        ],
+        "table_clearance_m": 0.005394873420775492,
+        "opposing_gap_m": -0.011853882788081504,
+        "position_error_m": [
+          0.0004160331251996108,
+          0.00010538094843884349,
+          -0.00014181719215611288
+        ],
+        "clear": true
+      },
+      "close": {
+        "opposed_touch": true,
+        "closure_fraction": 0.48000000000000015
+      },
+      "probe": {
+        "completed": true,
+        "object_rise_m": 0.02600538408183639
+      },
+      "lift": {
+        "completed": true
+      }
+    },
+    "stop": {
+      "t": 26.75999999999896,
+      "reason": "grip lost",
+      "detail": {
+        "weakest_normal_n": 0.0
+      }
+    },
+    "peak_lift_m": 0.14072232178522381,
+    "grasp_verified": false
+  },
+  "evidence": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-robust-contact-001/fresh_far",
+      "kind": "dir",
+      "sha256": "7367f7b39ef96779f3d03bfc96e3fd75bdf3f6a054150220afe6d03d19f29223",
+      "skipped": []
+    }
+  ],
+  "cloud": null
+}

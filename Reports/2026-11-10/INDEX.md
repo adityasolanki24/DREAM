@@ -6,6 +6,7 @@
 
 | Date | Task ID | Prompt | Status | Main finding | Runs | Report |
 |---|---|---|---|---|---|---|
+| 2026-11-10 | 2026-11-10-009 | [Improve R1 grasp retention and transfer](009-r1-contact-retention/PROMPT.md) | partially_completed | Geometry-ranked pinch recovered one matched cube hold and exercised three new shapes. Retention on wider and curved objects still fails the R1 gate. | 17 | [REPORT](009-r1-contact-retention/REPORT.md) |
 | 2026-11-10 | 2026-11-10-008 | [Continue R1 from the trajectory search evidence](008-r1-clearance-resume/PROMPT.md) | partially_completed | The initial fixed-stance box grasp passes on three development fixtures using the same controller. Width and hold transfer still limit the broader R1 gate. | 27 | [REPORT](008-r1-clearance-resume/REPORT.md) |
 | 2026-11-10 | 2026-11-10-007 | [Resolve the R1 trajectory and grasp without fixed answers](007-r1-trajectory-and-lift/PROMPT.md) | partially_completed | Sensor-initialised preview rejected the tested transitions. No safe approach was executed before interruption. | 4 | [REPORT](007-r1-trajectory-and-lift/REPORT.md) |
 | 2026-11-10 | 2026-11-10-006 | [Resolve the R1 tabletop grasp failure](006-r1-tabletop-grasp/PROMPT.md) | partially_completed | The guarded R1 approach prevents the reproduced tabletop-directed lift. The right index trajectory still loses clearance during the raise, and no box lift was verified. | 13 | [REPORT](006-r1-tabletop-grasp/REPORT.md) |
@@ -22,6 +23,23 @@
 
 | Run | Task | Status | Started | Report |
 |---|---|---|---|---|
+| 20261110-221622-contact-wrench-baseline | 2026-11-10-009 | completed | 2026-11-10T22:16:22+11:00 | [REPORT](009-r1-contact-retention/runs/20261110-221622-contact-wrench-baseline/REPORT.md) |
+| 20261110-221844-geometry-quality | 2026-11-10-009 | completed | 2026-11-10T22:18:44+11:00 | [REPORT](009-r1-contact-retention/runs/20261110-221844-geometry-quality/REPORT.md) |
+| 20261110-222009-geometry-shift-out | 2026-11-10-009 | completed | 2026-11-10T22:20:09+11:00 | [REPORT](009-r1-contact-retention/runs/20261110-222009-geometry-shift-out/REPORT.md) |
+| 20261110-222034-geometry-fresh-far | 2026-11-10-009 | completed | 2026-11-10T22:20:34+11:00 | [REPORT](009-r1-contact-retention/runs/20261110-222034-geometry-fresh-far/REPORT.md) |
+| 20261110-222059-geometry-pinch | 2026-11-10-009 | completed | 2026-11-10T22:20:59+11:00 | [REPORT](009-r1-contact-retention/runs/20261110-222059-geometry-pinch/REPORT.md) |
+| 20261110-222211-robust-shift-out | 2026-11-10-009 | completed | 2026-11-10T22:22:11+11:00 | [REPORT](009-r1-contact-retention/runs/20261110-222211-robust-shift-out/REPORT.md) |
+| 20261110-222239-robust-fresh-far | 2026-11-10-009 | completed | 2026-11-10T22:22:39+11:00 | [REPORT](009-r1-contact-retention/runs/20261110-222239-robust-fresh-far/REPORT.md) |
+| 20261110-222307-robust-pinch | 2026-11-10-009 | completed | 2026-11-10T22:23:07+11:00 | [REPORT](009-r1-contact-retention/runs/20261110-222307-robust-pinch/REPORT.md) |
+| 20261110-222428-shape-rectangular | 2026-11-10-009 | completed | 2026-11-10T22:24:28+11:00 | [REPORT](009-r1-contact-retention/runs/20261110-222428-shape-rectangular/REPORT.md) |
+| 20261110-222443-shape-cylinder | 2026-11-10-009 | completed | 2026-11-10T22:24:43+11:00 | [REPORT](009-r1-contact-retention/runs/20261110-222443-shape-cylinder/REPORT.md) |
+| 20261110-222503-shape-sphere | 2026-11-10-009 | completed | 2026-11-10T22:25:03+11:00 | [REPORT](009-r1-contact-retention/runs/20261110-222503-shape-sphere/REPORT.md) |
+| 20261110-222601-remaining-shift-in | 2026-11-10-009 | completed | 2026-11-10T22:26:01+11:00 | [REPORT](009-r1-contact-retention/runs/20261110-222601-remaining-shift-in/REPORT.md) |
+| 20261110-222621-remaining-lateral | 2026-11-10-009 | completed | 2026-11-10T22:26:21+11:00 | [REPORT](009-r1-contact-retention/runs/20261110-222621-remaining-lateral/REPORT.md) |
+| 20261110-222638-remaining-fresh-near | 2026-11-10-009 | completed | 2026-11-10T22:26:38+11:00 | [REPORT](009-r1-contact-retention/runs/20261110-222638-remaining-fresh-near/REPORT.md) |
+| 20261110-222719-final-pinch | 2026-11-10-009 | completed | 2026-11-10T22:27:19+11:00 | [REPORT](009-r1-contact-retention/runs/20261110-222719-final-pinch/REPORT.md) |
+| 20261110-222731-final-fresh-far | 2026-11-10-009 | completed | 2026-11-10T22:27:31+11:00 | [REPORT](009-r1-contact-retention/runs/20261110-222731-final-fresh-far/REPORT.md) |
+| 20261110-222744-final-shift-out | 2026-11-10-009 | completed | 2026-11-10T22:27:44+11:00 | [REPORT](009-r1-contact-retention/runs/20261110-222744-final-shift-out/REPORT.md) |
 | 20261110-215304-hold-control | 2026-11-10-008 | completed | 2026-11-10T21:53:04+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-215304-hold-control/REPORT.md) |
 | 20261110-215412-stable-clearance-path | 2026-11-10-008 | completed | 2026-11-10T21:54:12+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-215412-stable-clearance-path/REPORT.md) |
 | 20261110-215546-measured-vertical-raise | 2026-11-10-008 | partial | 2026-11-10T21:55:46+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-215546-measured-vertical-raise/REPORT.md) |
