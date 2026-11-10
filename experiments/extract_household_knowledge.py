@@ -18,13 +18,13 @@ import datetime
 import gzip
 import hashlib
 import json
-import re
 import sys
 from pathlib import Path
 
 OBJECTS = (
     "refrigerator countertop sink stove oven kitchen_cabinet microwave dishwasher dining_table "
-    "chair bed wardrobe nightstand dresser desk office_chair bookshelf sofa coffee_table television "
+    "chair bed wardrobe nightstand dresser desk office_chair bookshelf sofa coffee_table "
+    "television "
     "tv_stand armchair toilet washbasin shower bathtub workbench tool_rack storage_shelf "
     "washing_machine dryer chest_freezer filing_cabinet kettle cabinet kitchen_island"
 ).split()
@@ -132,18 +132,20 @@ class WordNet:
             t = head.split()
             n = int(t[3], 16)
             lemmas = [t[4 + 2 * i].lower() for i in range(n)]
-            rest = t[4 + 2 * n:]
+            rest = t[4 + 2 * n :]
             pc = int(rest[0])
             hyp = [rest[1 + 4 * i + 1] for i in range(pc) if rest[1 + 4 * i] in ("@", "@i")]
             self.syn[t[0]] = (lemmas, hyp, gloss.strip())
-            self.hypo[t[0]] = [rest[1 + 4 * i + 1] for i in range(pc) if rest[1 + 4 * i] in ("~", "~i")]
+            self.hypo[t[0]] = [
+                rest[1 + 4 * i + 1] for i in range(pc) if rest[1 + 4 * i] in ("~", "~i")
+            ]
         self.index = {}
         for line in (d / "index.noun").read_text(encoding="utf-8").splitlines():
             if line.startswith("  "):
                 continue
             t = line.split()
             pc = int(t[3])
-            self.index[t[0]] = t[6 + pc:]
+            self.index[t[0]] = t[6 + pc :]
         self.verbs = set()
         for line in (d / "index.verb").read_text(encoding="utf-8").splitlines():
             if not line.startswith("  "):
@@ -170,7 +172,9 @@ def target_synsets(wn, co):
     for term in variants(co, OBJECT_VARIANTS):
         art = [o for o, _ in wn.senses(term) if wn.is_artifact(o)]
         if art:
-            return art[:1]  # sense rank 1 among artifact senses (WordNet orders senses by frequency)
+            return art[
+                :1
+            ]  # sense rank 1 among artifact senses (WordNet orders senses by frequency)
     return []
 
 
@@ -205,7 +209,10 @@ def main() -> int:
         if sn:
             if sn & set(targets[canon]):
                 return None, True
-            return "wrong sense: WordNet knows the word but shares no target synset with the object", False
+            return (
+                "wrong sense: WordNet knows the word but shares no target synset with the object",
+                False,
+            )
         if text in wn.verbs:
             return "verb-only word (no noun entry in WordNet)", None
         return None, None  # not in WordNet: kept, flagged uncorroborated
@@ -228,16 +235,18 @@ def main() -> int:
                     if a[1] in obj_lookup and b[1] in place_lookup:
                         co, ov = obj_lookup[a[1]]
                         cp, pv = place_lookup[b[1]]
-                        objects[co]["places"].setdefault(cp, []).append({
-                            "relation": t[1].rsplit("/", 1)[1],
-                            "direction": direction,
-                            "weight": meta.get("weight"),
-                            "surface": meta.get("surfaceText"),
-                            "source": edge_source(meta),
-                            "concept_uri": t[2] + " -> " + t[3],
-                            "object_variant": ov,
-                            "place_variant": pv,
-                        })
+                        objects[co]["places"].setdefault(cp, []).append(
+                            {
+                                "relation": t[1].rsplit("/", 1)[1],
+                                "direction": direction,
+                                "weight": meta.get("weight"),
+                                "surface": meta.get("surfaceText"),
+                                "source": edge_source(meta),
+                                "concept_uri": t[2] + " -> " + t[3],
+                                "object_variant": ov,
+                                "place_variant": pv,
+                            }
+                        )
             else:  # Synonym, symmetric: take either direction
                 for a, b, uri in ((s, e, t[3]), (e, s, t[2])):
                     if a[1] in obj_lookup:
@@ -247,9 +256,14 @@ def main() -> int:
                         if key in syn_seen:
                             continue
                         syn_seen.add(key)
-                        rec = {"text": text.replace("_", " "), "source": "conceptnet:" + edge_source(meta),
-                               "weight": meta.get("weight"), "concept_uri": uri,
-                               "object_variant": ov, "synsets": []}
+                        rec = {
+                            "text": text.replace("_", " "),
+                            "source": "conceptnet:" + edge_source(meta),
+                            "weight": meta.get("weight"),
+                            "concept_uri": uri,
+                            "object_variant": ov,
+                            "synsets": [],
+                        }
                         why, corr = judge_cn_synonym(co, text, b[2])
                         rec["wordnet_corroborated"] = corr
                         rec["_cn_synsets"] = sorted({o for o, _ in wn.senses(text)})
@@ -271,9 +285,13 @@ def main() -> int:
                     if key in syn_seen:
                         continue
                     syn_seen.add(key)
-                    rec = {"text": lem.replace("_", " "),
-                           "source": f"wordnet-3.0:noun synset {off} via '{v}'",
-                           "gloss": gloss[:120], "synsets": [off], "_cn_synsets": []}
+                    rec = {
+                        "text": lem.replace("_", " "),
+                        "source": f"wordnet-3.0:noun synset {off} via '{v}'",
+                        "gloss": gloss[:120],
+                        "synsets": [off],
+                        "_cn_synsets": [],
+                    }
                     if art:
                         objects[co]["synonyms"].append(rec)
                     else:
@@ -291,10 +309,15 @@ def main() -> int:
                     if key in syn_seen:
                         continue
                     syn_seen.add(key)
-                    objects[co]["synonyms"].append({
-                        "text": lem.replace("_", " "),
-                        "source": f"wordnet-3.0:noun synset {h} (direct hyponym of {tsyn})",
-                        "gloss": wn.syn[h][2][:120], "synsets": [h], "_cn_synsets": []})
+                    objects[co]["synonyms"].append(
+                        {
+                            "text": lem.replace("_", " "),
+                            "source": f"wordnet-3.0:noun synset {h} (direct hyponym of {tsyn})",
+                            "gloss": wn.syn[h][2][:120],
+                            "synsets": [h],
+                            "_cn_synsets": [],
+                        }
+                    )
 
     def dominant(text_us, synset):
         sn = wn.index.get(text_us, [])
@@ -324,7 +347,10 @@ def main() -> int:
             hit = wn_hit or cn_hit
             if not hit:
                 r["grammar_safe"] = False
-                r["reason"] = "not a lemma of the target household-artifact synset (nor a multiword ConceptNet term sharing it)"
+                r["reason"] = (
+                    "not a lemma of the target household-artifact synset "
+                    "(nor a multiword ConceptNet term sharing it)"
+                )
             elif len(wn.index.get(us, [])) > 1 and not any(dominant(us, h) for h in hit):
                 r["grammar_safe"] = False
                 r["reason"] = "polysemous: target synset is not this word's dominant WordNet sense"
@@ -358,7 +384,9 @@ def main() -> int:
             others = (owners.get(r["text"], set()) | own_names.get(r["text"], set())) - {co}
             if others:
                 r["grammar_safe"] = False
-                r["reason"] = "ambiguous: also a safe synonym or name for " + ", ".join(sorted(others))
+                r["reason"] = "ambiguous: also a safe synonym or name for " + ", ".join(
+                    sorted(others)
+                )
                 r.pop("matched_synset", None)
                 r.pop("relation_to_target", None)
 
@@ -375,26 +403,43 @@ def main() -> int:
         "version": 3,
         "generated_utc": generated,
         "sources": [
-            {"name": "ConceptNet 5.7.0 assertions", "license": "CC BY-SA 4.0",
-             "url": "https://s3.amazonaws.com/conceptnet/downloads/2019/edges/conceptnet-assertions-5.7.0.csv.gz",
-             "sha256": sha256_file(args.conceptnet_dump), "lines_scanned": n_lines},
-            {"name": "WordNet 3.0", "license": "Princeton WordNet license (see LICENSE.txt)",
-             "url": "https://raw.githubusercontent.com/nltk/nltk_data/gh-pages/packages/corpora/wordnet.zip",
-             "sha256": args.wordnet_zip_sha256},
+            {
+                "name": "ConceptNet 5.7.0 assertions",
+                "license": "CC BY-SA 4.0",
+                "url": "https://s3.amazonaws.com/conceptnet/downloads/2019/edges/conceptnet-assertions-5.7.0.csv.gz",
+                "sha256": sha256_file(args.conceptnet_dump),
+                "lines_scanned": n_lines,
+            },
+            {
+                "name": "WordNet 3.0",
+                "license": "Princeton WordNet license (see LICENSE.txt)",
+                "url": "https://raw.githubusercontent.com/nltk/nltk_data/gh-pages/packages/corpora/wordnet.zip",
+                "sha256": args.wordnet_zip_sha256,
+            },
         ],
         "place_vocabulary": PLACES,
-        "target_synsets": {co: [{"synset": o, "lemmas": wn.syn[o][0], "gloss": wn.syn[o][2][:120]}
-                                for o in targets[co]] for co in OBJECTS},
+        "target_synsets": {
+            co: [
+                {"synset": o, "lemmas": wn.syn[o][0], "gloss": wn.syn[o][2][:120]}
+                for o in targets[co]
+            ]
+            for co in OBJECTS
+        },
         "objects": objects,
     }
     args.out_dir.mkdir(parents=True, exist_ok=True)
     (args.out_dir / "knowledge.json").write_text(
-        json.dumps(knowledge, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+        json.dumps(knowledge, indent=1, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
     # coverage report (plain text)
     rels = [r.rsplit("/", 1)[1] for r in EDGE_RELS]
-    L = ["Coverage: objects x places. Cell = max edge weight over all relations/directions, '-' = no edge.",
-         "Then per-relation edge counts (" + " ".join(rels) + ") and safe/all synonym counts.", ""]
+    L = [
+        "Coverage: objects x places. Cell = max edge weight over all relations/directions, "
+        "'-' = no edge.",
+        "Then per-relation edge counts (" + " ".join(rels) + ") and safe/all synonym counts.",
+        "",
+    ]
     L.append("object | " + " | ".join(PLACES) + " | rel counts | syn_safe/syn")
     none_in_vocab = []
     tot = {r: 0 for r in rels}
@@ -409,8 +454,13 @@ def main() -> int:
                 tot[x["relation"]] += 1
                 tot_dir[x["direction"]] += 1
         syn = objects[co]["synonyms"]
-        L.append(f"{co} | " + " | ".join(cells) + " | " + " ".join(str(cnt[r]) for r in rels)
-                 + f" | {sum(r['grammar_safe'] for r in syn)}/{len(syn)}")
+        L.append(
+            f"{co} | "
+            + " | ".join(cells)
+            + " | "
+            + " ".join(str(cnt[r]) for r in rels)
+            + f" | {sum(r['grammar_safe'] for r in syn)}/{len(syn)}"
+        )
         if not pl:
             none_in_vocab.append(co)
     L.append("")
@@ -418,8 +468,13 @@ def main() -> int:
     L.append("Objects with NO place evidence: " + (", ".join(none_in_vocab) or "none"))
     L.append("Edge totals by relation: " + ", ".join(f"{r}={tot[r]}" for r in rels))
     L.append("Edge totals by direction: " + ", ".join(f"{k}={v}" for k, v in tot_dir.items()))
-    n_e = sum(len(l) for o in objects.values() for l in o["places"].values())
-    n_s = sum(e["variant_same_sense"] for o in objects.values() for l in o["places"].values() for e in l)
+    n_e = sum(len(edges) for o in objects.values() for edges in o["places"].values())
+    n_s = sum(
+        e["variant_same_sense"]
+        for o in objects.values()
+        for edges in o["places"].values()
+        for e in edges
+    )
     L.append(f"Edges with variant_same_sense=true: {n_s}/{n_e}")
     rt = {}
     for o in objects.values():

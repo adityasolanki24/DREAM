@@ -7,8 +7,8 @@
 - Original prompt: [PROMPT.md](PROMPT.md)
 - Git branch: claude/isaac-semantic-research-20261109
 - Starting commit: df00ae9e30cb6c32ade4d3155e4c83cac489b6a2
-- Final commit: _TO COMPLETE_
-- Task status: in progress
+- Final commit: efd6872f4c375f948244e04c5beb71eade626925
+- Task status: partially completed
 
 ## A. Objective
 
@@ -50,56 +50,57 @@ Branch `claude/semantic-goal-search-20261108` at `9ed947c`, pushed on 9 November
 ## C. Work performed
 
 ### Implementation
-_TO COMPLETE_
+
+Added the Reports workflow and observation-isolation hardening. Built the Isaac asset checks and procedural home composer, comparison tooling for offline detectors, and the optional semantic evidence from unexplored rooms.
 
 ### Evaluation
-_TO COMPLETE_
+
+Completed K1 on larger MuJoCo homes. Ran Isaac asset, capture and standing diagnostics, and a local development check of the unexplored-room option. The 10 November note records a separate offline detector comparison.
 
 ### Runs
-Run records: see runs/ and the daily index
-_TO COMPLETE_
+
+The 23 registered runs are indexed under runs/. The session 5 offline detector comparison is described in the 10 November note. No dedicated run record for that comparison was found in this checkout. Its numbers remain development notes.
 
 ## D. What was achieved
 
-_TO COMPLETE_
+K1 completed 576 episodes. Its false-claim and target-present gates passed, and all arms refused the absent-target cases. The Isaac work produced asset diagnostics, a fix for extra PhysicsScene prims and development captures from composed homes, as recorded in the run reports and final progress note.
 
 ## E. What was not achieved
 
-_TO COMPLETE_
+No learned detector was evaluated in a closed-loop search on the composed Isaac homes. K2 was not frozen or run. experiments/configs/semantic_exploration_k2.json and experiments/configs/isaac_home_dev.json preserve the drafts in this checkout.
 
 ## F. Passed tests and experiments
 
-_TO COMPLETE_
+K1 passed K-G1 and K-G3. The detector pipeline completed its CPU stub check, which is a plumbing result. Isaac validation and capture smoke results are in their respective run records.
 
 ## G. Failed tests and experiments
 
-_TO COMPLETE_
+The primary K-G2 speed gate failed for all knowledge sources. The unexplored-room option did not improve the development comparison consistently. Missing assets, failed standing checks and counter-mounted object recognition failures remain in the run records.
 
 ## H. Improvements
 
-_TO COMPLETE_
+The 10 November note reports that removing the extra PhysicsScene prims allowed four development homes to stand, cross rooms and capture frames. This is development evidence. No search-efficiency improvement was demonstrated.
 
 ## I. Regressions and dis-improvements
 
-<!-- If a metric was not measured, write "Not measured", not "No regression". -->
-_TO COMPLETE_
+The K1 utility arms walked farther on average than the frontier arms. In the exploratory room check, ConceptNet and Qwen each found five fewer targets with the option, while combined found five more. Other effects were not measured.
 
 ## J. Comparison against baseline
 
-_TO COMPLETE_
+K1 knowledge arms had 0 s median paired time difference against the frontier baseline and Holm-adjusted p = 1.0 for all three. The same utility planner without knowledge found 62/64 targets and was indistinguishable on timing from the knowledge arms.
 
 ## K. Research integrity and assumptions
 
-_TO COMPLETE_
+K1 used the existing generator, oracle-assisted detections and odometry, and a kinematic base. Isaac and detector results in the 10 November progress note are development observations. The closeout preserves the recorded evidence and adds no new run.
 
 ## L. Cloud resource usage
 
-_TO COMPLETE_
+The 10 November note gives US$30.50 estimated for the Isaac work in this task and records cleanup verification per session. Billed costs were not read. See individual run records for evidence and the retained runtime image.
 
 ## M. Remaining work
 
-_TO COMPLETE_
+The R0 adoption defers the K2, detector integration and wider Isaac work. Future work can resume from the saved draft configurations and notes when those capabilities become dependencies.
 
 ## N. Final conclusion
 
-_TO COMPLETE_
+The reporting system and development tooling were delivered. The primary semantic search claim failed its frozen speed gate, and the Isaac learned-perception loop remained incomplete.

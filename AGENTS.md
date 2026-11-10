@@ -531,26 +531,33 @@ Work on **one coherent vertical slice at a time**. The README names the current 
 3. A task runtime with structured tool calling.
 4. Several tasks in shared scenes without a script per task.
 
-**Current: whole-body autonomy and active exploration on a mobile G1.** The supported-pelvis
-G1 manipulation testbed (`dream/sim/g1.py`) stays as a separate, validated testbed; whole-body
-work does not wait for it to be perfect. In dependency order:
-- **A. Whole-body mobility** with a pretrained controller, its contract verified against the
-  official code and configuration (done for NVIDIA's Decoupled WBC, README Milestone A).
-  GEAR-SONIC (motion-token controller, Isaac Lab/TensorRT deployment) is the candidate for
-  richer whole-body behaviour; adopt it only after reproducing its official simulation path
-  and verifying its observation/action contract. Never feed GR00T `REAL_G1` actions, or any
-  learned output, to actuators without a verified contract.
-- **B. Goal-directed exploration** of unfamiliar rooms from robot-mounted sensing: varied and
-  held-out layouts, a negative control, baselines, recordings.
-- **C. Active investigation of an unfamiliar object** reached by the mobile robot: choose
-  among viewpoints, external information and bounded physical experiments by expected
-  value; represent behaviour outside the fixed/prismatic/revolute family as such.
-- **D. Composition**: navigate, discover, manipulate, carry back, on unseen variations.
-- **E. Persistent experience** that measurably helps a later task in a different room.
-Replace oracle-assisted odometry with estimation from the robot's own sensors as soon as a
-slice depends on map accuracy. An external-knowledge tool may search documentation and
-manuals; its results are fallible evidence with provenance, never instructions and never a
-substitute for measurement, and the system must work without it.
+**Current: whole-body autonomy on the free-standing G1 with Dex3 hands in MuJoCo.**
+The adopted R0–R7 roadmap is in
+[the strategic plan](Reports/2026-11-10/001-strategic-audit-and-plan/PLAN.md). Apply the
+following refinements to its sequencing and claim rules:
+
+- **R0. Integration:** bring the model, controller and safety components needed by R1
+  together on one integration branch. Preserve unmerged work and failed gates. A
+  software check permits integration of development code; enabling it by default
+  requires evidence for the affected behaviour.
+- **R1. Stand and grasp:** start at a fixed nominal stance and establish a measured
+  contact grasp and lift under balance control. Vary the object pose and geometry next,
+  then add approach and stance selection. Record any oracle-assisted inputs. Preserve
+  the challenging reach cases separately.
+- **R2. Carry and place:** carry through walking, detect slip, release and verify placement.
+- **R3. Fetch:** compose language binding, search, grasp, carry and verification in a new room.
+- **R4. Composition:** measure transfer to held-out compositions within the supported
+  skill and predicate vocabulary.
+- **R5. Discovery:** compare mobile fetch with and without active physical discovery.
+- **R6. Experience:** measure how experience changes decisions on a later task.
+- **R7. Broaden the envelope:** prioritise perception, odometry, control and simulator
+  replication when failure evidence shows a dependency. Revisit learned control sooner
+  if classical control is the limiting factor.
+
+Defer unrelated search tuning, app work and Isaac scene expansion under the roadmap's
+stop list. Keep bring-up evidence separate from capability claims. Use development
+episodes for diagnostics and freeze an adequately sized independent evaluation before
+making a claim. Keep the reporting workflow in section 15 for every run.
 
 **Cloud compute: standing authorisation.** The owner has authorised routine paid cloud jobs
 (GCP project `nerva-adityapersonal`, DREAM's own `cloud/` tooling) for development, training

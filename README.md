@@ -12,6 +12,30 @@ and evidence, is in
 [`results/research_closeout_20261106/inventory.json`](results/research_closeout_20261106/inventory.json).
 The previous README is preserved in `archive/documentation-closeout-20261107.zip`.
 
+## G1 roadmap
+
+The current priority is a free-standing G1 grasp under contact physics. The
+[roadmap](Reports/2026-11-10/001-strategic-audit-and-plan/PLAN.md) sequences grasp,
+carry and fetch before broader composition and discovery. AGENTS.md records the adopted
+sequencing and evidence rules.
+
+| Rung | Capability | Status |
+|---|---|---|
+| R0 | G1 model, controller and safety on one integration branch | Integration checks passed |
+| R1 | Free-standing contact grasp and lift | Bring-up |
+| R2 | Carry and place | Pending |
+| R3 | Fetch from language | Pending |
+| R4 | Held-out task compositions | Pending |
+| R5 | Active discovery on the G1 | Pending |
+| R6 | Experience that improves a later task | Pending |
+| R7 | Broader sensing and control envelope | Pending |
+
+The Dex3 actuator path is opt-in. W6 remains a failed development evaluation.
+For the fixed-stance grasp diagnostic, install the `wholebody` and `locomotion` extras
+and use the cached WBC weights. See the
+[bring-up report](Reports/2026-11-10/003-r0-r1-start/REPORT.md) for the commands and
+development outcomes.
+
 ## Executive summary
 
 **New on 8-9 November**, all in simulation:

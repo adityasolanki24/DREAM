@@ -30,8 +30,12 @@ def decide(diagnose: bool):
     g, world = half_explored()
     pose = np.array([-2.0, 0.0, 0.0])
     base = SimpleNamespace(time=12.0, odometry=lambda: pose)
-    planner = SemanticSearchPlanner(SimpleNamespace(semantic=world, base=base), "utility",
-                                    UtilityWeights(kappa=3.0), diagnose=diagnose)
+    planner = SemanticSearchPlanner(
+        SimpleNamespace(semantic=world, base=base),
+        "utility",
+        UtilityWeights(kappa=3.0),
+        diagnose=diagnose,
+    )
     ok = traversable(g)
     ok[g.cell(pose[:2])] = True
     dist = distances(ok, tuple(int(v) for v in g.cell(pose[:2])))
@@ -51,8 +55,17 @@ def test_the_log_holds_terms_and_both_counterfactuals():
     assert off.diagnostics == []
     on, _ = decide(True)
     (rec,) = on.diagnostics
-    for key in ("chosen", "no_detection", "uniform", "top", "regions", "n_views",
-                "changed_uniform", "changed_no_detection", "gap_to_second"):
+    for key in (
+        "chosen",
+        "no_detection",
+        "uniform",
+        "top",
+        "regions",
+        "n_views",
+        "changed_uniform",
+        "changed_no_detection",
+        "gap_to_second",
+    ):
         assert key in rec
     c = rec["chosen"]
     assert abs(c["sem_term"] - 3.0 * c["detection"]) < 0.01

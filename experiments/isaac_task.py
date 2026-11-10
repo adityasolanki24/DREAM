@@ -263,8 +263,7 @@ def lean_forward(env, base, log, pitch: float, height: float) -> dict:
     before = torso_forward(env)
     for sign in (1.0, -1.0):
         for k in range(1, 26):
-            ctrl.rpy_cmd = np.array([0.0, sign * pitch * k / 25, 0.0])
-            ctrl.height_cmd = 0.74 + (height - 0.74) * k / 25
+            ctrl.set_posture(0.74 + (height - 0.74) * k / 25, (0.0, sign * pitch * k / 25, 0.0))
             base.walk(0, 0, 0, 0.04)
         base.walk(0, 0, 0, 0.6)
         gained = torso_forward(env) - before
@@ -272,7 +271,7 @@ def lean_forward(env, base, log, pitch: float, height: float) -> dict:
             f"torso moved {gained * 100:+.0f} cm forward")  # fmt: skip
         if gained > 0.03:
             return {"pitch_cmd": sign * pitch, "height_cmd": height, "torso_forward_m": gained}
-        ctrl.rpy_cmd = np.zeros(3)
+        ctrl.set_posture(ctrl.height)
         base.walk(0, 0, 0, 0.8)
     return {"pitch_cmd": 0.0, "height_cmd": height, "torso_forward_m": 0.0}
 
@@ -293,10 +292,9 @@ def tuck_arms(base) -> None:
 def upright(base) -> None:
     """Ramp the posture commands back to the validated defaults (before walking far)."""
     ctrl = base.controller
-    r0, h0 = ctrl.rpy_cmd.copy(), ctrl.height_cmd
+    r0, h0 = ctrl.rpy.copy(), ctrl.height
     for k in range(1, 26):
-        ctrl.rpy_cmd = r0 * (1 - k / 25)
-        ctrl.height_cmd = h0 + (0.74 - h0) * k / 25
+        ctrl.set_posture(h0 + (0.74 - h0) * k / 25, r0 * (1 - k / 25))
         base.walk(0, 0, 0, 0.04)
     base.walk(0, 0, 0, 0.4)
 

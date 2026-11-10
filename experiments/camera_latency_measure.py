@@ -1,18 +1,18 @@
 """Measure real camera delivery on one machine: real CameraStream + PhoneAPI, real-size frames.
 
-Run: python -m experiments.camera_latency_measure --out results/camera_delivery_closeout_20261106 [--only a,b]
+Run: python -m experiments.camera_latency_measure --out results/camera_delivery_closeout_20261106
+Optionally select scenarios with --only a,b.
 
 Every frame carries a block-coded sequence number in its pixels; the browser decodes the number from
 the displayed <img>, so latency is source timestamp -> pixels on screen, on ONE machine clock.
-Everything here is LOOPBACK. It says nothing about a tailnet, WAN or IAP; an actual remote number needs
-the cloud session.
+These are loopback results. A tailnet, WAN or IAP measurement needs a cloud session.
+
 """
 
 from __future__ import annotations
 
 import argparse
 import csv
-import hmac
 import http.client
 import json
 import os
@@ -142,7 +142,9 @@ class TrackingServer(ThreadingHTTPServer):
         return len(socks)
 
 
-phone_api._QuietServer = TrackingServer  # harness: track sockets (pre-fix servers: ThreadingHTTPServer)
+phone_api._QuietServer = (
+    TrackingServer  # harness: track sockets (pre-fix servers: ThreadingHTTPServer)
+)
 
 
 class StubScheduler:
@@ -184,12 +186,25 @@ class Rig:
         api = PhoneAPI(
             StubScheduler(),
             self.token,
-            status=lambda: {"robot_time_s": time.time() % 1000, "odometry": [0, 0, 0], "stop_reason": None},
+            status=lambda: {
+                "robot_time_s": time.time() % 1000,
+                "odometry": [0, 0, 0],
+                "stop_reason": None,
+            },
             snapshot=lambda: {
-                "provider": "structured", "provider_label": "harness", "provider_choices": [],
-                "robot_time_s": time.time() % 1000, "odometry": [0, 0, 0], "stop_reason": None,
-                "camera": None, "map": None, "objects": [], "persistent_memory": None,
-                "task_graph": None, "outcome": None, "history": [],
+                "provider": "structured",
+                "provider_label": "harness",
+                "provider_choices": [],
+                "robot_time_s": time.time() % 1000,
+                "odometry": [0, 0, 0],
+                "stop_reason": None,
+                "camera": None,
+                "map": None,
+                "objects": [],
+                "persistent_memory": None,
+                "task_graph": None,
+                "outcome": None,
+                "history": [],
             },
             web_root=self.web_root,
         )
@@ -347,15 +362,22 @@ class Rig:
 def run_driver(rig, out_dir, name, **cfg):
     cfg_path, out_path = out_dir / f"_{name}.cfg.json", out_dir / f"_{name}.raw.json"
     cfg = {
-        "chrome": CHROME, "token": rig.token, "base": f"http://127.0.0.1:{rig.port}",
-        "ctl": f"http://127.0.0.1:{rig.ctl_port}", "out": str(out_path), **cfg,
+        "chrome": CHROME,
+        "token": rig.token,
+        "base": f"http://127.0.0.1:{rig.port}",
+        "ctl": f"http://127.0.0.1:{rig.ctl_port}",
+        "out": str(out_path),
+        **cfg,
     }
     cfg_path.write_text(json.dumps(cfg))
     env = {**os.environ, "DREAM_PLAYWRIGHT_CORE": PLAYWRIGHT}
     log = (out_dir / f"_{name}.driver.log").open("w")
     p = subprocess.run(
         ["node", str(ROOT / "experiments/camera_latency_driver.cjs"), str(cfg_path)],
-        env=env, stdout=log, stderr=subprocess.STDOUT, timeout=cfg.get("timeout_s", 180),
+        env=env,
+        stdout=log,
+        stderr=subprocess.STDOUT,
+        timeout=cfg.get("timeout_s", 180),
     )
     log.close()
     cfg_path.unlink(missing_ok=True)
@@ -376,8 +398,11 @@ def clock_offset(raw):
     b, ub, sb = offset_of(raw["sync_end"])
     allv = sa + sb
     return {
-        "offset_start_ms": round(a, 3), "offset_end_ms": round(b, 3),
-        "drift_ms": round(b - a, 3), "rtt_half_start_ms": round(ua, 3), "rtt_half_end_ms": round(ub, 3),
+        "offset_start_ms": round(a, 3),
+        "offset_end_ms": round(b, 3),
+        "drift_ms": round(b - a, 3),
+        "rtt_half_start_ms": round(ua, 3),
+        "rtt_half_end_ms": round(ub, 3),
         "offset_spread_ms": round(max(allv) - min(allv), 3),
         # +-: best-sample RTT/2 plus observed drift plus 1 animation frame (watcher resolution)
         "uncertainty_ms": round(max(ua, ub) + abs(b - a) + 16.7, 2),
@@ -391,17 +416,25 @@ def join_paints(rig, raw):
     rows = []
     for p in raw.get("paints", []):
         if not p["ok"]:
-            rows.append({"seq": -1, "decode_ok": 0, "t_paint": (p["t"] + co["offset_used_ms"]) / 1000})
+            rows.append(
+                {"seq": -1, "decode_ok": 0, "t_paint": (p["t"] + co["offset_used_ms"]) / 1000}
+            )
             continue
         t_paint = (p["t"] + co["offset_used_ms"]) / 1000
         t_src = rig.src.get(p["seq"])
         enc = rig.enc.get(p["seq"])
-        rows.append({
-            "seq": p["seq"], "decode_ok": 1, "t_src_s": t_src, "t_paint_s": t_paint,
-            "latency_ms": None if t_src is None else (t_paint - t_src) * 1000,
-            "encode_ms": None if enc is None else enc[1], "jpeg_bytes": None if enc is None else enc[2],
-            "t_encoded_s": None if enc is None else enc[0],
-        })
+        rows.append(
+            {
+                "seq": p["seq"],
+                "decode_ok": 1,
+                "t_src_s": t_src,
+                "t_paint_s": t_paint,
+                "latency_ms": None if t_src is None else (t_paint - t_src) * 1000,
+                "encode_ms": None if enc is None else enc[1],
+                "jpeg_bytes": None if enc is None else enc[2],
+                "t_encoded_s": None if enc is None else enc[0],
+            }
+        )
     return rows, co
 
 
@@ -420,16 +453,18 @@ def delivery_summary(rig, rows, rate):
     if len(iv):
         med = float(np.median(iv))
         jitter = {
-            "interval_median_ms": round(med, 2), "interval_stdev_ms": round(float(np.std(iv)), 2),
+            "interval_median_ms": round(med, 2),
+            "interval_stdev_ms": round(float(np.std(iv)), 2),
             "interval_p95_ms": round(float(np.percentile(iv, 95)), 2),
             "abs_dev_from_median_p95_ms": round(float(np.percentile(np.abs(iv - med), 95)), 2),
             "interval_max_ms": round(float(iv.max()), 2),
         }
     return {
-        "painted": len(painted), "produced_in_range": len(produced),
+        "painted": len(painted),
+        "produced_in_range": len(produced),
         "missing_seqs": len(produced - painted),
         "missing_not_encoded_by_server": len(encoded_missing),
-        "missing_after_encode": len((produced - painted)) - len(encoded_missing),
+        "missing_after_encode": len(produced - painted) - len(encoded_missing),
         "loss_pct": round(100 * len(produced - painted) / max(len(produced), 1), 2),
         "delivered_fps": round((len(painted) - 1) / span, 2) if span > 0 else 0,
         "decode_failures": sum(1 for r in rows if not r.get("decode_ok")),
@@ -447,7 +482,16 @@ def write_csv(path, rows, cols):
             w.writerow({k: ("" if r.get(k) is None else r.get(k)) for k in cols})
 
 
-CSV_COLS = ["seq", "decode_ok", "t_src_s", "t_encoded_s", "t_paint_s", "latency_ms", "encode_ms", "jpeg_bytes"]
+CSV_COLS = [
+    "seq",
+    "decode_ok",
+    "t_src_s",
+    "t_encoded_s",
+    "t_paint_s",
+    "latency_ms",
+    "encode_ms",
+    "jpeg_bytes",
+]
 
 
 def new_rig(args, rate=10, web_root=None):
@@ -463,8 +507,13 @@ def raw_request(port, method, path, headers=None, body=None):
     c.request(method, path, body=body, headers=headers or {})
     r = c.getresponse()
     data = r.read(200)
-    out = {"request": f"{method} {path}".replace(TOKEN_FOR_REDACTION[0], "<token>"), "sent_authorization": (headers or {}).get("Authorization", "<none>")[:11] + "...",
-           "status": r.status, "reason": r.reason, "body": data.decode("latin1")[:120]}
+    out = {
+        "request": f"{method} {path}".replace(TOKEN_FOR_REDACTION[0], "<token>"),
+        "sent_authorization": (headers or {}).get("Authorization", "<none>")[:11] + "...",
+        "status": r.status,
+        "reason": r.reason,
+        "body": data.decode("latin1")[:120],
+    }
     c.close()
     return out
 
@@ -488,15 +537,34 @@ def scn_auth(args, out):
             if path == "/camera/stream" and label == "correct bearer":
                 # streaming: read just the status line
                 s = socket.create_connection(("127.0.0.1", rig.port), timeout=5)
-                s.sendall(f"GET {p} HTTP/1.1\r\nHost: x\r\nAuthorization: Bearer {tok}\r\n\r\n".encode())
+                s.sendall(
+                    f"GET {p} HTTP/1.1\r\nHost: x\r\nAuthorization: Bearer {tok}\r\n\r\n".encode()
+                )
                 line = s.recv(100).split(b"\r\n")[0].decode()
                 s.close()
-                cases.append({"label": label, "request": f"GET {p}".replace(tok, "<token>"), "status_line": line})
+                cases.append(
+                    {
+                        "label": label,
+                        "request": f"GET {p}".replace(tok, "<token>"),
+                        "status_line": line,
+                    }
+                )
                 continue
             r = raw_request(rig.port, "GET", p, headers)
             r["label"] = label
             cases.append(r)
-    cases.append({**raw_request(rig.port, "POST", "/camera/client-metrics", {"Content-Type": "application/json"}, b"{}"), "label": "POST client-metrics no token"})
+    cases.append(
+        {
+            **raw_request(
+                rig.port,
+                "POST",
+                "/camera/client-metrics",
+                {"Content-Type": "application/json"},
+                b"{}",
+            ),
+            "label": "POST client-metrics no token",
+        }
+    )
     time.sleep(0.5)
     echoed = any(tok in c.get("body", "") or tok in c.get("status_line", "") for c in cases)
     result = {
@@ -504,8 +572,10 @@ def scn_auth(args, out):
         "token_echoed_in_any_response_text": echoed,
         "pass": all(
             c.get("status") == 401 or c.get("status_line", "").endswith("401 Unauthorized")
-            for c in cases if c["label"] not in ("correct bearer", "POST client-metrics no token")
-        ) and not echoed,
+            for c in cases
+            if c["label"] not in ("correct bearer", "POST client-metrics no token")
+        )
+        and not echoed,
     }
     rig.close()
     out["auth"] = result
@@ -515,29 +585,55 @@ def latency_run(args, out_dir, client, mode, rate, duration, scenario="latency",
     rig = new_rig(args, rate, web_root=args.app_root if client == "app" else args.raw_root)
     rig.start(rate)
     name = f"{scenario}_{client}_{mode}_{rate}fps"
-    raw = run_driver(rig, out_dir, name, client=client, mode=mode, scenario=scenario,
-                     duration_s=duration, screenshot=str(out_dir / f"screenshot_{name}.png") if client == "app" else None, **extra)
+    raw = run_driver(
+        rig,
+        out_dir,
+        name,
+        client=client,
+        mode=mode,
+        scenario=scenario,
+        duration_s=duration,
+        screenshot=str(out_dir / f"screenshot_{name}.png") if client == "app" else None,
+        **extra,
+    )
     meta = rig.stream.metadata()
-    summary = {"client": client, "transport": mode, "source_fps": rate, "duration_s": duration,
-               "driver_exit": raw.get("driver_exit"), "first_paint": raw.get("first_paint"),
-               "chrome_version": raw.get("chrome_version")}
+    summary = {
+        "client": client,
+        "transport": mode,
+        "source_fps": rate,
+        "duration_s": duration,
+        "driver_exit": raw.get("driver_exit"),
+        "first_paint": raw.get("first_paint"),
+        "chrome_version": raw.get("chrome_version"),
+    }
     if "paints" in raw:
         rows, co = join_paints(rig, raw)
         write_csv(out_dir / f"{name}.csv", rows, CSV_COLS)
         summary.update(delivery_summary(rig, rows, rate))
         summary["clock"] = co
-        summary["stream_metadata"] = {k: meta[k] for k in ("submitted_frames", "encoded_frames", "dropped_frames", "error")}
+        summary["stream_metadata"] = {
+            k: meta[k] for k in ("submitted_frames", "encoded_frames", "dropped_frames", "error")
+        }
         if raw.get("cpu_start") and raw.get("cpu_end"):
             a, b = raw["cpu_start"], raw["cpu_end"]
             wall = (b["wall_ms"] - a["wall_ms"]) / 1000
-            summary["server_process_cpu_pct_of_one_core"] = round(100 * (b["server_process_s"] - a["server_process_s"]) / wall, 1)
+            summary["server_process_cpu_pct_of_one_core"] = round(
+                100 * (b["server_process_s"] - a["server_process_s"]) / wall, 1
+            )
             summary["browser_cpu_pct_of_one_core_by_process_type"] = {
-                k: round(100 * (b["browser_by_type_s"].get(k, 0) - a["browser_by_type_s"].get(k, 0)) / wall, 1)
+                k: round(
+                    100
+                    * (b["browser_by_type_s"].get(k, 0) - a["browser_by_type_s"].get(k, 0))
+                    / wall,
+                    1,
+                )
                 for k in b["browser_by_type_s"]
             }
         enc = [v[1] for s, v in rig.enc.items()]
         summary["encode_ms"] = stats(enc)
-        summary["jpeg_bytes_median"] = int(statistics.median([v[2] for v in rig.enc.values()])) if rig.enc else None
+        summary["jpeg_bytes_median"] = (
+            int(statistics.median([v[2] for v in rig.enc.values()])) if rig.enc else None
+        )
         summary["urls_containing_token"] = raw.get("urls_with_token")
         summary["requests_made_by_page"] = raw.get("request_count")
         for k in ("rerender", "body_text", "console_errors", "app_img_missing", "responses"):
@@ -553,24 +649,50 @@ def scn_latency(args, out):
             for rate in (5, 10, 15):
                 rig, raw, summary = latency_run(args, args.out, client, mode, rate, args.duration)
                 if client == "app":
-                    summary["note"] = "real built web app; transport = its own policy (push first); mode_in_use below"
-                    summary["dom_labels_seen"] = sorted({l for d in raw.get("dom", []) for l in d["found"]})
+                    summary["note"] = (
+                        "real built web app; transport = its own policy (push first); "
+                        "mode_in_use below"
+                    )
+                    summary["dom_labels_seen"] = sorted(
+                        {label for d in raw.get("dom", []) for label in d["found"]}
+                    )
                 rig.close()
-                print(client, mode, rate, json.dumps(summary.get("latency_ms")), summary.get("delivered_fps"), flush=True)
+                print(
+                    client,
+                    mode,
+                    rate,
+                    json.dumps(summary.get("latency_ms")),
+                    summary.get("delivered_fps"),
+                    flush=True,
+                )
                 results.append(summary)
     out["latency"] = results
 
 
 def scn_app_poll_only(args, out):
-    """The real app has no switch for polling-only. Force it by holding both stream slots for the whole run."""
+    """Force the app to poll by holding both stream slots for the whole run."""
     results = []
     for rate in (5, 10, 15):
         rig = new_rig(args, rate, web_root=args.app_root)
         rig.start(rate)
         held = [rig.api._media_slots.acquire(blocking=False) for _ in range(2)]
         name = f"latency_app_pollfallback_{rate}fps"
-        raw = run_driver(rig, args.out, name, client="app", mode="auto", scenario="latency", duration_s=args.duration, first_paint_timeout_ms=30000)
-        s = {"client": "app", "transport": "poll (stream refused with 429 by holding both slots)", "source_fps": rate, "slots_held": sum(held)}
+        raw = run_driver(
+            rig,
+            args.out,
+            name,
+            client="app",
+            mode="auto",
+            scenario="latency",
+            duration_s=args.duration,
+            first_paint_timeout_ms=30000,
+        )
+        s = {
+            "client": "app",
+            "transport": "poll (stream refused with 429 by holding both slots)",
+            "source_fps": rate,
+            "slots_held": sum(held),
+        }
         if "paints" in raw:
             rows, co = join_paints(rig, raw)
             write_csv(args.out / f"{name}.csv", rows, CSV_COLS)
@@ -591,12 +713,25 @@ def scn_rerender(args, out):
     ri = sum(v for k, v in (rr.get("renders") or {}).items() if k.startswith("INSIDE"))
     ro = sum(v for k, v in (rr.get("renders") or {}).items() if not k.startswith("INSIDE"))
     s["rerender_summary"] = {
-        "window_s": args.duration, "frames_painted": rr.get("paints"), "react_commits": rr.get("commits"),
-        "component_renders_inside_camera_element": ri, "component_renders_outside_camera_element": ro,
-        "dom_mutations_inside_camera_element": inside, "dom_mutations_outside_camera_element": outside,
-        "top_outside_mutations": sorted(((v, k) for k, v in (rr.get("mutations") or {}).items() if k.startswith("OUTSIDE")), reverse=True)[:8],
-        "top_outside_renders": sorted(((v, k) for k, v in (rr.get("renders") or {}).items() if not k.startswith("INSIDE")), reverse=True)[:8],
-        "caveat": "includes the app's own 1.2 s snapshot poll and 1 s metadata poll; not isolated to camera frames",
+        "window_s": args.duration,
+        "frames_painted": rr.get("paints"),
+        "react_commits": rr.get("commits"),
+        "component_renders_inside_camera_element": ri,
+        "component_renders_outside_camera_element": ro,
+        "dom_mutations_inside_camera_element": inside,
+        "dom_mutations_outside_camera_element": outside,
+        "top_outside_mutations": sorted(
+            ((v, k) for k, v in (rr.get("mutations") or {}).items() if k.startswith("OUTSIDE")),
+            reverse=True,
+        )[:8],
+        "top_outside_renders": sorted(
+            ((v, k) for k, v in (rr.get("renders") or {}).items() if not k.startswith("INSIDE")),
+            reverse=True,
+        )[:8],
+        "caveat": (
+            "includes the app's own 1.2 s snapshot poll and 1 s metadata poll; "
+            "not isolated to camera frames"
+        ),
     }
     out["rerender"] = s
 
@@ -628,8 +763,18 @@ def scn_fallback(args, out):
     for client in ("app", "raw"):
         rig = new_rig(args, 10, web_root=args.app_root if client == "app" else args.raw_root)
         rig.start(10)
-        raw = run_driver(rig, args.out, f"fallback_{client}", client=client, mode="auto", scenario="block_push",
-                         warm_s=warm, block_s=block_s, after_s=after_s, timeout_s=240)
+        raw = run_driver(
+            rig,
+            args.out,
+            f"fallback_{client}",
+            client=client,
+            mode="auto",
+            scenario="block_push",
+            warm_s=warm,
+            block_s=block_s,
+            after_s=after_s,
+            timeout_s=240,
+        )
         rows, co = join_paints(rig, raw)
         write_csv(args.out / f"fallback_{client}.csv", rows, CSV_COLS)
         act = next(a for a in raw["actions"] if a["name"] == "block")
@@ -639,29 +784,67 @@ def scn_fallback(args, out):
         recv = raw.get("recv", [])
         # first polled receive after the kill = the switch to polling
         poll_recv = [r for r in recv if r["mode"] == "poll" and to_server(raw, co, r["t"]) > t_kill]
-        dom = [{"t": to_server(raw, co, d["t"]) - t_kill, "found": d["found"], "fps": d.get("fps")} for d in raw.get("dom", [])]
+        dom = [
+            {"t": to_server(raw, co, d["t"]) - t_kill, "found": d["found"], "fps": d.get("fps")}
+            for d in raw.get("dom", [])
+        ]
         push_back = [d for d in dom if "MJPEG push" in d["found"] and d["t"] > 0.5]
         res = {
-            "client": client, "slots_held_by_harness": act["resp"].get("slots_held"), "block_s": block_s,
-            "last_paint_before_kill_to_kill_ms": None if before is None else round((t_kill - before["t_paint_s"]) * 1000, 1),
-            "kill_to_next_painted_frame_s": None if after is None else round(after["t_paint_s"] - t_kill, 3),
-            "kill_to_first_polled_receive_s": round(to_server(raw, co, poll_recv[0]["t"]) - t_kill, 3) if poll_recv else None,
-            "frames_painted_during_block_window": sum(1 for r in rows if t_kill < r["t_paint_s"] < t_ret and r.get("decode_ok")),
+            "client": client,
+            "slots_held_by_harness": act["resp"].get("slots_held"),
+            "block_s": block_s,
+            "last_paint_before_kill_to_kill_ms": None
+            if before is None
+            else round((t_kill - before["t_paint_s"]) * 1000, 1),
+            "kill_to_next_painted_frame_s": None
+            if after is None
+            else round(after["t_paint_s"] - t_kill, 3),
+            "kill_to_first_polled_receive_s": round(
+                to_server(raw, co, poll_recv[0]["t"]) - t_kill, 3
+            )
+            if poll_recv
+            else None,
+            "frames_painted_during_block_window": sum(
+                1 for r in rows if t_kill < r["t_paint_s"] < t_ret and r.get("decode_ok")
+            ),
             "block_window_delivered_fps": None,
-            "dom_label_transitions_s_since_kill": dom if client == "app" else "raw page has no labels",
-            "page_events": [{**e, "t": round(to_server(raw, co, e["t"]) - t_kill, 3)} for e in raw.get("page_events", [])] if client == "raw" else None,
+            "dom_label_transitions_s_since_kill": dom
+            if client == "app"
+            else "raw page has no labels",
+            "page_events": [
+                {**e, "t": round(to_server(raw, co, e["t"]) - t_kill, 3)}
+                for e in raw.get("page_events", [])
+            ]
+            if client == "raw"
+            else None,
             "clock_uncertainty_ms": co["uncertainty_ms"],
         }
         win = [r for r in rows if t_kill + 1 < r["t_paint_s"] < t_ret and r.get("decode_ok")]
         if len(win) > 1:
-            res["block_window_delivered_fps"] = round((len(win) - 1) / (win[-1]["t_paint_s"] - win[0]["t_paint_s"]), 2)
+            res["block_window_delivered_fps"] = round(
+                (len(win) - 1) / (win[-1]["t_paint_s"] - win[0]["t_paint_s"]), 2
+            )
         # push return: first MJPEG-mode receive after the slots were released
         if client == "raw":
-            back = [e for e in raw.get("page_events", []) if e["e"] == "stream_status" and e.get("status") == 200 and to_server(raw, co, e["t"]) > t_kill + 1]
-            res["slots_released_to_push_resumed_s"] = round(to_server(raw, co, back[0]["t"]) - t_ret, 3) if back else None
-            res["stream_status_sequence"] = [(round(to_server(raw, co, e["t"]) - t_kill, 2), e.get("status")) for e in raw.get("page_events", []) if e["e"] == "stream_status"]
+            back = [
+                e
+                for e in raw.get("page_events", [])
+                if e["e"] == "stream_status"
+                and e.get("status") == 200
+                and to_server(raw, co, e["t"]) > t_kill + 1
+            ]
+            res["slots_released_to_push_resumed_s"] = (
+                round(to_server(raw, co, back[0]["t"]) - t_ret, 3) if back else None
+            )
+            res["stream_status_sequence"] = [
+                (round(to_server(raw, co, e["t"]) - t_kill, 2), e.get("status"))
+                for e in raw.get("page_events", [])
+                if e["e"] == "stream_status"
+            ]
         else:
-            res["slots_released_to_push_label_s"] = round(push_back[0]["t"] - block_s, 3) if push_back else None
+            res["slots_released_to_push_label_s"] = (
+                round(push_back[0]["t"] - block_s, 3) if push_back else None
+            )
         results[client] = res
         rig.close()
     out["fallback"] = results
@@ -673,10 +856,24 @@ def scn_reconnect(args, out):
         for kind, extra in (("drop", {}), ("swap", {}), ("restart", {"down_s": 2})):
             rig = new_rig(args, 10, web_root=args.app_root if client == "app" else args.raw_root)
             rig.start(10)
-            raw = run_driver(rig, args.out, f"reconnect_{client}_{kind}", client=client, mode="auto", scenario=kind,
-                             warm_s=6, repeats=3, gap_s=14, timeout_s=240, **extra)
+            raw = run_driver(
+                rig,
+                args.out,
+                f"reconnect_{client}_{kind}",
+                client=client,
+                mode="auto",
+                scenario=kind,
+                warm_s=6,
+                repeats=3,
+                gap_s=14,
+                timeout_s=240,
+                **extra,
+            )
             if "paints" not in raw:
-                results[f"{client}_{kind}"] = {"error": "no paints", "driver_exit": raw.get("driver_exit")}
+                results[f"{client}_{kind}"] = {
+                    "error": "no paints",
+                    "driver_exit": raw.get("driver_exit"),
+                }
                 rig.close()
                 continue
             rows, co = join_paints(rig, raw)
@@ -686,14 +883,25 @@ def scn_reconnect(args, out):
                 t0 = to_server(raw, co, a["t0"])
                 t_done = to_server(raw, co, a["t1"])
                 before, after = last_before(rows, t0), first_after(rows, t_done)
-                reps.append({
-                    "fault_to_next_painted_frame_s": None if after is None else round(after["t_paint_s"] - t0, 3),
-                    "fault_call_returned_to_next_frame_s": None if after is None else round(after["t_paint_s"] - t_done, 3),
-                    "picture_gap_s": None if (after is None or before is None) else round(after["t_paint_s"] - before["t_paint_s"], 3),
-                    "fault_call_duration_s": round(t_done - t0, 3),
-                })
-            results[f"{client}_{kind}"] = {"repeats": reps, "clock_uncertainty_ms": co["uncertainty_ms"],
-                                           "dom_labels": sorted({l for d in raw.get("dom", []) for l in d["found"]})}
+                reps.append(
+                    {
+                        "fault_to_next_painted_frame_s": None
+                        if after is None
+                        else round(after["t_paint_s"] - t0, 3),
+                        "fault_call_returned_to_next_frame_s": None
+                        if after is None
+                        else round(after["t_paint_s"] - t_done, 3),
+                        "picture_gap_s": None
+                        if (after is None or before is None)
+                        else round(after["t_paint_s"] - before["t_paint_s"], 3),
+                        "fault_call_duration_s": round(t_done - t0, 3),
+                    }
+                )
+            results[f"{client}_{kind}"] = {
+                "repeats": reps,
+                "clock_uncertainty_ms": co["uncertainty_ms"],
+                "dom_labels": sorted({label for d in raw.get("dom", []) for label in d["found"]}),
+            }
             rig.close()
     out["reconnect"] = results
 
@@ -705,12 +913,14 @@ def abrupt_close(sock):
 
 def open_stream(port, token):
     s = socket.create_connection(("127.0.0.1", port), timeout=5)
-    s.sendall(f"GET /camera/stream HTTP/1.1\r\nHost: x\r\nAuthorization: Bearer {token}\r\n\r\n".encode())
+    s.sendall(
+        f"GET /camera/stream HTTP/1.1\r\nHost: x\r\nAuthorization: Bearer {token}\r\n\r\n".encode()
+    )
     return s, s.recv(64).split(b" ")[1]
 
 
 def scn_leak(args, out):
-    """The 429 slot leak regression: abrupt disconnect must give the slot back, 5 times, with and without frames."""
+    """Check that an abrupt disconnect returns the slot, with and without frames."""
     results = {}
     for label, source_on in (("frames_flowing", True), ("source_idle", False)):
         rig = new_rig(args, 10)
@@ -718,7 +928,7 @@ def scn_leak(args, out):
             rig.start(10)
         time.sleep(1)
         reps = []
-        for i in range(5):
+        for _ in range(5):
             a, ca = open_stream(rig.port, args.token)
             b, cb = open_stream(rig.port, args.token)
             c, cc = open_stream(rig.port, args.token)  # third must be refused
@@ -756,55 +966,127 @@ def scn_leak(args, out):
                     break
                 time.sleep(0.01)
             polite_free_s = time.perf_counter() - t1
-            reps.append({"first_two": [ca.decode(), cb.decode()], "third": cc.decode(), "frame_seen_before_close": got_frame,
-                         "slots_both_free_after_s": None if freed is None else round(freed, 3),
-                         "reopen_two_after_abrupt_close": [c1.decode(), c2.decode()],
-                         "polite_close_both_slots_free_after_s": round(polite_free_s, 3)})
-        results[label] = {"repeats": reps, "leaks": sum(1 for r in reps if r["slots_both_free_after_s"] is None or r["reopen_two_after_abrupt_close"] != ["200", "200"])}
+            reps.append(
+                {
+                    "first_two": [ca.decode(), cb.decode()],
+                    "third": cc.decode(),
+                    "frame_seen_before_close": got_frame,
+                    "slots_both_free_after_s": None if freed is None else round(freed, 3),
+                    "reopen_two_after_abrupt_close": [c1.decode(), c2.decode()],
+                    "polite_close_both_slots_free_after_s": round(polite_free_s, 3),
+                }
+            )
+        results[label] = {
+            "repeats": reps,
+            "leaks": sum(
+                1
+                for r in reps
+                if r["slots_both_free_after_s"] is None
+                or r["reopen_two_after_abrupt_close"] != ["200", "200"]
+            ),
+        }
         rig.close()
     # a real browser killed abruptly (taskkill-equivalent SIGKILL) while streaming
     chrome = []
     for i in range(5):
         rig = new_rig(args, 10, web_root=args.raw_root)
         rig.start(10)
-        raw = run_driver(rig, args.out, f"leak_chrome_kill_{i}", client="raw", mode="push", scenario="crash", warm_s=3, timeout_s=120)
+        run_driver(
+            rig,
+            args.out,
+            f"leak_chrome_kill_{i}",
+            client="raw",
+            mode="push",
+            scenario="crash",
+            warm_s=3,
+            timeout_s=120,
+        )
         time.sleep(2.0)
         ev = {e["name"]: e["t"] for e in rig.events}
         mark, free = ev.get("chrome_kill"), ev.get("chrome_kill_slots_free")
-        chrome.append({"mark_to_both_slots_free_s": None if (mark is None or free is None) else round(free - mark, 3)})
+        chrome.append(
+            {
+                "mark_to_both_slots_free_s": None
+                if (mark is None or free is None)
+                else round(free - mark, 3)
+            }
+        )
         rig.close()
-    results["chrome_sigkill"] = {"repeats": chrome, "leaks": sum(1 for r in chrome if r["mark_to_both_slots_free_s"] is None)}
+    results["chrome_sigkill"] = {
+        "repeats": chrome,
+        "leaks": sum(1 for r in chrome if r["mark_to_both_slots_free_s"] is None),
+    }
     out["slot_leak"] = results
 
 
 def scn_stale(args, out):
     rig = new_rig(args, 10, web_root=args.app_root)
     rig.start(10)
-    raw = run_driver(rig, args.out, "stale_app", client="app", mode="auto", scenario="stale", warm_s=6, stale_s=14, after_s=8, timeout_s=200)
+    raw = run_driver(
+        rig,
+        args.out,
+        "stale_app",
+        client="app",
+        mode="auto",
+        scenario="stale",
+        warm_s=6,
+        stale_s=14,
+        after_s=8,
+        timeout_s=200,
+    )
     rows, co = join_paints(rig, raw)
     write_csv(args.out / "stale_app.csv", rows, CSV_COLS)
     stop = next(a for a in raw["actions"] if a["name"] == "source" and "run=0" in a["query"])
     resume = next(a for a in raw["actions"] if a["name"] == "source" and "run=1" in a["query"])
     t_stop_server = stop["resp"]["t"]
     t_resume = resume["resp"]["t"]
-    last_src = max(k for k, v in rig.src.items() if v <= t_stop_server)  # last stamped frame before stop
-    dom = [{"t": round(to_server(raw, co, d["t"]) - t_stop_server, 3), "found": d["found"], "fps": d.get("fps")} for d in raw.get("dom", [])]
-    during = [r for r in rows if t_stop_server + 0.5 < r["t_paint_s"] < t_resume and r.get("decode_ok")]
+    last_src = max(
+        k for k, v in rig.src.items() if v <= t_stop_server
+    )  # last stamped frame before stop
+    dom = [
+        {
+            "t": round(to_server(raw, co, d["t"]) - t_stop_server, 3),
+            "found": d["found"],
+            "fps": d.get("fps"),
+        }
+        for d in raw.get("dom", [])
+    ]
+    during = [
+        r for r in rows if t_stop_server + 0.5 < r["t_paint_s"] < t_resume and r.get("decode_ok")
+    ]
     last_before_stop = last_before(rows, t_stop_server)
     ind = [d for d in dom if "Simulation paused or not sensing" in d["found"] and d["t"] > 0]
-    live_after = [d for d in dom if d["t"] > t_resume - t_stop_server and not (set(d["found"]) & {"Simulation paused or not sensing"})]
+    live_after = [
+        d
+        for d in dom
+        if d["t"] > t_resume - t_stop_server
+        and not (set(d["found"]) & {"Simulation paused or not sensing"})
+    ]
     first_new = first_after(rows, t_resume)
     out["stale"] = {
-        "client": "real app", "source_stopped_at": "t=0", "stale_window_s": round(t_resume - t_stop_server, 2),
-        "last_painted_frame_before_stop_to_stop_ms": None if last_before_stop is None else round((t_stop_server - last_before_stop["t_paint_s"]) * 1000, 1),
+        "client": "real app",
+        "source_stopped_at": "t=0",
+        "stale_window_s": round(t_resume - t_stop_server, 2),
+        "last_painted_frame_before_stop_to_stop_ms": None
+        if last_before_stop is None
+        else round((t_stop_server - last_before_stop["t_paint_s"]) * 1000, 1),
         "stop_to_indicator_s": ind[0]["t"] if ind else None,
         "indicator_text": "Simulation paused or not sensing",
         "new_frames_painted_during_stale_window": len(during),
-        "fps_label_values_seen_during_window": [d["fps"] for d in dom if 0 < d["t"] < t_resume - t_stop_server],
+        "fps_label_values_seen_during_window": [
+            d["fps"] for d in dom if 0 < d["t"] < t_resume - t_stop_server
+        ],
         "dom_transitions": dom,
-        "age_readout_every_500ms_s_since_stop": [(round(to_server(raw, co, a["t"]) - t_stop_server, 1), a["age"], a["fps"]) for a in raw.get("age", [])][::2],
-        "resume_to_first_new_frame_s": None if first_new is None else round(first_new["t_paint_s"] - t_resume, 3),
-        "resume_to_indicator_cleared_s": round(live_after[0]["t"] - (t_resume - t_stop_server), 3) if live_after else None,
+        "age_readout_every_500ms_s_since_stop": [
+            (round(to_server(raw, co, a["t"]) - t_stop_server, 1), a["age"], a["fps"])
+            for a in raw.get("age", [])
+        ][::2],
+        "resume_to_first_new_frame_s": None
+        if first_new is None
+        else round(first_new["t_paint_s"] - t_resume, 3),
+        "resume_to_indicator_cleared_s": round(live_after[0]["t"] - (t_resume - t_stop_server), 3)
+        if live_after
+        else None,
         "clock_uncertainty_ms": co["uncertainty_ms"],
         "last_source_seq_before_stop": last_src,
     }
@@ -821,28 +1103,51 @@ def scn_baseline_cpu(args, out):
         c0, w0 = time.process_time(), time.perf_counter()
         time.sleep(15)
         c1, w1 = time.process_time(), time.perf_counter()
-        res.append({"source_fps": rate, "server_process_cpu_pct_of_one_core_no_client": round(100 * (c1 - c0) / (w1 - w0), 1),
-                    "includes": "numpy frame synthesis + stamp + JPEG encode (Pillow q80) in this process",
-                    "encode_ms": stats([v[1] for v in rig.enc.values()])})
+        res.append(
+            {
+                "source_fps": rate,
+                "server_process_cpu_pct_of_one_core_no_client": round(
+                    100 * (c1 - c0) / (w1 - w0), 1
+                ),
+                "includes": (
+                    "numpy frame synthesis + stamp + JPEG encode (Pillow q80) in this process"
+                ),
+                "encode_ms": stats([v[1] for v in rig.enc.values()]),
+            }
+        )
         rig.close()
     out["baseline_cpu_no_client"] = res
 
 
 def git_sha():
-    return subprocess.run(["git", "-C", str(ROOT), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+    return subprocess.run(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], capture_output=True, text=True
+    ).stdout.strip()
 
 
 def machine():
     import multiprocessing
 
-    return {"platform": platform.platform(), "cpu_count": multiprocessing.cpu_count(), "python": sys.version.split()[0],
-            "node": subprocess.run(["node", "--version"], capture_output=True, text=True).stdout.strip(),
-            "processor": platform.processor()}
+    return {
+        "platform": platform.platform(),
+        "cpu_count": multiprocessing.cpu_count(),
+        "python": sys.version.split()[0],
+        "node": subprocess.run(
+            ["node", "--version"], capture_output=True, text=True
+        ).stdout.strip(),
+        "processor": platform.processor(),
+    }
 
 
 SCENARIOS = {
-    "auth": scn_auth, "latency": scn_latency, "app_poll": scn_app_poll_only, "rerender": scn_rerender,
-    "fallback": scn_fallback, "reconnect": scn_reconnect, "leak": scn_leak, "stale": scn_stale,
+    "auth": scn_auth,
+    "latency": scn_latency,
+    "app_poll": scn_app_poll_only,
+    "rerender": scn_rerender,
+    "fallback": scn_fallback,
+    "reconnect": scn_reconnect,
+    "leak": scn_leak,
+    "stale": scn_stale,
     "baseline": scn_baseline_cpu,
 }
 
@@ -859,13 +1164,17 @@ def main():
     args.raw_root = Path(tempfile.mkdtemp(prefix="dream_camera_raw_"))
     parser_src = (ROOT / "web/app/camera-client.mjs").read_text().replace("export class", "class")
     (args.raw_root / "index.html").write_text(
-        (ROOT / "experiments/camera_latency_raw.html").read_text().replace("/*PARSER*/", parser_src), encoding="utf-8")
+        (ROOT / "experiments/camera_latency_raw.html")
+        .read_text()
+        .replace("/*PARSER*/", parser_src),
+        encoding="utf-8",
+    )
     for name in args.only.split(","):
         out = {}
         t0 = time.time()
         try:
             SCENARIOS[name](args, out)
-        except Exception as error:  # report, do not hide
+        except Exception:  # report, do not hide
             import traceback
 
             out["error"] = traceback.format_exc()
@@ -873,11 +1182,17 @@ def main():
         (args.out / f"{name}.json").write_text(json.dumps(out, indent=2, default=str))
         print("done", name, out.get("error", "ok")[:200] if "error" in out else "ok", flush=True)
     meta = {
-        "git_sha": git_sha(), "machine": machine(),
-        "chrome": CHROME, "network": "LOOPBACK 127.0.0.1 only; not a tailnet, WAN or IAP measurement",
-        "clock": "single machine; browser epoch clock mapped to the server clock by round-trip handshake (NTP-style, min-RTT sample)",
+        "git_sha": git_sha(),
+        "machine": machine(),
+        "chrome": CHROME,
+        "network": "LOOPBACK 127.0.0.1 only; not a tailnet, WAN or IAP measurement",
+        "clock": (
+            "single machine; browser epoch clock mapped to the server clock by "
+            "round-trip handshake (NTP-style, min-RTT sample)"
+        ),
         "frame": {"height": H, "width": W, "source": "HEAD_CAMERA in dream/sim/g1_mobile.py"},
-        "app_build": str(APP_ROOT), "conditions": "headless Chrome, other MuJoCo jobs may share this laptop",
+        "app_build": str(APP_ROOT),
+        "conditions": "headless Chrome, other MuJoCo jobs may share this laptop",
         "run_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
     (args.out / "meta.json").write_text(json.dumps(meta, indent=2))

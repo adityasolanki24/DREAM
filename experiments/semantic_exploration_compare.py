@@ -90,10 +90,12 @@ def main() -> None:
     if args.out:
         pathlib.Path(args.out).write_text(text)
     for k, v in out["pairs"].items():
-        print(f"{k:42s} n={v['pairs']} found={v['found']} med={v['median_paired_diff_s']} "
-              f"mean={v['mean_paired_diff_s']} ci={v['median_diff_ci95']} "
-              f"faster={v['a_faster']}/{v['b_faster']} same={v['identical']} "
-              f"p1={v['p_one_sided_a_faster']:.3f} path={v['mean_path_m']}")
+        print(
+            f"{k:42s} n={v['pairs']} found={v['found']} med={v['median_paired_diff_s']} "
+            f"mean={v['mean_paired_diff_s']} ci={v['median_diff_ci95']} "
+            f"faster={v['a_faster']}/{v['b_faster']} same={v['identical']} "
+            f"p1={v['p_one_sided_a_faster']:.3f} path={v['mean_path_m']}"
+        )
 
 
 if __name__ == "__main__":

@@ -117,3 +117,76 @@ def test_pretrained_policy_stands_walks_turns_and_stops_in_physics():
     assert 1.2 < walked[0] - start[0] < 2.2  # commanded 2.0 m over 5 s
     assert 1.4 < (turned[2] - walked[2]) % (2 * np.pi) < 2.4  # commanded 2.0 rad
     assert np.linalg.norm(end[:2] - turned[:2]) < 0.15  # stopping keeps it in place
+
+
+def _prop(seed: int = 0) -> w.Proprioception:
+    rng = np.random.default_rng(seed)
+    quat = rng.normal(size=4)
+    return w.Proprioception(
+        quat / np.linalg.norm(quat), rng.normal(size=3), rng.normal(size=29), rng.normal(size=29)
+    )
+
+
+def _legacy_observation(prop, command, last_action) -> np.ndarray:
+    """The observation as built before posture became a commanded input (constants)."""
+    o = np.zeros(13 + 2 * w.N_BODY + w.N_ACTION, np.float32)
+    o[0:3] = np.asarray(command, np.float32) * w.CMD_SCALE
+    o[3] = 0.74
+    o[4:7] = 0.0
+    o[7:10] = np.asarray(prop.gyro) * w.ANG_VEL_SCALE
+    o[10:13] = w.gravity_in_body(np.asarray(prop.quat))
+    defaults = np.zeros(w.N_BODY, np.float32)
+    defaults[: w.N_ACTION] = w.DEFAULT
+    o[13 : 13 + w.N_BODY] = np.asarray(prop.q) - defaults
+    o[13 + w.N_BODY : 13 + 2 * w.N_BODY] = np.asarray(prop.dq) * w.DOF_VEL_SCALE
+    o[13 + 2 * w.N_BODY :] = last_action
+    return o
+
+
+def test_default_posture_observation_is_byte_identical_to_the_validated_one():
+    for seed in range(5):
+        prop, cmd = _prop(seed), np.array([0.3, -0.1, 0.2])
+        act = np.random.default_rng(seed).normal(size=15).astype(np.float32)
+        new = w.build_observation(prop, cmd, act)
+        assert new.tobytes() == _legacy_observation(prop, cmd, act).tobytes()
+        assert new.tobytes() == w.build_observation(prop, cmd, act, 0.74, (0, 0, 0)).tobytes()
+
+
+def test_posture_command_lands_in_the_observation_slots():
+    o = w.build_observation(_prop(), np.zeros(3), np.zeros(15, np.float32), 0.5, (0.1, -0.2, 0.3))
+    assert np.allclose(o[3:7], [0.5, 0.1, -0.2, 0.3])
+
+
+@needs_policy
+def test_posture_commands_outside_the_bounds_are_rejected_not_clipped():
+    c = w.WBCLocomotion.from_cache()
+    c.set_posture(0.5, (0.1, 0.2, -0.3))
+    for h, rpy in (
+        (0.19, (0, 0, 0)),
+        (0.75, (0, 0, 0)),
+        (np.nan, (0, 0, 0)),
+        (0.5, (0.6, 0, 0)),
+        (0.5, (0, -0.53, 0)),
+        (0.5, (0, 0, 1.1)),
+        (0.5, (0, np.inf, 0)),
+        (0.5, (0, 0)),
+    ):
+        with pytest.raises(ValueError):
+            c.set_posture(h, rpy)
+    assert c.height == 0.5 and np.allclose(c.rpy, [0.1, 0.2, -0.3])  # unchanged
+    c.set_posture(w.HEIGHT_RANGE[0], (w.RPY_RANGE[0, 1], w.RPY_RANGE[1, 0], 0))  # bounds inclusive
+
+
+@needs_policy
+def test_posture_rate_limit_ramps_and_default_is_untouched():
+    c = w.WBCLocomotion.from_cache()
+    prop = w.Proprioception(np.array([1.0, 0, 0, 0]), np.zeros(3), np.zeros(29), np.zeros(29))
+    c.set_posture(0.54, (0, 0.3, 0), max_height_rate=0.1, max_rpy_rate=0.3)
+    c.tick(prop)
+    assert np.isclose(c.height, 0.74 - 0.1 * 0.02) and np.isclose(c.rpy[1], 0.3 * 0.02)
+    for _ in range(200):
+        c.tick(prop)
+    assert np.isclose(c.height, 0.54) and np.isclose(c.rpy[1], 0.3)
+    d1, d2 = w.WBCLocomotion.from_cache(), w.WBCLocomotion.from_cache()
+    d2.set_posture(0.74, (0, 0, 0))
+    assert np.array_equal(d1.tick(prop), d2.tick(prop))  # default == explicit nominal

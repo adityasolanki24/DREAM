@@ -104,7 +104,8 @@ class Diagnosis:
         return {
             "typical_room": self.typical,
             "target_room_types": sorted({t.room_type for t in self.targets}),
-            "timeline": self.timeline, "steps": self.steps,
+            "timeline": self.timeline,
+            "steps": self.steps,
         }
 
 
@@ -194,11 +195,13 @@ def aggregate(rows: list[dict]) -> dict:
         eps_with_change = sum(s["changed_uniform"] > 0 for s in ss)
         seen = [s for s in ss if s["seen_t"] is not None]
         out["by_arm"][arm] = {
-            "episodes": len(ss), "found": sum(s["result"] == "success" for s in ss),
+            "episodes": len(ss),
+            "found": sum(s["result"] == "success" for s in ss),
             "decisions": n_dec,
             "frac_decisions_changed_by_knowledge": round(ch_u / n_dec, 4) if n_dec else None,
             "frac_decisions_changed_by_dropping_detection": round(ch_n / n_dec, 4)
-            if n_dec else None,
+            if n_dec
+            else None,
             "episodes_with_any_knowledge_change": eps_with_change,
             "episodes_target_seen": len(seen),
             "seen_at_initial_look": sum(s["seen_at_initial_look"] for s in ss),
@@ -215,12 +218,30 @@ def aggregate(rows: list[dict]) -> dict:
             "median_t_first_pull_s": med(s["pull_t"] for s in ss),
             "median_explore_share": med(s["explore_s"] / s["time_total_s"] for s in ss),
             "median_verify_share": med(s["verify_s"] / s["time_total_s"] for s in ss),
-            "mean_candidates_in_a_labelled_region": round(float(np.mean(
-                [s["frac_candidates_in_region"] for s in ss
-                 if s["frac_candidates_in_region"] is not None])), 3),
-            "mean_candidates_with_factor_off_1": round(float(np.mean(
-                [s["frac_candidates_factor_off_1"] for s in ss
-                 if s["frac_candidates_factor_off_1"] is not None])), 3),
+            "mean_candidates_in_a_labelled_region": round(
+                float(
+                    np.mean(
+                        [
+                            s["frac_candidates_in_region"]
+                            for s in ss
+                            if s["frac_candidates_in_region"] is not None
+                        ]
+                    )
+                ),
+                3,
+            ),
+            "mean_candidates_with_factor_off_1": round(
+                float(
+                    np.mean(
+                        [
+                            s["frac_candidates_factor_off_1"]
+                            for s in ss
+                            if s["frac_candidates_factor_off_1"] is not None
+                        ]
+                    )
+                ),
+                3,
+            ),
             "median_gap_to_second_m2": med(s["median_gap"] for s in ss),
             "median_max_sem_shift_m2": med(s["median_max_sem_shift"] for s in ss),
             "by_scenario": {},

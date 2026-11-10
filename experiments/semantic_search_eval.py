@@ -439,8 +439,9 @@ def _run(home, job, cfg, arm, t0) -> dict:
     }  # fmt: skip
 
 
-def jobs_for(cfg: dict, split: str, arms: list[str], base: str,
-             diagnose: bool = False) -> list[dict]:
+def jobs_for(
+    cfg: dict, split: str, arms: list[str], base: str, diagnose: bool = False
+) -> list[dict]:
     s = cfg["splits"][split]
     out = []
     for cond in s["conditions"]:
@@ -491,8 +492,11 @@ def main() -> None:
     ap.add_argument("--base", choices=["kinematic", "g1"], default=None)
     ap.add_argument("--workers", type=int, default=3)
     ap.add_argument("--out")
-    ap.add_argument("--diagnose", action="store_true",
-                    help="log per-decision terms and ground-truth timelines (read-only)")
+    ap.add_argument(
+        "--diagnose",
+        action="store_true",
+        help="log per-decision terms and ground-truth timelines (read-only)",
+    )
     ap.add_argument("--limit", type=int, help="run only the first N jobs (smoke)")
     ap.add_argument(
         "--resume",

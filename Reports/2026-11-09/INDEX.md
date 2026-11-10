@@ -6,7 +6,7 @@
 
 | Date | Task ID | Prompt | Status | Main finding | Runs | Report |
 |---|---|---|---|---|---|---|
-| 2026-11-09 | 2026-11-09-001 | [Permanent Reports system; Isaac semantic exploration with learned perception, knowledge sources and larger homes](001-isaac-semantic-research/PROMPT.md) | in_progress | - | 23 | [REPORT](001-isaac-semantic-research/REPORT.md) |
+| 2026-11-09 | 2026-11-09-001 | [Permanent Reports system; Isaac semantic exploration with learned perception, knowledge sources and larger homes](001-isaac-semantic-research/PROMPT.md) | partially_completed | K1 showed no search speed gain from better knowledge. Isaac capture and detector tooling advanced, but learned perception was not evaluated in a closed-loop composed home. | 23 | [REPORT](001-isaac-semantic-research/REPORT.md) |
 
 ## Continued on this day
 
