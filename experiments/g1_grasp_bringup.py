@@ -52,6 +52,9 @@ def attempt(cfg: dict) -> dict:
     if cfg.get("start_arms_down", False):
         # Fixture initialisation only, using the tucked posture from isaac_task.py.
         arm = np.array([0.1, 0.1, 0, 1.5, 0, 0, 0, 0.1, -0.1, 0, 1.5, 0, 0, 0])
+        # Test the hip-clearance hypothesis with a different starting shoulder roll.
+        arm[1] = cfg.get("start_left_shoulder_roll_rad", arm[1])
+        arm[8] = cfg.get("start_right_shoulder_roll_rad", arm[8])
         env.data.qpos[env.qadr[-arm.size :]] = arm
         ctrl.arm_target[:] = arm
         mujoco.mj_forward(model, env.data)
@@ -66,10 +69,19 @@ def attempt(cfg: dict) -> dict:
     env.set_hand(fingers)
     rows, phases = [], {}
     box_id = model.body("box").id
+    wrist = model.joint("right_wrist_pitch_joint")
+    wrist_dof = int(wrist.dofadr[0])
+    wrist_channel = int(np.flatnonzero(env.vadr == wrist_dof)[0])
+    wrist_actuator = model.actuator("right_wrist_pitch_joint").id
     hand_geoms = {
         g
         for g in range(model.ngeom)
         if model.body(model.geom_bodyid[g]).name.startswith(("right_hand_", "right_wrist_yaw"))
+    }
+    left_hand_geoms = {
+        g
+        for g in range(model.ngeom)
+        if model.body(model.geom_bodyid[g]).name.startswith(("left_hand_", "left_wrist_yaw"))
     }
     reference_z = env.data.xpos[box_id, 2]
 
@@ -77,12 +89,12 @@ def attempt(cfg: dict) -> dict:
         # Evaluation only. Decisions below use the touch sensors and labelled pose estimate.
         others = set()
         hand_contact = set()
+        left_hand_contact = set()
         for c in env.data.contact:
             for hand, other in ((c.geom1, c.geom2), (c.geom2, c.geom1)):
-                if hand in hand_geoms:
-                    hand_contact.add(
-                        model.geom(other).name or model.body(model.geom_bodyid[other]).name
-                    )
+                if hand in hand_geoms or hand in left_hand_geoms:
+                    contact = hand_contact if hand in hand_geoms else left_hand_contact
+                    contact.add(model.geom(other).name or model.body(model.geom_bodyid[other]).name)
             if model.geom_bodyid[c.geom1] == box_id:
                 others.add(int(c.geom2))
             elif model.geom_bodyid[c.geom2] == box_id:
@@ -91,6 +103,11 @@ def attempt(cfg: dict) -> dict:
             "phase": phase, "t": env.time, "lift_m": float(env.data.xpos[box_id, 2] - reference_z),
             "hand_only_contact": bool(others) and others <= hand_geoms,
             "hand_contact_with": sorted(hand_contact),
+            "left_hand_contact_with": sorted(left_hand_contact),
+            "wrist_requested_nm": float(backend.observe().tau[wrist_channel]),
+            "wrist_commanded_nm": float(env.data.ctrl[wrist_actuator]),
+            "wrist_applied_nm": float(env.data.qfrc_actuator[wrist_dof]),
+            "wrist_angle_rad": float(env.data.qpos[wrist.qposadr[0]]),
             "touch_n": env.touch("right"), "fingers_rad": env.hand_positions()[RIGHT].tolist(),
         })  # fmt: skip
 
