@@ -1,0 +1,78 @@
+{
+  "run_id": "2026-11-10-006/20261110-120001-nominal-posture",
+  "task_id": "2026-11-10-006",
+  "title": "Separate torso posture changes from the arm trajectory",
+  "started": "2026-11-10T12:00:01+11:00",
+  "commit": "6299f156b07785d65615fba43a642e1c6a2be237",
+  "dirty": true,
+  "branch": "codex/g1-integration",
+  "configs": [
+    {
+      "path": "experiments/configs/g1_grasp_bringup_pinch.json",
+      "sha256": "6e6b98f06df2b283a93ed1a1ba708724c0238fcf20f1c7b83e37565200a5dc7b"
+    }
+  ],
+  "command": "python C:/Users/24adi/DREAM-r1-evidence/r1-nominal-posture-001/probe.py --config experiments/configs/g1_grasp_bringup_pinch.json --out C:/Users/24adi/DREAM-r1-evidence/r1-nominal-posture-001/episode",
+  "seeds": "0",
+  "model": "Cached Decoupled WBC Balance and Walk",
+  "simulator": "MuJoCo 3.16.0",
+  "renderer": "None",
+  "embodiment": "Free-standing G1 Dex3",
+  "controller": "WBC constrained to nominal height and zero torso command",
+  "hardware": "Local Windows CPU",
+  "status": "completed",
+  "ended": "2026-11-10T12:00:46+11:00",
+  "exit_status": 0,
+  "cases_attempted": 1,
+  "cases_completed": 1,
+  "metrics": {
+    "phases": {
+      "raise": {
+        "plan_failure": {
+          "outside_capabilities": 1
+        },
+        "candidates": [
+          {
+            "stance": [
+              0.08261672135631634,
+              -0.0028224493142561466,
+              -0.009638049940085214
+            ],
+            "arm": "right",
+            "reasons": [
+              "outside_capabilities"
+            ],
+            "metrics": {
+              "hand_residual": 3.6481917112375895e-06,
+              "foot_error": 4.494973433924973e-06,
+              "com_margin": 0.08499846040327456,
+              "joint_margin": 0.14830831534534805,
+              "joint_clearance": 0.25477680410689574,
+              "torque_ratio": 0.24381099053902014,
+              "clearance": 0.007566339524723844,
+              "deviation": 0.2307292289031436,
+              "pelvis_height": 0.7400005657879294,
+              "pelvis_tilt": 7.818496002164626e-07,
+              "axis_error": 0.0,
+              "axis_relaxed": 0.0,
+              "walk": 0.08555633419083361,
+              "target_sigma": 0.0
+            }
+          }
+        ]
+      }
+    },
+    "stop": null,
+    "peak_lift_m": -0.00010775541837049207,
+    "grasp_verified": false
+  },
+  "evidence": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-nominal-posture-001",
+      "kind": "dir",
+      "sha256": "7e28b05d113f7da190d4f14641390195c8107b8303fcb5f73daf76251f38c8f0",
+      "skipped": []
+    }
+  ],
+  "cloud": null
+}

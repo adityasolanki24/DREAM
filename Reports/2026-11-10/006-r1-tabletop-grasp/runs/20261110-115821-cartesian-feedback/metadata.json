@@ -1,0 +1,61 @@
+{
+  "run_id": "2026-11-10-006/20261110-115821-cartesian-feedback",
+  "task_id": "2026-11-10-006",
+  "title": "Test bounded Cartesian hand feedback at fixed body posture",
+  "started": "2026-11-10T11:58:21+11:00",
+  "commit": "6299f156b07785d65615fba43a642e1c6a2be237",
+  "dirty": true,
+  "branch": "codex/g1-integration",
+  "configs": [
+    {
+      "path": "experiments/configs/g1_grasp_bringup_feedback.json",
+      "sha256": "f7df70fa799eb8056d956185907af48ab74f07d370caa9f3cc8ec19545ee4591"
+    }
+  ],
+  "command": "python -m experiments.g1_grasp_bringup --config experiments/configs/g1_grasp_bringup_feedback.json --out C:/Users/24adi/DREAM-r1-evidence/r1-feedback-001",
+  "seeds": "0",
+  "model": "Cached Decoupled WBC Balance and Walk",
+  "simulator": "MuJoCo 3.16.0",
+  "renderer": "None",
+  "embodiment": "Free-standing G1 Dex3",
+  "controller": "WBC balance with measured-arm Cartesian correction",
+  "hardware": "Local Windows CPU",
+  "status": "completed",
+  "ended": "2026-11-10T11:59:37+11:00",
+  "exit_status": 0,
+  "cases_attempted": 1,
+  "cases_completed": 1,
+  "metrics": {
+    "phases": {
+      "raise": {
+        "completed": false,
+        "hand_error_m": 0.22846634507591262,
+        "angular_error_rad": 0.9739222202209316
+      }
+    },
+    "stop": {
+      "t": 1.7199999999999853,
+      "reason": "joint position limit",
+      "detail": {
+        "joint": 25.0,
+        "joint_name": "right_elbow_joint",
+        "q": 2.0821832421984405,
+        "range": [
+          -1.0472,
+          2.0944
+        ]
+      }
+    },
+    "peak_lift_m": -0.00010775541827623414,
+    "grasp_verified": false
+  },
+  "evidence": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-feedback-001",
+      "kind": "dir",
+      "sha256": "0d32dcdb25392e18e2a8253f29360e971649d4e82389a5b094f7d1a3b08040d9",
+      "skipped": []
+    }
+  ],
+  "cloud": null
+}

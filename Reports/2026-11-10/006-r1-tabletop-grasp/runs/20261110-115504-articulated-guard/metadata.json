@@ -1,0 +1,63 @@
+{
+  "run_id": "2026-11-10-006/20261110-115504-articulated-guard",
+  "task_id": "2026-11-10-006",
+  "title": "Attempt a monitored pinch with articulated hand clearance",
+  "started": "2026-11-10T11:55:04+11:00",
+  "commit": "6299f156b07785d65615fba43a642e1c6a2be237",
+  "dirty": true,
+  "branch": "codex/g1-integration",
+  "configs": [
+    {
+      "path": "experiments/configs/g1_grasp_bringup_pinch.json",
+      "sha256": "6e6b98f06df2b283a93ed1a1ba708724c0238fcf20f1c7b83e37565200a5dc7b"
+    }
+  ],
+  "command": "python -m experiments.g1_grasp_bringup --config experiments/configs/g1_grasp_bringup_pinch.json --out C:/Users/24adi/DREAM-r1-evidence/r1-articulated-guard-001",
+  "seeds": "0",
+  "model": "Cached Decoupled WBC Balance and Walk",
+  "simulator": "MuJoCo 3.16.0",
+  "renderer": "None",
+  "embodiment": "Free-standing G1 Dex3",
+  "controller": "WBC and posture supervisor",
+  "hardware": "Local Windows CPU",
+  "status": "completed",
+  "ended": "2026-11-10T11:55:41+11:00",
+  "exit_status": 0,
+  "cases_attempted": 1,
+  "cases_completed": 1,
+  "metrics": {
+    "phases": {
+      "pregrasp": {
+        "completed": false,
+        "refused": null,
+        "stops": [
+          {
+            "t": 2.0599999999999783,
+            "reason": "hand clearance",
+            "detail": {
+              "table_clearance_m": 0.0010836120870595237
+            }
+          }
+        ]
+      }
+    },
+    "stop": {
+      "t": 2.0599999999999783,
+      "reason": "hand clearance",
+      "detail": {
+        "table_clearance_m": 0.0010836120870595237
+      }
+    },
+    "peak_lift_m": -0.00010775541827623414,
+    "grasp_verified": false
+  },
+  "evidence": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-articulated-guard-001",
+      "kind": "dir",
+      "sha256": "e485d1aa26c2599c9e95cb8dca26c510444012cfb7b68a723eacaaf233172d9b",
+      "skipped": []
+    }
+  ],
+  "cloud": null
+}

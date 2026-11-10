@@ -1,0 +1,63 @@
+{
+  "run_id": "2026-11-10-006/20261110-120235-compact-raise",
+  "task_id": "2026-11-10-006",
+  "title": "Test a shorter finger envelope during the arm raise",
+  "started": "2026-11-10T12:02:35+11:00",
+  "commit": "6299f156b07785d65615fba43a642e1c6a2be237",
+  "dirty": true,
+  "branch": "codex/g1-integration",
+  "configs": [
+    {
+      "path": "experiments/configs/g1_grasp_bringup_compact.json",
+      "sha256": "66a9744f2c4a6da9a7799d734cee98a233ed4926db0c3118de13e95f4b4e4921"
+    }
+  ],
+  "command": "python -m experiments.g1_grasp_bringup --config experiments/configs/g1_grasp_bringup_compact.json --out C:/Users/24adi/DREAM-r1-evidence/r1-compact-001",
+  "seeds": "0",
+  "model": "Cached Decoupled WBC Balance and Walk",
+  "simulator": "MuJoCo 3.16.0",
+  "renderer": "None",
+  "embodiment": "Free-standing G1 Dex3",
+  "controller": "WBC and posture supervisor",
+  "hardware": "Local Windows CPU",
+  "status": "completed",
+  "ended": "2026-11-10T12:03:22+11:00",
+  "exit_status": 0,
+  "cases_attempted": 1,
+  "cases_completed": 1,
+  "metrics": {
+    "phases": {
+      "raise": {
+        "completed": false,
+        "refused": null,
+        "stops": [
+          {
+            "t": 2.91999999999996,
+            "reason": "hand clearance",
+            "detail": {
+              "table_clearance_m": 0.001296402031212691
+            }
+          }
+        ]
+      }
+    },
+    "stop": {
+      "t": 2.91999999999996,
+      "reason": "hand clearance",
+      "detail": {
+        "table_clearance_m": 0.001296402031212691
+      }
+    },
+    "peak_lift_m": -0.00010775541827623414,
+    "grasp_verified": false
+  },
+  "evidence": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-compact-001",
+      "kind": "dir",
+      "sha256": "fbe76d18e9b6d7f1ba6172d14f0b6afa928db38618c649cb468e166dcf365b73",
+      "skipped": []
+    }
+  ],
+  "cloud": null
+}

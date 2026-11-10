@@ -1,0 +1,78 @@
+{
+  "run_id": "2026-11-10-006/20261110-115238-grasp-frame",
+  "task_id": "2026-11-10-006",
+  "title": "Test the Dex3 grasp frame and closure guards",
+  "started": "2026-11-10T11:52:38+11:00",
+  "commit": "6299f156b07785d65615fba43a642e1c6a2be237",
+  "dirty": true,
+  "branch": "codex/g1-integration",
+  "configs": [
+    {
+      "path": "experiments/configs/g1_grasp_bringup_both_arms_clear.json",
+      "sha256": "3008accc67d30b784f3866e66416453ad77714f5d15ff357eae85f0f4da57bc0"
+    }
+  ],
+  "command": "python -m experiments.g1_grasp_bringup --config experiments/configs/g1_grasp_bringup_both_arms_clear.json --out C:/Users/24adi/DREAM-r1-evidence/r1-grasp-frame-001",
+  "seeds": "0",
+  "model": "Cached Decoupled WBC Balance and Walk",
+  "simulator": "MuJoCo 3.16.0",
+  "renderer": "None",
+  "embodiment": "Free-standing G1 Dex3",
+  "controller": "WBC and posture supervisor",
+  "hardware": "Local Windows CPU",
+  "status": "completed",
+  "ended": "2026-11-10T11:53:26+11:00",
+  "exit_status": 0,
+  "cases_attempted": 1,
+  "cases_completed": 1,
+  "metrics": {
+    "phases": {
+      "reach": {
+        "plan_failure": {
+          "hand_residual": 1
+        },
+        "candidates": [
+          {
+            "stance": [
+              -0.007383278643682975,
+              -0.002822449314256367,
+              -0.009638049940085658
+            ],
+            "arm": "right",
+            "reasons": [
+              "hand_residual"
+            ],
+            "metrics": {
+              "hand_residual": 0.048241577080557284,
+              "foot_error": 4.6684978659129826e-06,
+              "com_margin": 0.07194602865015776,
+              "joint_margin": 0.08758202033935113,
+              "joint_clearance": 0.2598163101779918,
+              "torque_ratio": 0.3641812319235328,
+              "clearance": 0.007437621257858854,
+              "deviation": 0.47517366132768396,
+              "pelvis_height": 0.65,
+              "pelvis_tilt": 0.0004901155415902712,
+              "axis_error": 0.0,
+              "axis_relaxed": 0.0,
+              "walk": 0.010795782361001155,
+              "target_sigma": 0.0
+            }
+          }
+        ]
+      }
+    },
+    "stop": null,
+    "peak_lift_m": -0.00010775541837049207,
+    "grasp_verified": false
+  },
+  "evidence": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-grasp-frame-001",
+      "kind": "dir",
+      "sha256": "d5a150acfc943766c064aa3219e007a7fee256b85ce6e54a62884ea4dda496ad",
+      "skipped": []
+    }
+  ],
+  "cloud": null
+}
