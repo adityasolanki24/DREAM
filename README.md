@@ -42,6 +42,13 @@ The broader R1 gate remains pending.
 [Results and configurations](results/g1_r1_tabletop_dev_20261110/summary.json) and
 [development report](Reports/2026-11-10/008-r1-clearance-resume/REPORT.md).
 
+An experimental selector (`contact_geometry_search: true` in the fixture config) ranks
+pinch poses from predicted contact geometry. It passed 4 of 6 matched cube fixtures,
+including one previous hold failure, with all previous passes retained. The rectangular
+box, cylinder and sphere reached closure but did not pass the hold gate.
+[Matched results](results/g1_r1_contact_rank_dev_20261110/summary.json) and
+[retention report](Reports/2026-11-10/009-r1-contact-retention/REPORT.md).
+
 ## Executive summary
 
 **New on 8-9 November**, all in simulation:

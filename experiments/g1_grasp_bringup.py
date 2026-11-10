@@ -11,6 +11,7 @@ from pathlib import Path
 import mujoco
 import numpy as np
 
+from dream.robot.g1_grasp_geometry import rank_pinches
 from dream.robot.g1_posture import PerceivedBox, PosturePlanner
 from dream.robot.g1_supervisor import SafetyLimits, WholeBodySupervisor
 from dream.robot.g1_wbc import WBCLocomotion
@@ -46,10 +47,27 @@ LIFT_STEP_M = 0.03
 
 def attempt(cfg: dict) -> dict:
     top = cfg["table_top_m"]
-    half = cfg["object_half_size_m"]
+    size = np.asarray(
+        cfg["object_half_extents_m"]
+        if "object_half_extents_m" in cfg
+        else [cfg["object_half_size_m"]] * 3,
+        dtype=float,
+    )
+    if size.shape != (3,) or not np.isfinite(size).all() or np.any(size <= 0):
+        raise ValueError("object half extents must be three positive finite lengths")
+    _, half, half_height = size
+    shape = cfg.get("object_shape", "box")
+    if shape == "box":
+        geom_type, geom_size = mujoco.mjtGeom.mjGEOM_BOX, size
+    elif shape == "cylinder" and size[0] == size[1]:
+        geom_type, geom_size = mujoco.mjtGeom.mjGEOM_CYLINDER, [size[0], half_height, 0.0]
+    elif shape == "sphere" and np.all(size == size[0]):
+        geom_type, geom_size = mujoco.mjtGeom.mjGEOM_SPHERE, [size[0], 0.0, 0.0]
+    else:
+        raise ValueError("unsupported shape or dimensions for the fixture")
     table_half = cfg["table_half_size_m"]
     table = (*cfg["table_center_xy_m"], top - table_half[2])
-    center = (*cfg["object_center_xy_m"], top + half)
+    center = (*cfg["object_center_xy_m"], top + half_height)
 
     def scene(spec):
         spec.worldbody.add_geom(
@@ -58,7 +76,7 @@ def attempt(cfg: dict) -> dict:
         box = spec.worldbody.add_body(name="box", pos=center)
         box.add_freejoint()
         box.add_geom(
-            name="box", type=mujoco.mjtGeom.mjGEOM_BOX, size=[half] * 3,
+            name="box", type=geom_type, size=geom_size,
             mass=cfg["object_mass_kg"],
         )  # fmt: skip
 
@@ -350,7 +368,7 @@ def attempt(cfg: dict) -> dict:
 
     def goals(phase, point):
         if phase != "raise":
-            yield "nominal", point, np.eye(3)
+            yield "nominal", point, pinch_rotation
             return
         # Lift behind the table before rotating into the pinch. Build the
         # waypoint from the observed wrist, not from a stored arm pose.
@@ -363,7 +381,7 @@ def attempt(cfg: dict) -> dict:
             raised[0] -= 2 * half
             yield "vertical raise with retreat", raised.copy(), wrist_rot
         # A raised wrist angle retracts the fingertips in x during ascent.
-        yield "nominal", point, np.eye(3)
+        yield "nominal", point, pinch_rotation
         width = 2.0 * half
         for up, back in ((0, 0), (1, 0), (1, 1), (2, 0), (2, 1), (1, 2)):
             waypoint = point + [-back * width, 0.0, up * width]
@@ -383,7 +401,7 @@ def attempt(cfg: dict) -> dict:
             sample(phase)
             return monitor(obs) or clearance_stop(obs)
 
-        candidates = goals(phase, point) if use_search else [("nominal", point, np.eye(3))]
+        candidates = goals(phase, point) if use_search else [("nominal", point, pinch_rotation)]
         for label, waypoint, rotation in candidates:
             result = plan_at(waypoint, env.odometry(), rotation)
             if not result.plans:
@@ -516,13 +534,13 @@ def attempt(cfg: dict) -> dict:
         for _ in range(10):
             geometry = check_closure()
             position = np.asarray(geometry["grasp_xyz_m"])
-            goal = observe_box() + [0.0, 0.0, half]
+            goal = observe_box() + pinch_offset
             error = goal - position
             if (
                 geometry["table_clearance_m"] >= TABLE_CLEARANCE_M
                 and geometry["opposing_gap_m"] <= 0.0
                 and np.abs(error[:2]).max() <= 0.5 * half
-                and abs(error[2]) <= 0.05 * half
+                and abs(error[2]) <= 0.05 * half_height
             ):
                 phases["descend"] = {"completed": True, "corrections": attempts}
                 return True, geometry, error
@@ -562,7 +580,35 @@ def attempt(cfg: dict) -> dict:
 
     # Keep the pinch near the upper part of the box. The wrist must be high
     # enough to clear the table with the wider palm and fingers.
-    grip_point = np.array(center) + [0.0, 0.0, half]
+    pinch_offset = np.array([0.0, 0.0, half_height])
+    pinch_rotation = np.eye(3)
+    if cfg.get("contact_geometry_search", False):
+        set_scratch(backend.observe())
+        pinches = rank_pinches(
+            model,
+            scratch.qpos,
+            observe_box_pose(),
+            size,
+            env.hand_qadr[RIGHT],
+            OPEN,
+            CLOSED,
+            GRASP_OFFSET,
+            TABLE_CLEARANCE_M,
+            object_geom=box_geom,
+            support_geom=table_geom,
+        )
+        if pinches:
+            selected = pinches[0]
+            pinch_offset, pinch_rotation = selected.offset, selected.rotation
+            phases["grasp_geometry"] = {
+                "candidates": len(pinches), "offset_m": pinch_offset.tolist(),
+                "rotation": pinch_rotation.tolist(), "score": selected.score,
+                "support_links": selected.support_links,
+                "predicted_closure_fraction": selected.closure_fraction,
+            }  # fmt: skip
+        else:
+            phases["grasp_geometry"] = {"candidates": 0}
+    grip_point = observe_box() + pinch_offset
     # Raise on the near side of the table before moving over it. The open
     # fingertip extends about 87 mm beyond the grasp centre along +x.
     approach = grip_point + [-0.06, 0.0, 0.04]
@@ -585,7 +631,7 @@ def attempt(cfg: dict) -> dict:
         phases["settle"] = {"stable": settled}
 
     can_close = False
-    above = grip_point + [0.0, 0.0, 2 * half]
+    above = grip_point + [0.0, 0.0, 2 * half_height]
     if (
         settled
         and reach("raise", raise_point)
@@ -595,7 +641,7 @@ def attempt(cfg: dict) -> dict:
         command_point = above.copy()
         for i in range(4):
             clearance = check_closure()
-            grip_point = observe_box() + [0.0, 0.0, half]
+            grip_point = observe_box() + pinch_offset
             measured = np.asarray(clearance["grasp_xyz_m"])
             error = grip_point - measured
             if np.abs(error[:2]).max() <= half / 2:

@@ -60,3 +60,11 @@ def test_verified_free_standing_grasp_on_changed_box_positions(fixture):
     assert len(hold) == round(HOLD_S / TICK)
     assert min(row["lift_m"] for row in hold) >= LIFT_M
     assert all(row["hand_only_contact"] for row in hold)
+
+
+def test_geometry_ranked_pinch_retains_the_farther_box():
+    cfg = json.loads((CONFIG / "g1_grasp_bringup_fresh_far.json").read_text())
+    result = attempt(dict(cfg, contact_geometry_search=True))
+    assert result["phases"]["grasp_geometry"]["candidates"] > 1
+    assert result["stop"] is None
+    assert result["grasp_verified"], result["phases"]
