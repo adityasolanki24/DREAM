@@ -889,6 +889,8 @@ class PosturePlanner:
         approach_axis=None,
         iterations=30,
         hold_waist=False,
+        *,
+        orientation=None,
     ) -> np.ndarray | None:
         """Small closed-loop IK update from a MEASURED configuration (``q_measured``: full qpos
         built from IMU, encoders and odometry). Stance stays fixed (feet pinned there), limits
@@ -916,6 +918,7 @@ class PosturePlanner:
             feet,
             hold_body=True,
             hold_waist=hold_waist,
+            orientation=orientation,
         )
 
     def retarget(

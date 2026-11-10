@@ -22,7 +22,7 @@ sequencing and evidence rules.
 | Rung | Capability | Status |
 |---|---|---|
 | R0 | G1 model, controller and safety on one integration branch | Integration checks passed |
-| R1 | Free-standing contact grasp and lift | Bring-up |
+| R1 | Free-standing contact grasp and lift | Fixed-stance box grasp verified in development |
 | R2 | Carry and place | Pending |
 | R3 | Fetch from language | Pending |
 | R4 | Held-out task compositions | Pending |
@@ -34,9 +34,13 @@ The Dex3 actuator path is opt-in. W6 remains a failed development evaluation.
 For the fixed-stance grasp diagnostic, install the `wholebody` and `locomotion` extras
 and use the cached WBC weights. See the
 [bring-up report](Reports/2026-11-10/003-r0-r1-start/REPORT.md) for the commands and
-development outcomes. The current R1 guard stops the hand at the table edge before
-closure in the reproduced failure case. A box lift remains unverified. See the
-[R1 tabletop report](Reports/2026-11-10/006-r1-tabletop-grasp/REPORT.md).
+development outcomes. In the current fixed-stance development evaluation, 3 of 6
+box fixtures passed the independent 10 cm, 3 s hold gate. The same controller used
+observed wrist and box geometry to select and correct the approach. The box tracker
+and odometry are oracle-assisted. One case refused closure and two slipped during hold.
+The broader R1 gate remains pending.
+[Results and configurations](results/g1_r1_tabletop_dev_20261110/summary.json) and
+[development report](Reports/2026-11-10/008-r1-clearance-resume/REPORT.md).
 
 ## Executive summary
 
