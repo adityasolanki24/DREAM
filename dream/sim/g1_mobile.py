@@ -249,6 +249,40 @@ def build_mobile_g1(
     return spec.compile()
 
 
+def build_grasp_rehearsal(scene: Callable[[mujoco.MjSpec], None]) -> mujoco.MjModel:
+    """Mount the same articulated right hand on a vertical stage for prediction."""
+    source = mujoco.MjSpec.from_file(str(ASSET))
+    source.meshdir = str(MESHES)
+    _add_hands(source)
+    spec = mujoco.MjSpec()
+    spec.meshdir = str(MESHES)
+    spec.option.timestep = DT_PHYSICS
+    stage = spec.worldbody.add_body(name="rehearsal_stage")
+    slide = stage.add_joint(name="rehearsal_lift", type=mujoco.mjtJoint.mjJNT_SLIDE, axis=[0, 0, 1])
+    slide.armature = 1.0
+    stage.add_frame().attach_body(source.body("right_wrist_yaw_link"))
+    spec.delete(spec.actuator("right_wrist_yaw_joint"))
+    spec.delete(spec.joint("right_wrist_yaw_joint"))
+    wrist = spec.body("right_wrist_yaw_link")
+    wrist.pos = [0, 0, 0]
+    wrist.quat = [1, 0, 0, 0]
+    # This fixture tracks a slow vertical reference under load. The G1's real
+    # wrist commands and limits are handled separately by the WBC.
+    spec.add_actuator(
+        name="rehearsal_lift",
+        target=slide.name,
+        trntype=mujoco.mjtTrn.mjTRN_JOINT,
+        gaintype=mujoco.mjtGain.mjGAIN_FIXED,
+        gainprm=[1000.0] + [0.0] * 9,
+        biastype=mujoco.mjtBias.mjBIAS_AFFINE,
+        biasprm=[0.0, -1000.0, -60.0] + [0.0] * 7,
+        forcelimited=mujoco.mjtLimited.mjLIMITED_TRUE,
+        forcerange=[-50.0, 50.0],
+    )
+    scene(spec)
+    return spec.compile()
+
+
 @dataclass(frozen=True)
 class OdometryNoise:
     """Assumed, not calibrated: 2% translation and 2% rotation scale noise per step, and a

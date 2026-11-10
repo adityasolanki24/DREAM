@@ -68,3 +68,28 @@ def test_geometry_ranked_pinch_retains_the_farther_box():
     assert result["phases"]["grasp_geometry"]["candidates"] > 1
     assert result["stop"] is None
     assert result["grasp_verified"], result["phases"]
+
+
+@pytest.mark.parametrize("fixture", ["shift_out", "rectangular"])
+def test_rehearsal_recovers_a_failed_geometric_pinch(fixture):
+    cfg = json.loads((CONFIG / f"g1_grasp_bringup_{fixture}.json").read_text())
+    result = attempt(dict(cfg, contact_rehearsal_search=True))
+    rank = result["phases"]["grasp_geometry"]["rank"]
+    rehearsals = result["phases"]["rehearsal"]
+    assert rehearsals[0]["minimum_hold_lift_m"] < LIFT_M
+    assert rehearsals[rank]["minimum_hold_lift_m"] >= LIFT_M
+    assert result["stop"] is None
+    assert result["grasp_verified"], result["phases"]
+
+
+@pytest.mark.parametrize(("fixture", "preview_holds"), [("pinch", False), ("shift_out", True)])
+def test_whole_body_preview_filters_the_proposed_grasp(fixture, preview_holds):
+    cfg = json.loads((CONFIG / f"g1_grasp_bringup_{fixture}.json").read_text())
+    result = attempt(dict(cfg, whole_body_grasp_preview=True))
+    preview = result["phases"]["whole_body_grasp_preview"]
+    assert preview["proposed_rank"] > 0
+    assert preview["predicted_verified"] is preview_holds
+    expected_rank = preview["proposed_rank"] if preview_holds else 0
+    assert result["phases"]["grasp_geometry"]["rank"] == expected_rank
+    assert result["stop"] is None
+    assert result["grasp_verified"], result["phases"]

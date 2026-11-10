@@ -22,6 +22,122 @@ class PinchCandidate:
     closure_fraction: float
 
 
+@dataclass(frozen=True)
+class Rehearsal:
+    rank: int
+    opposed: bool
+    minimum_hold_lift_m: float
+    maximum_slip_m: float | None
+
+
+def regulate_closure(
+    fraction: float, force: float, displacement: float, width: float, dt: float, grip_force: float
+) -> tuple[float, float]:
+    """Use slip to request more preload, bounded by the live hand force guard."""
+    goal = grip_force * (1.0 + min(2.0, displacement / (0.1 * width)))
+    if force < goal:
+        fraction = min(1.0, fraction + 0.5 * dt)
+    elif force > 2 * goal:
+        fraction = max(0.0, fraction - 0.25 * dt)
+    return fraction, goal
+
+
+def rehearse_pinches(
+    model: mujoco.MjModel,
+    object_pose: np.ndarray,
+    candidates: list[PinchCandidate],
+    hand_joints: tuple[str, ...],
+    opening: np.ndarray,
+    closing: np.ndarray,
+    tool_offset: np.ndarray,
+    *,
+    object_width: float,
+    control_period: float,
+    grip_force: float,
+    grip_dwell: float,
+    lift_height: float,
+    hold_duration: float,
+) -> list[Rehearsal]:
+    """Screen under gravity with a separate stage and nominal material properties."""
+    data = mujoco.MjData(model)
+    stage = model.body("rehearsal_stage").id
+    wrist = model.body("right_wrist_yaw_link").id
+    lift_actuator = model.actuator("rehearsal_lift").id
+    lift_qpos = int(model.joint("rehearsal_lift").qposadr[0])
+    object_geom = model.geom("box").id
+    object_joint = model.joint(model.body("box").jntadr[0])
+    object_qpos = int(object_joint.qposadr[0])
+    actuators = [model.actuator(name).id for name in hand_joints]
+    finger_positions = [int(model.joint(name).qposadr[0]) for name in hand_joints]
+    step_count = round(control_period / model.opt.timestep)
+    wrench = np.zeros(6)
+    results = []
+    model.actuator_biasprm[lift_actuator, 0] = -model.body_subtreemass[stage] * model.opt.gravity[2]
+
+    def step(fraction, lift):
+        data.ctrl[actuators] = opening + fraction * (closing - opening)
+        data.ctrl[lift_actuator] = lift
+        mujoco.mj_step(model, data, nstep=step_count)
+        thumb_force = opposing_force = 0.0
+        for index, contact in enumerate(data.contact):
+            if object_geom not in (contact.geom1, contact.geom2):
+                continue
+            other = contact.geom2 if contact.geom1 == object_geom else contact.geom1
+            link = model.body(model.geom_bodyid[other]).name
+            mujoco.mj_contactForce(model, data, index, wrench)
+            if "hand_thumb_2" in link:
+                thumb_force += wrench[0]
+            elif "hand_index_" in link or "hand_middle_" in link:
+                opposing_force += wrench[0]
+        return min(thumb_force, opposing_force)
+
+    for rank, candidate in enumerate(candidates):
+        mujoco.mj_resetData(model, data)
+        model.body_pos[stage] = (
+            object_pose[:3] + candidate.offset - candidate.rotation @ tool_offset
+        )
+        quat = Rotation.from_matrix(candidate.rotation).as_quat()
+        model.body_quat[wrist] = quat[[3, 0, 1, 2]]
+        mujoco.mj_setConst(model, data)
+        data.qpos[finger_positions] = opening
+        data.qpos[object_qpos : object_qpos + 7] = object_pose
+        fraction = 0.0
+        dwell = 0
+        for _ in range(round(1.5 / control_period)):
+            if step(fraction, 0.0) >= grip_force:
+                dwell += 1
+                if dwell >= round(grip_dwell / control_period):
+                    break
+            else:
+                dwell = 0
+                fraction = min(1.0, fraction + control_period)
+        else:
+            results.append(Rehearsal(rank, False, 0.0, None))
+            continue
+
+        grasped_position = data.qpos[object_qpos : object_qpos + 3].copy()
+        start_slide = data.qpos[lift_qpos]
+        # Average lift rate of the live probe on the commissioning controller.
+        lift_steps = round(lift_height / (0.03 * control_period))
+        min_height = np.inf
+        max_slip = 0.0
+        for tick in range(lift_steps + round(hold_duration / control_period)):
+            lift = min((tick + 1) / lift_steps, 1.0) * lift_height
+            weakest = step(fraction, lift)
+            position = data.qpos[object_qpos : object_qpos + 3]
+            stage_rise = data.qpos[lift_qpos] - start_slide
+            relative = position - grasped_position - [0.0, 0.0, stage_rise]
+            slip = float(np.linalg.norm(relative))
+            max_slip = max(max_slip, slip)
+            fraction, _ = regulate_closure(
+                fraction, weakest, slip, object_width, control_period, grip_force
+            )
+            if tick >= lift_steps:
+                min_height = min(min_height, float(position[2] - object_pose[2]))
+        results.append(Rehearsal(rank, True, min_height, max_slip))
+    return results
+
+
 def rank_pinches(
     model: mujoco.MjModel,
     reference: np.ndarray,

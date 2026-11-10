@@ -11,7 +11,7 @@ from pathlib import Path
 import mujoco
 import numpy as np
 
-from dream.robot.g1_grasp_geometry import rank_pinches
+from dream.robot.g1_grasp_geometry import rank_pinches, regulate_closure, rehearse_pinches
 from dream.robot.g1_posture import PerceivedBox, PosturePlanner
 from dream.robot.g1_supervisor import SafetyLimits, WholeBodySupervisor
 from dream.robot.g1_wbc import WBCLocomotion
@@ -22,7 +22,7 @@ from dream.robot.wholebody import (
     StopEvent,
     WBCBackend,
 )
-from dream.sim.g1_mobile import G1MobileEnv, build_mobile_g1
+from dream.sim.g1_mobile import G1MobileEnv, build_grasp_rehearsal, build_mobile_g1
 
 # Right-hand targets mirror the supported G1's seven-joint closure in dream/robot/g1.py.
 OPEN = np.array([0, 0, -0.08, 0.08, 0.08, 0.08, 0.08])
@@ -43,9 +43,38 @@ MIN_RESPONSE_M = 0.01
 GRIP_NORMAL_N = 3.0
 GRIP_DWELL_S = 0.10
 LIFT_STEP_M = 0.03
+# Upper end of the initial commissioning masses, used as a common planning prior.
+REHEARSAL_MASS_KG = 0.10
 
 
 def attempt(cfg: dict) -> dict:
+    """Execute and score a live simulated G1 grasp, optionally previewing the candidate."""
+    if not cfg.get("whole_body_grasp_preview", False):
+        return _attempt(cfg)
+    # Validate the proposed grasp with the balance policy in an independent
+    # world. Only observed geometry and a shared material prior enter it.
+    predicted_cfg = dict(
+        cfg,
+        object_mass_kg=REHEARSAL_MASS_KG,
+        contact_rehearsal_search=True,
+        # Use a reproducible planning stream independent of evaluation noise.
+        seed=np.random.SeedSequence(0, spawn_key=(1,)),
+    )
+    predicted = _attempt(predicted_cfg)
+    proposed = predicted["phases"].get("grasp_geometry", {}).get("rank", 0)
+    rank = proposed if predicted["grasp_verified"] else 0
+    result = _attempt(cfg, planned_rank=rank)
+    result["phases"]["whole_body_grasp_preview"] = {
+        "proposed_rank": proposed,
+        "executed_rank": rank,
+        "predicted_verified": predicted["grasp_verified"],
+        "predicted_peak_lift_m": predicted["peak_lift_m"],
+        "predicted_stop": predicted["stop"],
+    }
+    return result
+
+
+def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
     top = cfg["table_top_m"]
     size = np.asarray(
         cfg["object_half_extents_m"]
@@ -69,7 +98,7 @@ def attempt(cfg: dict) -> dict:
     table = (*cfg["table_center_xy_m"], top - table_half[2])
     center = (*cfg["object_center_xy_m"], top + half_height)
 
-    def scene(spec):
+    def scene(spec, *, mass):
         spec.worldbody.add_geom(
             name="tabletop", type=mujoco.mjtGeom.mjGEOM_BOX, pos=table, size=table_half
         )
@@ -77,10 +106,15 @@ def attempt(cfg: dict) -> dict:
         box.add_freejoint()
         box.add_geom(
             name="box", type=geom_type, size=geom_size,
-            mass=cfg["object_mass_kg"],
+            mass=mass,
         )  # fmt: skip
 
-    model = build_mobile_g1(scene, head_camera=None, hands=True, touch=True)
+    model = build_mobile_g1(
+        lambda spec: scene(spec, mass=cfg["object_mass_kg"]),
+        head_camera=None,
+        hands=True,
+        touch=True,
+    )
     if model.neq:
         raise RuntimeError("grasp diagnostic requires a scene without equality constraints")
     env = G1MobileEnv(model, np.random.default_rng(cfg["seed"]), head_camera=None)
@@ -471,13 +505,11 @@ def attempt(cfg: dict) -> dict:
         # Normal force may stay steady while the box creeps down the pads.
         # The measured relative pose raises the requested preload on slip.
         displacement = float(np.linalg.norm(box_in_wrist() - held_box))
-        normal_goal = GRIP_NORMAL_N * (1.0 + min(2.0, displacement / (0.2 * half)))
+        fraction, normal_goal = regulate_closure(
+            fraction, weakest, displacement, 2.0 * half, TICK, GRIP_NORMAL_N
+        )
         rows[-1]["relative_box_motion_m"] = displacement
         rows[-1]["grip_target_n"] = normal_goal
-        if weakest < normal_goal:
-            fraction = min(1.0, fraction + 0.5 * TICK)
-        elif weakest > 2 * normal_goal:
-            fraction = max(0.0, fraction - 0.25 * TICK)
         fingers[RIGHT] = OPEN + fraction * (CLOSED - OPEN)
         env.set_hand(fingers)
         return None
@@ -582,12 +614,14 @@ def attempt(cfg: dict) -> dict:
     # enough to clear the table with the wider palm and fingers.
     pinch_offset = np.array([0.0, 0.0, half_height])
     pinch_rotation = np.eye(3)
-    if cfg.get("contact_geometry_search", False):
+    rehearsal_search = planned_rank is None and cfg.get("contact_rehearsal_search", False)
+    if cfg.get("contact_geometry_search", False) or rehearsal_search or planned_rank is not None:
         set_scratch(backend.observe())
+        object_pose = observe_box_pose()
         pinches = rank_pinches(
             model,
             scratch.qpos,
-            observe_box_pose(),
+            object_pose,
             size,
             env.hand_qadr[RIGHT],
             OPEN,
@@ -598,10 +632,34 @@ def attempt(cfg: dict) -> dict:
             support_geom=table_geom,
         )
         if pinches:
-            selected = pinches[0]
+            rank = planned_rank if planned_rank is not None and planned_rank < len(pinches) else 0
+            if rehearsal_search:
+                # Nominal material prior shared across shapes and seeds. This
+                # separate scene never reads the real object's mass or contacts.
+                prediction = build_grasp_rehearsal(lambda spec: scene(spec, mass=REHEARSAL_MASS_KG))
+                rehearsals = rehearse_pinches(
+                    prediction,
+                    object_pose,
+                    pinches[:12],
+                    tuple(model.actuator(index).name for index in env.finger_actuators[RIGHT]),
+                    OPEN,
+                    CLOSED,
+                    GRASP_OFFSET,
+                    object_width=2.0 * half,
+                    control_period=TICK,
+                    grip_force=GRIP_NORMAL_N,
+                    grip_dwell=GRIP_DWELL_S,
+                    lift_height=LIFT_M + 0.02,
+                    hold_duration=HOLD_S,
+                )
+                retained = [r for r in rehearsals if r.minimum_hold_lift_m >= LIFT_M]
+                if retained:
+                    rank = min(retained, key=lambda r: r.maximum_slip_m).rank
+                phases["rehearsal"] = [asdict(r) for r in rehearsals]
+            selected = pinches[rank]
             pinch_offset, pinch_rotation = selected.offset, selected.rotation
             phases["grasp_geometry"] = {
-                "candidates": len(pinches), "offset_m": pinch_offset.tolist(),
+                "candidates": len(pinches), "rank": rank, "offset_m": pinch_offset.tolist(),
                 "rotation": pinch_rotation.tolist(), "score": selected.score,
                 "support_links": selected.support_links,
                 "predicted_closure_fraction": selected.closure_fraction,
