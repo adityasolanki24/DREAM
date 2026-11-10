@@ -6,6 +6,7 @@
 
 | Date | Task ID | Prompt | Status | Main finding | Runs | Report |
 |---|---|---|---|---|---|---|
+| 2026-11-10 | 2026-11-10-011 | [R1 depth-aware candidate search](011-r1-grasp-depth/PROMPT.md) | partially_completed | Depth and thumb adaptation recovered two matched holds and a geometry-shifted cylinder. Sphere retention and the full R1 milestone remain open. | 5 | [REPORT](011-r1-grasp-depth/REPORT.md) |
 | 2026-11-10 | 2026-11-10-010 | [R1 grasp retention rehearsal](010-r1-physical-rehearsal/PROMPT.md) | partially_completed | An independently seeded whole-body preview recovered two verified fixed-stance holds while retaining all four previous passes. | 29 | [REPORT](010-r1-physical-rehearsal/REPORT.md) |
 | 2026-11-10 | 2026-11-10-009 | [Improve R1 grasp retention and transfer](009-r1-contact-retention/PROMPT.md) | partially_completed | Geometry-ranked pinch recovered one matched cube hold and exercised three new shapes. Retention on wider and curved objects still fails the R1 gate. | 17 | [REPORT](009-r1-contact-retention/REPORT.md) |
 | 2026-11-10 | 2026-11-10-008 | [Continue R1 from the trajectory search evidence](008-r1-clearance-resume/PROMPT.md) | partially_completed | The initial fixed-stance box grasp passes on three development fixtures using the same controller. Width and hold transfer still limit the broader R1 gate. | 27 | [REPORT](008-r1-clearance-resume/REPORT.md) |
@@ -24,6 +25,11 @@
 
 | Run | Task | Status | Started | Report |
 |---|---|---|---|---|
+| 20261110-225016-depth-preview | 2026-11-10-011 | completed | 2026-11-10T22:50:16+11:00 | [REPORT](011-r1-grasp-depth/runs/20261110-225016-depth-preview/REPORT.md) |
+| 20261110-225230-closure-screen | 2026-11-10-011 | completed | 2026-11-10T22:52:30+11:00 | [REPORT](011-r1-grasp-depth/runs/20261110-225230-closure-screen/REPORT.md) |
+| 20261110-225425-thumb-preview | 2026-11-10-011 | completed | 2026-11-10T22:54:25+11:00 | [REPORT](011-r1-grasp-depth/runs/20261110-225425-thumb-preview/REPORT.md) |
+| 20261110-225450-geometry-shift | 2026-11-10-011 | completed | 2026-11-10T22:54:50+11:00 | [REPORT](011-r1-grasp-depth/runs/20261110-225450-geometry-shift/REPORT.md) |
+| 20261110-225750-sphere-wrist-envelope | 2026-11-10-011 | completed | 2026-11-10T22:57:50+11:00 | [REPORT](011-r1-grasp-depth/runs/20261110-225750-sphere-wrist-envelope/REPORT.md) |
 | 20261110-223207-rehearsal-pinch | 2026-11-10-010 | completed | 2026-11-10T22:32:07+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223207-rehearsal-pinch/REPORT.md) |
 | 20261110-223222-rehearsal-lateral | 2026-11-10-010 | completed | 2026-11-10T22:32:22+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223222-rehearsal-lateral/REPORT.md) |
 | 20261110-223240-rehearsal-shift-in | 2026-11-10-010 | completed | 2026-11-10T22:32:40+11:00 | [REPORT](010-r1-physical-rehearsal/runs/20261110-223240-rehearsal-shift-in/REPORT.md) |

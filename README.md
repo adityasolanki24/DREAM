@@ -22,7 +22,7 @@ sequencing and evidence rules.
 | Rung | Capability | Status |
 |---|---|---|
 | R0 | G1 model, controller and safety on one integration branch | Integration checks passed |
-| R1 | Free-standing contact grasp and lift | Fixed-stance box grasp verified in development |
+| R1 | Free-standing contact grasp and lift | Fixed-stance box and cylinder grasps verified in development |
 | R2 | Carry and place | Pending |
 | R3 | Fetch from language | Pending |
 | R4 | Held-out task compositions | Pending |
@@ -34,7 +34,7 @@ The Dex3 actuator path is opt-in. W6 remains a failed development evaluation.
 For the fixed-stance grasp diagnostic, install the `wholebody` and `locomotion` extras
 and use the cached WBC weights. See the
 [bring-up report](Reports/2026-11-10/003-r0-r1-start/REPORT.md) for the commands and
-development outcomes. In the current fixed-stance development evaluation, 3 of 6
+development outcomes. In the first fixed-stance development evaluation, 3 of 6
 box fixtures passed the independent 10 cm, 3 s hold gate. The same controller used
 observed wrist and box geometry to select and correct the approach. The box tracker
 and odometry are oracle-assisted. One case refused closure and two slipped during hold.
@@ -60,6 +60,16 @@ failed. The stage-only selector lost two previous passes, so it remains a
 diagnostic. All cases started at a fixed stance and used oracle-assisted pose
 and odometry. [Matched results](results/g1_r1_rehearsal_dev_20261110/summary.json)
 and [rehearsal report](Reports/2026-11-10/010-r1-physical-rehearsal/REPORT.md).
+
+Adding `grasp_depth_search: true` to that preview scales front-to-back grasp
+proposals by the observed object extent. When the usual closure slips in
+rehearsal, it also checks thumb abduction in either direction. The combined
+selector passed 8 of the 9 matched live cases, up from 6, with new verified
+holds on the cylinder and inward-shifted cube. On two additional fixed-stance
+checks with changed size, mass and table height, it passed both cases versus
+one for the previous selector. The sphere still failed the lift probe.
+[Matched results](results/g1_r1_depth_dev_20261110/summary.json) and
+[development report](Reports/2026-11-10/011-r1-grasp-depth/REPORT.md).
 
 ## Executive summary
 

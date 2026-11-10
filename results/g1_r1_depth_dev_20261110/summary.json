@@ -1,0 +1,2213 @@
+{
+  "scope": "Fixed-stance oracle-assisted R1 development. Independent live lift and hold under contact physics.",
+  "live_gate": {
+    "height_m": 0.1,
+    "hold_s": 3,
+    "hand_only_contact": true
+  },
+  "prior": "results/g1_r1_rehearsal_dev_20261110/summary.json",
+  "counts": {
+    "prior_verified": 6,
+    "depth_only_verified": 7,
+    "depth_and_thumb_verified": 8,
+    "matched_cases": 9,
+    "shifted_baseline_verified": 1,
+    "shifted_expanded_verified": 2,
+    "shifted_cases": 2
+  },
+  "source_snapshots": {
+    "depth_only": {
+      "evidence_directory": "r1-depth-preview-001",
+      "sha256": {
+        "g1_grasp_bringup.py": "481e0a4f7986469638e193da25406a9badfc3ab4cdd4fe02d064e4727c9af9ca",
+        "g1_grasp_geometry.py": "23d4522bbfa95fb12c050ae6ad1be1b0f11ee89355b099e617ab76ca95219d35",
+        "run.py": "5a8f955bb6262d1bd95f7435bd8159f3602b85faa67541210eb5110f019bade0"
+      }
+    },
+    "depth_and_thumb": {
+      "evidence_directory": "r1-depth-thumb-preview-001",
+      "sha256": {
+        "g1_grasp_bringup.py": "9afe0a3e4b21c661cee0ade7db07e5bc196f38b3fc2a8a05a1e75c6069fcd09f",
+        "g1_grasp_geometry.py": "f16021de54da53c442e3f7bb373219bd39eefa981dc630d7759a87d82291f030",
+        "run.py": "fc5efeb8c0d3e652e27c398282f7dab6b96e5bdf7743b458a729ef23c0d601de"
+      }
+    },
+    "geometry_shift": {
+      "evidence_directory": "r1-depth-geometry-shift-001",
+      "sha256": {
+        "configs.py": "ac62e290520a6747a4c6ad9a6c88e74754eed2fd80957700485741e8858936e5",
+        "g1_grasp_bringup.py": "9afe0a3e4b21c661cee0ade7db07e5bc196f38b3fc2a8a05a1e75c6069fcd09f",
+        "g1_grasp_geometry.py": "f16021de54da53c442e3f7bb373219bd39eefa981dc630d7759a87d82291f030"
+      }
+    },
+    "closure_screen": {
+      "evidence_directory": "r1-depth-closure-screen-001",
+      "sha256": {
+        "g1_grasp_bringup.py": "481e0a4f7986469638e193da25406a9badfc3ab4cdd4fe02d064e4727c9af9ca",
+        "g1_grasp_geometry.py": "23d4522bbfa95fb12c050ae6ad1be1b0f11ee89355b099e617ab76ca95219d35",
+        "screen.py": "20ca7484a15ae2e032e305b242b3854f37ecc4126346646bfa45b271263fc7ad"
+      }
+    }
+  },
+  "matched": [
+    {
+      "case": "pinch",
+      "prior_verified": true,
+      "depth_only": {
+        "metadata": {
+          "config": {
+            "seed": 0,
+            "table_top_m": 0.75,
+            "table_center_xy_m": [
+              0.6,
+              -0.17
+            ],
+            "table_half_size_m": [
+              0.24,
+              0.24,
+              0.025
+            ],
+            "object_center_xy_m": [
+              0.47,
+              -0.17
+            ],
+            "object_half_size_m": 0.025,
+            "object_mass_kg": 0.075,
+            "starting_stance_xy_yaw": [
+              0.17,
+              0.0,
+              0.0
+            ],
+            "start_arms_down": true,
+            "start_right_shoulder_roll_rad": -0.35,
+            "start_left_shoulder_roll_rad": 0.35,
+            "contact_geometry_search": true,
+            "whole_body_grasp_preview": true,
+            "grasp_depth_search": true
+          },
+          "git_sha": "c04ffd81e7a2adffeb84f65a47e64afee342467e",
+          "mujoco": "3.16.0"
+        },
+        "verified": true,
+        "peak_lift_m": 0.14426764705699102,
+        "minimum_hold_lift_m": 0.13655041391936062,
+        "hold_samples": 150,
+        "selected_geometry": {
+          "candidates": 75,
+          "rank": 52,
+          "offset_m": [
+            -0.020000000000000004,
+            -0.005000000000000001,
+            0.025
+          ],
+          "rotation": [
+            [
+              1.0,
+              -0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              0.25881904510252074
+            ],
+            [
+              -0.0,
+              -0.25881904510252074,
+              0.9659258262890682
+            ]
+          ],
+          "score": 0.7385692742231983,
+          "support_links": 2,
+          "predicted_closure_fraction": 0.6875
+        },
+        "preview": {
+          "proposed_rank": 52,
+          "executed_rank": 52,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.14038555830236132,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 52,
+              "verified": true,
+              "peak_lift_m": 0.14038555830236132,
+              "stop": null
+            }
+          ]
+        },
+        "depth_fallback": null,
+        "stop": null,
+        "trace_sha256": "c62490c02072ff131c5f9ec02e1d55b6a18df8907d0788602a9bee098536c448"
+      },
+      "depth_and_thumb": {
+        "metadata": {
+          "config": {
+            "seed": 0,
+            "table_top_m": 0.75,
+            "table_center_xy_m": [
+              0.6,
+              -0.17
+            ],
+            "table_half_size_m": [
+              0.24,
+              0.24,
+              0.025
+            ],
+            "object_center_xy_m": [
+              0.47,
+              -0.17
+            ],
+            "object_half_size_m": 0.025,
+            "object_mass_kg": 0.075,
+            "starting_stance_xy_yaw": [
+              0.17,
+              0.0,
+              0.0
+            ],
+            "start_arms_down": true,
+            "start_right_shoulder_roll_rad": -0.35,
+            "start_left_shoulder_roll_rad": 0.35,
+            "contact_geometry_search": true,
+            "whole_body_grasp_preview": true,
+            "grasp_depth_search": true
+          },
+          "git_sha": "c04ffd81e7a2adffeb84f65a47e64afee342467e",
+          "mujoco": "3.16.0"
+        },
+        "verified": true,
+        "peak_lift_m": 0.14426764705699102,
+        "minimum_hold_lift_m": 0.13655041391936062,
+        "hold_samples": 150,
+        "selected_geometry": {
+          "candidates": 75,
+          "rank": 52,
+          "offset_m": [
+            -0.020000000000000004,
+            -0.005000000000000001,
+            0.025
+          ],
+          "rotation": [
+            [
+              1.0,
+              -0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              0.25881904510252074
+            ],
+            [
+              -0.0,
+              -0.25881904510252074,
+              0.9659258262890682
+            ]
+          ],
+          "score": 0.7385692742231983,
+          "support_links": 2,
+          "predicted_closure_fraction": 0.6875,
+          "thumb_bias_rad": 0.0
+        },
+        "preview": {
+          "proposed_rank": 52,
+          "executed_rank": 52,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.14038555830236132,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 52,
+              "verified": true,
+              "peak_lift_m": 0.14038555830236132,
+              "stop": null
+            }
+          ]
+        },
+        "depth_fallback": null,
+        "stop": null,
+        "trace_sha256": "c62490c02072ff131c5f9ec02e1d55b6a18df8907d0788602a9bee098536c448"
+      }
+    },
+    {
+      "case": "lateral",
+      "prior_verified": true,
+      "depth_only": {
+        "metadata": {
+          "config": {
+            "seed": 23,
+            "table_top_m": 0.75,
+            "table_center_xy_m": [
+              0.6,
+              -0.17
+            ],
+            "table_half_size_m": [
+              0.24,
+              0.24,
+              0.025
+            ],
+            "object_center_xy_m": [
+              0.47,
+              -0.19
+            ],
+            "object_half_size_m": 0.025,
+            "object_mass_kg": 0.09,
+            "starting_stance_xy_yaw": [
+              0.17,
+              0.0,
+              0.0
+            ],
+            "start_arms_down": true,
+            "start_right_shoulder_roll_rad": -0.35,
+            "start_left_shoulder_roll_rad": 0.35,
+            "contact_geometry_search": true,
+            "whole_body_grasp_preview": true,
+            "grasp_depth_search": true
+          },
+          "git_sha": "c04ffd81e7a2adffeb84f65a47e64afee342467e",
+          "mujoco": "3.16.0"
+        },
+        "verified": true,
+        "peak_lift_m": 0.14156075654894074,
+        "minimum_hold_lift_m": 0.13075114877353322,
+        "hold_samples": 150,
+        "selected_geometry": {
+          "candidates": 75,
+          "rank": 52,
+          "offset_m": [
+            -0.020000000000000004,
+            -0.005000000000000001,
+            0.025
+          ],
+          "rotation": [
+            [
+              1.0,
+              -0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              0.25881904510252074
+            ],
+            [
+              -0.0,
+              -0.25881904510252074,
+              0.9659258262890682
+            ]
+          ],
+          "score": 0.7385692742231983,
+          "support_links": 2,
+          "predicted_closure_fraction": 0.6875
+        },
+        "preview": {
+          "proposed_rank": 52,
+          "executed_rank": 52,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.13961160104209724,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 52,
+              "verified": true,
+              "peak_lift_m": 0.13961160104209724,
+              "stop": null
+            }
+          ]
+        },
+        "depth_fallback": null,
+        "stop": null,
+        "trace_sha256": "2a1d307b07cc2cdad33c0f2db09aa7426f22fab086734893d4099ea0f6cc130e"
+      },
+      "depth_and_thumb": {
+        "metadata": {
+          "config": {
+            "seed": 23,
+            "table_top_m": 0.75,
+            "table_center_xy_m": [
+              0.6,
+              -0.17
+            ],
+            "table_half_size_m": [
+              0.24,
+              0.24,
+              0.025
+            ],
+            "object_center_xy_m": [
+              0.47,
+              -0.19
+            ],
+            "object_half_size_m": 0.025,
+            "object_mass_kg": 0.09,
+            "starting_stance_xy_yaw": [
+              0.17,
+              0.0,
+              0.0
+            ],
+            "start_arms_down": true,
+            "start_right_shoulder_roll_rad": -0.35,
+            "start_left_shoulder_roll_rad": 0.35,
+            "contact_geometry_search": true,
+            "whole_body_grasp_preview": true,
+            "grasp_depth_search": true
+          },
+          "git_sha": "c04ffd81e7a2adffeb84f65a47e64afee342467e",
+          "mujoco": "3.16.0"
+        },
+        "verified": true,
+        "peak_lift_m": 0.14156075654894074,
+        "minimum_hold_lift_m": 0.13075114877353322,
+        "hold_samples": 150,
+        "selected_geometry": {
+          "candidates": 75,
+          "rank": 52,
+          "offset_m": [
+            -0.020000000000000004,
+            -0.005000000000000001,
+            0.025
+          ],
+          "rotation": [
+            [
+              1.0,
+              -0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              0.25881904510252074
+            ],
+            [
+              -0.0,
+              -0.25881904510252074,
+              0.9659258262890682
+            ]
+          ],
+          "score": 0.7385692742231983,
+          "support_links": 2,
+          "predicted_closure_fraction": 0.6875,
+          "thumb_bias_rad": 0.0
+        },
+        "preview": {
+          "proposed_rank": 52,
+          "executed_rank": 52,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.13961160104209724,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 52,
+              "verified": true,
+              "peak_lift_m": 0.13961160104209724,
+              "stop": null
+            }
+          ]
+        },
+        "depth_fallback": null,
+        "stop": null,
+        "trace_sha256": "2a1d307b07cc2cdad33c0f2db09aa7426f22fab086734893d4099ea0f6cc130e"
+      }
+    },
+    {
+      "case": "shift_in",
+      "prior_verified": false,
+      "depth_only": {
+        "metadata": {
+          "config": {
+            "seed": 11,
+            "table_top_m": 0.75,
+            "table_center_xy_m": [
+              0.6,
+              -0.17
+            ],
+            "table_half_size_m": [
+              0.24,
+              0.24,
+              0.025
+            ],
+            "object_center_xy_m": [
+              0.458,
+              -0.158
+            ],
+            "object_half_size_m": 0.023,
+            "object_mass_kg": 0.06,
+            "starting_stance_xy_yaw": [
+              0.17,
+              0.0,
+              0.0
+            ],
+            "start_arms_down": true,
+            "start_right_shoulder_roll_rad": -0.35,
+            "start_left_shoulder_roll_rad": 0.35,
+            "contact_geometry_search": true,
+            "whole_body_grasp_preview": true,
+            "grasp_depth_search": true
+          },
+          "git_sha": "c04ffd81e7a2adffeb84f65a47e64afee342467e",
+          "mujoco": "3.16.0"
+        },
+        "verified": false,
+        "peak_lift_m": 0.10254674394268204,
+        "minimum_hold_lift_m": null,
+        "hold_samples": 0,
+        "selected_geometry": {
+          "candidates": 6,
+          "rank": 0,
+          "offset_m": [
+            0.0,
+            0.0,
+            0.028749999999999998
+          ],
+          "rotation": [
+            [
+              1.0,
+              -0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              0.25881904510252074
+            ],
+            [
+              -0.0,
+              -0.25881904510252074,
+              0.9659258262890682
+            ]
+          ],
+          "score": 1.0276142884650206,
+          "support_links": 2,
+          "predicted_closure_fraction": 0.5
+        },
+        "preview": {
+          "proposed_rank": 0,
+          "executed_rank": 0,
+          "predicted_verified": false,
+          "predicted_peak_lift_m": 0.10861352479832109,
+          "predicted_stop": {
+            "t": 20.060000000000294,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "attempts": [
+            {
+              "rank": 0,
+              "verified": false,
+              "peak_lift_m": 0.10861352479832109,
+              "stop": {
+                "t": 20.060000000000294,
+                "reason": "grip lost",
+                "detail": {
+                  "weakest_normal_n": 0.0
+                }
+              }
+            }
+          ]
+        },
+        "depth_fallback": null,
+        "stop": {
+          "t": 20.720000000000162,
+          "reason": "grip lost",
+          "detail": {
+            "weakest_normal_n": 0.0
+          }
+        },
+        "trace_sha256": "c8e085464d96a87afbbf6ff6dc9c67d71ccfd5e9720c1a443f777c06d1c2a1dd"
+      },
+      "depth_and_thumb": {
+        "metadata": {
+          "config": {
+            "seed": 11,
+            "table_top_m": 0.75,
+            "table_center_xy_m": [
+              0.6,
+              -0.17
+            ],
+            "table_half_size_m": [
+              0.24,
+              0.24,
+              0.025
+            ],
+            "object_center_xy_m": [
+              0.458,
+              -0.158
+            ],
+            "object_half_size_m": 0.023,
+            "object_mass_kg": 0.06,
+            "starting_stance_xy_yaw": [
+              0.17,
+              0.0,
+              0.0
+            ],
+            "start_arms_down": true,
+            "start_right_shoulder_roll_rad": -0.35,
+            "start_left_shoulder_roll_rad": 0.35,
+            "contact_geometry_search": true,
+            "whole_body_grasp_preview": true,
+            "grasp_depth_search": true
+          },
+          "git_sha": "c04ffd81e7a2adffeb84f65a47e64afee342467e",
+          "mujoco": "3.16.0"
+        },
+        "verified": true,
+        "peak_lift_m": 0.13494860178192214,
+        "minimum_hold_lift_m": 0.12652464106692152,
+        "hold_samples": 150,
+        "selected_geometry": {
+          "candidates": 83,
+          "rank": 61,
+          "offset_m": [
+            -0.0092,
+            -0.0046,
+            0.028749999999999998
+          ],
+          "rotation": [
+            [
+              1.0,
+              -0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              0.25881904510252074
+            ],
+            [
+              -0.0,
+              -0.25881904510252074,
+              0.9659258262890682
+            ]
+          ],
+          "score": 0.8021777928276644,
+          "support_links": 2,
+          "predicted_closure_fraction": 0.5625,
+          "thumb_bias_rad": -0.2617993877991494
+        },
+        "preview": {
+          "proposed_rank": 61,
+          "executed_rank": 61,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.1329705312796967,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 61,
+              "verified": true,
+              "peak_lift_m": 0.1329705312796967,
+              "stop": null
+            }
+          ]
+        },
+        "depth_fallback": null,
+        "stop": null,
+        "trace_sha256": "382b1cb99326f7624467aec2a4fe6b892acdc076cd2aba5c760c85f4e1e446b9"
+      }
+    },
+    {
+      "case": "shift_out",
+      "prior_verified": true,
+      "depth_only": {
+        "metadata": {
+          "config": {
+            "seed": 17,
+            "table_top_m": 0.75,
+            "table_center_xy_m": [
+              0.6,
+              -0.17
+            ],
+            "table_half_size_m": [
+              0.24,
+              0.24,
+              0.025
+            ],
+            "object_center_xy_m": [
+              0.482,
+              -0.183
+            ],
+            "object_half_size_m": 0.028,
+            "object_mass_kg": 0.1,
+            "starting_stance_xy_yaw": [
+              0.17,
+              0.0,
+              0.0
+            ],
+            "start_arms_down": true,
+            "start_right_shoulder_roll_rad": -0.35,
+            "start_left_shoulder_roll_rad": 0.35,
+            "contact_geometry_search": true,
+            "whole_body_grasp_preview": true,
+            "grasp_depth_search": true
+          },
+          "git_sha": "c04ffd81e7a2adffeb84f65a47e64afee342467e",
+          "mujoco": "3.16.0"
+        },
+        "verified": true,
+        "peak_lift_m": 0.1398772381782979,
+        "minimum_hold_lift_m": 0.1283211511185216,
+        "hold_samples": 150,
+        "selected_geometry": {
+          "candidates": 149,
+          "rank": 24,
+          "offset_m": [
+            -0.011200000000000002,
+            -0.005600000000000001,
+            0.021
+          ],
+          "rotation": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "score": 1.0293690688455492,
+          "support_links": 2,
+          "predicted_closure_fraction": 1.0
+        },
+        "preview": {
+          "proposed_rank": 14,
+          "executed_rank": 24,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.14037227388629558,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 14,
+              "verified": false,
+              "peak_lift_m": 0.0024284234865095122,
+              "stop": null
+            },
+            {
+              "rank": 24,
+              "verified": true,
+              "peak_lift_m": 0.14037227388629558,
+              "stop": null
+            }
+          ]
+        },
+        "depth_fallback": null,
+        "stop": null,
+        "trace_sha256": "2507e4ddb20317f4ed204b3e978d62aad146399326bcd194761341b29cc2bf28"
+      },
+      "depth_and_thumb": {
+        "metadata": {
+          "config": {
+            "seed": 17,
+            "table_top_m": 0.75,
+            "table_center_xy_m": [
+              0.6,
+              -0.17
+            ],
+            "table_half_size_m": [
+              0.24,
+              0.24,
+              0.025
+            ],
+            "object_center_xy_m": [
+              0.482,
+              -0.183
+            ],
+            "object_half_size_m": 0.028,
+            "object_mass_kg": 0.1,
+            "starting_stance_xy_yaw": [
+              0.17,
+              0.0,
+              0.0
+            ],
+            "start_arms_down": true,
+            "start_right_shoulder_roll_rad": -0.35,
+            "start_left_shoulder_roll_rad": 0.35,
+            "contact_geometry_search": true,
+            "whole_body_grasp_preview": true,
+            "grasp_depth_search": true
+          },
+          "git_sha": "c04ffd81e7a2adffeb84f65a47e64afee342467e",
+          "mujoco": "3.16.0"
+        },
+        "verified": true,
+        "peak_lift_m": 0.1398772381782979,
+        "minimum_hold_lift_m": 0.1283211511185216,
+        "hold_samples": 150,
+        "selected_geometry": {
+          "candidates": 149,
+          "rank": 24,
+          "offset_m": [
+            -0.011200000000000002,
+            -0.005600000000000001,
+            0.021
+          ],
+          "rotation": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "score": 1.0293690688455492,
+          "support_links": 2,
+          "predicted_closure_fraction": 1.0,
+          "thumb_bias_rad": 0.0
+        },
+        "preview": {
+          "proposed_rank": 14,
+          "executed_rank": 24,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.14037227388629558,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 14,
+              "verified": false,
+              "peak_lift_m": 0.0024284234865095122,
+              "stop": null
+            },
+            {
+              "rank": 24,
+              "verified": true,
+              "peak_lift_m": 0.14037227388629558,
+              "stop": null
+            }
+          ]
+        },
+        "depth_fallback": null,
+        "stop": null,
+        "trace_sha256": "2507e4ddb20317f4ed204b3e978d62aad146399326bcd194761341b29cc2bf28"
+      }
+    },
+    {
+      "case": "fresh_near",
+      "prior_verified": true,
+      "depth_only": {
+        "metadata": {
+          "config": {
+            "seed": 29,
+            "table_top_m": 0.75,
+            "table_center_xy_m": [
+              0.6,
+              -0.17
+            ],
+            "table_half_size_m": [
+              0.24,
+              0.24,
+              0.025
+            ],
+            "object_center_xy_m": [
+              0.459,
+              -0.162
+            ],
+            "object_half_size_m": 0.025,
+            "object_mass_kg": 0.092,
+            "starting_stance_xy_yaw": [
+              0.17,
+              0.0,
+              0.0
+            ],
+            "start_arms_down": true,
+            "start_right_shoulder_roll_rad": -0.35,
+            "start_left_shoulder_roll_rad": 0.35,
+            "contact_geometry_search": true,
+            "whole_body_grasp_preview": true,
+            "grasp_depth_search": true
+          },
+          "git_sha": "c04ffd81e7a2adffeb84f65a47e64afee342467e",
+          "mujoco": "3.16.0"
+        },
+        "verified": true,
+        "peak_lift_m": 0.14201545172143748,
+        "minimum_hold_lift_m": 0.13103000189454195,
+        "hold_samples": 150,
+        "selected_geometry": {
+          "candidates": 75,
+          "rank": 52,
+          "offset_m": [
+            -0.020000000000000004,
+            -0.005000000000000001,
+            0.025
+          ],
+          "rotation": [
+            [
+              1.0,
+              -0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              0.25881904510252074
+            ],
+            [
+              -0.0,
+              -0.25881904510252074,
+              0.9659258262890682
+            ]
+          ],
+          "score": 0.7385692742231987,
+          "support_links": 2,
+          "predicted_closure_fraction": 0.6875
+        },
+        "preview": {
+          "proposed_rank": 52,
+          "executed_rank": 52,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.14143934184581852,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 52,
+              "verified": true,
+              "peak_lift_m": 0.14143934184581852,
+              "stop": null
+            }
+          ]
+        },
+        "depth_fallback": null,
+        "stop": null,
+        "trace_sha256": "343ca5efc66802265c2262c88bc6695bfe5c33c058e844ca2a098110141c8c7c"
+      },
+      "depth_and_thumb": {
+        "metadata": {
+          "config": {
+            "seed": 29,
+            "table_top_m": 0.75,
+            "table_center_xy_m": [
+              0.6,
+              -0.17
+            ],
+            "table_half_size_m": [
+              0.24,
+              0.24,
+              0.025
+            ],
+            "object_center_xy_m": [
+              0.459,
+              -0.162
+            ],
+            "object_half_size_m": 0.025,
+            "object_mass_kg": 0.092,
+            "starting_stance_xy_yaw": [
+              0.17,
+              0.0,
+              0.0
+            ],
+            "start_arms_down": true,
+            "start_right_shoulder_roll_rad": -0.35,
+            "start_left_shoulder_roll_rad": 0.35,
+            "contact_geometry_search": true,
+            "whole_body_grasp_preview": true,
+            "grasp_depth_search": true
+          },
+          "git_sha": "c04ffd81e7a2adffeb84f65a47e64afee342467e",
+          "mujoco": "3.16.0"
+        },
+        "verified": true,
+        "peak_lift_m": 0.14201545172143748,
+        "minimum_hold_lift_m": 0.13103000189454195,
+        "hold_samples": 150,
+        "selected_geometry": {
+          "candidates": 75,
+          "rank": 52,
+          "offset_m": [
+            -0.020000000000000004,
+            -0.005000000000000001,
+            0.025
+          ],
+          "rotation": [
+            [
+              1.0,
+              -0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              0.25881904510252074
+            ],
+            [
+              -0.0,
+              -0.25881904510252074,
+              0.9659258262890682
+            ]
+          ],
+          "score": 0.7385692742231987,
+          "support_links": 2,
+          "predicted_closure_fraction": 0.6875,
+          "thumb_bias_rad": 0.0
+        },
+        "preview": {
+          "proposed_rank": 52,
+          "executed_rank": 52,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.14143934184581852,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 52,
+              "verified": true,
+              "peak_lift_m": 0.14143934184581852,
+              "stop": null
+            }
+          ]
+        },
+        "depth_fallback": null,
+        "stop": null,
+        "trace_sha256": "343ca5efc66802265c2262c88bc6695bfe5c33c058e844ca2a098110141c8c7c"
+      }
+    },
+    {
+      "case": "fresh_far",
+      "prior_verified": true,
+      "depth_only": {
+        "metadata": {
+          "config": {
+            "seed": 31,
+            "table_top_m": 0.75,
+            "table_center_xy_m": [
+              0.6,
+              -0.17
+            ],
+            "table_half_size_m": [
+              0.24,
+              0.24,
+              0.025
+            ],
+            "object_center_xy_m": [
+              0.48,
+              -0.178
+            ],
+            "object_half_size_m": 0.025,
+            "object_mass_kg": 0.083,
+            "starting_stance_xy_yaw": [
+              0.17,
+              0.0,
+              0.0
+            ],
+            "start_arms_down": true,
+            "start_right_shoulder_roll_rad": -0.35,
+            "start_left_shoulder_roll_rad": 0.35,
+            "contact_geometry_search": true,
+            "whole_body_grasp_preview": true,
+            "grasp_depth_search": true
+          },
+          "git_sha": "c04ffd81e7a2adffeb84f65a47e64afee342467e",
+          "mujoco": "3.16.0"
+        },
+        "verified": true,
+        "peak_lift_m": 0.14154118264704985,
+        "minimum_hold_lift_m": 0.13194255583291803,
+        "hold_samples": 150,
+        "selected_geometry": {
+          "candidates": 75,
+          "rank": 52,
+          "offset_m": [
+            -0.020000000000000004,
+            -0.005000000000000001,
+            0.025
+          ],
+          "rotation": [
+            [
+              1.0,
+              -0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              0.25881904510252074
+            ],
+            [
+              -0.0,
+              -0.25881904510252074,
+              0.9659258262890682
+            ]
+          ],
+          "score": 0.7385692742231976,
+          "support_links": 2,
+          "predicted_closure_fraction": 0.6875
+        },
+        "preview": {
+          "proposed_rank": 52,
+          "executed_rank": 52,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.13956659790314974,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 52,
+              "verified": true,
+              "peak_lift_m": 0.13956659790314974,
+              "stop": null
+            }
+          ]
+        },
+        "depth_fallback": null,
+        "stop": null,
+        "trace_sha256": "247da8f6850579af8ba8ce18fe375f47d65ea8b4cabdee0d565b3d7874877ab6"
+      },
+      "depth_and_thumb": {
+        "metadata": {
+          "config": {
+            "seed": 31,
+            "table_top_m": 0.75,
+            "table_center_xy_m": [
+              0.6,
+              -0.17
+            ],
+            "table_half_size_m": [
+              0.24,
+              0.24,
+              0.025
+            ],
+            "object_center_xy_m": [
+              0.48,
+              -0.178
+            ],
+            "object_half_size_m": 0.025,
+            "object_mass_kg": 0.083,
+            "starting_stance_xy_yaw": [
+              0.17,
+              0.0,
+              0.0
+            ],
+            "start_arms_down": true,
+            "start_right_shoulder_roll_rad": -0.35,
+            "start_left_shoulder_roll_rad": 0.35,
+            "contact_geometry_search": true,
+            "whole_body_grasp_preview": true,
+            "grasp_depth_search": true
+          },
+          "git_sha": "c04ffd81e7a2adffeb84f65a47e64afee342467e",
+          "mujoco": "3.16.0"
+        },
+        "verified": true,
+        "peak_lift_m": 0.14154118264704985,
+        "minimum_hold_lift_m": 0.13194255583291803,
+        "hold_samples": 150,
+        "selected_geometry": {
+          "candidates": 75,
+          "rank": 52,
+          "offset_m": [
+            -0.020000000000000004,
+            -0.005000000000000001,
+            0.025
+          ],
+          "rotation": [
+            [
+              1.0,
+              -0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              0.25881904510252074
+            ],
+            [
+              -0.0,
+              -0.25881904510252074,
+              0.9659258262890682
+            ]
+          ],
+          "score": 0.7385692742231976,
+          "support_links": 2,
+          "predicted_closure_fraction": 0.6875,
+          "thumb_bias_rad": 0.0
+        },
+        "preview": {
+          "proposed_rank": 52,
+          "executed_rank": 52,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.13956659790314974,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 52,
+              "verified": true,
+              "peak_lift_m": 0.13956659790314974,
+              "stop": null
+            }
+          ]
+        },
+        "depth_fallback": null,
+        "stop": null,
+        "trace_sha256": "247da8f6850579af8ba8ce18fe375f47d65ea8b4cabdee0d565b3d7874877ab6"
+      }
+    },
+    {
+      "case": "rectangular",
+      "prior_verified": true,
+      "depth_only": {
+        "metadata": {
+          "config": {
+            "seed": 37,
+            "table_top_m": 0.75,
+            "table_center_xy_m": [
+              0.6,
+              -0.17
+            ],
+            "table_half_size_m": [
+              0.24,
+              0.24,
+              0.025
+            ],
+            "object_center_xy_m": [
+              0.465,
+              -0.175
+            ],
+            "object_half_size_m": 0.025,
+            "object_mass_kg": 0.082,
+            "starting_stance_xy_yaw": [
+              0.17,
+              0.0,
+              0.0
+            ],
+            "start_arms_down": true,
+            "start_right_shoulder_roll_rad": -0.35,
+            "start_left_shoulder_roll_rad": 0.35,
+            "object_shape": "box",
+            "object_half_extents_m": [
+              0.03,
+              0.025,
+              0.026
+            ],
+            "contact_geometry_search": true,
+            "whole_body_grasp_preview": true,
+            "grasp_depth_search": true
+          },
+          "git_sha": "c04ffd81e7a2adffeb84f65a47e64afee342467e",
+          "mujoco": "3.16.0"
+        },
+        "verified": true,
+        "peak_lift_m": 0.14524435258120139,
+        "minimum_hold_lift_m": 0.1377553186385817,
+        "hold_samples": 150,
+        "selected_geometry": {
+          "candidates": 75,
+          "rank": 53,
+          "offset_m": [
+            -0.024,
+            -0.005000000000000001,
+            0.026
+          ],
+          "rotation": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "score": 0.7142528528370526,
+          "support_links": 2,
+          "predicted_closure_fraction": 0.625
+        },
+        "preview": {
+          "proposed_rank": 53,
+          "executed_rank": 53,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.13755766811114345,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 53,
+              "verified": true,
+              "peak_lift_m": 0.13755766811114345,
+              "stop": null
+            }
+          ]
+        },
+        "depth_fallback": null,
+        "stop": null,
+        "trace_sha256": "e2ec044594df59483b92002aac94f73b8290b9e482d3b7be8f21c58191f4ce71"
+      },
+      "depth_and_thumb": {
+        "metadata": {
+          "config": {
+            "seed": 37,
+            "table_top_m": 0.75,
+            "table_center_xy_m": [
+              0.6,
+              -0.17
+            ],
+            "table_half_size_m": [
+              0.24,
+              0.24,
+              0.025
+            ],
+            "object_center_xy_m": [
+              0.465,
+              -0.175
+            ],
+            "object_half_size_m": 0.025,
+            "object_mass_kg": 0.082,
+            "starting_stance_xy_yaw": [
+              0.17,
+              0.0,
+              0.0
+            ],
+            "start_arms_down": true,
+            "start_right_shoulder_roll_rad": -0.35,
+            "start_left_shoulder_roll_rad": 0.35,
+            "object_shape": "box",
+            "object_half_extents_m": [
+              0.03,
+              0.025,
+              0.026
+            ],
+            "contact_geometry_search": true,
+            "whole_body_grasp_preview": true,
+            "grasp_depth_search": true
+          },
+          "git_sha": "c04ffd81e7a2adffeb84f65a47e64afee342467e",
+          "mujoco": "3.16.0"
+        },
+        "verified": true,
+        "peak_lift_m": 0.14524435258120139,
+        "minimum_hold_lift_m": 0.1377553186385817,
+        "hold_samples": 150,
+        "selected_geometry": {
+          "candidates": 75,
+          "rank": 53,
+          "offset_m": [
+            -0.024,
+            -0.005000000000000001,
+            0.026
+          ],
+          "rotation": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "score": 0.7142528528370526,
+          "support_links": 2,
+          "predicted_closure_fraction": 0.625,
+          "thumb_bias_rad": 0.0
+        },
+        "preview": {
+          "proposed_rank": 53,
+          "executed_rank": 53,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.13755766811114345,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 53,
+              "verified": true,
+              "peak_lift_m": 0.13755766811114345,
+              "stop": null
+            }
+          ]
+        },
+        "depth_fallback": null,
+        "stop": null,
+        "trace_sha256": "e2ec044594df59483b92002aac94f73b8290b9e482d3b7be8f21c58191f4ce71"
+      }
+    },
+    {
+      "case": "cylinder",
+      "prior_verified": false,
+      "depth_only": {
+        "metadata": {
+          "config": {
+            "seed": 41,
+            "table_top_m": 0.75,
+            "table_center_xy_m": [
+              0.6,
+              -0.17
+            ],
+            "table_half_size_m": [
+              0.24,
+              0.24,
+              0.025
+            ],
+            "object_center_xy_m": [
+              0.466,
+              -0.174
+            ],
+            "object_half_size_m": 0.025,
+            "object_mass_kg": 0.072,
+            "starting_stance_xy_yaw": [
+              0.17,
+              0.0,
+              0.0
+            ],
+            "start_arms_down": true,
+            "start_right_shoulder_roll_rad": -0.35,
+            "start_left_shoulder_roll_rad": 0.35,
+            "object_shape": "cylinder",
+            "object_half_extents_m": [
+              0.025,
+              0.025,
+              0.027
+            ],
+            "contact_geometry_search": true,
+            "whole_body_grasp_preview": true,
+            "grasp_depth_search": true
+          },
+          "git_sha": "c04ffd81e7a2adffeb84f65a47e64afee342467e",
+          "mujoco": "3.16.0"
+        },
+        "verified": true,
+        "peak_lift_m": 0.151425748650732,
+        "minimum_hold_lift_m": 0.14786413565859258,
+        "hold_samples": 150,
+        "selected_geometry": {
+          "candidates": 120,
+          "rank": 17,
+          "offset_m": [
+            0.020000000000000004,
+            0.005000000000000001,
+            0.027
+          ],
+          "rotation": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "score": 0.998555080222306,
+          "support_links": 2,
+          "predicted_closure_fraction": 0.8125
+        },
+        "preview": {
+          "proposed_rank": 17,
+          "executed_rank": 17,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.148544674968906,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 17,
+              "verified": true,
+              "peak_lift_m": 0.148544674968906,
+              "stop": null
+            }
+          ]
+        },
+        "depth_fallback": null,
+        "stop": null,
+        "trace_sha256": "d21ee5c495ed99865195f06922956b0fc39f6096981d29933cb3737ef6f3e5cf"
+      },
+      "depth_and_thumb": {
+        "metadata": {
+          "config": {
+            "seed": 41,
+            "table_top_m": 0.75,
+            "table_center_xy_m": [
+              0.6,
+              -0.17
+            ],
+            "table_half_size_m": [
+              0.24,
+              0.24,
+              0.025
+            ],
+            "object_center_xy_m": [
+              0.466,
+              -0.174
+            ],
+            "object_half_size_m": 0.025,
+            "object_mass_kg": 0.072,
+            "starting_stance_xy_yaw": [
+              0.17,
+              0.0,
+              0.0
+            ],
+            "start_arms_down": true,
+            "start_right_shoulder_roll_rad": -0.35,
+            "start_left_shoulder_roll_rad": 0.35,
+            "object_shape": "cylinder",
+            "object_half_extents_m": [
+              0.025,
+              0.025,
+              0.027
+            ],
+            "contact_geometry_search": true,
+            "whole_body_grasp_preview": true,
+            "grasp_depth_search": true
+          },
+          "git_sha": "c04ffd81e7a2adffeb84f65a47e64afee342467e",
+          "mujoco": "3.16.0"
+        },
+        "verified": true,
+        "peak_lift_m": 0.151425748650732,
+        "minimum_hold_lift_m": 0.14786413565859258,
+        "hold_samples": 150,
+        "selected_geometry": {
+          "candidates": 120,
+          "rank": 17,
+          "offset_m": [
+            0.020000000000000004,
+            0.005000000000000001,
+            0.027
+          ],
+          "rotation": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "score": 0.998555080222306,
+          "support_links": 2,
+          "predicted_closure_fraction": 0.8125,
+          "thumb_bias_rad": 0.0
+        },
+        "preview": {
+          "proposed_rank": 17,
+          "executed_rank": 17,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.148544674968906,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 17,
+              "verified": true,
+              "peak_lift_m": 0.148544674968906,
+              "stop": null
+            }
+          ]
+        },
+        "depth_fallback": null,
+        "stop": null,
+        "trace_sha256": "d21ee5c495ed99865195f06922956b0fc39f6096981d29933cb3737ef6f3e5cf"
+      }
+    },
+    {
+      "case": "sphere",
+      "prior_verified": false,
+      "depth_only": {
+        "metadata": {
+          "config": {
+            "seed": 43,
+            "table_top_m": 0.75,
+            "table_center_xy_m": [
+              0.6,
+              -0.17
+            ],
+            "table_half_size_m": [
+              0.24,
+              0.24,
+              0.025
+            ],
+            "object_center_xy_m": [
+              0.468,
+              -0.17
+            ],
+            "object_half_size_m": 0.025,
+            "object_mass_kg": 0.061,
+            "starting_stance_xy_yaw": [
+              0.17,
+              0.0,
+              0.0
+            ],
+            "start_arms_down": true,
+            "start_right_shoulder_roll_rad": -0.35,
+            "start_left_shoulder_roll_rad": 0.35,
+            "object_shape": "sphere",
+            "object_half_extents_m": [
+              0.025,
+              0.025,
+              0.025
+            ],
+            "contact_geometry_search": true,
+            "whole_body_grasp_preview": true,
+            "grasp_depth_search": true
+          },
+          "git_sha": "c04ffd81e7a2adffeb84f65a47e64afee342467e",
+          "mujoco": "3.16.0"
+        },
+        "verified": false,
+        "peak_lift_m": -0.0002458796004892738,
+        "minimum_hold_lift_m": null,
+        "hold_samples": 0,
+        "selected_geometry": {
+          "candidates": 15,
+          "rank": 0,
+          "offset_m": [
+            0.0,
+            0.0,
+            0.025
+          ],
+          "rotation": [
+            [
+              1.0,
+              -0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              0.25881904510252074
+            ],
+            [
+              -0.0,
+              -0.25881904510252074,
+              0.9659258262890682
+            ]
+          ],
+          "score": 1.0660618014006067,
+          "support_links": 2,
+          "predicted_closure_fraction": 0.625
+        },
+        "preview": {
+          "proposed_rank": 0,
+          "executed_rank": 0,
+          "predicted_verified": false,
+          "predicted_peak_lift_m": -3.35589276462267e-05,
+          "predicted_stop": {
+            "t": 16.440000000001014,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "attempts": [
+            {
+              "rank": 0,
+              "verified": false,
+              "peak_lift_m": -3.35589276462267e-05,
+              "stop": {
+                "t": 16.440000000001014,
+                "reason": "grip lost",
+                "detail": {
+                  "weakest_normal_n": 0.0
+                }
+              }
+            }
+          ]
+        },
+        "depth_fallback": null,
+        "stop": {
+          "t": 16.820000000000938,
+          "reason": "grip lost",
+          "detail": {
+            "weakest_normal_n": 0.0
+          }
+        },
+        "trace_sha256": "234f7611b32e3863e9001ac8dd41bce43d8929ac553635b8bf7de1c00c461c58"
+      },
+      "depth_and_thumb": {
+        "metadata": {
+          "config": {
+            "seed": 43,
+            "table_top_m": 0.75,
+            "table_center_xy_m": [
+              0.6,
+              -0.17
+            ],
+            "table_half_size_m": [
+              0.24,
+              0.24,
+              0.025
+            ],
+            "object_center_xy_m": [
+              0.468,
+              -0.17
+            ],
+            "object_half_size_m": 0.025,
+            "object_mass_kg": 0.061,
+            "starting_stance_xy_yaw": [
+              0.17,
+              0.0,
+              0.0
+            ],
+            "start_arms_down": true,
+            "start_right_shoulder_roll_rad": -0.35,
+            "start_left_shoulder_roll_rad": 0.35,
+            "object_shape": "sphere",
+            "object_half_extents_m": [
+              0.025,
+              0.025,
+              0.025
+            ],
+            "contact_geometry_search": true,
+            "whole_body_grasp_preview": true,
+            "grasp_depth_search": true
+          },
+          "git_sha": "c04ffd81e7a2adffeb84f65a47e64afee342467e",
+          "mujoco": "3.16.0"
+        },
+        "verified": false,
+        "peak_lift_m": -0.0002458796004892738,
+        "minimum_hold_lift_m": null,
+        "hold_samples": 0,
+        "selected_geometry": {
+          "candidates": 15,
+          "rank": 0,
+          "offset_m": [
+            0.0,
+            0.0,
+            0.025
+          ],
+          "rotation": [
+            [
+              1.0,
+              -0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              0.25881904510252074
+            ],
+            [
+              -0.0,
+              -0.25881904510252074,
+              0.9659258262890682
+            ]
+          ],
+          "score": 1.0660618014006067,
+          "support_links": 2,
+          "predicted_closure_fraction": 0.625,
+          "thumb_bias_rad": 0.0
+        },
+        "preview": {
+          "proposed_rank": 0,
+          "executed_rank": 0,
+          "predicted_verified": false,
+          "predicted_peak_lift_m": -0.00027691897607995397,
+          "predicted_stop": {
+            "t": 16.76000000000095,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "attempts": [
+            {
+              "rank": 0,
+              "verified": false,
+              "peak_lift_m": -0.00027691897607995397,
+              "stop": {
+                "t": 16.76000000000095,
+                "reason": "grip lost",
+                "detail": {
+                  "weakest_normal_n": 0.0
+                }
+              }
+            }
+          ]
+        },
+        "depth_fallback": [
+          {
+            "rank": 0,
+            "verified": false,
+            "peak_lift_m": -3.35589276462267e-05,
+            "stop": {
+              "t": 16.440000000001014,
+              "reason": "grip lost",
+              "detail": {
+                "weakest_normal_n": 0.0
+              }
+            }
+          }
+        ],
+        "stop": {
+          "t": 16.820000000000938,
+          "reason": "grip lost",
+          "detail": {
+            "weakest_normal_n": 0.0
+          }
+        },
+        "trace_sha256": "234f7611b32e3863e9001ac8dd41bce43d8929ac553635b8bf7de1c00c461c58"
+      }
+    }
+  ],
+  "geometry_shifts": {
+    "cube_shift": {
+      "baseline": {
+        "metadata": {
+          "config": {
+            "seed": 103,
+            "table_top_m": 0.78,
+            "table_center_xy_m": [
+              0.6,
+              -0.17
+            ],
+            "table_half_size_m": [
+              0.24,
+              0.24,
+              0.025
+            ],
+            "object_center_xy_m": [
+              0.463,
+              -0.164
+            ],
+            "object_half_size_m": 0.023,
+            "object_mass_kg": 0.07,
+            "starting_stance_xy_yaw": [
+              0.17,
+              0.0,
+              0.0
+            ],
+            "start_arms_down": true,
+            "start_right_shoulder_roll_rad": -0.35,
+            "start_left_shoulder_roll_rad": 0.35,
+            "object_half_extents_m": [
+              0.024,
+              0.024,
+              0.024
+            ],
+            "whole_body_grasp_preview": true,
+            "grasp_depth_search": false
+          },
+          "git_sha": "c04ffd81e7a2adffeb84f65a47e64afee342467e",
+          "mujoco": "3.16.0"
+        },
+        "verified": true,
+        "peak_lift_m": 0.15037951560687302,
+        "minimum_hold_lift_m": 0.1382519349205843,
+        "hold_samples": 150,
+        "selected_geometry": {
+          "candidates": 12,
+          "rank": 0,
+          "offset_m": [
+            0.0,
+            0.0048000000000000004,
+            0.024
+          ],
+          "rotation": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "score": 1.0441510885704868,
+          "support_links": 2,
+          "predicted_closure_fraction": 1.0,
+          "thumb_bias_rad": 0.0
+        },
+        "preview": {
+          "proposed_rank": 0,
+          "executed_rank": 0,
+          "predicted_verified": false,
+          "predicted_peak_lift_m": 0.04400426533186774,
+          "predicted_stop": {
+            "t": 20.960000000000115,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "attempts": [
+            {
+              "rank": 0,
+              "verified": false,
+              "peak_lift_m": 0.04400426533186774,
+              "stop": {
+                "t": 20.960000000000115,
+                "reason": "grip lost",
+                "detail": {
+                  "weakest_normal_n": 0.0
+                }
+              }
+            }
+          ]
+        },
+        "depth_fallback": null,
+        "stop": null,
+        "trace_sha256": "8333bccf6b6aff98c293e39a62c7ffb0fc2db6151e6b66eeaf3131c4e006f071"
+      },
+      "expanded": {
+        "metadata": {
+          "config": {
+            "seed": 103,
+            "table_top_m": 0.78,
+            "table_center_xy_m": [
+              0.6,
+              -0.17
+            ],
+            "table_half_size_m": [
+              0.24,
+              0.24,
+              0.025
+            ],
+            "object_center_xy_m": [
+              0.463,
+              -0.164
+            ],
+            "object_half_size_m": 0.023,
+            "object_mass_kg": 0.07,
+            "starting_stance_xy_yaw": [
+              0.17,
+              0.0,
+              0.0
+            ],
+            "start_arms_down": true,
+            "start_right_shoulder_roll_rad": -0.35,
+            "start_left_shoulder_roll_rad": 0.35,
+            "object_half_extents_m": [
+              0.024,
+              0.024,
+              0.024
+            ],
+            "whole_body_grasp_preview": true,
+            "grasp_depth_search": true
+          },
+          "git_sha": "c04ffd81e7a2adffeb84f65a47e64afee342467e",
+          "mujoco": "3.16.0"
+        },
+        "verified": true,
+        "peak_lift_m": 0.15037951560687302,
+        "minimum_hold_lift_m": 0.1382519349205843,
+        "hold_samples": 150,
+        "selected_geometry": {
+          "candidates": 12,
+          "rank": 0,
+          "offset_m": [
+            0.0,
+            0.0048000000000000004,
+            0.024
+          ],
+          "rotation": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "score": 1.0441510885704868,
+          "support_links": 2,
+          "predicted_closure_fraction": 1.0,
+          "thumb_bias_rad": 0.0
+        },
+        "preview": {
+          "proposed_rank": 0,
+          "executed_rank": 0,
+          "predicted_verified": false,
+          "predicted_peak_lift_m": 0.04400426533186774,
+          "predicted_stop": {
+            "t": 20.960000000000115,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "attempts": [
+            {
+              "rank": 0,
+              "verified": false,
+              "peak_lift_m": 0.04400426533186774,
+              "stop": {
+                "t": 20.960000000000115,
+                "reason": "grip lost",
+                "detail": {
+                  "weakest_normal_n": 0.0
+                }
+              }
+            }
+          ]
+        },
+        "depth_fallback": [
+          {
+            "rank": 41,
+            "verified": false,
+            "peak_lift_m": -0.00010775541827623414,
+            "stop": null
+          },
+          {
+            "rank": 0,
+            "verified": false,
+            "peak_lift_m": 0.04400426533186774,
+            "stop": {
+              "t": 20.960000000000115,
+              "reason": "grip lost",
+              "detail": {
+                "weakest_normal_n": 0.0
+              }
+            }
+          },
+          {
+            "rank": 16,
+            "verified": false,
+            "peak_lift_m": -0.00010775541827623414,
+            "stop": null
+          }
+        ],
+        "stop": null,
+        "trace_sha256": "8333bccf6b6aff98c293e39a62c7ffb0fc2db6151e6b66eeaf3131c4e006f071"
+      }
+    },
+    "cylinder_shift": {
+      "baseline": {
+        "metadata": {
+          "config": {
+            "seed": 107,
+            "table_top_m": 0.74,
+            "table_center_xy_m": [
+              0.6,
+              -0.17
+            ],
+            "table_half_size_m": [
+              0.24,
+              0.24,
+              0.025
+            ],
+            "object_center_xy_m": [
+              0.458,
+              -0.165
+            ],
+            "object_half_size_m": 0.025,
+            "object_mass_kg": 0.115,
+            "starting_stance_xy_yaw": [
+              0.17,
+              0.0,
+              0.0
+            ],
+            "start_arms_down": true,
+            "start_right_shoulder_roll_rad": -0.35,
+            "start_left_shoulder_roll_rad": 0.35,
+            "object_shape": "cylinder",
+            "object_half_extents_m": [
+              0.029,
+              0.029,
+              0.05
+            ],
+            "contact_geometry_search": true,
+            "whole_body_grasp_preview": true,
+            "grasp_depth_search": false
+          },
+          "git_sha": "c04ffd81e7a2adffeb84f65a47e64afee342467e",
+          "mujoco": "3.16.0"
+        },
+        "verified": false,
+        "peak_lift_m": 0.150772935001108,
+        "minimum_hold_lift_m": 0.07619427537355417,
+        "hold_samples": 125,
+        "selected_geometry": {
+          "candidates": 97,
+          "rank": 0,
+          "offset_m": [
+            0.0,
+            0.0,
+            0.025
+          ],
+          "rotation": [
+            [
+              1.0,
+              -0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              0.25881904510252074
+            ],
+            [
+              -0.0,
+              -0.25881904510252074,
+              0.9659258262890682
+            ]
+          ],
+          "score": 1.2352539530075655,
+          "support_links": 4,
+          "predicted_closure_fraction": 0.5625,
+          "thumb_bias_rad": 0.0
+        },
+        "preview": {
+          "proposed_rank": 6,
+          "executed_rank": 0,
+          "predicted_verified": false,
+          "predicted_peak_lift_m": 0.007711295759477599,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 6,
+              "verified": false,
+              "peak_lift_m": 0.007711295759477599,
+              "stop": null
+            }
+          ]
+        },
+        "depth_fallback": null,
+        "stop": {
+          "t": 26.85999999999894,
+          "reason": "grip lost",
+          "detail": {
+            "weakest_normal_n": 0.0
+          }
+        },
+        "trace_sha256": "ef2f22d51743718c80c74476c5423582bbf8d4af30eefa065f250d1b244ecfbe"
+      },
+      "expanded": {
+        "metadata": {
+          "config": {
+            "seed": 107,
+            "table_top_m": 0.74,
+            "table_center_xy_m": [
+              0.6,
+              -0.17
+            ],
+            "table_half_size_m": [
+              0.24,
+              0.24,
+              0.025
+            ],
+            "object_center_xy_m": [
+              0.458,
+              -0.165
+            ],
+            "object_half_size_m": 0.025,
+            "object_mass_kg": 0.115,
+            "starting_stance_xy_yaw": [
+              0.17,
+              0.0,
+              0.0
+            ],
+            "start_arms_down": true,
+            "start_right_shoulder_roll_rad": -0.35,
+            "start_left_shoulder_roll_rad": 0.35,
+            "object_shape": "cylinder",
+            "object_half_extents_m": [
+              0.029,
+              0.029,
+              0.05
+            ],
+            "contact_geometry_search": true,
+            "whole_body_grasp_preview": true,
+            "grasp_depth_search": true
+          },
+          "git_sha": "c04ffd81e7a2adffeb84f65a47e64afee342467e",
+          "mujoco": "3.16.0"
+        },
+        "verified": true,
+        "peak_lift_m": 0.13520580792023673,
+        "minimum_hold_lift_m": 0.11930588321099023,
+        "hold_samples": 150,
+        "selected_geometry": {
+          "candidates": 480,
+          "rank": 24,
+          "offset_m": [
+            0.011600000000000001,
+            -0.0058000000000000005,
+            0.025
+          ],
+          "rotation": [
+            [
+              0.9659258262890682,
+              0.0,
+              0.25881904510252074
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              -0.25881904510252074,
+              0.0,
+              0.9659258262890682
+            ]
+          ],
+          "score": 1.1816804573193318,
+          "support_links": 4,
+          "predicted_closure_fraction": 0.6875,
+          "thumb_bias_rad": 0.0
+        },
+        "preview": {
+          "proposed_rank": 24,
+          "executed_rank": 24,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.13765498679939214,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 24,
+              "verified": true,
+              "peak_lift_m": 0.13765498679939214,
+              "stop": null
+            }
+          ]
+        },
+        "depth_fallback": null,
+        "stop": null,
+        "trace_sha256": "5e2b6922b51f21a4742ba82873779faaa97f17655a110bebed66432c3e4b27a5"
+      }
+    }
+  }
+}

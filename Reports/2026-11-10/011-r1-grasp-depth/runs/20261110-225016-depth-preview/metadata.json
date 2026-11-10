@@ -1,0 +1,253 @@
+{
+  "run_id": "2026-11-10-011/20261110-225016-depth-preview",
+  "task_id": "2026-11-10-011",
+  "title": "Compare depth-diverse grasp proposals against the current R1 controller",
+  "started": "2026-11-10T22:50:16+11:00",
+  "commit": "c04ffd81e7a2adffeb84f65a47e64afee342467e",
+  "dirty": true,
+  "branch": "codex/g1-integration",
+  "configs": [
+    {
+      "path": "results/g1_r1_contact_rank_dev_20261110/summary.json",
+      "sha256": "7ae701b1b4f3fd899c559cfca9586f25dde72bb2819d42cdb6975603b4964b70"
+    }
+  ],
+  "command": "python C:/Users/24adi/DREAM-r1-evidence/r1-depth-preview-001/run.py",
+  "seeds": "same nine live development cases",
+  "model": "Cached Decoupled WBC",
+  "simulator": "MuJoCo 3.16.0",
+  "renderer": "None",
+  "embodiment": "free-standing G1 Dex3",
+  "controller": "Decoupled WBC",
+  "hardware": "local CPU, 2 workers",
+  "status": "completed",
+  "ended": "2026-11-10T22:52:47+11:00",
+  "exit_status": 0,
+  "cases_attempted": 9,
+  "cases_completed": 9,
+  "metrics": {
+    "verified": 7,
+    "total": 9,
+    "cases": [
+      {
+        "name": "rectangular",
+        "verified": true,
+        "peak_lift_m": 0.14524435258120139,
+        "preview": {
+          "proposed_rank": 53,
+          "executed_rank": 53,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.13755766811114345,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 53,
+              "verified": true,
+              "peak_lift_m": 0.13755766811114345,
+              "stop": null
+            }
+          ]
+        }
+      },
+      {
+        "name": "cylinder",
+        "verified": true,
+        "peak_lift_m": 0.151425748650732,
+        "preview": {
+          "proposed_rank": 17,
+          "executed_rank": 17,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.148544674968906,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 17,
+              "verified": true,
+              "peak_lift_m": 0.148544674968906,
+              "stop": null
+            }
+          ]
+        }
+      },
+      {
+        "name": "sphere",
+        "verified": false,
+        "peak_lift_m": -0.0002458796004892738,
+        "preview": {
+          "proposed_rank": 0,
+          "executed_rank": 0,
+          "predicted_verified": false,
+          "predicted_peak_lift_m": -3.35589276462267e-05,
+          "predicted_stop": {
+            "t": 16.440000000001014,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "attempts": [
+            {
+              "rank": 0,
+              "verified": false,
+              "peak_lift_m": -3.35589276462267e-05,
+              "stop": {
+                "t": 16.440000000001014,
+                "reason": "grip lost",
+                "detail": {
+                  "weakest_normal_n": 0.0
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "pinch",
+        "verified": true,
+        "peak_lift_m": 0.14426764705699102,
+        "preview": {
+          "proposed_rank": 52,
+          "executed_rank": 52,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.14038555830236132,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 52,
+              "verified": true,
+              "peak_lift_m": 0.14038555830236132,
+              "stop": null
+            }
+          ]
+        }
+      },
+      {
+        "name": "lateral",
+        "verified": true,
+        "peak_lift_m": 0.14156075654894074,
+        "preview": {
+          "proposed_rank": 52,
+          "executed_rank": 52,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.13961160104209724,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 52,
+              "verified": true,
+              "peak_lift_m": 0.13961160104209724,
+              "stop": null
+            }
+          ]
+        }
+      },
+      {
+        "name": "shift_in",
+        "verified": false,
+        "peak_lift_m": 0.10254674394268204,
+        "preview": {
+          "proposed_rank": 0,
+          "executed_rank": 0,
+          "predicted_verified": false,
+          "predicted_peak_lift_m": 0.10861352479832109,
+          "predicted_stop": {
+            "t": 20.060000000000294,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "attempts": [
+            {
+              "rank": 0,
+              "verified": false,
+              "peak_lift_m": 0.10861352479832109,
+              "stop": {
+                "t": 20.060000000000294,
+                "reason": "grip lost",
+                "detail": {
+                  "weakest_normal_n": 0.0
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "shift_out",
+        "verified": true,
+        "peak_lift_m": 0.1398772381782979,
+        "preview": {
+          "proposed_rank": 14,
+          "executed_rank": 24,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.14037227388629558,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 14,
+              "verified": false,
+              "peak_lift_m": 0.0024284234865095122,
+              "stop": null
+            },
+            {
+              "rank": 24,
+              "verified": true,
+              "peak_lift_m": 0.14037227388629558,
+              "stop": null
+            }
+          ]
+        }
+      },
+      {
+        "name": "fresh_near",
+        "verified": true,
+        "peak_lift_m": 0.14201545172143748,
+        "preview": {
+          "proposed_rank": 52,
+          "executed_rank": 52,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.14143934184581852,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 52,
+              "verified": true,
+              "peak_lift_m": 0.14143934184581852,
+              "stop": null
+            }
+          ]
+        }
+      },
+      {
+        "name": "fresh_far",
+        "verified": true,
+        "peak_lift_m": 0.14154118264704985,
+        "preview": {
+          "proposed_rank": 52,
+          "executed_rank": 52,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.13956659790314974,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 52,
+              "verified": true,
+              "peak_lift_m": 0.13956659790314974,
+              "stop": null
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-depth-preview-001",
+      "kind": "dir",
+      "sha256": "3eef87b748efdf3760734f4ef831341ff06e2ad30c6c2c925d6f31ae7107db38",
+      "skipped": []
+    }
+  ],
+  "cloud": null
+}

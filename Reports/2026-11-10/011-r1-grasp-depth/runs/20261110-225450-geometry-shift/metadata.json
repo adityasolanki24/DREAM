@@ -1,0 +1,201 @@
+{
+  "run_id": "2026-11-10-011/20261110-225450-geometry-shift",
+  "task_id": "2026-11-10-011",
+  "title": "Test on fresh box and cylinder geometry, mass and table shifts",
+  "started": "2026-11-10T22:54:50+11:00",
+  "commit": "c04ffd81e7a2adffeb84f65a47e64afee342467e",
+  "dirty": true,
+  "branch": "codex/g1-integration",
+  "configs": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-depth-geometry-shift-001/cube_shift_baseline.json",
+      "sha256": "ccb65c65c376de45f005cdd5c7b444d16c0d5ddfbf9268d027e186e6b274730c"
+    },
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-depth-geometry-shift-001/cube_shift_expanded.json",
+      "sha256": "1082ce2d451246ae8e5b5dd3d829492c51572b492b58c13708500d0c9c1c28dc"
+    },
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-depth-geometry-shift-001/cylinder_shift_baseline.json",
+      "sha256": "cf1d0e81b76d9b55eb6a9a2c7830cfa01d5dc5c9c3ef3c496288c0fce78917ae"
+    },
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-depth-geometry-shift-001/cylinder_shift_expanded.json",
+      "sha256": "5bb7a991198772e354049745d7ace316e8452a6d9d0e73dea286409a83a48239"
+    }
+  ],
+  "command": "python experiments/g1_grasp_bringup.py with each of the four recorded configs",
+  "seeds": "103,107",
+  "model": "Cached Decoupled WBC",
+  "simulator": "MuJoCo 3.16.0",
+  "renderer": "None",
+  "embodiment": "free-standing G1 Dex3",
+  "controller": "Decoupled WBC",
+  "hardware": "local CPU, serial",
+  "status": "completed",
+  "ended": "2026-11-10T22:57:40+11:00",
+  "exit_status": 0,
+  "cases_attempted": 4,
+  "cases_completed": 4,
+  "metrics": {
+    "cube_shift_baseline": {
+      "stop": null,
+      "peak_lift_m": 0.15037951560687302,
+      "grasp_geometry": {
+        "candidates": 12,
+        "rank": 0,
+        "offset_m": [
+          0.0,
+          0.0048000000000000004,
+          0.024
+        ],
+        "rotation": [
+          [
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "score": 1.0441510885704868,
+        "support_links": 2,
+        "predicted_closure_fraction": 1.0,
+        "thumb_bias_rad": 0.0
+      },
+      "fallback": false,
+      "verified": true
+    },
+    "cube_shift_expanded": {
+      "stop": null,
+      "peak_lift_m": 0.15037951560687302,
+      "grasp_geometry": {
+        "candidates": 12,
+        "rank": 0,
+        "offset_m": [
+          0.0,
+          0.0048000000000000004,
+          0.024
+        ],
+        "rotation": [
+          [
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "score": 1.0441510885704868,
+        "support_links": 2,
+        "predicted_closure_fraction": 1.0,
+        "thumb_bias_rad": 0.0
+      },
+      "fallback": true,
+      "verified": true
+    },
+    "cylinder_shift_baseline": {
+      "stop": {
+        "t": 26.85999999999894,
+        "reason": "grip lost",
+        "detail": {
+          "weakest_normal_n": 0.0
+        }
+      },
+      "peak_lift_m": 0.150772935001108,
+      "grasp_geometry": {
+        "candidates": 97,
+        "rank": 0,
+        "offset_m": [
+          0.0,
+          0.0,
+          0.025
+        ],
+        "rotation": [
+          [
+            1.0,
+            -0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.9659258262890682,
+            0.25881904510252074
+          ],
+          [
+            -0.0,
+            -0.25881904510252074,
+            0.9659258262890682
+          ]
+        ],
+        "score": 1.2352539530075655,
+        "support_links": 4,
+        "predicted_closure_fraction": 0.5625,
+        "thumb_bias_rad": 0.0
+      },
+      "fallback": false,
+      "verified": false
+    },
+    "cylinder_shift_expanded": {
+      "stop": null,
+      "peak_lift_m": 0.13520580792023673,
+      "grasp_geometry": {
+        "candidates": 480,
+        "rank": 24,
+        "offset_m": [
+          0.011600000000000001,
+          -0.0058000000000000005,
+          0.025
+        ],
+        "rotation": [
+          [
+            0.9659258262890682,
+            0.0,
+            0.25881904510252074
+          ],
+          [
+            0.0,
+            1.0,
+            0.0
+          ],
+          [
+            -0.25881904510252074,
+            0.0,
+            0.9659258262890682
+          ]
+        ],
+        "score": 1.1816804573193318,
+        "support_links": 4,
+        "predicted_closure_fraction": 0.6875,
+        "thumb_bias_rad": 0.0
+      },
+      "fallback": false,
+      "verified": true
+    }
+  },
+  "evidence": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-depth-geometry-shift-001",
+      "kind": "dir",
+      "sha256": "777cf7aebb9328519041d7a243a5f6fc96a6f1c5dfd032ff750c8f544c846c6f",
+      "skipped": []
+    }
+  ],
+  "cloud": null
+}
