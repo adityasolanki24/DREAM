@@ -1,0 +1,1010 @@
+{
+  "run_id": "2026-11-10-008/20261110-215412-stable-clearance-path",
+  "task_id": "2026-11-10-008",
+  "title": "Search from measured balance stability with clearance-ranked waypoints",
+  "started": "2026-11-10T21:54:12+11:00",
+  "commit": "52d3c4aa200cd5f08b3201559015315024ae994b",
+  "dirty": true,
+  "branch": "codex/g1-integration",
+  "configs": [
+    {
+      "path": "experiments/configs/g1_grasp_bringup_pinch.json",
+      "sha256": "6e6b98f06df2b283a93ed1a1ba708724c0238fcf20f1c7b83e37565200a5dc7b"
+    }
+  ],
+  "command": "python -m experiments.g1_grasp_bringup --config experiments/configs/g1_grasp_bringup_pinch.json --out C:/Users/24adi/DREAM-r1-evidence/r1-stable-path-001",
+  "seeds": "0",
+  "model": "Cached Decoupled WBC",
+  "simulator": "MuJoCo 3.16.0",
+  "renderer": "None",
+  "embodiment": "Free-standing G1 Dex3",
+  "controller": "WBC with clearance-ranked path search",
+  "hardware": "Local CPU",
+  "status": "completed",
+  "ended": "2026-11-10T21:55:44+11:00",
+  "exit_status": 0,
+  "cases_attempted": 1,
+  "cases_completed": 1,
+  "metrics": {
+    "phases": {
+      "settle": {
+        "stable": true
+      },
+      "raise": {
+        "refused": "no verified trajectory",
+        "predictions": [
+          {
+            "goal": "nominal",
+            "order": "direct",
+            "passed": false,
+            "stop": {
+              "t": 1.779999999999984,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": -0.0008212091802955532
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "upper arm first 0.5",
+            "passed": false,
+            "stop": {
+              "t": 2.219999999999975,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": -0.000989944258878494
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "upper arm first 1",
+            "passed": false,
+            "stop": {
+              "t": 2.0999999999999774,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0019446406407457317
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "wrist first 0.5",
+            "passed": false,
+            "stop": {
+              "t": 1.8999999999999815,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": -0.001232695411117421
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "wrist first 1",
+            "passed": false,
+            "stop": {
+              "t": 1.9799999999999798,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": -0.0006588263791916112
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "shoulder first 0.5",
+            "passed": false,
+            "stop": {
+              "t": 2.3199999999999728,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0019056393954430754
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "shoulder first 1",
+            "passed": false,
+            "stop": {
+              "t": 2.6999999999999647,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0023734958369791164
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "elbow first 0.5",
+            "passed": false,
+            "stop": {
+              "t": 1.2599999999999951,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": -0.00037619182751598326
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "elbow first 1",
+            "passed": false,
+            "stop": {
+              "t": 1.2399999999999956,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.00043404702054734417
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "shoulder pitch first 0.5",
+            "passed": false,
+            "stop": {
+              "t": 2.3199999999999728,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.001374744230009349
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "shoulder pitch first 1",
+            "passed": false,
+            "stop": {
+              "t": 2.6999999999999647,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.002781181705186046
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "shoulder roll first 0.5",
+            "passed": false,
+            "stop": {
+              "t": 1.0200000000000002,
+              "reason": "contact force",
+              "detail": {
+                "force": 44.42103305137287
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "shoulder roll first 1",
+            "passed": false,
+            "stop": {
+              "t": 1.3399999999999934,
+              "reason": "torque limit",
+              "detail": {
+                "ratio": 1.519726269124504,
+                "joint": 27.0,
+                "joint_name": "right_wrist_pitch_joint"
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "body first",
+            "passed": false,
+            "stop": {
+              "t": 1.7999999999999836,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": -0.0008767374558382259
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 0",
+            "passed": false,
+            "stop": {
+              "t": 2.7999999999999625,
+              "reason": "torque limit",
+              "detail": {
+                "ratio": 2.192194655334924,
+                "joint": 20.0,
+                "joint_name": "left_wrist_pitch_joint"
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 1",
+            "passed": false,
+            "stop": {
+              "t": 3.199999999999954,
+              "reason": "torque limit",
+              "detail": {
+                "ratio": 1.8086141745191515,
+                "joint": 20.0,
+                "joint_name": "left_wrist_pitch_joint"
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 2",
+            "passed": false,
+            "stop": {
+              "t": 4.6799999999999224,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.002120820883819616
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 3",
+            "passed": false,
+            "stop": {
+              "t": 2.7999999999999625,
+              "reason": "torque limit",
+              "detail": {
+                "ratio": 1.8384614533051074,
+                "joint": 20.0,
+                "joint_name": "left_wrist_pitch_joint"
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 4",
+            "passed": false,
+            "stop": {
+              "t": 2.6999999999999647,
+              "reason": "torque limit",
+              "detail": {
+                "ratio": 2.0780003952851414,
+                "joint": 20.0,
+                "joint_name": "left_wrist_pitch_joint"
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 5",
+            "passed": false,
+            "stop": {
+              "t": 3.999999999999937,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0021478174554614175
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 6",
+            "passed": false,
+            "stop": {
+              "t": 4.419999999999928,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0016981833140725148
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 7",
+            "passed": false,
+            "stop": {
+              "t": 4.77999999999992,
+              "reason": "torque limit",
+              "detail": {
+                "ratio": 3.9535218768982445,
+                "joint": 27.0,
+                "joint_name": "right_wrist_pitch_joint"
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 8",
+            "passed": false,
+            "stop": {
+              "t": 3.85999999999994,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.00068537876098598
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 9",
+            "passed": false,
+            "stop": {
+              "t": 4.219999999999932,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.001799641072973871
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 10",
+            "passed": false,
+            "stop": {
+              "t": 3.0799999999999566,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.002869148774665754
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 11",
+            "passed": false,
+            "stop": {
+              "t": 0.40000000000000024,
+              "reason": "contact force",
+              "detail": {
+                "force": 37.391572628804795
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 12",
+            "passed": false,
+            "stop": {
+              "t": 3.9199999999999386,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0029479734539912777
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 13",
+            "passed": false,
+            "stop": {
+              "t": 0.7800000000000006,
+              "reason": "contact force",
+              "detail": {
+                "force": 52.52415308093501
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 14",
+            "passed": false,
+            "stop": {
+              "t": 3.7799999999999416,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0026944463201060143
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 15",
+            "passed": false,
+            "stop": {
+              "t": 3.439999999999949,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0023205071625807252
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 16",
+            "passed": false,
+            "stop": {
+              "t": 3.2799999999999523,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.002459396111504329
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 17",
+            "passed": false,
+            "stop": {
+              "t": 3.5999999999999455,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0019073836031628785
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 18",
+            "passed": false,
+            "stop": {
+              "t": 4.079999999999935,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0006426561292791726
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 19",
+            "passed": false,
+            "stop": {
+              "t": 3.8199999999999408,
+              "reason": "torque limit",
+              "detail": {
+                "ratio": 3.4518430943483898,
+                "joint": 27.0,
+                "joint_name": "right_wrist_pitch_joint"
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 20",
+            "passed": false,
+            "stop": {
+              "t": 3.619999999999945,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0014206612797413721
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 21",
+            "passed": false,
+            "stop": {
+              "t": 3.299999999999952,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0018317083431227447
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 22",
+            "passed": false,
+            "stop": {
+              "t": 3.519999999999947,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0018684332063802762
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 23",
+            "passed": false,
+            "stop": {
+              "t": 3.519999999999947,
+              "reason": "contact force",
+              "detail": {
+                "force": 42.79780818268643
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 24",
+            "passed": false,
+            "stop": {
+              "t": 3.199999999999954,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0015846703184547676
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 25",
+            "passed": false,
+            "stop": {
+              "t": 0.4800000000000003,
+              "reason": "contact force",
+              "detail": {
+                "force": 49.73883665898781
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 26",
+            "passed": false,
+            "stop": {
+              "t": 3.019999999999958,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.001342587594029528
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 27",
+            "passed": false,
+            "stop": {
+              "t": 5.019999999999915,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0017511567431604878
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 28",
+            "passed": false,
+            "stop": {
+              "t": 4.459999999999927,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0013207567869684815
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 29",
+            "passed": false,
+            "stop": {
+              "t": 3.299999999999952,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.002511770141250723
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 30",
+            "passed": false,
+            "stop": {
+              "t": 3.0799999999999566,
+              "reason": "torque limit",
+              "detail": {
+                "ratio": 3.8976458509983516,
+                "joint": 27.0,
+                "joint_name": "right_wrist_pitch_joint"
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 31",
+            "passed": false,
+            "stop": {
+              "t": 3.2799999999999523,
+              "reason": "contact force",
+              "detail": {
+                "force": 35.387569778244114
+              }
+            }
+          },
+          {
+            "goal": "up 0, retreat 0, pitch -0.79",
+            "order": "direct",
+            "passed": false,
+            "stop": {
+              "t": 1.0999999999999985,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 8.827998484919606e-05
+              }
+            }
+          },
+          {
+            "goal": "up 0, retreat 0, pitch -0.79",
+            "order": "upper arm first 1",
+            "passed": false,
+            "stop": {
+              "t": 1.6799999999999862,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0028424898145694745
+              }
+            }
+          },
+          {
+            "goal": "up 0, retreat 0, pitch -1.57",
+            "plan_failure": {
+              "collision": 1
+            }
+          },
+          {
+            "goal": "up 1, retreat 0, pitch -0.79",
+            "order": "direct",
+            "passed": false,
+            "stop": {
+              "t": 1.079999999999999,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": -0.0020081980782686967
+              }
+            }
+          },
+          {
+            "goal": "up 1, retreat 0, pitch -0.79",
+            "order": "upper arm first 1",
+            "passed": false,
+            "stop": {
+              "t": 1.6199999999999875,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.002871287880276677
+              }
+            }
+          },
+          {
+            "goal": "up 1, retreat 0, pitch -1.57",
+            "order": "direct",
+            "passed": false,
+            "stop": {
+              "t": 0.8400000000000006,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": -0.0011820908803221067
+              }
+            }
+          },
+          {
+            "goal": "up 1, retreat 0, pitch -1.57",
+            "order": "upper arm first 1",
+            "passed": false,
+            "stop": {
+              "t": 0.8800000000000007,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0011886086996787519
+              }
+            }
+          },
+          {
+            "goal": "up 1, retreat 0, pitch 0.00",
+            "order": "direct",
+            "passed": false,
+            "stop": {
+              "t": 1.9599999999999802,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0014249609540953894
+              }
+            }
+          },
+          {
+            "goal": "up 1, retreat 0, pitch 0.00",
+            "order": "upper arm first 1",
+            "passed": false,
+            "stop": {
+              "t": 1.919999999999981,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.001382657238514578
+              }
+            }
+          },
+          {
+            "goal": "up 1, retreat 1, pitch -0.79",
+            "order": "direct",
+            "passed": false,
+            "stop": {
+              "t": 1.079999999999999,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": -0.0006229425031319642
+              }
+            }
+          },
+          {
+            "goal": "up 1, retreat 1, pitch -0.79",
+            "order": "upper arm first 1",
+            "passed": false,
+            "stop": {
+              "t": 2.119999999999977,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": -0.002210402315361536
+              }
+            }
+          },
+          {
+            "goal": "up 1, retreat 1, pitch -1.57",
+            "order": "direct",
+            "passed": false,
+            "stop": {
+              "t": 0.8800000000000007,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": -0.0018711202107091081
+              }
+            }
+          },
+          {
+            "goal": "up 1, retreat 1, pitch -1.57",
+            "order": "upper arm first 1",
+            "passed": false,
+            "stop": {
+              "t": 1.1999999999999964,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": -0.0014730423955128563
+              }
+            }
+          },
+          {
+            "goal": "up 1, retreat 1, pitch 0.00",
+            "order": "direct",
+            "passed": false,
+            "stop": {
+              "t": 2.119999999999977,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.002638531175675623
+              }
+            }
+          },
+          {
+            "goal": "up 1, retreat 1, pitch 0.00",
+            "order": "upper arm first 1",
+            "passed": false,
+            "stop": {
+              "t": 4.219999999999932,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0014992166990429958
+              }
+            }
+          },
+          {
+            "goal": "up 2, retreat 0, pitch -0.79",
+            "order": "direct",
+            "passed": false,
+            "stop": {
+              "t": 1.1799999999999968,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0015023168619362108
+              }
+            }
+          },
+          {
+            "goal": "up 2, retreat 0, pitch -0.79",
+            "order": "upper arm first 1",
+            "passed": false,
+            "stop": {
+              "t": 1.6599999999999866,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0003398631882843321
+              }
+            }
+          },
+          {
+            "goal": "up 2, retreat 0, pitch -1.57",
+            "order": "direct",
+            "passed": false,
+            "stop": {
+              "t": 0.7800000000000006,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.002569931481475734
+              }
+            }
+          },
+          {
+            "goal": "up 2, retreat 0, pitch -1.57",
+            "order": "upper arm first 1",
+            "passed": false,
+            "stop": {
+              "t": 0.8800000000000007,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0017642020762652186
+              }
+            }
+          },
+          {
+            "goal": "up 2, retreat 0, pitch 0.00",
+            "order": "direct",
+            "passed": false,
+            "stop": {
+              "t": 1.919999999999981,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0020314085286910477
+              }
+            }
+          },
+          {
+            "goal": "up 2, retreat 0, pitch 0.00",
+            "order": "upper arm first 1",
+            "passed": false,
+            "stop": {
+              "t": 1.8599999999999823,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.002333686947417202
+              }
+            }
+          },
+          {
+            "goal": "up 2, retreat 1, pitch -0.79",
+            "order": "direct",
+            "passed": false,
+            "stop": {
+              "t": 1.1799999999999968,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0022373684674005276
+              }
+            }
+          },
+          {
+            "goal": "up 2, retreat 1, pitch -0.79",
+            "order": "upper arm first 1",
+            "passed": false,
+            "stop": {
+              "t": 2.0999999999999774,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.002619329329378417
+              }
+            }
+          },
+          {
+            "goal": "up 2, retreat 1, pitch -1.57",
+            "order": "direct",
+            "passed": false,
+            "stop": {
+              "t": 0.8400000000000006,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": -0.0012797962379738695
+              }
+            }
+          },
+          {
+            "goal": "up 2, retreat 1, pitch -1.57",
+            "order": "upper arm first 1",
+            "passed": false,
+            "stop": {
+              "t": 1.1799999999999968,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": -0.0006521412245233554
+              }
+            }
+          },
+          {
+            "goal": "up 2, retreat 1, pitch 0.00",
+            "order": "direct",
+            "passed": false,
+            "stop": {
+              "t": 2.299999999999973,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0023367729089684717
+              }
+            }
+          },
+          {
+            "goal": "up 2, retreat 1, pitch 0.00",
+            "order": "upper arm first 1",
+            "passed": false,
+            "stop": {
+              "t": 4.419999999999928,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0024753831865358756
+              }
+            }
+          },
+          {
+            "goal": "up 1, retreat 2, pitch -0.79",
+            "order": "direct",
+            "passed": false,
+            "stop": {
+              "t": 1.6799999999999862,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.00198061404714561
+              }
+            }
+          },
+          {
+            "goal": "up 1, retreat 2, pitch -0.79",
+            "order": "upper arm first 1",
+            "passed": false,
+            "stop": {
+              "t": 3.6399999999999446,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0017536149415126015
+              }
+            }
+          },
+          {
+            "goal": "up 1, retreat 2, pitch -1.57",
+            "order": "direct",
+            "passed": false,
+            "stop": {
+              "t": 1.0399999999999998,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": -0.0014988910031968894
+              }
+            }
+          },
+          {
+            "goal": "up 1, retreat 2, pitch -1.57",
+            "order": "upper arm first 1",
+            "passed": false,
+            "stop": {
+              "t": 1.49999999999999,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0006347240018211985
+              }
+            }
+          },
+          {
+            "goal": "up 1, retreat 2, pitch 0.00",
+            "order": "direct",
+            "passed": false,
+            "stop": {
+              "t": 1.879999999999982,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0011690672704168282
+              }
+            }
+          },
+          {
+            "goal": "up 1, retreat 2, pitch 0.00",
+            "order": "upper arm first 1",
+            "passed": false,
+            "stop": {
+              "t": 3.899999999999939,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0008890992723371669
+              }
+            }
+          }
+        ]
+      }
+    },
+    "stop": null,
+    "peak_lift_m": -0.00010775541827623414,
+    "grasp_verified": false
+  },
+  "evidence": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-stable-path-001",
+      "kind": "dir",
+      "sha256": "1b3eab21d8fe6dcf5cc8f9c9cafeaf09c5edf40144f75571cf8208a6e69d5ba3",
+      "skipped": []
+    }
+  ],
+  "cloud": null
+}

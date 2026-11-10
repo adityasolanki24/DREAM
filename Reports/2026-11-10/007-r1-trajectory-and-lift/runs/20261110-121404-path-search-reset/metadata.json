@@ -1,0 +1,207 @@
+{
+  "run_id": "2026-11-10-007/20261110-121404-path-search-reset",
+  "task_id": "2026-11-10-007",
+  "title": "Search after initialising preview odometry",
+  "started": "2026-11-10T12:14:04+11:00",
+  "commit": "52d3c4aa200cd5f08b3201559015315024ae994b",
+  "dirty": true,
+  "branch": "codex/g1-integration",
+  "configs": [
+    {
+      "path": "experiments/configs/g1_grasp_bringup_pinch.json",
+      "sha256": "6e6b98f06df2b283a93ed1a1ba708724c0238fcf20f1c7b83e37565200a5dc7b"
+    }
+  ],
+  "command": "python -m experiments.g1_grasp_bringup --config experiments/configs/g1_grasp_bringup_pinch.json --out C:/Users/24adi/DREAM-r1-evidence/r1-trajectory-search-002",
+  "seeds": "0",
+  "model": "Cached Decoupled WBC",
+  "simulator": "MuJoCo 3.16.0",
+  "renderer": "None",
+  "embodiment": "Free-standing G1 Dex3",
+  "controller": "WBC with trajectory selection",
+  "hardware": "Local Windows CPU",
+  "status": "completed",
+  "ended": "2026-11-10T12:14:57+11:00",
+  "exit_status": 0,
+  "cases_attempted": 1,
+  "cases_completed": 1,
+  "metrics": {
+    "phases": {
+      "raise": {
+        "refused": "no verified trajectory",
+        "predictions": [
+          {
+            "order": "direct",
+            "passed": false,
+            "stop": {
+              "t": 1.7199999999999853,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": -0.001723472159449563
+              }
+            }
+          },
+          {
+            "order": "upper arm first 0.5",
+            "passed": false,
+            "stop": {
+              "t": 2.1399999999999766,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": -0.0013100297935150704
+              }
+            }
+          },
+          {
+            "order": "upper arm first 1",
+            "passed": false,
+            "stop": {
+              "t": 1.8199999999999832,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.00202979175006755
+              }
+            }
+          },
+          {
+            "order": "wrist first 0.5",
+            "passed": false,
+            "stop": {
+              "t": 1.8599999999999823,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0009046346378621223
+              }
+            }
+          },
+          {
+            "order": "wrist first 1",
+            "passed": false,
+            "stop": {
+              "t": 1.9799999999999798,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": -0.0016834656953912397
+              }
+            }
+          },
+          {
+            "order": "shoulder first 0.5",
+            "passed": false,
+            "stop": {
+              "t": 2.119999999999977,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": -0.0022928082814665882
+              }
+            }
+          },
+          {
+            "order": "shoulder first 1",
+            "passed": false,
+            "stop": {
+              "t": 2.079999999999978,
+              "reason": "torque limit",
+              "detail": {
+                "ratio": 1.6429256197759448,
+                "joint": 27.0,
+                "joint_name": "right_wrist_pitch_joint"
+              }
+            }
+          },
+          {
+            "order": "elbow first 0.5",
+            "passed": false,
+            "stop": {
+              "t": 1.2599999999999951,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.002210531918267063
+              }
+            }
+          },
+          {
+            "order": "elbow first 1",
+            "passed": false,
+            "stop": {
+              "t": 1.2399999999999956,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0027101469178711247
+              }
+            }
+          },
+          {
+            "order": "shoulder pitch first 0.5",
+            "passed": false,
+            "stop": {
+              "t": 2.0999999999999774,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.002021790934375997
+              }
+            }
+          },
+          {
+            "order": "shoulder pitch first 1",
+            "passed": false,
+            "stop": {
+              "t": 2.4599999999999698,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0028934914267750127
+              }
+            }
+          },
+          {
+            "order": "shoulder roll first 0.5",
+            "passed": false,
+            "stop": {
+              "t": 1.0000000000000007,
+              "reason": "contact force",
+              "detail": {
+                "force": 36.39107751916116
+              }
+            }
+          },
+          {
+            "order": "shoulder roll first 1",
+            "passed": false,
+            "stop": {
+              "t": 1.3199999999999938,
+              "reason": "torque limit",
+              "detail": {
+                "ratio": 1.7909425369700016,
+                "joint": 27.0,
+                "joint_name": "right_wrist_pitch_joint"
+              }
+            }
+          },
+          {
+            "order": "body first",
+            "passed": false,
+            "stop": {
+              "t": 1.739999999999985,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": -0.000827249111406642
+              }
+            }
+          }
+        ]
+      }
+    },
+    "stop": null,
+    "peak_lift_m": -0.00010775541837049207,
+    "grasp_verified": false
+  },
+  "evidence": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-trajectory-search-002",
+      "kind": "dir",
+      "sha256": "9b31646e910703a9a6b612bacc48e4ed47cdf27f21ae18c0cba40e34964b3b93",
+      "skipped": []
+    }
+  ],
+  "cloud": null
+}

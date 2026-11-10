@@ -1,0 +1,162 @@
+{
+  "run_id": "2026-11-10-008/20261110-215721-box-alignment",
+  "task_id": "2026-11-10-008",
+  "title": "Correct approach from measured hand and box pose",
+  "started": "2026-11-10T21:57:21+11:00",
+  "commit": "52d3c4aa200cd5f08b3201559015315024ae994b",
+  "dirty": true,
+  "branch": "codex/g1-integration",
+  "configs": [
+    {
+      "path": "experiments/configs/g1_grasp_bringup_pinch.json",
+      "sha256": "6e6b98f06df2b283a93ed1a1ba708724c0238fcf20f1c7b83e37565200a5dc7b"
+    }
+  ],
+  "command": "python -m experiments.g1_grasp_bringup --config experiments/configs/g1_grasp_bringup_pinch.json --out C:/Users/24adi/DREAM-r1-evidence/r1-box-feedback-001",
+  "seeds": "0",
+  "model": "Cached Decoupled WBC",
+  "simulator": "MuJoCo 3.16.0",
+  "renderer": "None",
+  "embodiment": "Free-standing G1 Dex3",
+  "controller": "WBC with measured grasp alignment",
+  "hardware": "Local CPU",
+  "status": "completed",
+  "ended": "2026-11-10T21:58:26+11:00",
+  "exit_status": 0,
+  "cases_attempted": 1,
+  "cases_completed": 1,
+  "metrics": {
+    "phases": {
+      "settle": {
+        "stable": true
+      },
+      "raise": {
+        "predictions": [
+          {
+            "goal": "vertical raise in measured orientation",
+            "order": "direct",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "pregrasp": {
+        "predictions": [
+          {
+            "goal": "nominal",
+            "order": "direct",
+            "passed": false,
+            "stop": {
+              "t": 1.1999999999999964,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0008667301627877099
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "upper arm first 0.5",
+            "passed": false,
+            "stop": {
+              "t": 1.5599999999999887,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0018084452229289432
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "upper arm first 1",
+            "passed": false,
+            "stop": {
+              "t": 1.739999999999985,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0028396827900510897
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "wrist first 0.5",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "reach": {
+        "predictions": [
+          {
+            "goal": "nominal",
+            "order": "direct",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "preclose": {
+        "grasp_xyz_m": [
+          0.5234659265847039,
+          -0.18742924602706534,
+          0.8128075355211353
+        ],
+        "wrist_rotation": [
+          [
+            0.9997355439295564,
+            0.022084979621443058,
+            -0.00641060675703054
+          ],
+          [
+            -0.02208322709411088,
+            0.9997560766082753,
+            0.00034404351106781544
+          ],
+          [
+            0.006416641254018177,
+            -0.0002023856418462699,
+            0.9999793926652029
+          ]
+        ],
+        "table_clearance_m": 0.018793730888081117,
+        "position_error_m": [
+          -0.052230748833765106,
+          0.016361691203807954,
+          -0.013286158755275501
+        ],
+        "clear": false
+      },
+      "align_1": {
+        "refused": "no verified trajectory",
+        "predictions": [
+          {
+            "goal": "nominal",
+            "planned_table_clearance_m": -0.0071595516675544415
+          }
+        ]
+      }
+    },
+    "stop": null,
+    "peak_lift_m": -0.00010775541827623414,
+    "grasp_verified": false
+  },
+  "evidence": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-box-feedback-001",
+      "kind": "dir",
+      "sha256": "624ce5d732d0a4a6ea24da447a31cdd2d0891b069bc0261e027753c38eafb5eb",
+      "skipped": []
+    }
+  ],
+  "cloud": null
+}

@@ -1,0 +1,200 @@
+{
+  "run_id": "2026-11-10-008/20261110-220155-regulate-grip",
+  "task_id": "2026-11-10-008",
+  "title": "Maintain opposing contact while lifting and holding",
+  "started": "2026-11-10T22:01:55+11:00",
+  "commit": "52d3c4aa200cd5f08b3201559015315024ae994b",
+  "dirty": true,
+  "branch": "codex/g1-integration",
+  "configs": [
+    {
+      "path": "experiments/configs/g1_grasp_bringup_pinch.json",
+      "sha256": "6e6b98f06df2b283a93ed1a1ba708724c0238fcf20f1c7b83e37565200a5dc7b"
+    }
+  ],
+  "command": "python -m experiments.g1_grasp_bringup --config experiments/configs/g1_grasp_bringup_pinch.json --out C:/Users/24adi/DREAM-r1-evidence/r1-grip-regulation-001",
+  "seeds": "0",
+  "model": "Cached Decoupled WBC",
+  "simulator": "MuJoCo 3.16.0",
+  "renderer": "None",
+  "embodiment": "Free-standing G1 Dex3",
+  "controller": "WBC with tactile grip regulation",
+  "hardware": "Local CPU",
+  "status": "completed",
+  "ended": "2026-11-10T22:02:57+11:00",
+  "exit_status": 0,
+  "cases_attempted": 1,
+  "cases_completed": 1,
+  "metrics": {
+    "phases": {
+      "settle": {
+        "stable": true
+      },
+      "raise": {
+        "predictions": [
+          {
+            "goal": "vertical raise in measured orientation",
+            "order": "direct",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "pregrasp": {
+        "predictions": [
+          {
+            "goal": "nominal",
+            "order": "direct",
+            "passed": false,
+            "stop": {
+              "t": 1.1999999999999964,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0008667301627877099
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "upper arm first 0.5",
+            "passed": false,
+            "stop": {
+              "t": 1.5599999999999887,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0018084452229289432
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "upper arm first 1",
+            "passed": false,
+            "stop": {
+              "t": 1.739999999999985,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0028396827900510897
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "wrist first 0.5",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "reach": {
+        "predictions": [
+          {
+            "goal": "nominal",
+            "order": "direct",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "align_1": {
+        "predictions": [
+          {
+            "goal": "nominal",
+            "order": "direct",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "align_2": {
+        "predictions": [
+          {
+            "goal": "nominal",
+            "order": "direct",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "descend": {
+        "completed": true
+      },
+      "preclose": {
+        "grasp_xyz_m": [
+          0.4614093132729796,
+          -0.1648248342502303,
+          0.800409993232505
+        ],
+        "wrist_rotation": [
+          [
+            0.9984621793231657,
+            -0.00029796782177855493,
+            0.05543633895210973
+          ],
+          [
+            -0.00020663267329110602,
+            0.9999586056658541,
+            0.009096387070730145
+          ],
+          [
+            -0.055436754632412814,
+            -0.009093853417523428,
+            0.9984207870761944
+          ]
+        ],
+        "table_clearance_m": 0.006180545737038411,
+        "opposing_gap_m": -0.01158002179904669,
+        "position_error_m": [
+          0.003147073413956758,
+          -0.0017503741380750226,
+          -0.0005177486527213615
+        ],
+        "clear": true
+      },
+      "close": {
+        "opposed_touch": true,
+        "closure_fraction": 0.5200000000000001
+      },
+      "probe": {
+        "completed": true,
+        "object_rise_m": 0.02465447527964182
+      },
+      "lift": {
+        "completed": true
+      }
+    },
+    "stop": {
+      "t": 23.19999999999967,
+      "reason": "grip lost",
+      "detail": {
+        "weakest_normal_n": 0.0
+      }
+    },
+    "peak_lift_m": 0.11380391318300187,
+    "grasp_verified": false
+  },
+  "evidence": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-grip-regulation-001",
+      "kind": "dir",
+      "sha256": "e29f329dd730aabe283cf1f2558500c72e226974d300129b6f8ee5d756ae5e76",
+      "skipped": []
+    }
+  ],
+  "cloud": null
+}

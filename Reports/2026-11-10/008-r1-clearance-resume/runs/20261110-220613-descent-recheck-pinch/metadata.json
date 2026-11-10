@@ -1,0 +1,215 @@
+{
+  "run_id": "2026-11-10-008/20261110-220613-descent-recheck-pinch",
+  "task_id": "2026-11-10-008",
+  "title": "Recheck pinch after adaptive descent",
+  "started": "2026-11-10T22:06:13+11:00",
+  "commit": "52d3c4aa200cd5f08b3201559015315024ae994b",
+  "dirty": true,
+  "branch": "codex/g1-integration",
+  "configs": [
+    {
+      "path": "experiments/configs/g1_grasp_bringup_pinch.json",
+      "sha256": "6e6b98f06df2b283a93ed1a1ba708724c0238fcf20f1c7b83e37565200a5dc7b"
+    }
+  ],
+  "command": "python -m experiments.g1_grasp_bringup --config experiments/configs/g1_grasp_bringup_pinch.json --out C:/Users/24adi/DREAM-r1-evidence/r1-final-pinch-001",
+  "seeds": "0",
+  "model": "Cached Decoupled WBC",
+  "simulator": "MuJoCo 3.16.0",
+  "renderer": "None",
+  "embodiment": "Free-standing G1 Dex3",
+  "controller": "Frozen adaptive descent and grip controller",
+  "hardware": "Local CPU",
+  "status": "completed",
+  "ended": "2026-11-10T22:06:26+11:00",
+  "exit_status": 0,
+  "cases_attempted": 1,
+  "cases_completed": 1,
+  "metrics": {
+    "phases": {
+      "settle": {
+        "stable": true
+      },
+      "raise": {
+        "predictions": [
+          {
+            "goal": "vertical raise in measured orientation",
+            "order": "direct",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "pregrasp": {
+        "predictions": [
+          {
+            "goal": "nominal",
+            "order": "direct",
+            "passed": false,
+            "stop": {
+              "t": 1.1999999999999964,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0008667301627877099
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "upper arm first 0.5",
+            "passed": false,
+            "stop": {
+              "t": 1.5599999999999887,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0018084452229289432
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "upper arm first 1",
+            "passed": false,
+            "stop": {
+              "t": 1.739999999999985,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0028396827900510897
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "wrist first 0.5",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "reach": {
+        "predictions": [
+          {
+            "goal": "nominal",
+            "order": "direct",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "align_1": {
+        "predictions": [
+          {
+            "goal": "nominal",
+            "order": "direct",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "align_2": {
+        "predictions": [
+          {
+            "goal": "nominal",
+            "order": "direct",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "descend": {
+        "completed": true,
+        "corrections": [
+          {
+            "before_error_m": [
+              0.002374526963711654,
+              -0.0024634343209766485,
+              -0.039735753309578126
+            ],
+            "prediction_m": [
+              0.46466106648570915,
+              -0.16616601173078716,
+              0.82670696744171
+            ],
+            "stops": []
+          },
+          {
+            "before_error_m": [
+              -6.130455628372555e-05,
+              -9.658550755350936e-05,
+              -0.02672946912203733
+            ],
+            "prediction_m": [
+              0.46421448143373745,
+              -0.16672556089969498,
+              0.8143701570080821
+            ],
+            "stops": []
+          }
+        ]
+      },
+      "preclose": {
+        "grasp_xyz_m": [
+          0.4642110076575249,
+          -0.16694761636956018,
+          0.8143154705546986
+        ],
+        "wrist_rotation": [
+          [
+            0.9983597644901184,
+            -0.0006296110101551008,
+            0.057248443098565055
+          ],
+          [
+            0.00020825959506124718,
+            0.9999728510409048,
+            0.007365718502901181
+          ],
+          [
+            -0.057251526400392286,
+            -0.007341714452279342,
+            0.9983327911842449
+          ]
+        ],
+        "table_clearance_m": 0.019924407724837497,
+        "opposing_gap_m": 0.00236442998708866,
+        "position_error_m": [
+          0.00034537899994291354,
+          0.0003724080332138391,
+          -0.014423225974914966
+        ],
+        "clear": true
+      },
+      "close": {
+        "opposed_touch": false,
+        "closure_fraction": 1.0
+      }
+    },
+    "stop": null,
+    "peak_lift_m": 0.00123971430690073,
+    "grasp_verified": false
+  },
+  "evidence": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-final-pinch-001",
+      "kind": "dir",
+      "sha256": "785eb694d325488581a676eaeb442a9a568ad08e34a991a0ac569ffe745269cd",
+      "skipped": []
+    }
+  ],
+  "cloud": null
+}

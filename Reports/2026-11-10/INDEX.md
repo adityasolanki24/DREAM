@@ -6,6 +6,8 @@
 
 | Date | Task ID | Prompt | Status | Main finding | Runs | Report |
 |---|---|---|---|---|---|---|
+| 2026-11-10 | 2026-11-10-008 | [Continue R1 from the trajectory search evidence](008-r1-clearance-resume/PROMPT.md) | partially_completed | The initial fixed-stance box grasp passes on three development fixtures using the same controller. Width and hold transfer still limit the broader R1 gate. | 27 | [REPORT](008-r1-clearance-resume/REPORT.md) |
+| 2026-11-10 | 2026-11-10-007 | [Resolve the R1 trajectory and grasp without fixed answers](007-r1-trajectory-and-lift/PROMPT.md) | partially_completed | Sensor-initialised preview rejected the tested transitions. No safe approach was executed before interruption. | 4 | [REPORT](007-r1-trajectory-and-lift/REPORT.md) |
 | 2026-11-10 | 2026-11-10-006 | [Resolve the R1 tabletop grasp failure](006-r1-tabletop-grasp/PROMPT.md) | partially_completed | The guarded R1 approach prevents the reproduced tabletop-directed lift. The right index trajectory still loses clearance during the raise, and no box lift was verified. | 13 | [REPORT](006-r1-tabletop-grasp/REPORT.md) |
 | 2026-11-10 | 2026-11-10-005 | [Continue the sequential G1 roadmap through the R0 gate](005-r0-integration-gate/PROMPT.md) | partially_completed | R0 passed the full suite and was published. R1 reached and closed its fingers, but independent evidence showed tabletop contact and no box lift. | 3 | [REPORT](005-r0-integration-gate/REPORT.md) |
 | 2026-11-10 | 2026-11-10-004 | [Implement the G1 roadmap one validated rung at a time](004-sequential-roadmap-gates/PROMPT.md) | partially_completed | Ruff and the reproduced reach regression passed. Full R0 verification continued in a new task after interruption. | 5 | [REPORT](004-sequential-roadmap-gates/REPORT.md) |
@@ -20,6 +22,37 @@
 
 | Run | Task | Status | Started | Report |
 |---|---|---|---|---|
+| 20261110-215304-hold-control | 2026-11-10-008 | completed | 2026-11-10T21:53:04+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-215304-hold-control/REPORT.md) |
+| 20261110-215412-stable-clearance-path | 2026-11-10-008 | completed | 2026-11-10T21:54:12+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-215412-stable-clearance-path/REPORT.md) |
+| 20261110-215546-measured-vertical-raise | 2026-11-10-008 | partial | 2026-11-10T21:55:46+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-215546-measured-vertical-raise/REPORT.md) |
+| 20261110-215628-measured-raise-summary | 2026-11-10-008 | completed | 2026-11-10T21:56:28+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-215628-measured-raise-summary/REPORT.md) |
+| 20261110-215721-box-alignment | 2026-11-10-008 | completed | 2026-11-10T21:57:21+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-215721-box-alignment/REPORT.md) |
+| 20261110-215827-clearance-alignment | 2026-11-10-008 | completed | 2026-11-10T21:58:27+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-215827-clearance-alignment/REPORT.md) |
+| 20261110-215940-sustained-pinch | 2026-11-10-008 | completed | 2026-11-10T21:59:40+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-215940-sustained-pinch/REPORT.md) |
+| 20261110-220044-align-above-box | 2026-11-10-008 | completed | 2026-11-10T22:00:44+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-220044-align-above-box/REPORT.md) |
+| 20261110-220155-regulate-grip | 2026-11-10-008 | completed | 2026-11-10T22:01:55+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-220155-regulate-grip/REPORT.md) |
+| 20261110-220258-slip-feedback | 2026-11-10-008 | completed | 2026-11-10T22:02:58+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-220258-slip-feedback/REPORT.md) |
+| 20261110-220345-independent-shift-in | 2026-11-10-008 | completed | 2026-11-10T22:03:45+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-220345-independent-shift-in/REPORT.md) |
+| 20261110-220355-independent-shift-out | 2026-11-10-008 | completed | 2026-11-10T22:03:55+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-220355-independent-shift-out/REPORT.md) |
+| 20261110-220406-independent-lateral | 2026-11-10-008 | completed | 2026-11-10T22:04:06+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-220406-independent-lateral/REPORT.md) |
+| 20261110-220520-descent-feedback | 2026-11-10-008 | completed | 2026-11-10T22:05:20+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-220520-descent-feedback/REPORT.md) |
+| 20261110-220613-descent-recheck-pinch | 2026-11-10-008 | completed | 2026-11-10T22:06:13+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-220613-descent-recheck-pinch/REPORT.md) |
+| 20261110-220626-descent-recheck-shift-in | 2026-11-10-008 | completed | 2026-11-10T22:06:26+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-220626-descent-recheck-shift-in/REPORT.md) |
+| 20261110-220637-descent-recheck-lateral | 2026-11-10-008 | completed | 2026-11-10T22:06:37+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-220637-descent-recheck-lateral/REPORT.md) |
+| 20261110-220727-depth-pinch | 2026-11-10-008 | completed | 2026-11-10T22:07:27+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-220727-depth-pinch/REPORT.md) |
+| 20261110-220752-depth-shift-in | 2026-11-10-008 | completed | 2026-11-10T22:07:52+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-220752-depth-shift-in/REPORT.md) |
+| 20261110-220812-depth-lateral | 2026-11-10-008 | completed | 2026-11-10T22:08:12+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-220812-depth-lateral/REPORT.md) |
+| 20261110-220831-depth-shift-out | 2026-11-10-008 | completed | 2026-11-10T22:08:31+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-220831-depth-shift-out/REPORT.md) |
+| 20261110-220950-centered-lateral | 2026-11-10-008 | completed | 2026-11-10T22:09:50+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-220950-centered-lateral/REPORT.md) |
+| 20261110-221013-centered-shift-in | 2026-11-10-008 | completed | 2026-11-10T22:10:13+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-221013-centered-shift-in/REPORT.md) |
+| 20261110-221031-centered-pinch | 2026-11-10-008 | completed | 2026-11-10T22:10:31+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-221031-centered-pinch/REPORT.md) |
+| 20261110-221050-centered-shift-out | 2026-11-10-008 | completed | 2026-11-10T22:10:50+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-221050-centered-shift-out/REPORT.md) |
+| 20261110-221152-fresh-near | 2026-11-10-008 | completed | 2026-11-10T22:11:52+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-221152-fresh-near/REPORT.md) |
+| 20261110-221219-fresh-far | 2026-11-10-008 | completed | 2026-11-10T22:12:19+11:00 | [REPORT](008-r1-clearance-resume/runs/20261110-221219-fresh-far/REPORT.md) |
+| 20261110-121338-path-search | 2026-11-10-007 | crashed | 2026-11-10T12:13:38+11:00 | [REPORT](007-r1-trajectory-and-lift/runs/20261110-121338-path-search/REPORT.md) |
+| 20261110-121404-path-search-reset | 2026-11-10-007 | completed | 2026-11-10T12:14:04+11:00 | [REPORT](007-r1-trajectory-and-lift/runs/20261110-121404-path-search-reset/REPORT.md) |
+| 20261110-121501-pose-search | 2026-11-10-007 | completed | 2026-11-10T12:15:01+11:00 | [REPORT](007-r1-trajectory-and-lift/runs/20261110-121501-pose-search/REPORT.md) |
+| 20261110-121616-geometry-waypoint | 2026-11-10-007 | completed | 2026-11-10T12:16:16+11:00 | [REPORT](007-r1-trajectory-and-lift/runs/20261110-121616-geometry-waypoint/REPORT.md) |
 | 20261110-115046-pose-baseline | 2026-11-10-006 | failed | 2026-11-10T11:50:46+11:00 | [REPORT](006-r1-tabletop-grasp/runs/20261110-115046-pose-baseline/REPORT.md) |
 | 20261110-115238-grasp-frame | 2026-11-10-006 | completed | 2026-11-10T11:52:38+11:00 | [REPORT](006-r1-tabletop-grasp/runs/20261110-115238-grasp-frame/REPORT.md) |
 | 20261110-115328-pinch-stance | 2026-11-10-006 | completed | 2026-11-10T11:53:28+11:00 | [REPORT](006-r1-tabletop-grasp/runs/20261110-115328-pinch-stance/REPORT.md) |

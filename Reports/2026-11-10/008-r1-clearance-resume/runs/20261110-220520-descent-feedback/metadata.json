@@ -1,0 +1,233 @@
+{
+  "run_id": "2026-11-10-008/20261110-220520-descent-feedback",
+  "task_id": "2026-11-10-008",
+  "title": "Replan short descent steps after each observed pose",
+  "started": "2026-11-10T22:05:20+11:00",
+  "commit": "52d3c4aa200cd5f08b3201559015315024ae994b",
+  "dirty": true,
+  "branch": "codex/g1-integration",
+  "configs": [
+    {
+      "path": "experiments/configs/g1_grasp_bringup_shift_out.json",
+      "sha256": "6726d0e381ba652a17b281f6538e558b18dd1a4b3adb57dbb9f8f4ce54260535"
+    }
+  ],
+  "command": "python -m experiments.g1_grasp_bringup --config experiments/configs/g1_grasp_bringup_shift_out.json --out C:/Users/24adi/DREAM-r1-evidence/r1-adaptive-descent-001",
+  "seeds": "17",
+  "model": "Cached Decoupled WBC",
+  "simulator": "MuJoCo 3.16.0",
+  "renderer": "None",
+  "embodiment": "Free-standing G1 Dex3",
+  "controller": "WBC with local descent feedback",
+  "hardware": "Local CPU",
+  "status": "completed",
+  "ended": "2026-11-10T22:06:12+11:00",
+  "exit_status": 0,
+  "cases_attempted": 1,
+  "cases_completed": 1,
+  "metrics": {
+    "phases": {
+      "settle": {
+        "stable": true
+      },
+      "raise": {
+        "predictions": [
+          {
+            "goal": "vertical raise in measured orientation",
+            "order": "direct",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "pregrasp": {
+        "predictions": [
+          {
+            "goal": "nominal",
+            "order": "direct",
+            "passed": false,
+            "stop": {
+              "t": 1.1599999999999973,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.002274680778984739
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "upper arm first 0.5",
+            "passed": false,
+            "stop": {
+              "t": 1.5599999999999887,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 9.415262489453902e-05
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "upper arm first 1",
+            "passed": false,
+            "stop": {
+              "t": 1.6599999999999866,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0027959748017638434
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "wrist first 0.5",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "reach": {
+        "predictions": [
+          {
+            "goal": "nominal",
+            "order": "direct",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "align_1": {
+        "predictions": [
+          {
+            "goal": "nominal",
+            "order": "direct",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "descend": {
+        "completed": true,
+        "corrections": [
+          {
+            "before_error_m": [
+              -0.013144139593403215,
+              -0.01340884391353006,
+              -0.04373099712372597
+            ],
+            "prediction_m": [
+              0.48591589251507794,
+              -0.17952569782200573,
+              0.8459562143445054
+            ],
+            "stops": []
+          },
+          {
+            "before_error_m": [
+              -0.003900779326061199,
+              -0.008808522313213024,
+              -0.041278891864079625
+            ],
+            "prediction_m": [
+              0.48004334565259077,
+              -0.19028443202305406,
+              0.823300591427048
+            ],
+            "stops": []
+          },
+          {
+            "before_error_m": [
+              0.0015784089889175346,
+              0.0012403919324676937,
+              -0.017143442924279828
+            ],
+            "prediction_m": [
+              0.48054620060277653,
+              -0.1890797809921194,
+              0.8099122187309917
+            ],
+            "stops": []
+          }
+        ]
+      },
+      "preclose": {
+        "grasp_xyz_m": [
+          0.4805295526394031,
+          -0.18904358572331265,
+          0.8098608605757591
+        ],
+        "wrist_rotation": [
+          [
+            0.9982454026695813,
+            0.022014006180410182,
+            0.05496816879734955
+          ],
+          [
+            -0.022428747738752294,
+            0.9997243587503741,
+            0.0069395818335192
+          ],
+          [
+            -0.05480024930524007,
+            -0.008160272853376796,
+            0.9984639916506961
+          ]
+        ],
+        "table_clearance_m": 0.015629394122274598,
+        "opposing_gap_m": -0.008133732670141655,
+        "position_error_m": [
+          0.002542923523657259,
+          0.0010965745599033627,
+          -0.0039686159959752
+        ],
+        "clear": true
+      },
+      "close": {
+        "opposed_touch": true,
+        "closure_fraction": 0.48000000000000015
+      },
+      "probe": {
+        "completed": false,
+        "stops": [
+          {
+            "t": 16.840000000000934,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          }
+        ]
+      }
+    },
+    "stop": {
+      "t": 16.840000000000934,
+      "reason": "grip lost",
+      "detail": {
+        "weakest_normal_n": 0.0
+      }
+    },
+    "peak_lift_m": 0.004579538890062906,
+    "grasp_verified": false
+  },
+  "evidence": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-adaptive-descent-001",
+      "kind": "dir",
+      "sha256": "6d361b167bc36b05710bda0db254b71ab87bb5b58674bbc63f5f3e6370bbc4f0",
+      "skipped": []
+    }
+  ],
+  "cloud": null
+}
