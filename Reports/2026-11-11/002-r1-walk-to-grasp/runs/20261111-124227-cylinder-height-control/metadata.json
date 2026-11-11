@@ -1,0 +1,308 @@
+{
+  "run_id": "2026-11-11-002/20261111-124227-cylinder-height-control",
+  "task_id": "2026-11-11-002",
+  "title": "Replay the shifted-height cylinder at the earlier fixed stance",
+  "started": "2026-11-11T12:42:27+11:00",
+  "commit": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+  "dirty": true,
+  "branch": "codex/g1-integration",
+  "configs": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-walk-cylinder-height-control-001/cylinder.json",
+      "sha256": "a421a81bb9ad61481f9ee8758715c4bcc80252b30284d64a085444ee926cf279"
+    }
+  ],
+  "command": "python experiments/g1_grasp_bringup.py --config C:/Users/24adi/DREAM-r1-evidence/r1-walk-cylinder-height-control-001/cylinder.json --out C:/Users/24adi/DREAM-r1-evidence/r1-walk-cylinder-height-control-001/run",
+  "seeds": "97",
+  "model": "Cached Decoupled WBC",
+  "simulator": "MuJoCo 3.16.0",
+  "renderer": "None",
+  "embodiment": "free-standing G1 Dex3",
+  "controller": "Decoupled WBC",
+  "hardware": "local CPU",
+  "status": "completed",
+  "ended": "2026-11-11T12:43:14+11:00",
+  "exit_status": 0,
+  "cases_attempted": 1,
+  "cases_completed": 1,
+  "metrics": {
+    "phases": {
+      "grasp_geometry": {
+        "candidates": 120,
+        "rank": 17,
+        "offset_m": [
+          0.020000000000000004,
+          0.005000000000000001,
+          0.027
+        ],
+        "rotation": [
+          [
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "score": 0.998555080222306,
+        "support_links": 2,
+        "predicted_closure_fraction": 0.8125,
+        "thumb_bias_rad": 0.0,
+        "closing_target_rad": [
+          0.0,
+          -0.7,
+          -1.2,
+          1.1,
+          1.2,
+          1.1,
+          1.2
+        ]
+      },
+      "settle": {
+        "stable": true
+      },
+      "raise": {
+        "predictions": [
+          {
+            "goal": "vertical raise in measured orientation",
+            "order": "direct",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "pregrasp": {
+        "predictions": [
+          {
+            "goal": "nominal",
+            "order": "direct",
+            "passed": false,
+            "stop": {
+              "t": 1.1799999999999968,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0016444536026962162,
+                "body": "right_hand_middle_1_link"
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "upper arm first 0.5",
+            "passed": false,
+            "stop": {
+              "t": 1.5599999999999887,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0014422525192288504,
+                "body": "right_hand_index_1_link"
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "upper arm first 1",
+            "passed": false,
+            "stop": {
+              "t": 1.6599999999999866,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0014619704101114794,
+                "body": "right_hand_index_1_link"
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "wrist first 0.5",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "reach": {
+        "predictions": [
+          {
+            "goal": "nominal",
+            "order": "direct",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "align_1": {
+        "predictions": [
+          {
+            "goal": "nominal",
+            "order": "direct",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "align_2": {
+        "predictions": [
+          {
+            "goal": "nominal",
+            "order": "direct",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "descend": {
+        "completed": true,
+        "corrections": [
+          {
+            "before_error_m": [
+              0.003590212824012895,
+              -0.006686917063633169,
+              -0.04329043530177101
+            ],
+            "prediction_m": [
+              0.48152183507936785,
+              -0.16823289367175784,
+              0.8439888073357145
+            ],
+            "stops": []
+          },
+          {
+            "before_error_m": [
+              0.0004906923495250348,
+              -0.00016704017043642216,
+              -0.030005020102963575
+            ],
+            "prediction_m": [
+              0.48150880935527374,
+              -0.16855735589944892,
+              0.8314427195553342
+            ],
+            "stops": []
+          },
+          {
+            "before_error_m": [
+              0.0006253546144917022,
+              0.0004522743583630917,
+              -0.017499456715799777
+            ],
+            "prediction_m": [
+              0.48139483925425985,
+              -0.16876206891222317,
+              0.8191893861832843
+            ],
+            "stops": []
+          },
+          {
+            "before_error_m": [
+              0.0007352335786285358,
+              0.000570904423919133,
+              -0.0052352240242369286
+            ],
+            "prediction_m": [
+              0.48161613257903935,
+              -0.16862540345341892,
+              0.8139382677477761
+            ],
+            "stops": []
+          }
+        ]
+      },
+      "preclose": {
+        "grasp_xyz_m": [
+          0.48165676476651725,
+          -0.1687684073134899,
+          0.814025669317107
+        ],
+        "wrist_rotation": [
+          [
+            0.9981440145851174,
+            -0.011230139312504111,
+            0.05985323816576879
+          ],
+          [
+            0.010876623383838201,
+            0.9999214467673755,
+            0.006228913099924611
+          ],
+          [
+            -0.05991848806230542,
+            -0.005566351198228337,
+            0.9981877531419964
+          ]
+        ],
+        "table_clearance_m": 0.009419305751776075,
+        "opposing_gap_m": -0.011874765680331347,
+        "position_error_m": [
+          0.00044581890239736577,
+          0.00021906132133009404,
+          -0.00013431809773978287
+        ],
+        "clear": true
+      },
+      "close": {
+        "opposed_touch": true,
+        "closure_fraction": 0.6600000000000003
+      },
+      "probe": {
+        "completed": true,
+        "object_rise_m": 0.027596830556885776
+      },
+      "lift": {
+        "completed": true
+      },
+      "whole_body_grasp_preview": {
+        "proposed_rank": 17,
+        "executed_rank": 17,
+        "predicted_verified": true,
+        "predicted_peak_lift_m": 0.14923737451975572,
+        "predicted_stop": null,
+        "attempts": [
+          {
+            "rank": 17,
+            "family": "pinch",
+            "verified": true,
+            "peak_lift_m": 0.14923737451975572,
+            "stop": null
+          }
+        ],
+        "family": "pinch"
+      }
+    },
+    "stop": null,
+    "peak_lift_m": 0.15154051500481425,
+    "grasp_observed": true,
+    "grasp_verified": true
+  },
+  "evidence": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-walk-cylinder-height-control-001",
+      "kind": "dir",
+      "sha256": "f10b22bcc6fd3191be5e3f55809c92f44faa357767eb5c90f7d592d27dcb5a6d",
+      "skipped": []
+    }
+  ],
+  "cloud": null
+}

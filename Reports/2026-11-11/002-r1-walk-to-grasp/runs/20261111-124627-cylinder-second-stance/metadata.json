@@ -1,0 +1,539 @@
+{
+  "run_id": "2026-11-11-002/20261111-124627-cylinder-second-stance",
+  "task_id": "2026-11-11-002",
+  "title": "Check the cylinder from the second reachable stance",
+  "started": "2026-11-11T12:46:27+11:00",
+  "commit": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+  "dirty": true,
+  "branch": "codex/g1-integration",
+  "configs": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-walk-cylinder-alternate-001/cylinder.json",
+      "sha256": "8851df3462c03d0159029c0dc5d8cf16848d98a99c5ec581fcb65d8ffab6ee82"
+    }
+  ],
+  "command": "python C:/Users/24adi/DREAM-r1-evidence/r1-walk-cylinder-alternate-001/run.py --config C:/Users/24adi/DREAM-r1-evidence/r1-walk-cylinder-alternate-001/cylinder.json --out C:/Users/24adi/DREAM-r1-evidence/r1-walk-cylinder-alternate-001/run",
+  "seeds": "97",
+  "model": "Cached Decoupled WBC",
+  "simulator": "MuJoCo 3.16.0",
+  "renderer": "None",
+  "embodiment": "free-standing G1 Dex3",
+  "controller": "Decoupled WBC",
+  "hardware": "local CPU",
+  "status": "completed",
+  "ended": "2026-11-11T12:51:09+11:00",
+  "exit_status": 0,
+  "cases_attempted": 1,
+  "cases_completed": 1,
+  "metrics": {
+    "phases": {
+      "stance": {
+        "goal": [
+          0.17035854959638824,
+          -0.05154130164317122,
+          -0.04269908169872405
+        ],
+        "heading": 0.0,
+        "tested": 2
+      },
+      "grasp_geometry": {
+        "candidates": 24,
+        "rank": 0,
+        "offset_m": [
+          0.0,
+          0.0,
+          0.03375
+        ],
+        "rotation": [
+          [
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.9659258262890682,
+            0.25881904510252074
+          ],
+          [
+            0.0,
+            -0.25881904510252074,
+            0.9659258262890682
+          ]
+        ],
+        "score": 1.136816045264684,
+        "support_links": 2,
+        "predicted_closure_fraction": 0.5625,
+        "thumb_bias_rad": 0.0,
+        "closing_target_rad": [
+          0.0,
+          -0.7,
+          -1.2,
+          1.1,
+          1.2,
+          1.1,
+          1.2
+        ]
+      },
+      "walk": {
+        "status": "arrived",
+        "initial": [
+          -1.1360254355636377,
+          0.26442063387925896,
+          -0.21047776294083187
+        ],
+        "arrival": [
+          0.12098367219798786,
+          -0.05015140379249011,
+          -0.07432117725578813
+        ],
+        "displacement_m": 1.2957729214181912,
+        "true_displacement_m": 1.2972509695647114,
+        "settled_pose": [
+          0.11448114683208843,
+          -0.040193904498814166,
+          -0.058215784723900654
+        ],
+        "table_contact_samples": 0
+      },
+      "settle": {
+        "stable": true
+      },
+      "raise": {
+        "predictions": [
+          {
+            "goal": "vertical raise in measured orientation",
+            "order": "hold left arm",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "pregrasp": {
+        "predictions": [
+          {
+            "goal": "nominal",
+            "order": "hold left arm",
+            "passed": false,
+            "stop": {
+              "t": 1.5599999999999887,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0002679556550206353,
+                "body": "right_hand_middle_1_link"
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "direct",
+            "passed": false,
+            "stop": {
+              "t": 1.5599999999999887,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0024471557636923658,
+                "body": "right_hand_middle_1_link"
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "upper arm first 0.5",
+            "passed": false,
+            "stop": {
+              "t": 1.739999999999985,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0017854621703167586,
+                "body": "right_hand_index_1_link"
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "upper arm first 1",
+            "passed": false,
+            "stop": {
+              "t": 1.9999999999999793,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.001514770609603977,
+                "body": "right_hand_index_1_link"
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "wrist first 0.5",
+            "passed": false,
+            "stop": {
+              "t": 2.6199999999999664,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0013147150106186068,
+                "body": "left_hand_thumb_1_link"
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "wrist first 1",
+            "passed": false,
+            "stop": {
+              "t": 3.7799999999999416,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0018549978623238893,
+                "body": "left_hand_thumb_1_link"
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "shoulder first 0.5",
+            "passed": false,
+            "stop": {
+              "t": 1.5399999999999892,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0026338602702538627,
+                "body": "right_hand_index_1_link"
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "shoulder first 1",
+            "passed": false,
+            "stop": {
+              "t": 2.6999999999999647,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.002458654709229679,
+                "body": "right_hand_middle_1_link"
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "elbow first 0.5",
+            "passed": false,
+            "stop": {
+              "t": 1.8999999999999815,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": -8.380107750653017e-05,
+                "body": "right_hand_index_1_link"
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "elbow first 1",
+            "passed": false,
+            "stop": {
+              "t": 2.259999999999974,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.002631764978892179,
+                "body": "right_hand_index_1_link"
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "shoulder pitch first 0.5",
+            "passed": false,
+            "stop": {
+              "t": 2.739999999999964,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0019711528619516527,
+                "body": "left_hand_thumb_1_link"
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "shoulder pitch first 1",
+            "passed": false,
+            "stop": {
+              "t": 2.9799999999999587,
+              "reason": "torque limit",
+              "detail": {
+                "ratio": 1.0222516347389086,
+                "joint": 20.0,
+                "joint_name": "left_wrist_pitch_joint"
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "shoulder roll first 0.5",
+            "passed": false,
+            "stop": {
+              "t": 1.9599999999999802,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.0024828290501453516,
+                "body": "right_hand_index_1_link"
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "shoulder roll first 1",
+            "passed": false,
+            "stop": {
+              "t": 2.5599999999999676,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.000876222896604717,
+                "body": "right_hand_index_1_link"
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "body first",
+            "passed": false,
+            "stop": {
+              "t": 1.5799999999999883,
+              "reason": "hand clearance",
+              "detail": {
+                "table_clearance_m": 0.002523078284062563,
+                "body": "right_hand_middle_1_link"
+              }
+            }
+          },
+          {
+            "goal": "nominal",
+            "order": "geometric waypoint 0",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "reach": {
+        "predictions": [
+          {
+            "goal": "nominal",
+            "order": "hold left arm",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "align_1": {
+        "predictions": [
+          {
+            "goal": "nominal",
+            "order": "hold left arm",
+            "passed": true,
+            "stop": null
+          }
+        ],
+        "completed": true,
+        "refused": null,
+        "stops": []
+      },
+      "descend": {
+        "completed": true,
+        "corrections": [
+          {
+            "before_error_m": [
+              -0.012430584848445503,
+              -0.0009066408518467461,
+              -0.042550000365302654
+            ],
+            "prediction_m": [
+              0.4679599624477251,
+              -0.1737853603867792,
+              0.8520736718387008
+            ],
+            "stops": []
+          },
+          {
+            "before_error_m": [
+              -0.0018951487989386506,
+              -0.0002169042060239934,
+              -0.03139472834890522
+            ],
+            "prediction_m": [
+              0.46675795382111396,
+              -0.17406020818848023,
+              0.839886526240884
+            ],
+            "stops": []
+          },
+          {
+            "before_error_m": [
+              -0.0006646667513893201,
+              4.548716877303405e-05,
+              -0.01923437952460738
+            ],
+            "prediction_m": [
+              0.46631989621903214,
+              -0.17423382331313952,
+              0.8274907927702778
+            ],
+            "stops": []
+          },
+          {
+            "before_error_m": [
+              -0.0002361781367146154,
+              0.00019412189679066105,
+              -0.006844446014156125
+            ],
+            "prediction_m": [
+              0.4660753527546342,
+              -0.1741242241936255,
+              0.8207232572449314
+            ],
+            "stops": []
+          }
+        ]
+      },
+      "preclose": {
+        "grasp_xyz_m": [
+          0.4660300312083281,
+          -0.17407783858873996,
+          0.8207344001326309
+        ],
+        "wrist_rotation": [
+          [
+            0.9985717804672471,
+            -0.027267027252405086,
+            0.04594462405210714
+          ],
+          [
+            0.013982540797055885,
+            0.9633638208675186,
+            0.26783322646078644
+          ],
+          [
+            -0.051564404460165456,
+            -0.2668082792350208,
+            0.962369188162379
+          ]
+        ],
+        "table_clearance_m": 0.015355699031408767,
+        "opposing_gap_m": -0.010263857880612381,
+        "position_error_m": [
+          -3.360299112081799e-05,
+          6.76099056495516e-05,
+          -9.33280474255671e-05
+        ],
+        "clear": true
+      },
+      "close": {
+        "opposed_touch": true,
+        "closure_fraction": 0.6600000000000003
+      },
+      "probe": {
+        "completed": true,
+        "object_rise_m": 0.025366548657213217
+      },
+      "lift": {
+        "completed": false,
+        "stops": [
+          {
+            "t": 28.01999999999871,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          }
+        ]
+      },
+      "whole_body_grasp_preview": {
+        "proposed_rank": 9,
+        "executed_rank": 0,
+        "predicted_verified": false,
+        "predicted_peak_lift_m": -0.00010809841232362061,
+        "predicted_stop": null,
+        "attempts": [
+          {
+            "rank": 9,
+            "family": "pinch",
+            "verified": false,
+            "peak_lift_m": -0.00010809841232362061,
+            "stop": null
+          }
+        ],
+        "family": "pinch"
+      },
+      "grasp_depth_fallback": [
+        {
+          "rank": 17,
+          "family": "pinch",
+          "verified": false,
+          "peak_lift_m": 0.002926164692334754,
+          "stop": {
+            "t": 24.79999999999935,
+            "reason": "object contact lost",
+            "detail": {
+              "observed_opposing_gap_m": 0.005687941487280461
+            }
+          }
+        },
+        {
+          "rank": 16,
+          "family": "pinch",
+          "verified": false,
+          "peak_lift_m": 0.002182795996104825,
+          "stop": {
+            "t": 26.939999999998925,
+            "reason": "object contact lost",
+            "detail": {
+              "observed_opposing_gap_m": 0.005089508352260642
+            }
+          }
+        },
+        {
+          "rank": 25,
+          "family": "pinch",
+          "verified": false,
+          "peak_lift_m": -0.00010809841232362061,
+          "stop": null
+        },
+        {
+          "rank": 0,
+          "family": "proximal_wrap",
+          "verified": false,
+          "peak_lift_m": -0.00010809841232362061,
+          "stop": null
+        }
+      ]
+    },
+    "stop": {
+      "t": 28.01999999999871,
+      "reason": "grip lost",
+      "detail": {
+        "weakest_normal_n": 0.0
+      }
+    },
+    "peak_lift_m": 0.05356296974397323,
+    "grasp_observed": false,
+    "grasp_verified": false
+  },
+  "evidence": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-walk-cylinder-alternate-001",
+      "kind": "dir",
+      "sha256": "34847c015b66d57a03c2156ffca48bee781a41b3b98167ee29b2025942909dc0",
+      "skipped": []
+    }
+  ],
+  "cloud": null
+}

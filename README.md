@@ -22,7 +22,7 @@ sequencing and evidence rules.
 | Rung | Capability | Status |
 |---|---|---|
 | R0 | G1 model, controller and safety on one integration branch | Integration checks passed |
-| R1 | Free-standing contact grasp and lift | Fixed-stance holds on boxes, cylinders, mugs and lighter bottles |
+| R1 | Free-standing contact grasp and lift | Fixed-stance holds and walking cube grasps verified in development |
 | R2 | Carry and place | Pending |
 | R3 | Fetch from language | Pending |
 | R4 | Held-out task compositions | Pending |
@@ -91,6 +91,23 @@ The lighter bottle was recovered, and a new 0.12 kg bottle also held. Both
 heavier bottles and the sphere failed. The sensed result and independent
 evaluation agreed on all 17 episodes. [Measurements](results/g1_r1_bottle_dev_20261111/summary.json)
 and [development report](Reports/2026-11-11/001-r1-bottle-recovery/REPORT.md).
+
+The walking diagnostic selects a stance from observed table geometry and arm
+reachability, then uses odometry and the whole-body controller to reach it.
+The final comparison reached all four selected stances from 1.24–1.42 m from
+the table with zero robot-table contact samples during walking and settling.
+Three cubes, including a rotated and translated scene, passed the complete
+lift and hold gate. The cylinder slipped after lifting. Object pose, table
+geometry and odometry are oracle-assisted in these single-table scenes.
+[Measurements](results/g1_r1_walk_dev_20261111/summary.json) and
+[walking report](Reports/2026-11-11/002-r1-walk-to-grasp/REPORT.md).
+
+To reproduce the offset walking case from the repository root with cached WBC
+weights, use a fresh output directory.
+
+```powershell
+python -m experiments.g1_grasp_bringup --config experiments/configs/g1_walk_grasp.json --out "$env:TEMP/dream-r1-walk"
+```
 
 ## Executive summary
 

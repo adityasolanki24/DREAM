@@ -1,0 +1,83 @@
+{
+  "run_id": "2026-11-11-002/20261111-125117-force-headroom",
+  "task_id": "2026-11-11-002",
+  "title": "Check force headroom and the hold gate on all walking fixtures",
+  "started": "2026-11-11T12:51:17+11:00",
+  "commit": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+  "dirty": true,
+  "branch": "codex/g1-integration",
+  "configs": [
+    {
+      "path": "experiments/configs/g1_grasp_bringup_pinch.json",
+      "sha256": "6e6b98f06df2b283a93ed1a1ba708724c0238fcf20f1c7b83e37565200a5dc7b"
+    },
+    {
+      "path": "experiments/configs/g1_grasp_bringup_cylinder.json",
+      "sha256": "ecb6de06dd040e4a769537eaa933a0462ccfe70d962cf308c713a20fb345dcd8"
+    }
+  ],
+  "command": "python C:/Users/24adi/DREAM-r1-evidence/r1-walk-preload-001/run.py",
+  "seeds": "81,83,89,97",
+  "model": "Cached Decoupled WBC",
+  "simulator": "MuJoCo 3.16.0",
+  "renderer": "None",
+  "embodiment": "free-standing G1 Dex3",
+  "controller": "Decoupled WBC",
+  "hardware": "local CPU, serial",
+  "status": "completed",
+  "ended": "2026-11-11T12:57:11+11:00",
+  "exit_status": 0,
+  "cases_attempted": 4,
+  "cases_completed": 4,
+  "metrics": {
+    "verified": 2,
+    "total": 4,
+    "cases": [
+      {
+        "case": "rotated",
+        "verified": false,
+        "peak_lift_m": 0.1423519866034233,
+        "stop": {
+          "t": 27.939999999998726,
+          "reason": "grip lost",
+          "detail": {
+            "weakest_normal_n": 0.0
+          }
+        }
+      },
+      {
+        "case": "offset",
+        "verified": true,
+        "peak_lift_m": 0.1436095263992293,
+        "stop": null
+      },
+      {
+        "case": "front",
+        "verified": true,
+        "peak_lift_m": 0.1435134073538914,
+        "stop": null
+      },
+      {
+        "case": "cylinder",
+        "verified": false,
+        "peak_lift_m": 0.05481734848860487,
+        "stop": {
+          "t": 25.09999999999929,
+          "reason": "grip lost",
+          "detail": {
+            "weakest_normal_n": 0.0
+          }
+        }
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-walk-preload-001",
+      "kind": "dir",
+      "sha256": "6b1f1175ec62cc6b3bedbcadaeaaf6193455a74aea1864c3167067c6175ac5ef",
+      "skipped": []
+    }
+  ],
+  "cloud": null
+}

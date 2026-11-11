@@ -1,0 +1,203 @@
+{
+  "run_id": "2026-11-11-002/20261111-124518-frame-invariant-stance",
+  "task_id": "2026-11-11-002",
+  "title": "Verify the corrected stance ranking under a scene rotation",
+  "started": "2026-11-11T12:45:18+11:00",
+  "commit": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+  "dirty": true,
+  "branch": "codex/g1-integration",
+  "configs": [
+    {
+      "path": "experiments/configs/g1_grasp_bringup_pinch.json",
+      "sha256": "6e6b98f06df2b283a93ed1a1ba708724c0238fcf20f1c7b83e37565200a5dc7b"
+    },
+    {
+      "path": "experiments/configs/g1_grasp_bringup_cylinder.json",
+      "sha256": "ecb6de06dd040e4a769537eaa933a0462ccfe70d962cf308c713a20fb345dcd8"
+    }
+  ],
+  "command": "python C:/Users/24adi/DREAM-r1-evidence/r1-walk-frame-001/run.py",
+  "seeds": "81,83,89,97",
+  "model": "Cached Decoupled WBC",
+  "simulator": "MuJoCo 3.16.0",
+  "renderer": "None",
+  "embodiment": "free-standing G1 Dex3",
+  "controller": "Decoupled WBC",
+  "hardware": "local CPU, two workers",
+  "status": "completed",
+  "ended": "2026-11-11T12:49:24+11:00",
+  "exit_status": 0,
+  "cases_attempted": 4,
+  "cases_completed": 4,
+  "metrics": {
+    "verified": 2,
+    "total": 4,
+    "cases": [
+      {
+        "case": "front",
+        "verified": true,
+        "peak_lift_m": 0.1435134073538914,
+        "stop": null,
+        "stance": {
+          "goal": [
+            0.14999999999999997,
+            -0.16999999999999998,
+            0.34999999999999964
+          ],
+          "heading": 0.0,
+          "tested": 1
+        },
+        "walk": {
+          "status": "arrived",
+          "initial": [
+            -0.9874102900839065,
+            -0.17286115214987205,
+            -0.008794954914004727
+          ],
+          "arrival": [
+            0.10715231220568795,
+            -0.1506619972655339,
+            0.318726236948057
+          ],
+          "displacement_m": 1.0947876930293596,
+          "true_displacement_m": 1.094569993543035,
+          "settled_pose": [
+            0.10886112736911932,
+            -0.1563929249015053,
+            0.3390808779628789
+          ],
+          "table_contact_samples": 0
+        }
+      },
+      {
+        "case": "offset",
+        "verified": true,
+        "peak_lift_m": 0.1436095263992293,
+        "stop": null,
+        "stance": {
+          "goal": [
+            0.14999999999999997,
+            -0.16999999999999998,
+            0.34999999999999964
+          ],
+          "heading": 0.0,
+          "tested": 1
+        },
+        "walk": {
+          "status": "arrived",
+          "initial": [
+            -0.9328114254328418,
+            0.377262468089798,
+            -0.363066288431821
+          ],
+          "arrival": [
+            0.13026136260721102,
+            -0.12704050012780405,
+            0.32068090056656207
+          ],
+          "displacement_m": 1.1766245095289893,
+          "true_displacement_m": 1.176329196992065,
+          "settled_pose": [
+            0.1271180977721636,
+            -0.11986963856308594,
+            0.3228122030981795
+          ],
+          "table_contact_samples": 0
+        }
+      },
+      {
+        "case": "rotated",
+        "verified": false,
+        "peak_lift_m": 0.11474504318982115,
+        "stop": {
+          "t": 26.479999999999016,
+          "reason": "contact force",
+          "detail": {
+            "force": 35.13584307518165
+          }
+        },
+        "stance": {
+          "goal": [
+            -0.23000000000000007,
+            0.39999999999999997,
+            1.9207963267948962
+          ],
+          "heading": 1.5707963267948966,
+          "tested": 1
+        },
+        "walk": {
+          "status": "arrived",
+          "initial": [
+            -0.7774530781448804,
+            -0.6834003966533728,
+            1.2096879360506438
+          ],
+          "arrival": [
+            -0.27297471721030436,
+            0.3810201102046305,
+            1.8942501200460997
+          ],
+          "displacement_m": 1.1779174130944345,
+          "true_displacement_m": 1.1788573900960542,
+          "settled_pose": [
+            -0.280075519738719,
+            0.37862652511345085,
+            1.8990151599527376
+          ],
+          "table_contact_samples": 0
+        }
+      },
+      {
+        "case": "cylinder",
+        "verified": false,
+        "peak_lift_m": 0.055043172904187476,
+        "stop": {
+          "t": 25.09999999999929,
+          "reason": "grip lost",
+          "detail": {
+            "weakest_normal_n": 0.0
+          }
+        },
+        "stance": {
+          "goal": [
+            0.14600000000000002,
+            -0.17399999999999996,
+            0.34999999999999964
+          ],
+          "heading": 0.0,
+          "tested": 1
+        },
+        "walk": {
+          "status": "arrived",
+          "initial": [
+            -1.1360254355636377,
+            0.26442063387925896,
+            -0.21047776294083187
+          ],
+          "arrival": [
+            0.12100780524315065,
+            -0.13617398900757832,
+            0.31607040679181786
+          ],
+          "displacement_m": 1.3193212726167438,
+          "true_displacement_m": 1.3201500922388874,
+          "settled_pose": [
+            0.12017192609605391,
+            -0.13255227793727326,
+            0.3280733612373159
+          ],
+          "table_contact_samples": 0
+        }
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-walk-frame-001",
+      "kind": "dir",
+      "sha256": "d5b1218424bdfe7b46e450e60a803c21f620c4e8378dbbe4a686c3be63b80d45",
+      "skipped": []
+    }
+  ],
+  "cloud": null
+}

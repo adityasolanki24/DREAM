@@ -1,0 +1,2684 @@
+{
+  "scope": "Continuous walk, grasp and hold in single-table MuJoCo development scenes. Object pose and table geometry are oracle-assisted. G1 odometry is oracle-assisted with noise.",
+  "gate": {
+    "minimum_complete_clearance_m": 0.1,
+    "hold_s": 3,
+    "hand_only_contact": true,
+    "walking_table_contact_samples": 0
+  },
+  "runs": {
+    "forward_follower": {
+      "evidence_directory": "r1-walk-pilot-001",
+      "cases": [
+        {
+          "case": "front",
+          "verified": false,
+          "observed": false,
+          "initial_distance_from_table_m": 1.26,
+          "peak_lift_m": -0.00010775541827623414,
+          "minimum_complete_clearance_m": null,
+          "hold_ticks": 0,
+          "peak_hand_force_n": 0.0,
+          "stop": null,
+          "stance": {
+            "goal": [
+              0.019999999999999962,
+              -0.16999999999999996,
+              0.0
+            ],
+            "heading": -1.2335811384723962e-16,
+            "tested": 7
+          },
+          "walk": {
+            "status": "blocked",
+            "initial": [
+              -0.9874102900839065,
+              -0.17286115214987205,
+              -0.008794954914004727
+            ],
+            "arrival": [
+              0.07022179720608329,
+              -0.24011451964446553,
+              0.8253680146539226
+            ],
+            "displacement_m": 1.0597682046111516,
+            "true_displacement_m": 1.059949157905559
+          },
+          "preview": null,
+          "run_metadata": {
+            "config": {
+              "seed": 81,
+              "table_top_m": 0.75,
+              "table_center_xy_m": [
+                0.6,
+                -0.17
+              ],
+              "table_half_size_m": [
+                0.24,
+                0.24,
+                0.025
+              ],
+              "object_center_xy_m": [
+                0.47,
+                -0.17
+              ],
+              "object_half_size_m": 0.025,
+              "object_mass_kg": 0.075,
+              "starting_stance_xy_yaw": [
+                -0.9,
+                -0.17,
+                0.0
+              ],
+              "start_arms_down": true,
+              "start_right_shoulder_roll_rad": -0.35,
+              "start_left_shoulder_roll_rad": 0.35,
+              "walk_to_grasp": true
+            },
+            "git_sha": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+            "mujoco": "3.16.0"
+          },
+          "trace_sha256": "b48c69a2444dc36ad4ba811de601cfb56e850fbbcd70ebc97e75797739c44d6f"
+        },
+        {
+          "case": "offset",
+          "verified": false,
+          "observed": false,
+          "initial_distance_from_table_m": 1.241974234837422,
+          "peak_lift_m": -0.00010775541827623414,
+          "minimum_complete_clearance_m": null,
+          "hold_ticks": 0,
+          "peak_hand_force_n": 0.0,
+          "stop": null,
+          "stance": {
+            "goal": [
+              0.019999999999999962,
+              -0.16999999999999996,
+              -0.3500000000000001
+            ],
+            "heading": -1.2335811384723962e-16,
+            "tested": 9
+          },
+          "walk": {
+            "status": "arrived",
+            "initial": [
+              -0.9328114254328418,
+              0.377262468089798,
+              -0.363066288431821
+            ],
+            "arrival": [
+              -0.026449045119525675,
+              -0.15370662600312945,
+              -0.3119363709642351
+            ],
+            "displacement_m": 1.050438452899114,
+            "true_displacement_m": 1.0499874102669655
+          },
+          "preview": null,
+          "run_metadata": {
+            "config": {
+              "seed": 83,
+              "table_top_m": 0.75,
+              "table_center_xy_m": [
+                0.6,
+                -0.17
+              ],
+              "table_half_size_m": [
+                0.24,
+                0.24,
+                0.025
+              ],
+              "object_center_xy_m": [
+                0.47,
+                -0.17
+              ],
+              "object_half_size_m": 0.025,
+              "object_mass_kg": 0.075,
+              "starting_stance_xy_yaw": [
+                -0.85,
+                0.35,
+                -0.35
+              ],
+              "start_arms_down": true,
+              "start_right_shoulder_roll_rad": -0.35,
+              "start_left_shoulder_roll_rad": 0.35,
+              "walk_to_grasp": true
+            },
+            "git_sha": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+            "mujoco": "3.16.0"
+          },
+          "trace_sha256": "f35b34ab23e8ee28bdc6072a8af5ad31996afc87ed8df2cdf7aa030a17baef68"
+        }
+      ],
+      "verified": 0,
+      "total": 2,
+      "source_sha256": {
+        "g1_grasp_bringup.py": "f0924ba89015ffed9885442a769a4c196f04deb1df0c062a40c11aa40f3a3b93",
+        "g1_grasp_geometry.py": "d7695fbbd8b8dda289219970a474e1505dff574df85852f543ce9979883974a4",
+        "g1_wbc.py": "03b416e030adac9da801746e9b14bf5a0e64cdb6a21df00f14c746bbd85fb3ca",
+        "run.py": "cbd17664c6c02653928cc091d6a0ab7d4b48bb8f243a5e3a1013522e3cb87d52"
+      }
+    },
+    "planar_feedback": {
+      "evidence_directory": "r1-walk-planar-001",
+      "cases": [
+        {
+          "case": "front",
+          "verified": false,
+          "observed": false,
+          "initial_distance_from_table_m": 1.26,
+          "peak_lift_m": -0.00010775541827623414,
+          "minimum_complete_clearance_m": null,
+          "hold_ticks": 0,
+          "peak_hand_force_n": 0.0,
+          "stop": null,
+          "stance": {
+            "goal": [
+              0.019999999999999962,
+              -0.16999999999999996,
+              0.0
+            ],
+            "heading": -1.2335811384723962e-16,
+            "tested": 7
+          },
+          "walk": {
+            "status": "arrived",
+            "initial": [
+              -0.9874102900839065,
+              -0.17286115214987205,
+              -0.008794954914004727
+            ],
+            "arrival": [
+              -0.017085829955706292,
+              -0.19993758477180731,
+              0.0007254458042686984
+            ],
+            "displacement_m": 0.970702163965144,
+            "true_displacement_m": 0.9705157168492667
+          },
+          "preview": null,
+          "run_metadata": {
+            "config": {
+              "seed": 81,
+              "table_top_m": 0.75,
+              "table_center_xy_m": [
+                0.6,
+                -0.17
+              ],
+              "table_half_size_m": [
+                0.24,
+                0.24,
+                0.025
+              ],
+              "object_center_xy_m": [
+                0.47,
+                -0.17
+              ],
+              "object_half_size_m": 0.025,
+              "object_mass_kg": 0.075,
+              "starting_stance_xy_yaw": [
+                -0.9,
+                -0.17,
+                0.0
+              ],
+              "start_arms_down": true,
+              "start_right_shoulder_roll_rad": -0.35,
+              "start_left_shoulder_roll_rad": 0.35,
+              "walk_to_grasp": true
+            },
+            "git_sha": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+            "mujoco": "3.16.0"
+          },
+          "trace_sha256": "d0a51703e14dd5eaf11ce1e3c793ba0c37ca4c754ebe3e4d6bc756d6e91440e2"
+        },
+        {
+          "case": "offset",
+          "verified": false,
+          "observed": false,
+          "initial_distance_from_table_m": 1.241974234837422,
+          "peak_lift_m": -0.00010775541827623414,
+          "minimum_complete_clearance_m": null,
+          "hold_ticks": 0,
+          "peak_hand_force_n": 32.69756062410272,
+          "stop": null,
+          "stance": {
+            "goal": [
+              0.019999999999999962,
+              -0.16999999999999996,
+              -0.3500000000000001
+            ],
+            "heading": -1.2335811384723962e-16,
+            "tested": 9
+          },
+          "walk": {
+            "status": "arrived",
+            "initial": [
+              -0.9328114254328418,
+              0.377262468089798,
+              -0.363066288431821
+            ],
+            "arrival": [
+              -0.02375908512877235,
+              -0.14691619264378267,
+              -0.382847549145239
+            ],
+            "displacement_m": 1.0493519075032722,
+            "true_displacement_m": 1.0492711218712256
+          },
+          "preview": null,
+          "run_metadata": {
+            "config": {
+              "seed": 83,
+              "table_top_m": 0.75,
+              "table_center_xy_m": [
+                0.6,
+                -0.17
+              ],
+              "table_half_size_m": [
+                0.24,
+                0.24,
+                0.025
+              ],
+              "object_center_xy_m": [
+                0.47,
+                -0.17
+              ],
+              "object_half_size_m": 0.025,
+              "object_mass_kg": 0.075,
+              "starting_stance_xy_yaw": [
+                -0.85,
+                0.35,
+                -0.35
+              ],
+              "start_arms_down": true,
+              "start_right_shoulder_roll_rad": -0.35,
+              "start_left_shoulder_roll_rad": 0.35,
+              "walk_to_grasp": true
+            },
+            "git_sha": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+            "mujoco": "3.16.0"
+          },
+          "trace_sha256": "77f71d119ac396be1a6ad2d6f74d69995ed0aab0857577e7818628f14e97ebf2"
+        }
+      ],
+      "verified": 0,
+      "total": 2,
+      "source_sha256": {
+        "g1_grasp_bringup.py": "c6855efbbae856a76b287ddee091ccabaaec83c955ee11b82a3eedab618471ee",
+        "g1_grasp_geometry.py": "d7695fbbd8b8dda289219970a474e1505dff574df85852f543ce9979883974a4",
+        "g1_wbc.py": "03b416e030adac9da801746e9b14bf5a0e64cdb6a21df00f14c746bbd85fb3ca",
+        "run.py": "cbd17664c6c02653928cc091d6a0ab7d4b48bb8f243a5e3a1013522e3cb87d52"
+      }
+    },
+    "mesh_clearance": {
+      "evidence_directory": "r1-walk-clearance-001",
+      "cases": [
+        {
+          "case": "front",
+          "verified": false,
+          "observed": false,
+          "initial_distance_from_table_m": 1.26,
+          "peak_lift_m": -0.00010775541827623414,
+          "minimum_complete_clearance_m": null,
+          "hold_ticks": 0,
+          "peak_hand_force_n": 0.0,
+          "stop": null,
+          "stance": {
+            "goal": [
+              0.14999999999999997,
+              -0.16999999999999998,
+              0.0
+            ],
+            "heading": 0.0,
+            "tested": 1
+          },
+          "walk": {
+            "status": "arrived",
+            "initial": [
+              -0.9874102900839065,
+              -0.17286115214987205,
+              -0.008794954914004727
+            ],
+            "arrival": [
+              0.11657141915693713,
+              -0.20524214941304486,
+              -8.309323099808807e-06
+            ],
+            "displacement_m": 1.1044564922721456,
+            "true_displacement_m": 1.1040938251933774,
+            "settled_pose": [
+              0.11643142406195066,
+              -0.21561912751749618,
+              -0.02746627431439741
+            ],
+            "table_contact_samples": 0
+          },
+          "preview": null,
+          "run_metadata": {
+            "config": {
+              "seed": 81,
+              "table_top_m": 0.75,
+              "table_center_xy_m": [
+                0.6,
+                -0.17
+              ],
+              "table_half_size_m": [
+                0.24,
+                0.24,
+                0.025
+              ],
+              "object_center_xy_m": [
+                0.47,
+                -0.17
+              ],
+              "object_half_size_m": 0.025,
+              "object_mass_kg": 0.075,
+              "starting_stance_xy_yaw": [
+                -0.9,
+                -0.17,
+                0.0
+              ],
+              "start_arms_down": true,
+              "start_right_shoulder_roll_rad": -0.35,
+              "start_left_shoulder_roll_rad": 0.35,
+              "walk_to_grasp": true
+            },
+            "git_sha": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+            "mujoco": "3.16.0"
+          },
+          "trace_sha256": "cecd917faee8c5887ccbc15a70787e87a9019b3c103b1ca839773d24611b381d"
+        },
+        {
+          "case": "offset",
+          "verified": false,
+          "observed": false,
+          "initial_distance_from_table_m": 1.241974234837422,
+          "peak_lift_m": -0.00010775541827623414,
+          "minimum_complete_clearance_m": null,
+          "hold_ticks": 0,
+          "peak_hand_force_n": 0.0,
+          "stop": null,
+          "stance": {
+            "goal": [
+              0.1743585495963882,
+              -0.047541301643171247,
+              -0.39269908169872414
+            ],
+            "heading": 0.0,
+            "tested": 1
+          },
+          "walk": {
+            "status": "arrived",
+            "initial": [
+              -0.9328114254328418,
+              0.377262468089798,
+              -0.363066288431821
+            ],
+            "arrival": [
+              0.1295676629337243,
+              -0.06108125062215803,
+              -0.3962107227044678
+            ],
+            "displacement_m": 1.149258257804921,
+            "true_displacement_m": 1.1488499361992561,
+            "settled_pose": [
+              0.11688614973836055,
+              -0.0786714603524322,
+              -0.42584156714418375
+            ],
+            "table_contact_samples": 0
+          },
+          "preview": null,
+          "run_metadata": {
+            "config": {
+              "seed": 83,
+              "table_top_m": 0.75,
+              "table_center_xy_m": [
+                0.6,
+                -0.17
+              ],
+              "table_half_size_m": [
+                0.24,
+                0.24,
+                0.025
+              ],
+              "object_center_xy_m": [
+                0.47,
+                -0.17
+              ],
+              "object_half_size_m": 0.025,
+              "object_mass_kg": 0.075,
+              "starting_stance_xy_yaw": [
+                -0.85,
+                0.35,
+                -0.35
+              ],
+              "start_arms_down": true,
+              "start_right_shoulder_roll_rad": -0.35,
+              "start_left_shoulder_roll_rad": 0.35,
+              "walk_to_grasp": true
+            },
+            "git_sha": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+            "mujoco": "3.16.0"
+          },
+          "trace_sha256": "43977b7548b6a6e69b959a4332e31d93b4efac4714ba3166342780521b34a1ce"
+        }
+      ],
+      "verified": 0,
+      "total": 2,
+      "source_sha256": {
+        "g1_grasp_bringup.py": "9550a6a394d855ed49ab57d458e3fc0a4195c4c793f0cde892fba48c597f60cf",
+        "g1_grasp_geometry.py": "d7695fbbd8b8dda289219970a474e1505dff574df85852f543ce9979883974a4",
+        "g1_wbc.py": "03b416e030adac9da801746e9b14bf5a0e64cdb6a21df00f14c746bbd85fb3ca",
+        "run.py": "cbd17664c6c02653928cc091d6a0ab7d4b48bb8f243a5e3a1013522e3cb87d52"
+      }
+    },
+    "shoulder_alignment": {
+      "evidence_directory": "r1-walk-shoulder-001",
+      "cases": [
+        {
+          "case": "front",
+          "verified": false,
+          "observed": false,
+          "initial_distance_from_table_m": 1.26,
+          "peak_lift_m": 0.0024612016378572354,
+          "minimum_complete_clearance_m": null,
+          "hold_ticks": 0,
+          "peak_hand_force_n": 8.567189589879895,
+          "stop": {
+            "t": 22.379999999999832,
+            "reason": "object contact lost",
+            "detail": {
+              "observed_opposing_gap_m": 0.003152256718096069
+            }
+          },
+          "stance": {
+            "goal": [
+              0.14999999999999997,
+              -0.16999999999999998,
+              0.34999999999999964
+            ],
+            "heading": 0.0,
+            "tested": 1
+          },
+          "walk": {
+            "status": "arrived",
+            "initial": [
+              -0.9874102900839065,
+              -0.17286115214987205,
+              -0.008794954914004727
+            ],
+            "arrival": [
+              0.10715231220568795,
+              -0.1506619972655339,
+              0.318726236948057
+            ],
+            "displacement_m": 1.0947876930293596,
+            "true_displacement_m": 1.094569993543035,
+            "settled_pose": [
+              0.10886112736911932,
+              -0.1563929249015053,
+              0.3390808779628789
+            ],
+            "table_contact_samples": 0
+          },
+          "preview": null,
+          "run_metadata": {
+            "config": {
+              "seed": 81,
+              "table_top_m": 0.75,
+              "table_center_xy_m": [
+                0.6,
+                -0.17
+              ],
+              "table_half_size_m": [
+                0.24,
+                0.24,
+                0.025
+              ],
+              "object_center_xy_m": [
+                0.47,
+                -0.17
+              ],
+              "object_half_size_m": 0.025,
+              "object_mass_kg": 0.075,
+              "starting_stance_xy_yaw": [
+                -0.9,
+                -0.17,
+                0.0
+              ],
+              "start_arms_down": true,
+              "start_right_shoulder_roll_rad": -0.35,
+              "start_left_shoulder_roll_rad": 0.35,
+              "walk_to_grasp": true
+            },
+            "git_sha": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+            "mujoco": "3.16.0"
+          },
+          "trace_sha256": "8762c86049f6153e3e8720103e63755c9f4b9e47c947ffb0bb60e875444bc27f"
+        },
+        {
+          "case": "offset",
+          "verified": false,
+          "observed": false,
+          "initial_distance_from_table_m": 1.241974234837422,
+          "peak_lift_m": 0.003919058711910672,
+          "minimum_complete_clearance_m": null,
+          "hold_ticks": 0,
+          "peak_hand_force_n": 10.43399434101018,
+          "stop": null,
+          "stance": {
+            "goal": [
+              0.14999999999999997,
+              -0.16999999999999998,
+              0.34999999999999964
+            ],
+            "heading": 0.0,
+            "tested": 1
+          },
+          "walk": {
+            "status": "arrived",
+            "initial": [
+              -0.9328114254328418,
+              0.377262468089798,
+              -0.363066288431821
+            ],
+            "arrival": [
+              0.13026136260721102,
+              -0.12704050012780405,
+              0.32068090056656207
+            ],
+            "displacement_m": 1.1766245095289893,
+            "true_displacement_m": 1.176329196992065,
+            "settled_pose": [
+              0.1271180977721636,
+              -0.11986963856308594,
+              0.3228122030981795
+            ],
+            "table_contact_samples": 0
+          },
+          "preview": null,
+          "run_metadata": {
+            "config": {
+              "seed": 83,
+              "table_top_m": 0.75,
+              "table_center_xy_m": [
+                0.6,
+                -0.17
+              ],
+              "table_half_size_m": [
+                0.24,
+                0.24,
+                0.025
+              ],
+              "object_center_xy_m": [
+                0.47,
+                -0.17
+              ],
+              "object_half_size_m": 0.025,
+              "object_mass_kg": 0.075,
+              "starting_stance_xy_yaw": [
+                -0.85,
+                0.35,
+                -0.35
+              ],
+              "start_arms_down": true,
+              "start_right_shoulder_roll_rad": -0.35,
+              "start_left_shoulder_roll_rad": 0.35,
+              "walk_to_grasp": true
+            },
+            "git_sha": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+            "mujoco": "3.16.0"
+          },
+          "trace_sha256": "acc8c3f0d99a31bdca3cebf61d23301580dce4487c500d043dc582dc3bc64d93"
+        }
+      ],
+      "verified": 0,
+      "total": 2,
+      "source_sha256": {
+        "g1_grasp_bringup.py": "6a5f6b721f224b8b6aa7751b0ca3416419d98f042e71c737c1fae0767387798a",
+        "g1_grasp_geometry.py": "d7695fbbd8b8dda289219970a474e1505dff574df85852f543ce9979883974a4",
+        "g1_wbc.py": "03b416e030adac9da801746e9b14bf5a0e64cdb6a21df00f14c746bbd85fb3ca",
+        "run.py": "cbd17664c6c02653928cc091d6a0ab7d4b48bb8f243a5e3a1013522e3cb87d52"
+      }
+    },
+    "full_selector": {
+      "evidence_directory": "r1-walk-full-selector-001",
+      "cases": [
+        {
+          "case": "front",
+          "verified": true,
+          "observed": true,
+          "initial_distance_from_table_m": 1.26,
+          "peak_lift_m": 0.1435134073538914,
+          "minimum_complete_clearance_m": 0.11839249404972929,
+          "hold_ticks": 150,
+          "peak_hand_force_n": 18.6985137151581,
+          "stop": null,
+          "stance": {
+            "goal": [
+              0.14999999999999997,
+              -0.16999999999999998,
+              0.34999999999999964
+            ],
+            "heading": 0.0,
+            "tested": 1
+          },
+          "walk": {
+            "status": "arrived",
+            "initial": [
+              -0.9874102900839065,
+              -0.17286115214987205,
+              -0.008794954914004727
+            ],
+            "arrival": [
+              0.10715231220568795,
+              -0.1506619972655339,
+              0.318726236948057
+            ],
+            "displacement_m": 1.0947876930293596,
+            "true_displacement_m": 1.094569993543035,
+            "settled_pose": [
+              0.10886112736911932,
+              -0.1563929249015053,
+              0.3390808779628789
+            ],
+            "table_contact_samples": 0
+          },
+          "preview": {
+            "proposed_rank": 4,
+            "executed_rank": 0,
+            "predicted_verified": false,
+            "predicted_peak_lift_m": -0.00010775541827623414,
+            "predicted_stop": null,
+            "attempts": [
+              {
+                "rank": 4,
+                "family": "pinch",
+                "verified": false,
+                "peak_lift_m": -0.00010775541827623414,
+                "stop": null
+              }
+            ],
+            "family": "pinch"
+          },
+          "run_metadata": {
+            "config": {
+              "seed": 81,
+              "table_top_m": 0.75,
+              "table_center_xy_m": [
+                0.6,
+                -0.17
+              ],
+              "table_half_size_m": [
+                0.24,
+                0.24,
+                0.025
+              ],
+              "object_center_xy_m": [
+                0.47,
+                -0.17
+              ],
+              "object_half_size_m": 0.025,
+              "object_mass_kg": 0.075,
+              "starting_stance_xy_yaw": [
+                -0.9,
+                -0.17,
+                0.0
+              ],
+              "start_arms_down": true,
+              "start_right_shoulder_roll_rad": -0.35,
+              "start_left_shoulder_roll_rad": 0.35,
+              "contact_geometry_search": true,
+              "whole_body_grasp_preview": true,
+              "grasp_depth_search": true,
+              "walk_to_grasp": true
+            },
+            "git_sha": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+            "mujoco": "3.16.0"
+          },
+          "trace_sha256": "b1975d19513abd7cb9d0390ee169b251d8cf0abf8d3bed41982a4ccb7266defb"
+        },
+        {
+          "case": "offset",
+          "verified": true,
+          "observed": true,
+          "initial_distance_from_table_m": 1.241974234837422,
+          "peak_lift_m": 0.1436095263992293,
+          "minimum_complete_clearance_m": 0.12145394309819912,
+          "hold_ticks": 150,
+          "peak_hand_force_n": 18.6563611812445,
+          "stop": null,
+          "stance": {
+            "goal": [
+              0.14999999999999997,
+              -0.16999999999999998,
+              0.34999999999999964
+            ],
+            "heading": 0.0,
+            "tested": 1
+          },
+          "walk": {
+            "status": "arrived",
+            "initial": [
+              -0.9328114254328418,
+              0.377262468089798,
+              -0.363066288431821
+            ],
+            "arrival": [
+              0.13026136260721102,
+              -0.12704050012780405,
+              0.32068090056656207
+            ],
+            "displacement_m": 1.1766245095289893,
+            "true_displacement_m": 1.176329196992065,
+            "settled_pose": [
+              0.1271180977721636,
+              -0.11986963856308594,
+              0.3228122030981795
+            ],
+            "table_contact_samples": 0
+          },
+          "preview": {
+            "proposed_rank": 52,
+            "executed_rank": 52,
+            "predicted_verified": true,
+            "predicted_peak_lift_m": 0.13735963882548063,
+            "predicted_stop": null,
+            "attempts": [
+              {
+                "rank": 52,
+                "family": "pinch",
+                "verified": true,
+                "peak_lift_m": 0.13735963882548063,
+                "stop": null
+              }
+            ],
+            "family": "pinch"
+          },
+          "run_metadata": {
+            "config": {
+              "seed": 83,
+              "table_top_m": 0.75,
+              "table_center_xy_m": [
+                0.6,
+                -0.17
+              ],
+              "table_half_size_m": [
+                0.24,
+                0.24,
+                0.025
+              ],
+              "object_center_xy_m": [
+                0.47,
+                -0.17
+              ],
+              "object_half_size_m": 0.025,
+              "object_mass_kg": 0.075,
+              "starting_stance_xy_yaw": [
+                -0.85,
+                0.35,
+                -0.35
+              ],
+              "start_arms_down": true,
+              "start_right_shoulder_roll_rad": -0.35,
+              "start_left_shoulder_roll_rad": 0.35,
+              "contact_geometry_search": true,
+              "whole_body_grasp_preview": true,
+              "grasp_depth_search": true,
+              "walk_to_grasp": true
+            },
+            "git_sha": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+            "mujoco": "3.16.0"
+          },
+          "trace_sha256": "559875da76ba740999a276ff0d994178119784e75520338d674df95f0f0a6d2f"
+        }
+      ],
+      "verified": 2,
+      "total": 2,
+      "source_sha256": {
+        "g1_grasp_bringup.py": "e27fd4d502ab08b0d03aa8ed10f90428bc2659441b267fcf4a009d63d320c675",
+        "g1_grasp_geometry.py": "d7695fbbd8b8dda289219970a474e1505dff574df85852f543ce9979883974a4",
+        "g1_wbc.py": "03b416e030adac9da801746e9b14bf5a0e64cdb6a21df00f14c746bbd85fb3ca",
+        "run.py": "4ecbcd3fdcbd8905d004c3914cb5658c0c65e4dd26708eb2a88032a8b5f839f6"
+      }
+    },
+    "transfer": {
+      "evidence_directory": "r1-walk-transfer-001",
+      "cases": [
+        {
+          "case": "front",
+          "verified": true,
+          "observed": true,
+          "initial_distance_from_table_m": 1.26,
+          "peak_lift_m": 0.1435134073538914,
+          "minimum_complete_clearance_m": 0.11839249404972929,
+          "hold_ticks": 150,
+          "peak_hand_force_n": 18.6985137151581,
+          "stop": null,
+          "stance": {
+            "goal": [
+              0.14999999999999997,
+              -0.16999999999999998,
+              0.34999999999999964
+            ],
+            "heading": 0.0,
+            "tested": 1
+          },
+          "walk": {
+            "status": "arrived",
+            "initial": [
+              -0.9874102900839065,
+              -0.17286115214987205,
+              -0.008794954914004727
+            ],
+            "arrival": [
+              0.10715231220568795,
+              -0.1506619972655339,
+              0.318726236948057
+            ],
+            "displacement_m": 1.0947876930293596,
+            "true_displacement_m": 1.094569993543035,
+            "settled_pose": [
+              0.10886112736911932,
+              -0.1563929249015053,
+              0.3390808779628789
+            ],
+            "table_contact_samples": 0
+          },
+          "preview": {
+            "proposed_rank": 4,
+            "executed_rank": 0,
+            "predicted_verified": false,
+            "predicted_peak_lift_m": -0.00010775541827623414,
+            "predicted_stop": null,
+            "attempts": [
+              {
+                "rank": 4,
+                "family": "pinch",
+                "verified": false,
+                "peak_lift_m": -0.00010775541827623414,
+                "stop": null
+              }
+            ],
+            "family": "pinch"
+          },
+          "run_metadata": {
+            "config": {
+              "seed": 81,
+              "table_top_m": 0.75,
+              "table_center_xy_m": [
+                0.6,
+                -0.17
+              ],
+              "table_half_size_m": [
+                0.24,
+                0.24,
+                0.025
+              ],
+              "object_center_xy_m": [
+                0.47,
+                -0.17
+              ],
+              "object_half_size_m": 0.025,
+              "object_mass_kg": 0.075,
+              "starting_stance_xy_yaw": [
+                -0.9,
+                -0.17,
+                0.0
+              ],
+              "start_arms_down": true,
+              "start_right_shoulder_roll_rad": -0.35,
+              "start_left_shoulder_roll_rad": 0.35,
+              "contact_geometry_search": true,
+              "whole_body_grasp_preview": true,
+              "grasp_depth_search": true,
+              "walk_to_grasp": true
+            },
+            "git_sha": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+            "mujoco": "3.16.0"
+          },
+          "trace_sha256": "b1975d19513abd7cb9d0390ee169b251d8cf0abf8d3bed41982a4ccb7266defb"
+        },
+        {
+          "case": "offset",
+          "verified": true,
+          "observed": true,
+          "initial_distance_from_table_m": 1.241974234837422,
+          "peak_lift_m": 0.1436095263992293,
+          "minimum_complete_clearance_m": 0.12145394309819912,
+          "hold_ticks": 150,
+          "peak_hand_force_n": 18.6563611812445,
+          "stop": null,
+          "stance": {
+            "goal": [
+              0.14999999999999997,
+              -0.16999999999999998,
+              0.34999999999999964
+            ],
+            "heading": 0.0,
+            "tested": 1
+          },
+          "walk": {
+            "status": "arrived",
+            "initial": [
+              -0.9328114254328418,
+              0.377262468089798,
+              -0.363066288431821
+            ],
+            "arrival": [
+              0.13026136260721102,
+              -0.12704050012780405,
+              0.32068090056656207
+            ],
+            "displacement_m": 1.1766245095289893,
+            "true_displacement_m": 1.176329196992065,
+            "settled_pose": [
+              0.1271180977721636,
+              -0.11986963856308594,
+              0.3228122030981795
+            ],
+            "table_contact_samples": 0
+          },
+          "preview": {
+            "proposed_rank": 52,
+            "executed_rank": 52,
+            "predicted_verified": true,
+            "predicted_peak_lift_m": 0.13735963882548063,
+            "predicted_stop": null,
+            "attempts": [
+              {
+                "rank": 52,
+                "family": "pinch",
+                "verified": true,
+                "peak_lift_m": 0.13735963882548063,
+                "stop": null
+              }
+            ],
+            "family": "pinch"
+          },
+          "run_metadata": {
+            "config": {
+              "seed": 83,
+              "table_top_m": 0.75,
+              "table_center_xy_m": [
+                0.6,
+                -0.17
+              ],
+              "table_half_size_m": [
+                0.24,
+                0.24,
+                0.025
+              ],
+              "object_center_xy_m": [
+                0.47,
+                -0.17
+              ],
+              "object_half_size_m": 0.025,
+              "object_mass_kg": 0.075,
+              "starting_stance_xy_yaw": [
+                -0.85,
+                0.35,
+                -0.35
+              ],
+              "start_arms_down": true,
+              "start_right_shoulder_roll_rad": -0.35,
+              "start_left_shoulder_roll_rad": 0.35,
+              "contact_geometry_search": true,
+              "whole_body_grasp_preview": true,
+              "grasp_depth_search": true,
+              "walk_to_grasp": true
+            },
+            "git_sha": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+            "mujoco": "3.16.0"
+          },
+          "trace_sha256": "559875da76ba740999a276ff0d994178119784e75520338d674df95f0f0a6d2f"
+        },
+        {
+          "case": "rotated",
+          "verified": false,
+          "observed": false,
+          "initial_distance_from_table_m": 1.241974234837422,
+          "peak_lift_m": -0.00010775541827623414,
+          "minimum_complete_clearance_m": null,
+          "hold_ticks": 0,
+          "peak_hand_force_n": 0.0,
+          "stop": null,
+          "stance": {
+            "goal": [
+              -0.4562741699796953,
+              0.4937258300203048,
+              1.135398163397448
+            ],
+            "heading": 1.5707963267948966,
+            "tested": 1
+          },
+          "walk": {
+            "status": "arrived",
+            "initial": [
+              -0.7774530781448804,
+              -0.6834003966533728,
+              1.2096879360506438
+            ],
+            "arrival": [
+              -0.42806243416690126,
+              0.45577259737358833,
+              1.129313317956238
+            ],
+            "displacement_m": 1.1915489635007441,
+            "true_displacement_m": 1.192114839771883,
+            "settled_pose": [
+              -0.4070990383934732,
+              0.44251613322776867,
+              1.104956263266108
+            ],
+            "table_contact_samples": 0
+          },
+          "preview": {
+            "proposed_rank": 4,
+            "executed_rank": 0,
+            "predicted_verified": false,
+            "predicted_peak_lift_m": -0.00010775541827623414,
+            "predicted_stop": null,
+            "attempts": [
+              {
+                "rank": 4,
+                "family": "pinch",
+                "verified": false,
+                "peak_lift_m": -0.00010775541827623414,
+                "stop": null
+              }
+            ],
+            "family": "pinch"
+          },
+          "run_metadata": {
+            "config": {
+              "seed": 89,
+              "table_top_m": 0.75,
+              "table_center_xy_m": [
+                -0.23,
+                0.85
+              ],
+              "table_half_size_m": [
+                0.24,
+                0.24,
+                0.025
+              ],
+              "object_center_xy_m": [
+                -0.23,
+                0.72
+              ],
+              "object_half_size_m": 0.025,
+              "object_mass_kg": 0.075,
+              "starting_stance_xy_yaw": [
+                -0.75,
+                -0.6,
+                1.2207963267948967
+              ],
+              "start_arms_down": true,
+              "start_right_shoulder_roll_rad": -0.35,
+              "start_left_shoulder_roll_rad": 0.35,
+              "contact_geometry_search": true,
+              "whole_body_grasp_preview": true,
+              "grasp_depth_search": true,
+              "walk_to_grasp": true
+            },
+            "git_sha": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+            "mujoco": "3.16.0"
+          },
+          "trace_sha256": "381a0e5c2a3698d9cb4f435683f46b8fb6d3666d153b87700d218c7b889b8e8a"
+        },
+        {
+          "case": "cylinder",
+          "verified": false,
+          "observed": false,
+          "initial_distance_from_table_m": 1.421442928857856,
+          "peak_lift_m": 0.055043172904187476,
+          "minimum_complete_clearance_m": null,
+          "hold_ticks": 0,
+          "peak_hand_force_n": 29.744717098202813,
+          "stop": {
+            "t": 25.09999999999929,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "stance": {
+            "goal": [
+              0.14600000000000002,
+              -0.17399999999999996,
+              0.34999999999999964
+            ],
+            "heading": 0.0,
+            "tested": 1
+          },
+          "walk": {
+            "status": "arrived",
+            "initial": [
+              -1.1360254355636377,
+              0.26442063387925896,
+              -0.21047776294083187
+            ],
+            "arrival": [
+              0.12100780524315065,
+              -0.13617398900757832,
+              0.31607040679181786
+            ],
+            "displacement_m": 1.3193212726167438,
+            "true_displacement_m": 1.3201500922388874,
+            "settled_pose": [
+              0.12017192609605391,
+              -0.13255227793727326,
+              0.3280733612373159
+            ],
+            "table_contact_samples": 0
+          },
+          "preview": {
+            "proposed_rank": 9,
+            "executed_rank": 0,
+            "predicted_verified": false,
+            "predicted_peak_lift_m": 0.003740804327934555,
+            "predicted_stop": {
+              "t": 24.239999999999462,
+              "reason": "object contact lost",
+              "detail": {
+                "observed_opposing_gap_m": 0.0062113397441245985
+              }
+            },
+            "attempts": [
+              {
+                "rank": 9,
+                "family": "pinch",
+                "verified": false,
+                "peak_lift_m": 0.003740804327934555,
+                "stop": {
+                  "t": 24.239999999999462,
+                  "reason": "object contact lost",
+                  "detail": {
+                    "observed_opposing_gap_m": 0.0062113397441245985
+                  }
+                }
+              }
+            ],
+            "family": "pinch"
+          },
+          "run_metadata": {
+            "config": {
+              "seed": 97,
+              "table_top_m": 0.76,
+              "table_center_xy_m": [
+                0.6,
+                -0.17
+              ],
+              "table_half_size_m": [
+                0.24,
+                0.24,
+                0.025
+              ],
+              "object_center_xy_m": [
+                0.466,
+                -0.174
+              ],
+              "object_half_size_m": 0.025,
+              "object_mass_kg": 0.072,
+              "starting_stance_xy_yaw": [
+                -1.05,
+                0.25,
+                -0.2
+              ],
+              "start_arms_down": true,
+              "start_right_shoulder_roll_rad": -0.35,
+              "start_left_shoulder_roll_rad": 0.35,
+              "object_shape": "cylinder",
+              "object_half_extents_m": [
+                0.025,
+                0.025,
+                0.027
+              ],
+              "contact_geometry_search": true,
+              "walk_to_grasp": true,
+              "whole_body_grasp_preview": true,
+              "grasp_depth_search": true
+            },
+            "git_sha": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+            "mujoco": "3.16.0"
+          },
+          "trace_sha256": "d372d9525f2eba18ac7eec19e49bf00a48b99050b5ff85f504ec37aeeb85242f"
+        }
+      ],
+      "verified": 2,
+      "total": 4,
+      "source_sha256": {
+        "g1_grasp_bringup.py": "0941d7da3854d25e3776d49b1711ade712037efd1689247bb4048b5a3bbf56d3",
+        "g1_grasp_geometry.py": "d7695fbbd8b8dda289219970a474e1505dff574df85852f543ce9979883974a4",
+        "g1_wbc.py": "03b416e030adac9da801746e9b14bf5a0e64cdb6a21df00f14c746bbd85fb3ca",
+        "run.py": "42ee75b7f02b6a18dc55672f4baf40a50951b78f8a524784c295f2026e2ebdd2"
+      }
+    },
+    "stance_frame": {
+      "evidence_directory": "r1-walk-frame-001",
+      "cases": [
+        {
+          "case": "front",
+          "verified": true,
+          "observed": true,
+          "initial_distance_from_table_m": 1.26,
+          "peak_lift_m": 0.1435134073538914,
+          "minimum_complete_clearance_m": 0.11839249404972929,
+          "hold_ticks": 150,
+          "peak_hand_force_n": 18.6985137151581,
+          "stop": null,
+          "stance": {
+            "goal": [
+              0.14999999999999997,
+              -0.16999999999999998,
+              0.34999999999999964
+            ],
+            "heading": 0.0,
+            "tested": 1
+          },
+          "walk": {
+            "status": "arrived",
+            "initial": [
+              -0.9874102900839065,
+              -0.17286115214987205,
+              -0.008794954914004727
+            ],
+            "arrival": [
+              0.10715231220568795,
+              -0.1506619972655339,
+              0.318726236948057
+            ],
+            "displacement_m": 1.0947876930293596,
+            "true_displacement_m": 1.094569993543035,
+            "settled_pose": [
+              0.10886112736911932,
+              -0.1563929249015053,
+              0.3390808779628789
+            ],
+            "table_contact_samples": 0
+          },
+          "preview": {
+            "proposed_rank": 4,
+            "executed_rank": 0,
+            "predicted_verified": false,
+            "predicted_peak_lift_m": -0.00010775541827623414,
+            "predicted_stop": null,
+            "attempts": [
+              {
+                "rank": 4,
+                "family": "pinch",
+                "verified": false,
+                "peak_lift_m": -0.00010775541827623414,
+                "stop": null
+              }
+            ],
+            "family": "pinch"
+          },
+          "run_metadata": {
+            "config": {
+              "seed": 81,
+              "table_top_m": 0.75,
+              "table_center_xy_m": [
+                0.6,
+                -0.17
+              ],
+              "table_half_size_m": [
+                0.24,
+                0.24,
+                0.025
+              ],
+              "object_center_xy_m": [
+                0.47,
+                -0.17
+              ],
+              "object_half_size_m": 0.025,
+              "object_mass_kg": 0.075,
+              "starting_stance_xy_yaw": [
+                -0.9,
+                -0.17,
+                0.0
+              ],
+              "start_arms_down": true,
+              "start_right_shoulder_roll_rad": -0.35,
+              "start_left_shoulder_roll_rad": 0.35,
+              "contact_geometry_search": true,
+              "whole_body_grasp_preview": true,
+              "grasp_depth_search": true,
+              "walk_to_grasp": true
+            },
+            "git_sha": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+            "mujoco": "3.16.0"
+          },
+          "trace_sha256": "b1975d19513abd7cb9d0390ee169b251d8cf0abf8d3bed41982a4ccb7266defb"
+        },
+        {
+          "case": "offset",
+          "verified": true,
+          "observed": true,
+          "initial_distance_from_table_m": 1.241974234837422,
+          "peak_lift_m": 0.1436095263992293,
+          "minimum_complete_clearance_m": 0.12145394309819912,
+          "hold_ticks": 150,
+          "peak_hand_force_n": 18.6563611812445,
+          "stop": null,
+          "stance": {
+            "goal": [
+              0.14999999999999997,
+              -0.16999999999999998,
+              0.34999999999999964
+            ],
+            "heading": 0.0,
+            "tested": 1
+          },
+          "walk": {
+            "status": "arrived",
+            "initial": [
+              -0.9328114254328418,
+              0.377262468089798,
+              -0.363066288431821
+            ],
+            "arrival": [
+              0.13026136260721102,
+              -0.12704050012780405,
+              0.32068090056656207
+            ],
+            "displacement_m": 1.1766245095289893,
+            "true_displacement_m": 1.176329196992065,
+            "settled_pose": [
+              0.1271180977721636,
+              -0.11986963856308594,
+              0.3228122030981795
+            ],
+            "table_contact_samples": 0
+          },
+          "preview": {
+            "proposed_rank": 52,
+            "executed_rank": 52,
+            "predicted_verified": true,
+            "predicted_peak_lift_m": 0.13735963882548063,
+            "predicted_stop": null,
+            "attempts": [
+              {
+                "rank": 52,
+                "family": "pinch",
+                "verified": true,
+                "peak_lift_m": 0.13735963882548063,
+                "stop": null
+              }
+            ],
+            "family": "pinch"
+          },
+          "run_metadata": {
+            "config": {
+              "seed": 83,
+              "table_top_m": 0.75,
+              "table_center_xy_m": [
+                0.6,
+                -0.17
+              ],
+              "table_half_size_m": [
+                0.24,
+                0.24,
+                0.025
+              ],
+              "object_center_xy_m": [
+                0.47,
+                -0.17
+              ],
+              "object_half_size_m": 0.025,
+              "object_mass_kg": 0.075,
+              "starting_stance_xy_yaw": [
+                -0.85,
+                0.35,
+                -0.35
+              ],
+              "start_arms_down": true,
+              "start_right_shoulder_roll_rad": -0.35,
+              "start_left_shoulder_roll_rad": 0.35,
+              "contact_geometry_search": true,
+              "whole_body_grasp_preview": true,
+              "grasp_depth_search": true,
+              "walk_to_grasp": true
+            },
+            "git_sha": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+            "mujoco": "3.16.0"
+          },
+          "trace_sha256": "559875da76ba740999a276ff0d994178119784e75520338d674df95f0f0a6d2f"
+        },
+        {
+          "case": "rotated",
+          "verified": false,
+          "observed": false,
+          "initial_distance_from_table_m": 1.241974234837422,
+          "peak_lift_m": 0.11474504318982115,
+          "minimum_complete_clearance_m": null,
+          "hold_ticks": 0,
+          "peak_hand_force_n": 35.13584307518165,
+          "stop": {
+            "t": 26.479999999999016,
+            "reason": "contact force",
+            "detail": {
+              "force": 35.13584307518165
+            }
+          },
+          "stance": {
+            "goal": [
+              -0.23000000000000007,
+              0.39999999999999997,
+              1.9207963267948962
+            ],
+            "heading": 1.5707963267948966,
+            "tested": 1
+          },
+          "walk": {
+            "status": "arrived",
+            "initial": [
+              -0.7774530781448804,
+              -0.6834003966533728,
+              1.2096879360506438
+            ],
+            "arrival": [
+              -0.27297471721030436,
+              0.3810201102046305,
+              1.8942501200460997
+            ],
+            "displacement_m": 1.1779174130944345,
+            "true_displacement_m": 1.1788573900960542,
+            "settled_pose": [
+              -0.280075519738719,
+              0.37862652511345085,
+              1.8990151599527376
+            ],
+            "table_contact_samples": 0
+          },
+          "preview": {
+            "proposed_rank": 4,
+            "executed_rank": 9,
+            "predicted_verified": true,
+            "predicted_peak_lift_m": 0.13691489145781566,
+            "predicted_stop": null,
+            "attempts": [
+              {
+                "rank": 4,
+                "family": "pinch",
+                "verified": false,
+                "peak_lift_m": 0.14446775802071798,
+                "stop": {
+                  "t": 30.67999999999818,
+                  "reason": "grip lost",
+                  "detail": {
+                    "weakest_normal_n": 0.0
+                  }
+                }
+              },
+              {
+                "rank": 9,
+                "family": "pinch",
+                "verified": true,
+                "peak_lift_m": 0.13691489145781566,
+                "stop": null
+              }
+            ],
+            "family": "pinch"
+          },
+          "run_metadata": {
+            "config": {
+              "seed": 89,
+              "table_top_m": 0.75,
+              "table_center_xy_m": [
+                -0.23,
+                0.85
+              ],
+              "table_half_size_m": [
+                0.24,
+                0.24,
+                0.025
+              ],
+              "object_center_xy_m": [
+                -0.23,
+                0.72
+              ],
+              "object_half_size_m": 0.025,
+              "object_mass_kg": 0.075,
+              "starting_stance_xy_yaw": [
+                -0.75,
+                -0.6,
+                1.2207963267948967
+              ],
+              "start_arms_down": true,
+              "start_right_shoulder_roll_rad": -0.35,
+              "start_left_shoulder_roll_rad": 0.35,
+              "contact_geometry_search": true,
+              "whole_body_grasp_preview": true,
+              "grasp_depth_search": true,
+              "walk_to_grasp": true
+            },
+            "git_sha": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+            "mujoco": "3.16.0"
+          },
+          "trace_sha256": "68472a87092001252391c2f4eab491b8335370dc35038026fda6d2bc9a83e3e4"
+        },
+        {
+          "case": "cylinder",
+          "verified": false,
+          "observed": false,
+          "initial_distance_from_table_m": 1.421442928857856,
+          "peak_lift_m": 0.055043172904187476,
+          "minimum_complete_clearance_m": null,
+          "hold_ticks": 0,
+          "peak_hand_force_n": 29.744717098202813,
+          "stop": {
+            "t": 25.09999999999929,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "stance": {
+            "goal": [
+              0.14600000000000002,
+              -0.17399999999999996,
+              0.34999999999999964
+            ],
+            "heading": 0.0,
+            "tested": 1
+          },
+          "walk": {
+            "status": "arrived",
+            "initial": [
+              -1.1360254355636377,
+              0.26442063387925896,
+              -0.21047776294083187
+            ],
+            "arrival": [
+              0.12100780524315065,
+              -0.13617398900757832,
+              0.31607040679181786
+            ],
+            "displacement_m": 1.3193212726167438,
+            "true_displacement_m": 1.3201500922388874,
+            "settled_pose": [
+              0.12017192609605391,
+              -0.13255227793727326,
+              0.3280733612373159
+            ],
+            "table_contact_samples": 0
+          },
+          "preview": {
+            "proposed_rank": 9,
+            "executed_rank": 0,
+            "predicted_verified": false,
+            "predicted_peak_lift_m": 0.003740804327934555,
+            "predicted_stop": {
+              "t": 24.239999999999462,
+              "reason": "object contact lost",
+              "detail": {
+                "observed_opposing_gap_m": 0.0062113397441245985
+              }
+            },
+            "attempts": [
+              {
+                "rank": 9,
+                "family": "pinch",
+                "verified": false,
+                "peak_lift_m": 0.003740804327934555,
+                "stop": {
+                  "t": 24.239999999999462,
+                  "reason": "object contact lost",
+                  "detail": {
+                    "observed_opposing_gap_m": 0.0062113397441245985
+                  }
+                }
+              }
+            ],
+            "family": "pinch"
+          },
+          "run_metadata": {
+            "config": {
+              "seed": 97,
+              "table_top_m": 0.76,
+              "table_center_xy_m": [
+                0.6,
+                -0.17
+              ],
+              "table_half_size_m": [
+                0.24,
+                0.24,
+                0.025
+              ],
+              "object_center_xy_m": [
+                0.466,
+                -0.174
+              ],
+              "object_half_size_m": 0.025,
+              "object_mass_kg": 0.072,
+              "starting_stance_xy_yaw": [
+                -1.05,
+                0.25,
+                -0.2
+              ],
+              "start_arms_down": true,
+              "start_right_shoulder_roll_rad": -0.35,
+              "start_left_shoulder_roll_rad": 0.35,
+              "object_shape": "cylinder",
+              "object_half_extents_m": [
+                0.025,
+                0.025,
+                0.027
+              ],
+              "contact_geometry_search": true,
+              "walk_to_grasp": true,
+              "whole_body_grasp_preview": true,
+              "grasp_depth_search": true
+            },
+            "git_sha": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+            "mujoco": "3.16.0"
+          },
+          "trace_sha256": "d372d9525f2eba18ac7eec19e49bf00a48b99050b5ff85f504ec37aeeb85242f"
+        }
+      ],
+      "verified": 2,
+      "total": 4,
+      "source_sha256": {
+        "g1_grasp_bringup.py": "e444c3a4377c83d952a5f2504e68ed8ce7cbf4dbd53cc65555366db263ce2e11",
+        "g1_grasp_geometry.py": "d7695fbbd8b8dda289219970a474e1505dff574df85852f543ce9979883974a4",
+        "g1_wbc.py": "03b416e030adac9da801746e9b14bf5a0e64cdb6a21df00f14c746bbd85fb3ca",
+        "run.py": "42ee75b7f02b6a18dc55672f4baf40a50951b78f8a524784c295f2026e2ebdd2"
+      }
+    },
+    "force_headroom": {
+      "evidence_directory": "r1-walk-preload-001",
+      "cases": [
+        {
+          "case": "rotated",
+          "verified": false,
+          "observed": false,
+          "initial_distance_from_table_m": 1.241974234837422,
+          "peak_lift_m": 0.1423519866034233,
+          "minimum_complete_clearance_m": 0.04705076839369182,
+          "hold_ticks": 5,
+          "peak_hand_force_n": 33.497887848276406,
+          "stop": {
+            "t": 27.939999999998726,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "stance": {
+            "goal": [
+              -0.23000000000000007,
+              0.39999999999999997,
+              1.9207963267948962
+            ],
+            "heading": 1.5707963267948966,
+            "tested": 1
+          },
+          "walk": {
+            "status": "arrived",
+            "initial": [
+              -0.7774530781448804,
+              -0.6834003966533728,
+              1.2096879360506438
+            ],
+            "arrival": [
+              -0.27297471721030436,
+              0.3810201102046305,
+              1.8942501200460997
+            ],
+            "displacement_m": 1.1779174130944345,
+            "true_displacement_m": 1.1788573900960542,
+            "settled_pose": [
+              -0.280075519738719,
+              0.37862652511345085,
+              1.8990151599527376
+            ],
+            "table_contact_samples": 0
+          },
+          "preview": {
+            "proposed_rank": 4,
+            "executed_rank": 9,
+            "predicted_verified": true,
+            "predicted_peak_lift_m": 0.13691489145781566,
+            "predicted_stop": null,
+            "attempts": [
+              {
+                "rank": 4,
+                "family": "pinch",
+                "verified": false,
+                "peak_lift_m": 0.14446775802071798,
+                "stop": {
+                  "t": 30.67999999999818,
+                  "reason": "grip lost",
+                  "detail": {
+                    "weakest_normal_n": 0.0
+                  }
+                }
+              },
+              {
+                "rank": 9,
+                "family": "pinch",
+                "verified": true,
+                "peak_lift_m": 0.13691489145781566,
+                "stop": null
+              }
+            ],
+            "family": "pinch"
+          },
+          "run_metadata": {
+            "config": {
+              "seed": 89,
+              "table_top_m": 0.75,
+              "table_center_xy_m": [
+                -0.23,
+                0.85
+              ],
+              "table_half_size_m": [
+                0.24,
+                0.24,
+                0.025
+              ],
+              "object_center_xy_m": [
+                -0.23,
+                0.72
+              ],
+              "object_half_size_m": 0.025,
+              "object_mass_kg": 0.075,
+              "starting_stance_xy_yaw": [
+                -0.75,
+                -0.6,
+                1.2207963267948967
+              ],
+              "start_arms_down": true,
+              "start_right_shoulder_roll_rad": -0.35,
+              "start_left_shoulder_roll_rad": 0.35,
+              "contact_geometry_search": true,
+              "whole_body_grasp_preview": true,
+              "grasp_depth_search": true,
+              "walk_to_grasp": true
+            },
+            "git_sha": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+            "mujoco": "3.16.0"
+          },
+          "trace_sha256": "b3b663de76488b3e7c02ae4017f58b6e4dede28827eda3984ac2ebb4991c2cd7"
+        },
+        {
+          "case": "offset",
+          "verified": true,
+          "observed": true,
+          "initial_distance_from_table_m": 1.241974234837422,
+          "peak_lift_m": 0.1436095263992293,
+          "minimum_complete_clearance_m": 0.12145394309819912,
+          "hold_ticks": 150,
+          "peak_hand_force_n": 18.6563611812445,
+          "stop": null,
+          "stance": {
+            "goal": [
+              0.14999999999999997,
+              -0.16999999999999998,
+              0.34999999999999964
+            ],
+            "heading": 0.0,
+            "tested": 1
+          },
+          "walk": {
+            "status": "arrived",
+            "initial": [
+              -0.9328114254328418,
+              0.377262468089798,
+              -0.363066288431821
+            ],
+            "arrival": [
+              0.13026136260721102,
+              -0.12704050012780405,
+              0.32068090056656207
+            ],
+            "displacement_m": 1.1766245095289893,
+            "true_displacement_m": 1.176329196992065,
+            "settled_pose": [
+              0.1271180977721636,
+              -0.11986963856308594,
+              0.3228122030981795
+            ],
+            "table_contact_samples": 0
+          },
+          "preview": {
+            "proposed_rank": 52,
+            "executed_rank": 52,
+            "predicted_verified": true,
+            "predicted_peak_lift_m": 0.13735963882548063,
+            "predicted_stop": null,
+            "attempts": [
+              {
+                "rank": 52,
+                "family": "pinch",
+                "verified": true,
+                "peak_lift_m": 0.13735963882548063,
+                "stop": null
+              }
+            ],
+            "family": "pinch"
+          },
+          "run_metadata": {
+            "config": {
+              "seed": 83,
+              "table_top_m": 0.75,
+              "table_center_xy_m": [
+                0.6,
+                -0.17
+              ],
+              "table_half_size_m": [
+                0.24,
+                0.24,
+                0.025
+              ],
+              "object_center_xy_m": [
+                0.47,
+                -0.17
+              ],
+              "object_half_size_m": 0.025,
+              "object_mass_kg": 0.075,
+              "starting_stance_xy_yaw": [
+                -0.85,
+                0.35,
+                -0.35
+              ],
+              "start_arms_down": true,
+              "start_right_shoulder_roll_rad": -0.35,
+              "start_left_shoulder_roll_rad": 0.35,
+              "contact_geometry_search": true,
+              "whole_body_grasp_preview": true,
+              "grasp_depth_search": true,
+              "walk_to_grasp": true
+            },
+            "git_sha": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+            "mujoco": "3.16.0"
+          },
+          "trace_sha256": "8fac4a93a886ed2844a042e4072f0fe3d22ac8029b5d0c1b28d7dd2b79cd87e0"
+        },
+        {
+          "case": "front",
+          "verified": true,
+          "observed": true,
+          "initial_distance_from_table_m": 1.26,
+          "peak_lift_m": 0.1435134073538914,
+          "minimum_complete_clearance_m": 0.11839249404972929,
+          "hold_ticks": 150,
+          "peak_hand_force_n": 18.6985137151581,
+          "stop": null,
+          "stance": {
+            "goal": [
+              0.14999999999999997,
+              -0.16999999999999998,
+              0.34999999999999964
+            ],
+            "heading": 0.0,
+            "tested": 1
+          },
+          "walk": {
+            "status": "arrived",
+            "initial": [
+              -0.9874102900839065,
+              -0.17286115214987205,
+              -0.008794954914004727
+            ],
+            "arrival": [
+              0.10715231220568795,
+              -0.1506619972655339,
+              0.318726236948057
+            ],
+            "displacement_m": 1.0947876930293596,
+            "true_displacement_m": 1.094569993543035,
+            "settled_pose": [
+              0.10886112736911932,
+              -0.1563929249015053,
+              0.3390808779628789
+            ],
+            "table_contact_samples": 0
+          },
+          "preview": {
+            "proposed_rank": 4,
+            "executed_rank": 0,
+            "predicted_verified": false,
+            "predicted_peak_lift_m": -0.00010775541827623414,
+            "predicted_stop": null,
+            "attempts": [
+              {
+                "rank": 4,
+                "family": "pinch",
+                "verified": false,
+                "peak_lift_m": -0.00010775541827623414,
+                "stop": null
+              }
+            ],
+            "family": "pinch"
+          },
+          "run_metadata": {
+            "config": {
+              "seed": 81,
+              "table_top_m": 0.75,
+              "table_center_xy_m": [
+                0.6,
+                -0.17
+              ],
+              "table_half_size_m": [
+                0.24,
+                0.24,
+                0.025
+              ],
+              "object_center_xy_m": [
+                0.47,
+                -0.17
+              ],
+              "object_half_size_m": 0.025,
+              "object_mass_kg": 0.075,
+              "starting_stance_xy_yaw": [
+                -0.9,
+                -0.17,
+                0.0
+              ],
+              "start_arms_down": true,
+              "start_right_shoulder_roll_rad": -0.35,
+              "start_left_shoulder_roll_rad": 0.35,
+              "contact_geometry_search": true,
+              "whole_body_grasp_preview": true,
+              "grasp_depth_search": true,
+              "walk_to_grasp": true
+            },
+            "git_sha": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+            "mujoco": "3.16.0"
+          },
+          "trace_sha256": "ef99b0ea3dd65739aaf7854ca49f5ab6afd600e2ab5f130e03415c99b4955f74"
+        },
+        {
+          "case": "cylinder",
+          "verified": false,
+          "observed": false,
+          "initial_distance_from_table_m": 1.421442928857856,
+          "peak_lift_m": 0.05481734848860487,
+          "minimum_complete_clearance_m": null,
+          "hold_ticks": 0,
+          "peak_hand_force_n": 29.35718102477618,
+          "stop": {
+            "t": 25.09999999999929,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "stance": {
+            "goal": [
+              0.14600000000000002,
+              -0.17399999999999996,
+              0.34999999999999964
+            ],
+            "heading": 0.0,
+            "tested": 1
+          },
+          "walk": {
+            "status": "arrived",
+            "initial": [
+              -1.1360254355636377,
+              0.26442063387925896,
+              -0.21047776294083187
+            ],
+            "arrival": [
+              0.12100780524315065,
+              -0.13617398900757832,
+              0.31607040679181786
+            ],
+            "displacement_m": 1.3193212726167438,
+            "true_displacement_m": 1.3201500922388874,
+            "settled_pose": [
+              0.12017192609605391,
+              -0.13255227793727326,
+              0.3280733612373159
+            ],
+            "table_contact_samples": 0
+          },
+          "preview": {
+            "proposed_rank": 9,
+            "executed_rank": 0,
+            "predicted_verified": false,
+            "predicted_peak_lift_m": 0.003740804327934555,
+            "predicted_stop": {
+              "t": 24.239999999999462,
+              "reason": "object contact lost",
+              "detail": {
+                "observed_opposing_gap_m": 0.0062113397441245985
+              }
+            },
+            "attempts": [
+              {
+                "rank": 9,
+                "family": "pinch",
+                "verified": false,
+                "peak_lift_m": 0.003740804327934555,
+                "stop": {
+                  "t": 24.239999999999462,
+                  "reason": "object contact lost",
+                  "detail": {
+                    "observed_opposing_gap_m": 0.0062113397441245985
+                  }
+                }
+              }
+            ],
+            "family": "pinch"
+          },
+          "run_metadata": {
+            "config": {
+              "seed": 97,
+              "table_top_m": 0.76,
+              "table_center_xy_m": [
+                0.6,
+                -0.17
+              ],
+              "table_half_size_m": [
+                0.24,
+                0.24,
+                0.025
+              ],
+              "object_center_xy_m": [
+                0.466,
+                -0.174
+              ],
+              "object_half_size_m": 0.025,
+              "object_mass_kg": 0.072,
+              "starting_stance_xy_yaw": [
+                -1.05,
+                0.25,
+                -0.2
+              ],
+              "start_arms_down": true,
+              "start_right_shoulder_roll_rad": -0.35,
+              "start_left_shoulder_roll_rad": 0.35,
+              "object_shape": "cylinder",
+              "object_half_extents_m": [
+                0.025,
+                0.025,
+                0.027
+              ],
+              "contact_geometry_search": true,
+              "walk_to_grasp": true,
+              "whole_body_grasp_preview": true,
+              "grasp_depth_search": true
+            },
+            "git_sha": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+            "mujoco": "3.16.0"
+          },
+          "trace_sha256": "dcfffffb534557a8414b9bc338f7af009b6fba9a29ff6e7edd8c88687ae4bba8"
+        }
+      ],
+      "verified": 2,
+      "total": 4,
+      "source_sha256": {
+        "g1_grasp_bringup.py": "5dd0159dae9bd5180d8f0883a3cfb7c1b6f6ce76beb2af9d3a55721d205597fa",
+        "g1_grasp_geometry.py": "ee3a64bda8936f645af3f9aca710ffaa6ba005cf1801e55020ec3f80debec948",
+        "g1_wbc.py": "03b416e030adac9da801746e9b14bf5a0e64cdb6a21df00f14c746bbd85fb3ca",
+        "run.py": "20cc36750bfc9528ce0ea2f8b225d77daf311331c52e721b66613a0188cb590e"
+      }
+    },
+    "approach_depth": {
+      "evidence_directory": "r1-walk-approach-frame-001",
+      "cases": [
+        {
+          "case": "rotated",
+          "verified": true,
+          "observed": true,
+          "initial_distance_from_table_m": 1.241974234837422,
+          "peak_lift_m": 0.14201898721157702,
+          "minimum_complete_clearance_m": 0.12009117066920028,
+          "hold_ticks": 150,
+          "peak_hand_force_n": 18.468578431139015,
+          "stop": null,
+          "stance": {
+            "goal": [
+              -0.23000000000000007,
+              0.39999999999999997,
+              1.9207963267948962
+            ],
+            "heading": 1.5707963267948966,
+            "tested": 1
+          },
+          "walk": {
+            "status": "arrived",
+            "initial": [
+              -0.7774530781448804,
+              -0.6834003966533728,
+              1.2096879360506438
+            ],
+            "arrival": [
+              -0.27297471721030436,
+              0.3810201102046305,
+              1.8942501200460997
+            ],
+            "displacement_m": 1.1779174130944345,
+            "true_displacement_m": 1.1788573900960542,
+            "settled_pose": [
+              -0.280075519738719,
+              0.37862652511345085,
+              1.8990151599527376
+            ],
+            "table_contact_samples": 0
+          },
+          "preview": {
+            "proposed_rank": 52,
+            "executed_rank": 52,
+            "predicted_verified": true,
+            "predicted_peak_lift_m": 0.13735699992327033,
+            "predicted_stop": null,
+            "attempts": [
+              {
+                "rank": 52,
+                "family": "pinch",
+                "verified": true,
+                "peak_lift_m": 0.13735699992327033,
+                "stop": null
+              }
+            ],
+            "family": "pinch"
+          },
+          "run_metadata": {
+            "config": {
+              "seed": 89,
+              "table_top_m": 0.75,
+              "table_center_xy_m": [
+                -0.23,
+                0.85
+              ],
+              "table_half_size_m": [
+                0.24,
+                0.24,
+                0.025
+              ],
+              "object_center_xy_m": [
+                -0.23,
+                0.72
+              ],
+              "object_half_size_m": 0.025,
+              "object_mass_kg": 0.075,
+              "starting_stance_xy_yaw": [
+                -0.75,
+                -0.6,
+                1.2207963267948967
+              ],
+              "start_arms_down": true,
+              "start_right_shoulder_roll_rad": -0.35,
+              "start_left_shoulder_roll_rad": 0.35,
+              "contact_geometry_search": true,
+              "whole_body_grasp_preview": true,
+              "grasp_depth_search": true,
+              "walk_to_grasp": true
+            },
+            "git_sha": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+            "mujoco": "3.16.0"
+          },
+          "trace_sha256": "37b5fb3c6b77e2b4a2281cc45244a183ebfbb85db665519ebac9ae69a8d9596b"
+        },
+        {
+          "case": "offset",
+          "verified": true,
+          "observed": true,
+          "initial_distance_from_table_m": 1.241974234837422,
+          "peak_lift_m": 0.1436095263992293,
+          "minimum_complete_clearance_m": 0.12145394309819912,
+          "hold_ticks": 150,
+          "peak_hand_force_n": 18.6563611812445,
+          "stop": null,
+          "stance": {
+            "goal": [
+              0.14999999999999997,
+              -0.16999999999999998,
+              0.34999999999999964
+            ],
+            "heading": 0.0,
+            "tested": 1
+          },
+          "walk": {
+            "status": "arrived",
+            "initial": [
+              -0.9328114254328418,
+              0.377262468089798,
+              -0.363066288431821
+            ],
+            "arrival": [
+              0.13026136260721102,
+              -0.12704050012780405,
+              0.32068090056656207
+            ],
+            "displacement_m": 1.1766245095289893,
+            "true_displacement_m": 1.176329196992065,
+            "settled_pose": [
+              0.1271180977721636,
+              -0.11986963856308594,
+              0.3228122030981795
+            ],
+            "table_contact_samples": 0
+          },
+          "preview": {
+            "proposed_rank": 52,
+            "executed_rank": 52,
+            "predicted_verified": true,
+            "predicted_peak_lift_m": 0.13735963882548063,
+            "predicted_stop": null,
+            "attempts": [
+              {
+                "rank": 52,
+                "family": "pinch",
+                "verified": true,
+                "peak_lift_m": 0.13735963882548063,
+                "stop": null
+              }
+            ],
+            "family": "pinch"
+          },
+          "run_metadata": {
+            "config": {
+              "seed": 83,
+              "table_top_m": 0.75,
+              "table_center_xy_m": [
+                0.6,
+                -0.17
+              ],
+              "table_half_size_m": [
+                0.24,
+                0.24,
+                0.025
+              ],
+              "object_center_xy_m": [
+                0.47,
+                -0.17
+              ],
+              "object_half_size_m": 0.025,
+              "object_mass_kg": 0.075,
+              "starting_stance_xy_yaw": [
+                -0.85,
+                0.35,
+                -0.35
+              ],
+              "start_arms_down": true,
+              "start_right_shoulder_roll_rad": -0.35,
+              "start_left_shoulder_roll_rad": 0.35,
+              "contact_geometry_search": true,
+              "whole_body_grasp_preview": true,
+              "grasp_depth_search": true,
+              "walk_to_grasp": true
+            },
+            "git_sha": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+            "mujoco": "3.16.0"
+          },
+          "trace_sha256": "559875da76ba740999a276ff0d994178119784e75520338d674df95f0f0a6d2f"
+        },
+        {
+          "case": "front",
+          "verified": true,
+          "observed": true,
+          "initial_distance_from_table_m": 1.26,
+          "peak_lift_m": 0.1435134073538914,
+          "minimum_complete_clearance_m": 0.11839249404972929,
+          "hold_ticks": 150,
+          "peak_hand_force_n": 18.6985137151581,
+          "stop": null,
+          "stance": {
+            "goal": [
+              0.14999999999999997,
+              -0.16999999999999998,
+              0.34999999999999964
+            ],
+            "heading": 0.0,
+            "tested": 1
+          },
+          "walk": {
+            "status": "arrived",
+            "initial": [
+              -0.9874102900839065,
+              -0.17286115214987205,
+              -0.008794954914004727
+            ],
+            "arrival": [
+              0.10715231220568795,
+              -0.1506619972655339,
+              0.318726236948057
+            ],
+            "displacement_m": 1.0947876930293596,
+            "true_displacement_m": 1.094569993543035,
+            "settled_pose": [
+              0.10886112736911932,
+              -0.1563929249015053,
+              0.3390808779628789
+            ],
+            "table_contact_samples": 0
+          },
+          "preview": {
+            "proposed_rank": 4,
+            "executed_rank": 0,
+            "predicted_verified": false,
+            "predicted_peak_lift_m": -0.00010775541827623414,
+            "predicted_stop": null,
+            "attempts": [
+              {
+                "rank": 4,
+                "family": "pinch",
+                "verified": false,
+                "peak_lift_m": -0.00010775541827623414,
+                "stop": null
+              }
+            ],
+            "family": "pinch"
+          },
+          "run_metadata": {
+            "config": {
+              "seed": 81,
+              "table_top_m": 0.75,
+              "table_center_xy_m": [
+                0.6,
+                -0.17
+              ],
+              "table_half_size_m": [
+                0.24,
+                0.24,
+                0.025
+              ],
+              "object_center_xy_m": [
+                0.47,
+                -0.17
+              ],
+              "object_half_size_m": 0.025,
+              "object_mass_kg": 0.075,
+              "starting_stance_xy_yaw": [
+                -0.9,
+                -0.17,
+                0.0
+              ],
+              "start_arms_down": true,
+              "start_right_shoulder_roll_rad": -0.35,
+              "start_left_shoulder_roll_rad": 0.35,
+              "contact_geometry_search": true,
+              "whole_body_grasp_preview": true,
+              "grasp_depth_search": true,
+              "walk_to_grasp": true
+            },
+            "git_sha": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+            "mujoco": "3.16.0"
+          },
+          "trace_sha256": "b1975d19513abd7cb9d0390ee169b251d8cf0abf8d3bed41982a4ccb7266defb"
+        },
+        {
+          "case": "cylinder",
+          "verified": false,
+          "observed": false,
+          "initial_distance_from_table_m": 1.421442928857856,
+          "peak_lift_m": 0.055043172904187476,
+          "minimum_complete_clearance_m": null,
+          "hold_ticks": 0,
+          "peak_hand_force_n": 29.744717098202813,
+          "stop": {
+            "t": 25.09999999999929,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "stance": {
+            "goal": [
+              0.14600000000000002,
+              -0.17399999999999996,
+              0.34999999999999964
+            ],
+            "heading": 0.0,
+            "tested": 1
+          },
+          "walk": {
+            "status": "arrived",
+            "initial": [
+              -1.1360254355636377,
+              0.26442063387925896,
+              -0.21047776294083187
+            ],
+            "arrival": [
+              0.12100780524315065,
+              -0.13617398900757832,
+              0.31607040679181786
+            ],
+            "displacement_m": 1.3193212726167438,
+            "true_displacement_m": 1.3201500922388874,
+            "settled_pose": [
+              0.12017192609605391,
+              -0.13255227793727326,
+              0.3280733612373159
+            ],
+            "table_contact_samples": 0
+          },
+          "preview": {
+            "proposed_rank": 9,
+            "executed_rank": 0,
+            "predicted_verified": false,
+            "predicted_peak_lift_m": 0.003740804327934555,
+            "predicted_stop": {
+              "t": 24.239999999999462,
+              "reason": "object contact lost",
+              "detail": {
+                "observed_opposing_gap_m": 0.0062113397441245985
+              }
+            },
+            "attempts": [
+              {
+                "rank": 9,
+                "family": "pinch",
+                "verified": false,
+                "peak_lift_m": 0.003740804327934555,
+                "stop": {
+                  "t": 24.239999999999462,
+                  "reason": "object contact lost",
+                  "detail": {
+                    "observed_opposing_gap_m": 0.0062113397441245985
+                  }
+                }
+              }
+            ],
+            "family": "pinch"
+          },
+          "run_metadata": {
+            "config": {
+              "seed": 97,
+              "table_top_m": 0.76,
+              "table_center_xy_m": [
+                0.6,
+                -0.17
+              ],
+              "table_half_size_m": [
+                0.24,
+                0.24,
+                0.025
+              ],
+              "object_center_xy_m": [
+                0.466,
+                -0.174
+              ],
+              "object_half_size_m": 0.025,
+              "object_mass_kg": 0.072,
+              "starting_stance_xy_yaw": [
+                -1.05,
+                0.25,
+                -0.2
+              ],
+              "start_arms_down": true,
+              "start_right_shoulder_roll_rad": -0.35,
+              "start_left_shoulder_roll_rad": 0.35,
+              "object_shape": "cylinder",
+              "object_half_extents_m": [
+                0.025,
+                0.025,
+                0.027
+              ],
+              "contact_geometry_search": true,
+              "walk_to_grasp": true,
+              "whole_body_grasp_preview": true,
+              "grasp_depth_search": true
+            },
+            "git_sha": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+            "mujoco": "3.16.0"
+          },
+          "trace_sha256": "d372d9525f2eba18ac7eec19e49bf00a48b99050b5ff85f504ec37aeeb85242f"
+        }
+      ],
+      "verified": 3,
+      "total": 4,
+      "source_sha256": {
+        "g1_grasp_bringup.py": "000afdaa9ee5ebe7176f6b7454f6727e394a4a42a03dc1c5a9307d2bc4e18169",
+        "g1_grasp_geometry.py": "d7695fbbd8b8dda289219970a474e1505dff574df85852f543ce9979883974a4",
+        "g1_wbc.py": "03b416e030adac9da801746e9b14bf5a0e64cdb6a21df00f14c746bbd85fb3ca",
+        "run.py": "2b8f8b7e9d1abcd540b3320175db31bece5d1fdb0ab96b2e2827db1aef903d92"
+      }
+    }
+  },
+  "controls": {
+    "fixed_cylinder": {
+      "evidence_directory": "r1-walk-cylinder-height-control-001",
+      "run_metadata": {
+        "config": {
+          "seed": 97,
+          "table_top_m": 0.76,
+          "table_center_xy_m": [
+            0.6,
+            -0.17
+          ],
+          "table_half_size_m": [
+            0.24,
+            0.24,
+            0.025
+          ],
+          "object_center_xy_m": [
+            0.466,
+            -0.174
+          ],
+          "object_half_size_m": 0.025,
+          "object_mass_kg": 0.072,
+          "starting_stance_xy_yaw": [
+            0.17,
+            0.0,
+            0.0
+          ],
+          "start_arms_down": true,
+          "start_right_shoulder_roll_rad": -0.35,
+          "start_left_shoulder_roll_rad": 0.35,
+          "object_shape": "cylinder",
+          "object_half_extents_m": [
+            0.025,
+            0.025,
+            0.027
+          ],
+          "contact_geometry_search": true,
+          "walk_to_grasp": false,
+          "whole_body_grasp_preview": true,
+          "grasp_depth_search": true
+        },
+        "git_sha": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+        "mujoco": "3.16.0"
+      },
+      "verified": true,
+      "observed": true,
+      "peak_lift_m": 0.15154051500481425,
+      "hold_ticks": 150,
+      "minimum_complete_clearance_m": 0.1393134825371376,
+      "stop": null,
+      "stance": null,
+      "walk": null,
+      "trace_sha256": "b07bed4e605dcaeb08abf80643057fb159077ed6f2f7a90529d693d2298b9b89",
+      "source_sha256": {}
+    },
+    "second_stance": {
+      "evidence_directory": "r1-walk-cylinder-alternate-001",
+      "run_metadata": {
+        "config": {
+          "seed": 97,
+          "table_top_m": 0.76,
+          "table_center_xy_m": [
+            0.6,
+            -0.17
+          ],
+          "table_half_size_m": [
+            0.24,
+            0.24,
+            0.025
+          ],
+          "object_center_xy_m": [
+            0.466,
+            -0.174
+          ],
+          "object_half_size_m": 0.025,
+          "object_mass_kg": 0.072,
+          "starting_stance_xy_yaw": [
+            -1.05,
+            0.25,
+            -0.2
+          ],
+          "start_arms_down": true,
+          "start_right_shoulder_roll_rad": -0.35,
+          "start_left_shoulder_roll_rad": 0.35,
+          "object_shape": "cylinder",
+          "object_half_extents_m": [
+            0.025,
+            0.025,
+            0.027
+          ],
+          "contact_geometry_search": true,
+          "walk_to_grasp": true,
+          "whole_body_grasp_preview": true,
+          "grasp_depth_search": true
+        },
+        "git_sha": "c866699583059bd16b3f3364b04ffc3cd0fb2dd6",
+        "mujoco": "3.16.0"
+      },
+      "verified": false,
+      "observed": false,
+      "peak_lift_m": 0.05356296974397323,
+      "hold_ticks": 0,
+      "minimum_complete_clearance_m": null,
+      "stop": {
+        "t": 28.01999999999871,
+        "reason": "grip lost",
+        "detail": {
+          "weakest_normal_n": 0.0
+        }
+      },
+      "stance": {
+        "goal": [
+          0.17035854959638824,
+          -0.05154130164317122,
+          -0.04269908169872405
+        ],
+        "heading": 0.0,
+        "tested": 2
+      },
+      "walk": {
+        "status": "arrived",
+        "initial": [
+          -1.1360254355636377,
+          0.26442063387925896,
+          -0.21047776294083187
+        ],
+        "arrival": [
+          0.12098367219798786,
+          -0.05015140379249011,
+          -0.07432117725578813
+        ],
+        "displacement_m": 1.2957729214181912,
+        "true_displacement_m": 1.2972509695647114,
+        "settled_pose": [
+          0.11448114683208843,
+          -0.040193904498814166,
+          -0.058215784723900654
+        ],
+        "table_contact_samples": 0
+      },
+      "trace_sha256": "ff5662a09787e47fcfa4ade01f2d70813a60c5af8eaa07ce28df7fad663ad2ed",
+      "source_sha256": {
+        "g1_grasp_geometry.py": "d7695fbbd8b8dda289219970a474e1505dff574df85852f543ce9979883974a4",
+        "g1_wbc.py": "03b416e030adac9da801746e9b14bf5a0e64cdb6a21df00f14c746bbd85fb3ca",
+        "run.py": "829b43b32ba398eb42fd6a353207a59e9ace933e6e2af7a81c70acd52111541d"
+      }
+    }
+  }
+}
