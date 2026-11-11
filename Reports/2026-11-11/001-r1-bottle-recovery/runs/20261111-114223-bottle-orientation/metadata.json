@@ -1,0 +1,73 @@
+{
+  "run_id": "2026-11-11-001/20261111-114223-bottle-orientation",
+  "task_id": "2026-11-11-001",
+  "title": "Test orientation-diverse grasp retention and observed contact loss",
+  "started": "2026-11-11T11:42:23+11:00",
+  "commit": "d80aa8d5cd282ebb51e50407b9fcb074d2010a61",
+  "dirty": true,
+  "branch": "codex/g1-integration",
+  "configs": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-compound-clearance-001/bottle.json",
+      "sha256": "e9e3e2e3a528fb665aa007f2b37d78488e6b5e2e64474d88dfc3ad0dbeb3c586"
+    },
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-compound-clearance-001/bottle_shift.json",
+      "sha256": "32a8ae767f81d5ee3490accff761aa49b010822be2f73fdf76093d8edd7b4ec5"
+    }
+  ],
+  "command": "python C:/Users/24adi/DREAM-r1-evidence/r1-bottle-orientation-001/run.py",
+  "seeds": "53,61 with an independent planning stream",
+  "model": "Cached Decoupled WBC",
+  "simulator": "MuJoCo 3.16.0",
+  "renderer": "None",
+  "embodiment": "free-standing G1 Dex3",
+  "controller": "Decoupled WBC",
+  "hardware": "local CPU, two workers",
+  "status": "completed",
+  "ended": "2026-11-11T11:47:22+11:00",
+  "exit_status": 0,
+  "cases_attempted": 2,
+  "cases_completed": 2,
+  "metrics": {
+    "verified": 0,
+    "total": 2,
+    "cases": [
+      {
+        "case": "bottle",
+        "verified": false,
+        "observed": false,
+        "peak_lift_m": 0.1295274503581929,
+        "stop": {
+          "t": 24.75999999999936,
+          "reason": "grip lost",
+          "detail": {
+            "weakest_normal_n": 0.0
+          }
+        }
+      },
+      {
+        "case": "bottle_shift",
+        "verified": false,
+        "observed": false,
+        "peak_lift_m": 0.14935542030684568,
+        "stop": {
+          "t": 25.579999999999195,
+          "reason": "grip lost",
+          "detail": {
+            "weakest_normal_n": 0.0
+          }
+        }
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-bottle-orientation-001",
+      "kind": "dir",
+      "sha256": "863fbe33737b2f89e28f2de0c4279f556dc1908b4b1e09e7eb0c137b82245f27",
+      "skipped": []
+    }
+  ],
+  "cloud": null
+}

@@ -22,7 +22,7 @@ sequencing and evidence rules.
 | Rung | Capability | Status |
 |---|---|---|
 | R0 | G1 model, controller and safety on one integration branch | Integration checks passed |
-| R1 | Free-standing contact grasp and lift | Fixed-stance box and cylinder grasps verified in development |
+| R1 | Free-standing contact grasp and lift | Fixed-stance holds on boxes, cylinders, mugs and lighter bottles |
 | R2 | Carry and place | Pending |
 | R3 | Fetch from language | Pending |
 | R4 | Held-out task compositions | Pending |
@@ -81,6 +81,16 @@ retain their neck, cavity and handle geometry. Configured object friction
 overrides the hand and table contact coefficient during the material tests.
 [Measurements](results/g1_r1_compound_dev_20261110/summary.json) and
 [contact report](Reports/2026-11-10/012-r1-wrap-grasp/REPORT.md).
+
+The grasp chooser now evaluates a proximal wrap after the pinch predictions
+fail. It checks both closure families against the observed geometry and the
+whole-body controller. During execution, a sustained gap between the observed
+object and the contact surfaces stops the motion even if finger pressure
+persists. The same 15 development cases passed 13 of 15 holds, up from 12.
+The lighter bottle was recovered, and a new 0.12 kg bottle also held. Both
+heavier bottles and the sphere failed. The sensed result and independent
+evaluation agreed on all 17 episodes. [Measurements](results/g1_r1_bottle_dev_20261111/summary.json)
+and [development report](Reports/2026-11-11/001-r1-bottle-recovery/REPORT.md).
 
 ## Executive summary
 
