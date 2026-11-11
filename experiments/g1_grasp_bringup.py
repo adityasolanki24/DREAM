@@ -11,6 +11,7 @@ from pathlib import Path
 import mujoco
 import numpy as np
 
+from dream.eval.g1 import lowest_collision_point_z
 from dream.robot.g1_grasp_geometry import rank_pinches, regulate_closure, rehearse_pinches
 from dream.robot.g1_posture import PerceivedBox, PosturePlanner
 from dream.robot.g1_supervisor import SafetyLimits, WholeBodySupervisor
@@ -22,7 +23,8 @@ from dream.robot.wholebody import (
     StopEvent,
     WBCBackend,
 )
-from dream.sim.g1_mobile import G1MobileEnv, build_grasp_rehearsal, build_mobile_g1
+from dream.sim.g1_grasp_fixtures import add_grasp_object
+from dream.sim.g1_mobile import TOUCH_THRESHOLD, G1MobileEnv, build_grasp_rehearsal, build_mobile_g1
 
 # Right-hand targets mirror the supported G1's seven-joint closure in dream/robot/g1.py.
 OPEN = np.array([0, 0, -0.08, 0.08, 0.08, 0.08, 0.08])
@@ -43,6 +45,8 @@ MIN_RESPONSE_M = 0.01
 GRIP_NORMAL_N = 3.0
 GRIP_DWELL_S = 0.10
 LIFT_STEP_M = 0.03
+# Require 2% of nominal closing travel in reserve, a commissioning observation margin.
+ENCODER_TRAVEL_MARGIN = 0.02
 # Upper end of the initial commissioning masses, used as a common planning prior.
 REHEARSAL_MASS_KG = 0.10
 
@@ -56,6 +60,7 @@ def attempt(cfg: dict) -> dict:
     predicted_cfg = dict(
         cfg,
         object_mass_kg=REHEARSAL_MASS_KG,
+        object_sliding_friction=None,
         contact_rehearsal_search=True,
         # Use a reproducible planning stream independent of evaluation noise.
         seed=np.random.SeedSequence(0, spawn_key=(1,)),
@@ -110,31 +115,20 @@ def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
         raise ValueError("object half extents must be three positive finite lengths")
     _, half, half_height = size
     shape = cfg.get("object_shape", "box")
-    if shape == "box":
-        geom_type, geom_size = mujoco.mjtGeom.mjGEOM_BOX, size
-    elif shape == "cylinder" and size[0] == size[1]:
-        geom_type, geom_size = mujoco.mjtGeom.mjGEOM_CYLINDER, [size[0], half_height, 0.0]
-    elif shape == "sphere" and np.all(size == size[0]):
-        geom_type, geom_size = mujoco.mjtGeom.mjGEOM_SPHERE, [size[0], 0.0, 0.0]
-    else:
-        raise ValueError("unsupported shape or dimensions for the fixture")
     table_half = cfg["table_half_size_m"]
     table = (*cfg["table_center_xy_m"], top - table_half[2])
     center = (*cfg["object_center_xy_m"], top + half_height)
 
-    def scene(spec, *, mass):
+    def scene(spec, *, mass, friction=None):
         spec.worldbody.add_geom(
             name="tabletop", type=mujoco.mjtGeom.mjGEOM_BOX, pos=table, size=table_half
         )
-        box = spec.worldbody.add_body(name="box", pos=center)
-        box.add_freejoint()
-        box.add_geom(
-            name="box", type=geom_type, size=geom_size,
-            mass=mass,
-        )  # fmt: skip
+        add_grasp_object(spec, shape, center, size, mass, friction)
 
     model = build_mobile_g1(
-        lambda spec: scene(spec, mass=cfg["object_mass_kg"]),
+        lambda spec: scene(
+            spec, mass=cfg["object_mass_kg"], friction=cfg.get("object_sliding_friction")
+        ),
         head_camera=None,
         hands=True,
         touch=True,
@@ -189,7 +183,7 @@ def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
     # checks the articulated meshes against the known fixture dimensions.
     obstacle = PerceivedBox(table, tuple(table_half), hand_may_touch=True)
     wrist_body = model.body("right_wrist_yaw_link").id
-    box_geom = model.geom("box").id
+    object_geoms = np.flatnonzero(model.geom_bodyid == box_id)
     box_pose_qpos = int(model.jnt_qposadr[model.body("box").jntadr[0]])
     thumb = [
         g
@@ -240,7 +234,11 @@ def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
             mujoco.mj_kinematics(model, scratch)
             clearance = min(clearance, table_distance())
             gaps = [
-                min(mujoco.mj_geomDistance(model, scratch, g, box_geom, 0.10, None) for g in side)
+                min(
+                    mujoco.mj_geomDistance(model, scratch, g, part, 0.10, None)
+                    for g in side
+                    for part in object_geoms
+                )
                 for side in (thumb, fingers_against_thumb)
             ]
             opposing_gap = min(opposing_gap, max(gaps))
@@ -255,6 +253,18 @@ def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
 
     def observe_box():
         return observe_box_pose()[:3]
+
+    observed_reference_z = float(observe_box()[2])
+
+    def observed_hold():
+        travel = selected_closed - OPEN
+        encoders = env.hand_positions()[RIGHT]
+        measured_fraction = (encoders - OPEN) @ travel / (travel @ travel)
+        return bool(
+            min(opposing_forces()) >= TOUCH_THRESHOLD
+            and measured_fraction < 1.0 - ENCODER_TRAVEL_MARGIN
+            and observe_box()[2] - observed_reference_z >= LIFT_M
+        )
 
     def sample(phase):
         # Evaluation only. Decisions below use the touch sensors and labelled pose estimate.
@@ -282,6 +292,11 @@ def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
             "wrist_angle_rad": float(env.data.qpos[wrist.qposadr[0]]),
             "touch_n": env.touch("right"), "fingers_rad": env.hand_positions()[RIGHT].tolist(),
         })  # fmt: skip
+        if phase == "hold":
+            rows[-1]["observed_hold"] = observed_hold()
+            rows[-1]["table_clearance_m"] = (
+                lowest_collision_point_z(model, env.data, object_geoms) - top
+            )
 
     def tick(phase):
         env.step(ctrl)
@@ -524,7 +539,7 @@ def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
         nonlocal fraction, lost_ticks
         weakest = min(opposing_forces())
         # Avoid a contact loss false positive from one 50 Hz sensor sample.
-        lost_ticks = lost_ticks + 1 if weakest < 0.1 else 0
+        lost_ticks = lost_ticks + 1 if weakest < TOUCH_THRESHOLD else 0
         if lost_ticks >= round(GRIP_DWELL_S / TICK):
             return StopEvent(obs.t, "grip lost", {"weakest_normal_n": weakest})
         # Normal force may stay steady while the box creeps down the pads.
@@ -645,7 +660,7 @@ def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
         set_scratch(backend.observe())
         object_pose = observe_box_pose()
 
-        def rank_candidates(thumb_biases=(0.0,)):
+        def rank_candidates(**sampling):
             return rank_pinches(
                 model,
                 scratch.qpos,
@@ -656,18 +671,23 @@ def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
                 CLOSED,
                 GRASP_OFFSET,
                 TABLE_CLEARANCE_M,
-                object_geom=box_geom,
+                object_body_id=box_id,
                 support_geom=table_geom,
                 depth_search=depth_search,
-                thumb_biases=thumb_biases,
+                **sampling,
             )
 
         pinches = rank_candidates()
         # Changing thumb abduction changes where the pad wraps around an
         # object. Consider both directions when the usual closure cannot hold.
         thumb_variants = (-np.pi / 12, np.pi / 12)
+        # The centre and lower half of the upper section are useful when
+        # the object's upper profile tapers. The same table clearance applies.
+        midbody = (0.0, 0.25)
         if depth_search and planned_rank is not None and planned_rank >= len(pinches):
-            pinches.extend(rank_candidates(thumb_variants))
+            pinches.extend(rank_candidates(thumb_biases=thumb_variants))
+            if planned_rank >= len(pinches):
+                pinches.extend(rank_candidates(height_fractions=midbody))
         rank = planned_rank if planned_rank is not None and planned_rank < len(pinches) else 0
         if rehearsal_search and (pinches or depth_search):
             # Separate scene with a nominal material prior across all fixtures.
@@ -702,7 +722,11 @@ def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
             rehearsals = screen(0)
             if depth_search and not any(r.minimum_hold_lift_m >= LIFT_M for r in rehearsals):
                 first = len(pinches)
-                pinches.extend(rank_candidates(thumb_variants))
+                pinches.extend(rank_candidates(thumb_biases=thumb_variants))
+                rehearsals.extend(screen(first))
+            if depth_search and not any(r.minimum_hold_lift_m >= LIFT_M for r in rehearsals):
+                first = len(pinches)
+                pinches.extend(rank_candidates(height_fractions=midbody))
                 rehearsals.extend(screen(first))
             retained = [r for r in rehearsals if r.minimum_hold_lift_m >= LIFT_M]
             if retained:
@@ -823,13 +847,14 @@ def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
                                 break
 
     hold = [r for r in rows if r["phase"] == "hold"]
+    completed_hold = not backend.held and not ctrl.stopped and len(hold) == round(HOLD_S / TICK)
     return {
         "phases": phases, "rows": rows,
         "stop": asdict(backend.held) if backend.held else ctrl.stopped,
         "peak_lift_m": max((r["lift_m"] for r in rows), default=0.0),
-        "grasp_verified": not backend.held and not ctrl.stopped
-        and len(hold) == round(HOLD_S / TICK)
-        and all(r["lift_m"] >= LIFT_M and r["hand_only_contact"] for r in hold),
+        "grasp_observed": completed_hold and all(r["observed_hold"] for r in hold),
+        "grasp_verified": completed_hold
+        and all(r["table_clearance_m"] >= LIFT_M and r["hand_only_contact"] for r in hold),
     }  # fmt: skip
 
 

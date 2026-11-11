@@ -6,6 +6,27 @@ import mujoco
 import numpy as np
 
 
+def lowest_collision_point_z(
+    model: mujoco.MjModel, data: mujoco.MjData, geoms: np.ndarray
+) -> float:
+    """Ground-truth lower support of the tabletop fixture, including tilt and handles."""
+    bottom = np.inf
+    for geom in geoms:
+        size = model.geom_size[geom]
+        up = data.geom_xmat[geom].reshape(3, 3)[2]
+        match model.geom_type[geom]:
+            case mujoco.mjtGeom.mjGEOM_BOX:
+                extent = np.abs(up) @ size
+            case mujoco.mjtGeom.mjGEOM_CYLINDER:
+                extent = abs(up[2]) * size[1] + np.hypot(up[0], up[1]) * size[0]
+            case mujoco.mjtGeom.mjGEOM_SPHERE:
+                extent = size[0]
+            case kind:
+                raise ValueError(f"no tabletop support evaluator for geom type {kind}")
+        bottom = min(bottom, data.geom_xpos[geom, 2] - extent)
+    return float(bottom)
+
+
 def object_evidence(model: mujoco.MjModel, data: mujoco.MjData) -> dict:
     geom = model.geom("test_object_geom").id
     contacts = []

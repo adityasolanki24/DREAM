@@ -55,10 +55,12 @@ def test_verified_free_standing_grasp_on_changed_box_positions(fixture):
     cfg = json.loads((CONFIG / f"g1_grasp_bringup_{fixture}.json").read_text())
     result = attempt(cfg)
     assert result["stop"] is None
+    assert result["grasp_observed"], result["phases"]
     assert result["grasp_verified"], result["phases"]
     hold = [row for row in result["rows"] if row["phase"] == "hold"]
     assert len(hold) == round(HOLD_S / TICK)
     assert min(row["lift_m"] for row in hold) >= LIFT_M
+    assert min(row["table_clearance_m"] for row in hold) >= LIFT_M
     assert all(row["hand_only_contact"] for row in hold)
 
 

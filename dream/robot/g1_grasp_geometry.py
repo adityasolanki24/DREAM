@@ -65,8 +65,9 @@ def rehearse_pinches(
     wrist = model.body("right_wrist_yaw_link").id
     lift_actuator = model.actuator("rehearsal_lift").id
     lift_qpos = int(model.joint("rehearsal_lift").qposadr[0])
-    object_geom = model.geom("box").id
-    object_joint = model.joint(model.body("box").jntadr[0])
+    object_body = model.body("box")
+    object_geoms = frozenset(np.flatnonzero(model.geom_bodyid == object_body.id))
+    object_joint = model.joint(object_body.jntadr[0])
     object_qpos = int(object_joint.qposadr[0])
     actuators = [model.actuator(name).id for name in hand_joints]
     finger_positions = [int(model.joint(name).qposadr[0]) for name in hand_joints]
@@ -81,9 +82,12 @@ def rehearse_pinches(
         mujoco.mj_step(model, data, nstep=step_count)
         thumb_force = opposing_force = 0.0
         for index, contact in enumerate(data.contact):
-            if object_geom not in (contact.geom1, contact.geom2):
+            if contact.geom1 in object_geoms:
+                other = contact.geom2
+            elif contact.geom2 in object_geoms:
+                other = contact.geom1
+            else:
                 continue
-            other = contact.geom2 if contact.geom1 == object_geom else contact.geom1
             link = model.body(model.geom_bodyid[other]).name
             mujoco.mj_contactForce(model, data, index, wrench)
             if "hand_thumb_2" in link:
@@ -152,16 +156,18 @@ def rank_pinches(
     tool_offset: np.ndarray,
     clearance_m: float,
     *,
-    object_geom: int,
+    object_body_id: int,
     support_geom: int,
     depth_search: bool = False,
     thumb_biases: tuple[float, ...] = (0.0,),
+    height_fractions: tuple[float, ...] = (0.5, 0.75, 1.0, 1.25),
 ) -> list[PinchCandidate]:
     """Use the observed object pose and mesh geometry in a separate kinematic state."""
     data = mujoco.MjData(model)
     data.qpos[:] = reference
     wrist = model.body("right_wrist_yaw_link").id
-    object_body = model.body(model.geom_bodyid[object_geom])
+    object_body = model.body(object_body_id)
+    object_geoms = frozenset(np.flatnonzero(model.geom_bodyid == object_body_id))
     object_qpos = int(model.jnt_qposadr[object_body.jntadr[0]])
     hand = {
         g: model.body(model.geom_bodyid[g]).name
@@ -200,13 +206,15 @@ def rank_pinches(
                 break
             touches = []
             for contact in data.contact:
-                other = contact.geom2 if contact.geom1 == object_geom else contact.geom1
-                if (
-                    object_geom in (contact.geom1, contact.geom2)
-                    and other in hand
-                    and contact.dist < 0
-                ):
-                    normal = contact.frame[:3] * (1 if contact.geom2 == object_geom else -1)
+                if contact.geom1 in object_geoms:
+                    other = contact.geom2
+                    normal = -contact.frame[:3]
+                elif contact.geom2 in object_geoms:
+                    other = contact.geom1
+                    normal = contact.frame[:3].copy()
+                else:
+                    continue
+                if other in hand and contact.dist < 0:
                     touches.append((hand[other], contact.pos.copy(), normal))
             opposing = [
                 entry
@@ -246,7 +254,7 @@ def rank_pinches(
     # far the fingers wrap around an object changes which links carry the load.
     depths = (-0.8, -0.4, 0.0, 0.4, 0.8) if depth_search else (0.0,)
     for thumb_bias, depth, roll, pitch, height, lateral in product(
-        thumb_biases, depths, (-15, 0, 15), (0, 15, 30), (0.5, 0.75, 1.0, 1.25), (-0.2, 0.0, 0.2)
+        thumb_biases, depths, (-15, 0, 15), (0, 15, 30), height_fractions, (-0.2, 0.0, 0.2)
     ):
         rot = Rotation.from_euler("xy", [roll, pitch], degrees=True).as_matrix()
         offset = np.array([depth * depth_extent, lateral * width, height * height_extent])
