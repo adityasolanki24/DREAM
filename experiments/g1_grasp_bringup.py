@@ -29,6 +29,10 @@ from dream.sim.g1_mobile import TOUCH_THRESHOLD, G1MobileEnv, build_grasp_rehear
 # Right-hand targets mirror the supported G1's seven-joint closure in dream/robot/g1.py.
 OPEN = np.array([0, 0, -0.08, 0.08, 0.08, 0.08, 0.08])
 CLOSED = np.array([0, -0.7, -1.2, 1.1, 1.2, 1.1, 1.2])
+# Commissioning grasp family with more proximal curl and less fingertip curl.
+# Every target lies inside the Unitree joint limits. Geometry and physical
+# retention choose when to use it.
+WRAP_CLOSED = np.array([0, -0.90, -0.95, 1.4, 0.95, 1.4, 0.95])
 RIGHT = slice(7, 14)
 LIFT_M = 0.10
 HOLD_S = 3.0
@@ -51,38 +55,51 @@ ENCODER_TRAVEL_MARGIN = 0.02
 REHEARSAL_MASS_KG = 0.10
 
 
+def _material_prior(cfg: dict) -> tuple[float, float | None]:
+    """Planning assumptions are explicit and independent of the execution material."""
+    prior = cfg.get("grasp_material_prior", {})
+    mass = float(prior.get("mass_kg", REHEARSAL_MASS_KG))
+    friction = prior.get("sliding_friction")
+    if not np.isfinite(mass) or mass <= 0:
+        raise ValueError("grasp prior mass must be finite and positive")
+    if friction is not None:
+        friction = float(friction)
+        if not np.isfinite(friction) or friction <= 0:
+            raise ValueError("grasp prior friction must be finite and positive")
+    return mass, friction
+
+
 def attempt(cfg: dict) -> dict:
     """Execute and score a live simulated G1 grasp, optionally previewing the candidate."""
     if not cfg.get("whole_body_grasp_preview", False):
         return _attempt(cfg)
     # Validate the proposed grasp with the balance policy in an independent
     # world. Only observed geometry and a shared material prior enter it.
+    prior_mass, prior_friction = _material_prior(cfg)
     predicted_cfg = dict(
         cfg,
-        object_mass_kg=REHEARSAL_MASS_KG,
-        object_sliding_friction=None,
+        object_mass_kg=prior_mass,
+        object_sliding_friction=prior_friction,
         contact_rehearsal_search=True,
         # Use a reproducible planning stream independent of evaluation noise.
         seed=np.random.SeedSequence(0, spawn_key=(1,)),
     )
-    predicted = _attempt(predicted_cfg)
-    proposed = predicted["phases"].get("grasp_geometry", {}).get("rank", 0)
-    attempts = [_preview_outcome(predicted, proposed)]
+    predicted, attempts = _preview_family(predicted_cfg, None, "pinch")
+    proposed = attempts[0]["rank"]
+    selected_closing = None
+    selected_family = "pinch"
     if cfg.get("grasp_depth_search", False) and not predicted["grasp_verified"]:
-        # Give the controller up to two other predictions with distinct depth
-        # targets. A stage prediction alone does not establish whole-body reach.
-        alternatives = predicted["phases"].get("rehearsal_alternatives", [])
-        for candidate in alternatives[:2]:
-            predicted = _attempt(predicted_cfg, planned_rank=candidate)
-            attempts.append(_preview_outcome(predicted, candidate))
-            if predicted["grasp_verified"]:
-                break
+        predicted, wrapping = _preview_family(predicted_cfg, WRAP_CLOSED, "proximal_wrap")
+        attempts.extend(wrapping)
+        if predicted["grasp_verified"]:
+            selected_closing = WRAP_CLOSED
+            selected_family = "proximal_wrap"
     if cfg.get("grasp_depth_search", False) and not predicted["grasp_verified"]:
         result = attempt(dict(cfg, grasp_depth_search=False))
         result["phases"]["grasp_depth_fallback"] = attempts
         return result
     rank = attempts[-1]["rank"] if predicted["grasp_verified"] else 0
-    result = _attempt(cfg, planned_rank=rank)
+    result = _attempt(cfg, planned_rank=rank, closing_target=selected_closing)
     result["phases"]["whole_body_grasp_preview"] = {
         "proposed_rank": proposed,
         "executed_rank": rank,
@@ -90,20 +107,39 @@ def attempt(cfg: dict) -> dict:
         "predicted_peak_lift_m": predicted["peak_lift_m"],
         "predicted_stop": predicted["stop"],
         "attempts": attempts,
+        "family": selected_family,
     }
     return result
 
 
-def _preview_outcome(predicted: dict, rank: int) -> dict:
+def _preview_family(cfg: dict, closing: np.ndarray | None, family: str) -> tuple[dict, list]:
+    predicted = _attempt(cfg, closing_target=closing)
+    rank = predicted["phases"].get("grasp_geometry", {}).get("rank", 0)
+    attempts = [_preview_outcome(predicted, rank, family)]
+    if cfg.get("grasp_depth_search", False) and not predicted["grasp_verified"]:
+        alternatives = predicted["phases"].get("rehearsal_alternatives", [])
+        for rank in alternatives[:2]:
+            predicted = _attempt(cfg, planned_rank=rank, closing_target=closing)
+            attempts.append(_preview_outcome(predicted, rank, family))
+            if predicted["grasp_verified"]:
+                break
+    return predicted, attempts
+
+
+def _preview_outcome(predicted: dict, rank: int, family: str) -> dict:
     return {
         "rank": rank,
+        "family": family,
         "verified": predicted["grasp_verified"],
         "peak_lift_m": predicted["peak_lift_m"],
         "stop": predicted["stop"],
     }
 
 
-def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
+def _attempt(
+    cfg: dict, *, planned_rank: int | None = None, closing_target: np.ndarray | None = None
+) -> dict:
+    closing = CLOSED if closing_target is None else closing_target
     top = cfg["table_top_m"]
     size = np.asarray(
         cfg["object_half_extents_m"]
@@ -156,7 +192,7 @@ def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
     monitor = WholeBodySupervisor(planner.pm, SafetyLimits(contact_force=35.0))
     backend = WBCBackend(env, ctrl, caps, contact_force=backend_force)
     fingers = env.hand_targets.copy()
-    selected_closed = CLOSED
+    selected_closed = closing
     fingers[RIGHT] = OPEN
     env.set_hand(fingers)
     rows, phases = [], {}
@@ -220,6 +256,16 @@ def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
             for g in collision_geoms
         )
 
+    def measured_opposing_gap():
+        return max(
+            min(
+                mujoco.mj_geomDistance(model, scratch, g, part, 0.10, None)
+                for g in side
+                for part in object_geoms
+            )
+            for side in (thumb, fingers_against_thumb)
+        )
+
     def check_closure():
         set_scratch(backend.observe())
         rot = scratch.xmat[wrist_body].reshape(3, 3)
@@ -233,15 +279,7 @@ def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
             scratch.qpos[env.hand_qadr[RIGHT]] = OPEN + alpha * (selected_closed - OPEN)
             mujoco.mj_kinematics(model, scratch)
             clearance = min(clearance, table_distance())
-            gaps = [
-                min(
-                    mujoco.mj_geomDistance(model, scratch, g, part, 0.10, None)
-                    for g in side
-                    for part in object_geoms
-                )
-                for side in (thumb, fingers_against_thumb)
-            ]
-            opposing_gap = min(opposing_gap, max(gaps))
+            opposing_gap = min(opposing_gap, measured_opposing_gap())
         return {
             "grasp_xyz_m": grasp.tolist(), "wrist_rotation": rot.tolist(),
             "table_clearance_m": clearance, "opposing_gap_m": opposing_gap,
@@ -529,6 +567,7 @@ def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
 
     fraction = 0.0
     lost_ticks = 0
+    pose_lost_ticks = 0
     held_box = None
 
     def box_in_wrist():
@@ -536,12 +575,23 @@ def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
         return rot.T @ (observe_box() - scratch.xpos[wrist_body])
 
     def maintain_grip(obs):
-        nonlocal fraction, lost_ticks
+        nonlocal fraction, lost_ticks, pose_lost_ticks
         weakest = min(opposing_forces())
         # Avoid a contact loss false positive from one 50 Hz sensor sample.
         lost_ticks = lost_ticks + 1 if weakest < TOUCH_THRESHOLD else 0
         if lost_ticks >= round(GRIP_DWELL_S / TICK):
             return StopEvent(obs.t, "grip lost", {"weakest_normal_n": weakest})
+        # Touch includes pressure between the fingers. Require the observed
+        # object to remain at both contact surfaces in the proprioceptive model.
+        set_scratch(obs)
+        scratch.qpos[box_pose_qpos : box_pose_qpos + 7] = observe_box_pose()
+        mujoco.mj_kinematics(model, scratch)
+        gap = measured_opposing_gap()
+        rows[-1]["observed_opposing_gap_m"] = gap
+        # Use the same 3 mm frame-alignment allowance as the hand sweep guard.
+        pose_lost_ticks = pose_lost_ticks + 1 if gap > TABLE_CLEARANCE_M else 0
+        if pose_lost_ticks >= round(GRIP_DWELL_S / TICK):
+            return StopEvent(obs.t, "object contact lost", {"observed_opposing_gap_m": gap})
         # Normal force may stay steady while the box creeps down the pads.
         # The measured relative pose raises the requested preload on slip.
         displacement = float(np.linalg.norm(box_in_wrist() - held_box))
@@ -668,7 +718,7 @@ def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
                 size,
                 env.hand_qadr[RIGHT],
                 OPEN,
-                CLOSED,
+                closing,
                 GRASP_OFFSET,
                 TABLE_CLEARANCE_M,
                 object_body_id=box_id,
@@ -690,8 +740,10 @@ def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
                 pinches.extend(rank_candidates(height_fractions=midbody))
         rank = planned_rank if planned_rank is not None and planned_rank < len(pinches) else 0
         if rehearsal_search and (pinches or depth_search):
-            # Separate scene with a nominal material prior across all fixtures.
-            prediction = build_grasp_rehearsal(lambda spec: scene(spec, mass=REHEARSAL_MASS_KG))
+            prior_mass, prior_friction = _material_prior(cfg)
+            prediction = build_grasp_rehearsal(
+                lambda spec: scene(spec, mass=prior_mass, friction=prior_friction)
+            )
 
             def screen(first):
                 shortlist = list(enumerate(pinches[first:], start=first))
@@ -709,7 +761,7 @@ def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
                     shortlist,
                     tuple(model.actuator(index).name for index in env.finger_actuators[RIGHT]),
                     OPEN,
-                    CLOSED,
+                    closing,
                     GRASP_OFFSET,
                     object_width=2.0 * half,
                     control_period=TICK,
@@ -720,11 +772,11 @@ def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
                 )
 
             rehearsals = screen(0)
-            if depth_search and not any(r.minimum_hold_lift_m >= LIFT_M for r in rehearsals):
+            if depth_search and (not any(r.minimum_hold_lift_m >= LIFT_M for r in rehearsals)):
                 first = len(pinches)
                 pinches.extend(rank_candidates(thumb_biases=thumb_variants))
                 rehearsals.extend(screen(first))
-            if depth_search and not any(r.minimum_hold_lift_m >= LIFT_M for r in rehearsals):
+            if depth_search and (not any(r.minimum_hold_lift_m >= LIFT_M for r in rehearsals)):
                 first = len(pinches)
                 pinches.extend(rank_candidates(height_fractions=midbody))
                 rehearsals.extend(screen(first))
@@ -746,7 +798,7 @@ def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
         if pinches:
             selected = pinches[rank]
             pinch_offset, pinch_rotation = selected.offset, selected.rotation
-            selected_closed = CLOSED.copy()
+            selected_closed = closing.copy()
             selected_closed[0] += selected.thumb_bias_rad
             phases["grasp_geometry"] = {
                 "candidates": len(pinches), "rank": rank, "offset_m": pinch_offset.tolist(),
@@ -754,6 +806,7 @@ def _attempt(cfg: dict, *, planned_rank: int | None = None) -> dict:
                 "support_links": selected.support_links,
                 "predicted_closure_fraction": selected.closure_fraction,
                 "thumb_bias_rad": selected.thumb_bias_rad,
+                "closing_target_rad": selected_closed.tolist(),
             }  # fmt: skip
         else:
             phases["grasp_geometry"] = {"candidates": 0}

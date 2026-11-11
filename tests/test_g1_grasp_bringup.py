@@ -3,6 +3,7 @@
 import json
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from dream.robot.g1_wbc import policy_cache
@@ -10,7 +11,7 @@ from dream.robot.g1_wbc import policy_cache
 pytest.importorskip("mink")
 pytest.importorskip("daqp")
 pytest.importorskip("onnxruntime")
-from experiments.g1_grasp_bringup import HOLD_S, LIFT_M, TICK, attempt
+from experiments.g1_grasp_bringup import HOLD_S, LIFT_M, TICK, _attempt, attempt
 
 CONFIG = Path(__file__).resolve().parents[1] / "experiments/configs"
 pytestmark = [
@@ -90,10 +91,29 @@ def test_whole_body_preview_filters_the_proposed_grasp(fixture, preview_holds):
     result = attempt(dict(cfg, whole_body_grasp_preview=True))
     preview = result["phases"]["whole_body_grasp_preview"]
     assert preview["proposed_rank"] > 0
-    assert preview["predicted_verified"] is preview_holds
-    expected_rank = preview["proposed_rank"] if preview_holds else 0
+    assert preview["attempts"][0]["verified"] is preview_holds
+    expected_rank = preview["attempts"][-1]["rank"] if preview["predicted_verified"] else 0
     assert result["phases"]["grasp_geometry"]["rank"] == expected_rank
     assert result["stop"] is None
+    assert result["grasp_verified"], result["phases"]
+
+
+def test_wrap_family_holds_the_bottle_from_geometric_and_physical_selection():
+    cfg = json.loads((CONFIG / "g1_grasp_bringup_cylinder.json").read_text())
+    cfg.update(
+        seed=53,
+        object_shape="bottle",
+        object_half_extents_m=[0.033, 0.033, 0.064],
+        object_mass_kg=0.10,
+        object_sliding_friction=0.85,
+        table_top_m=0.74,
+        object_center_xy_m=[0.465, -0.175],
+        whole_body_grasp_preview=True,
+        grasp_depth_search=True,
+    )
+    result = attempt(cfg)
+    assert result["phases"]["whole_body_grasp_preview"]["family"] == "proximal_wrap"
+    assert result["grasp_observed"]
     assert result["grasp_verified"], result["phases"]
 
 
@@ -107,3 +127,23 @@ def test_expanded_contact_search_retains_the_object(fixture, uses_thumb_bias):
     assert result["phases"]["whole_body_grasp_preview"]["predicted_verified"]
     assert result["stop"] is None
     assert result["grasp_verified"], result["phases"]
+
+
+def test_observed_object_loss_stops_despite_pressure_between_fingers():
+    # Reproduce the bottle prediction whose tactile pressure persisted after
+    # the object slipped to the table. Candidate rank comes from its recorded
+    # geometric search, with the same independent planning material and noise.
+    cfg = json.loads((CONFIG / "g1_grasp_bringup_cylinder.json").read_text())
+    cfg.update(
+        seed=np.random.SeedSequence(0, spawn_key=(1,)),
+        object_shape="bottle",
+        object_half_extents_m=[0.033, 0.033, 0.064],
+        object_mass_kg=0.10,
+        table_top_m=0.74,
+        object_center_xy_m=[0.465, -0.175],
+        contact_rehearsal_search=True,
+        grasp_depth_search=True,
+    )
+    result = _attempt(cfg, planned_rank=414)
+    assert not result["grasp_verified"]
+    assert result["stop"]["reason"] == "object contact lost"
