@@ -1,0 +1,1018 @@
+{
+  "run_id": "2026-11-10-012/20261110-230836-clearance-and-material",
+  "task_id": "2026-11-10-012",
+  "title": "Verify bottom clearance, sensed hold and actual compound-object contact friction",
+  "started": "2026-11-10T23:08:36+11:00",
+  "commit": "acc45456ad2c216390d156e2dc43ae01b72debab",
+  "dirty": true,
+  "branch": "codex/g1-integration",
+  "configs": [
+    {
+      "path": "results/g1_r1_depth_dev_20261110/summary.json",
+      "sha256": "68b8425b9e245a420f88e6a23fe3a3aaa9a889603c98d5bb94431c9f586de829"
+    },
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-compound-live-001/bottle.json",
+      "sha256": "e9e3e2e3a528fb665aa007f2b37d78488e6b5e2e64474d88dfc3ad0dbeb3c586"
+    },
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-compound-live-001/mug.json",
+      "sha256": "10a40933002fa08e55aff43aa3fc856fb2c099ab37132e37a7d1192267acc5c2"
+    },
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-compound-live-001/bottle_shift.json",
+      "sha256": "32a8ae767f81d5ee3490accff761aa49b010822be2f73fdf76093d8edd7b4ec5"
+    },
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-compound-live-001/mug_shift.json",
+      "sha256": "ee32a6c44c80b82f320af345b4a47ea228dc128410abade6264cd1e9103bc650"
+    }
+  ],
+  "command": "python C:/Users/24adi/DREAM-r1-evidence/r1-compound-clearance-001/run.py",
+  "seeds": "nine matched, two prior shifts and four compound configurations",
+  "model": "Cached Decoupled WBC",
+  "simulator": "MuJoCo 3.16.0",
+  "renderer": "None",
+  "embodiment": "free-standing G1 Dex3",
+  "controller": "Decoupled WBC",
+  "hardware": "local CPU, two workers",
+  "status": "completed",
+  "ended": "2026-11-10T23:16:05+11:00",
+  "exit_status": 0,
+  "cases_attempted": 15,
+  "cases_completed": 15,
+  "metrics": {
+    "cases": [
+      {
+        "name": "bottle",
+        "verified": false,
+        "observed": false,
+        "peak_lift_m": 0.1295274503581929,
+        "stop": {
+          "t": 24.75999999999936,
+          "reason": "grip lost",
+          "detail": {
+            "weakest_normal_n": 0.0
+          }
+        },
+        "minimum_bottom_clearance_m": null,
+        "hold_ticks": 0,
+        "grasp_geometry": {
+          "candidates": 83,
+          "rank": 0,
+          "offset_m": [
+            0.0,
+            0.0,
+            0.032
+          ],
+          "rotation": [
+            [
+              1.0,
+              -0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              0.25881904510252074
+            ],
+            [
+              -0.0,
+              -0.25881904510252074,
+              0.9659258262890682
+            ]
+          ],
+          "score": 1.2398259156591889,
+          "support_links": 3,
+          "predicted_closure_fraction": 0.5625,
+          "thumb_bias_rad": 0.0
+        },
+        "preview": {
+          "proposed_rank": 0,
+          "executed_rank": 0,
+          "predicted_verified": false,
+          "predicted_peak_lift_m": 0.138217322633579,
+          "predicted_stop": {
+            "t": 24.95999999999932,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "attempts": [
+            {
+              "rank": 0,
+              "verified": false,
+              "peak_lift_m": 0.138217322633579,
+              "stop": {
+                "t": 24.95999999999932,
+                "reason": "grip lost",
+                "detail": {
+                  "weakest_normal_n": 0.0
+                }
+              }
+            }
+          ]
+        },
+        "depth_fallback": [
+          {
+            "rank": 414,
+            "verified": false,
+            "peak_lift_m": 0.1397944636812496,
+            "stop": null
+          },
+          {
+            "rank": 513,
+            "verified": false,
+            "peak_lift_m": 0.0651534927976769,
+            "stop": null
+          }
+        ]
+      },
+      {
+        "name": "mug",
+        "verified": true,
+        "observed": true,
+        "peak_lift_m": 0.13681035073903358,
+        "stop": null,
+        "minimum_bottom_clearance_m": 0.12654924794370515,
+        "hold_ticks": 150,
+        "grasp_geometry": {
+          "candidates": 305,
+          "rank": 32,
+          "offset_m": [
+            0.0216,
+            0.0054,
+            0.026250000000000002
+          ],
+          "rotation": [
+            [
+              1.0,
+              -0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              0.25881904510252074
+            ],
+            [
+              -0.0,
+              -0.25881904510252074,
+              0.9659258262890682
+            ]
+          ],
+          "score": 1.0247670532864426,
+          "support_links": 2,
+          "predicted_closure_fraction": 0.8125,
+          "thumb_bias_rad": 0.0
+        },
+        "preview": {
+          "proposed_rank": 32,
+          "executed_rank": 32,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.13737615848349427,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 32,
+              "verified": true,
+              "peak_lift_m": 0.13737615848349427,
+              "stop": null
+            }
+          ]
+        },
+        "depth_fallback": null
+      },
+      {
+        "name": "bottle_shift",
+        "verified": false,
+        "observed": false,
+        "peak_lift_m": 0.055259291604172645,
+        "stop": {
+          "t": 19.300000000000445,
+          "reason": "grip lost",
+          "detail": {
+            "weakest_normal_n": 0.0
+          }
+        },
+        "minimum_bottom_clearance_m": null,
+        "hold_ticks": 0,
+        "grasp_geometry": {
+          "candidates": 93,
+          "rank": 0,
+          "offset_m": [
+            0.0,
+            0.0,
+            0.026
+          ],
+          "rotation": [
+            [
+              1.0,
+              -0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              0.25881904510252074
+            ],
+            [
+              -0.0,
+              -0.25881904510252074,
+              0.9659258262890682
+            ]
+          ],
+          "score": 1.236262370034619,
+          "support_links": 4,
+          "predicted_closure_fraction": 0.5625,
+          "thumb_bias_rad": 0.0
+        },
+        "preview": {
+          "proposed_rank": 0,
+          "executed_rank": 0,
+          "predicted_verified": false,
+          "predicted_peak_lift_m": 0.13054584898519073,
+          "predicted_stop": {
+            "t": 21.77999999999995,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "attempts": [
+            {
+              "rank": 0,
+              "verified": false,
+              "peak_lift_m": 0.13054584898519073,
+              "stop": {
+                "t": 21.77999999999995,
+                "reason": "grip lost",
+                "detail": {
+                  "weakest_normal_n": 0.0
+                }
+              }
+            }
+          ]
+        },
+        "depth_fallback": [
+          {
+            "rank": 1235,
+            "verified": false,
+            "peak_lift_m": 0.136125609957914,
+            "stop": {
+              "t": 26.51999999999901,
+              "reason": "grip lost",
+              "detail": {
+                "weakest_normal_n": 0.0
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "mug_shift",
+        "verified": true,
+        "observed": true,
+        "peak_lift_m": 0.14931223071525135,
+        "stop": null,
+        "minimum_bottom_clearance_m": 0.13201133472582194,
+        "hold_ticks": 150,
+        "grasp_geometry": {
+          "candidates": 249,
+          "rank": 8,
+          "offset_m": [
+            0.024800000000000003,
+            0.006200000000000001,
+            0.0165
+          ],
+          "rotation": [
+            [
+              1.0,
+              -0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              0.25881904510252074
+            ],
+            [
+              -0.0,
+              -0.25881904510252074,
+              0.9659258262890682
+            ]
+          ],
+          "score": 1.1315464332660905,
+          "support_links": 3,
+          "predicted_closure_fraction": 0.8125,
+          "thumb_bias_rad": 0.0
+        },
+        "preview": {
+          "proposed_rank": 8,
+          "executed_rank": 8,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.13039791063263484,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 8,
+              "verified": true,
+              "peak_lift_m": 0.13039791063263484,
+              "stop": null
+            }
+          ]
+        },
+        "depth_fallback": null
+      },
+      {
+        "name": "pinch",
+        "verified": true,
+        "observed": true,
+        "peak_lift_m": 0.14426764705699102,
+        "stop": null,
+        "minimum_bottom_clearance_m": 0.12490535254660784,
+        "hold_ticks": 150,
+        "grasp_geometry": {
+          "candidates": 75,
+          "rank": 52,
+          "offset_m": [
+            -0.020000000000000004,
+            -0.005000000000000001,
+            0.025
+          ],
+          "rotation": [
+            [
+              1.0,
+              -0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              0.25881904510252074
+            ],
+            [
+              -0.0,
+              -0.25881904510252074,
+              0.9659258262890682
+            ]
+          ],
+          "score": 0.7385692742231983,
+          "support_links": 2,
+          "predicted_closure_fraction": 0.6875,
+          "thumb_bias_rad": 0.0
+        },
+        "preview": {
+          "proposed_rank": 52,
+          "executed_rank": 52,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.14038555830236132,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 52,
+              "verified": true,
+              "peak_lift_m": 0.14038555830236132,
+              "stop": null
+            }
+          ]
+        },
+        "depth_fallback": null
+      },
+      {
+        "name": "lateral",
+        "verified": true,
+        "observed": true,
+        "peak_lift_m": 0.14156075654894074,
+        "stop": null,
+        "minimum_bottom_clearance_m": 0.11872229582683602,
+        "hold_ticks": 150,
+        "grasp_geometry": {
+          "candidates": 75,
+          "rank": 52,
+          "offset_m": [
+            -0.020000000000000004,
+            -0.005000000000000001,
+            0.025
+          ],
+          "rotation": [
+            [
+              1.0,
+              -0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              0.25881904510252074
+            ],
+            [
+              -0.0,
+              -0.25881904510252074,
+              0.9659258262890682
+            ]
+          ],
+          "score": 0.7385692742231983,
+          "support_links": 2,
+          "predicted_closure_fraction": 0.6875,
+          "thumb_bias_rad": 0.0
+        },
+        "preview": {
+          "proposed_rank": 52,
+          "executed_rank": 52,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.13961160104209724,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 52,
+              "verified": true,
+              "peak_lift_m": 0.13961160104209724,
+              "stop": null
+            }
+          ]
+        },
+        "depth_fallback": null
+      },
+      {
+        "name": "shift_in",
+        "verified": true,
+        "observed": true,
+        "peak_lift_m": 0.13494860178192214,
+        "stop": null,
+        "minimum_bottom_clearance_m": 0.11415546695721468,
+        "hold_ticks": 150,
+        "grasp_geometry": {
+          "candidates": 83,
+          "rank": 61,
+          "offset_m": [
+            -0.0092,
+            -0.0046,
+            0.028749999999999998
+          ],
+          "rotation": [
+            [
+              1.0,
+              -0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              0.25881904510252074
+            ],
+            [
+              -0.0,
+              -0.25881904510252074,
+              0.9659258262890682
+            ]
+          ],
+          "score": 0.8021777928276644,
+          "support_links": 2,
+          "predicted_closure_fraction": 0.5625,
+          "thumb_bias_rad": -0.2617993877991494
+        },
+        "preview": {
+          "proposed_rank": 61,
+          "executed_rank": 61,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.1329705312796967,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 61,
+              "verified": true,
+              "peak_lift_m": 0.1329705312796967,
+              "stop": null
+            }
+          ]
+        },
+        "depth_fallback": null
+      },
+      {
+        "name": "shift_out",
+        "verified": true,
+        "observed": true,
+        "peak_lift_m": 0.1398772381782979,
+        "stop": null,
+        "minimum_bottom_clearance_m": 0.11443104464254383,
+        "hold_ticks": 150,
+        "grasp_geometry": {
+          "candidates": 149,
+          "rank": 24,
+          "offset_m": [
+            -0.011200000000000002,
+            -0.005600000000000001,
+            0.021
+          ],
+          "rotation": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "score": 1.0293690688455492,
+          "support_links": 2,
+          "predicted_closure_fraction": 1.0,
+          "thumb_bias_rad": 0.0
+        },
+        "preview": {
+          "proposed_rank": 14,
+          "executed_rank": 24,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.14037227388629558,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 14,
+              "verified": false,
+              "peak_lift_m": 0.0024284234865095122,
+              "stop": null
+            },
+            {
+              "rank": 24,
+              "verified": true,
+              "peak_lift_m": 0.14037227388629558,
+              "stop": null
+            }
+          ]
+        },
+        "depth_fallback": null
+      },
+      {
+        "name": "fresh_near",
+        "verified": true,
+        "observed": true,
+        "peak_lift_m": 0.14201545172143748,
+        "stop": null,
+        "minimum_bottom_clearance_m": 0.11853274162790106,
+        "hold_ticks": 150,
+        "grasp_geometry": {
+          "candidates": 75,
+          "rank": 52,
+          "offset_m": [
+            -0.020000000000000004,
+            -0.005000000000000001,
+            0.025
+          ],
+          "rotation": [
+            [
+              1.0,
+              -0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              0.25881904510252074
+            ],
+            [
+              -0.0,
+              -0.25881904510252074,
+              0.9659258262890682
+            ]
+          ],
+          "score": 0.7385692742231987,
+          "support_links": 2,
+          "predicted_closure_fraction": 0.6875,
+          "thumb_bias_rad": 0.0
+        },
+        "preview": {
+          "proposed_rank": 52,
+          "executed_rank": 52,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.14143934184581852,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 52,
+              "verified": true,
+              "peak_lift_m": 0.14143934184581852,
+              "stop": null
+            }
+          ]
+        },
+        "depth_fallback": null
+      },
+      {
+        "name": "fresh_far",
+        "verified": true,
+        "observed": true,
+        "peak_lift_m": 0.14154118264704985,
+        "stop": null,
+        "minimum_bottom_clearance_m": 0.1208973345344645,
+        "hold_ticks": 150,
+        "grasp_geometry": {
+          "candidates": 75,
+          "rank": 52,
+          "offset_m": [
+            -0.020000000000000004,
+            -0.005000000000000001,
+            0.025
+          ],
+          "rotation": [
+            [
+              1.0,
+              -0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              0.25881904510252074
+            ],
+            [
+              -0.0,
+              -0.25881904510252074,
+              0.9659258262890682
+            ]
+          ],
+          "score": 0.7385692742231976,
+          "support_links": 2,
+          "predicted_closure_fraction": 0.6875,
+          "thumb_bias_rad": 0.0
+        },
+        "preview": {
+          "proposed_rank": 52,
+          "executed_rank": 52,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.13956659790314974,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 52,
+              "verified": true,
+              "peak_lift_m": 0.13956659790314974,
+              "stop": null
+            }
+          ]
+        },
+        "depth_fallback": null
+      },
+      {
+        "name": "rectangular",
+        "verified": true,
+        "observed": true,
+        "peak_lift_m": 0.14524435258120139,
+        "stop": null,
+        "minimum_bottom_clearance_m": 0.12203919687563058,
+        "hold_ticks": 150,
+        "grasp_geometry": {
+          "candidates": 75,
+          "rank": 53,
+          "offset_m": [
+            -0.024,
+            -0.005000000000000001,
+            0.026
+          ],
+          "rotation": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "score": 0.7142528528370526,
+          "support_links": 2,
+          "predicted_closure_fraction": 0.625,
+          "thumb_bias_rad": 0.0
+        },
+        "preview": {
+          "proposed_rank": 53,
+          "executed_rank": 53,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.13755766811114345,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 53,
+              "verified": true,
+              "peak_lift_m": 0.13755766811114345,
+              "stop": null
+            }
+          ]
+        },
+        "depth_fallback": null
+      },
+      {
+        "name": "cylinder",
+        "verified": true,
+        "observed": true,
+        "peak_lift_m": 0.151425748650732,
+        "stop": null,
+        "minimum_bottom_clearance_m": 0.1400540789325445,
+        "hold_ticks": 150,
+        "grasp_geometry": {
+          "candidates": 120,
+          "rank": 17,
+          "offset_m": [
+            0.020000000000000004,
+            0.005000000000000001,
+            0.027
+          ],
+          "rotation": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "score": 0.998555080222306,
+          "support_links": 2,
+          "predicted_closure_fraction": 0.8125,
+          "thumb_bias_rad": 0.0
+        },
+        "preview": {
+          "proposed_rank": 17,
+          "executed_rank": 17,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.148544674968906,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 17,
+              "verified": true,
+              "peak_lift_m": 0.148544674968906,
+              "stop": null
+            }
+          ]
+        },
+        "depth_fallback": null
+      },
+      {
+        "name": "sphere",
+        "verified": false,
+        "observed": false,
+        "peak_lift_m": -0.0002458796004892738,
+        "stop": {
+          "t": 16.820000000000938,
+          "reason": "grip lost",
+          "detail": {
+            "weakest_normal_n": 0.0
+          }
+        },
+        "minimum_bottom_clearance_m": null,
+        "hold_ticks": 0,
+        "grasp_geometry": {
+          "candidates": 15,
+          "rank": 0,
+          "offset_m": [
+            0.0,
+            0.0,
+            0.025
+          ],
+          "rotation": [
+            [
+              1.0,
+              -0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.9659258262890682,
+              0.25881904510252074
+            ],
+            [
+              -0.0,
+              -0.25881904510252074,
+              0.9659258262890682
+            ]
+          ],
+          "score": 1.0660618014006067,
+          "support_links": 2,
+          "predicted_closure_fraction": 0.625,
+          "thumb_bias_rad": 0.0
+        },
+        "preview": {
+          "proposed_rank": 0,
+          "executed_rank": 0,
+          "predicted_verified": false,
+          "predicted_peak_lift_m": -0.00027691897607995397,
+          "predicted_stop": {
+            "t": 16.76000000000095,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "attempts": [
+            {
+              "rank": 0,
+              "verified": false,
+              "peak_lift_m": -0.00027691897607995397,
+              "stop": {
+                "t": 16.76000000000095,
+                "reason": "grip lost",
+                "detail": {
+                  "weakest_normal_n": 0.0
+                }
+              }
+            }
+          ]
+        },
+        "depth_fallback": [
+          {
+            "rank": 0,
+            "verified": false,
+            "peak_lift_m": -3.35589276462267e-05,
+            "stop": {
+              "t": 16.440000000001014,
+              "reason": "grip lost",
+              "detail": {
+                "weakest_normal_n": 0.0
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "cube_shift",
+        "verified": true,
+        "observed": true,
+        "peak_lift_m": 0.15037951560687302,
+        "stop": null,
+        "minimum_bottom_clearance_m": 0.12183496765104951,
+        "hold_ticks": 150,
+        "grasp_geometry": {
+          "candidates": 12,
+          "rank": 0,
+          "offset_m": [
+            0.0,
+            0.0048000000000000004,
+            0.024
+          ],
+          "rotation": [
+            [
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0
+            ]
+          ],
+          "score": 1.0441510885704868,
+          "support_links": 2,
+          "predicted_closure_fraction": 1.0,
+          "thumb_bias_rad": 0.0
+        },
+        "preview": {
+          "proposed_rank": 0,
+          "executed_rank": 0,
+          "predicted_verified": false,
+          "predicted_peak_lift_m": 0.04400426533186774,
+          "predicted_stop": {
+            "t": 20.960000000000115,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "attempts": [
+            {
+              "rank": 0,
+              "verified": false,
+              "peak_lift_m": 0.04400426533186774,
+              "stop": {
+                "t": 20.960000000000115,
+                "reason": "grip lost",
+                "detail": {
+                  "weakest_normal_n": 0.0
+                }
+              }
+            }
+          ]
+        },
+        "depth_fallback": [
+          {
+            "rank": 41,
+            "verified": false,
+            "peak_lift_m": -0.00010775541827623414,
+            "stop": null
+          },
+          {
+            "rank": 0,
+            "verified": false,
+            "peak_lift_m": 0.04400426533186774,
+            "stop": {
+              "t": 20.960000000000115,
+              "reason": "grip lost",
+              "detail": {
+                "weakest_normal_n": 0.0
+              }
+            }
+          },
+          {
+            "rank": 16,
+            "verified": false,
+            "peak_lift_m": -0.00010775541827623414,
+            "stop": null
+          }
+        ]
+      },
+      {
+        "name": "cylinder_shift",
+        "verified": true,
+        "observed": true,
+        "peak_lift_m": 0.13520580792023673,
+        "stop": null,
+        "minimum_bottom_clearance_m": 0.11214727109937805,
+        "hold_ticks": 150,
+        "grasp_geometry": {
+          "candidates": 480,
+          "rank": 24,
+          "offset_m": [
+            0.011600000000000001,
+            -0.0058000000000000005,
+            0.025
+          ],
+          "rotation": [
+            [
+              0.9659258262890682,
+              0.0,
+              0.25881904510252074
+            ],
+            [
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              -0.25881904510252074,
+              0.0,
+              0.9659258262890682
+            ]
+          ],
+          "score": 1.1816804573193318,
+          "support_links": 4,
+          "predicted_closure_fraction": 0.6875,
+          "thumb_bias_rad": 0.0
+        },
+        "preview": {
+          "proposed_rank": 24,
+          "executed_rank": 24,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.13765498679939214,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 24,
+              "verified": true,
+              "peak_lift_m": 0.13765498679939214,
+              "stop": null
+            }
+          ]
+        },
+        "depth_fallback": null
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-compound-clearance-001",
+      "kind": "dir",
+      "sha256": "ff011773aa494ccbcc8b27d486c4bdf652fe9a193480bd5d10a062705a8a171d",
+      "skipped": []
+    }
+  ],
+  "cloud": null
+}

@@ -1,0 +1,311 @@
+{
+  "run_id": "2026-11-10-012/20261110-230421-compound-live",
+  "task_id": "2026-11-10-012",
+  "title": "Run the physical grasp controller on bottle and open mug geometry",
+  "started": "2026-11-10T23:04:21+11:00",
+  "commit": "acc45456ad2c216390d156e2dc43ae01b72debab",
+  "dirty": true,
+  "branch": "codex/g1-integration",
+  "configs": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-compound-live-001/bottle.json",
+      "sha256": "e9e3e2e3a528fb665aa007f2b37d78488e6b5e2e64474d88dfc3ad0dbeb3c586"
+    },
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-compound-live-001/mug.json",
+      "sha256": "10a40933002fa08e55aff43aa3fc856fb2c099ab37132e37a7d1192267acc5c2"
+    },
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-compound-live-001/bottle_shift.json",
+      "sha256": "32a8ae767f81d5ee3490accff761aa49b010822be2f73fdf76093d8edd7b4ec5"
+    },
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-compound-live-001/mug_shift.json",
+      "sha256": "ee32a6c44c80b82f320af345b4a47ea228dc128410abade6264cd1e9103bc650"
+    }
+  ],
+  "command": "python C:/Users/24adi/DREAM-r1-evidence/r1-compound-live-001/run.py",
+  "seeds": "53,59,61,67",
+  "model": "Cached Decoupled WBC",
+  "simulator": "MuJoCo 3.16.0",
+  "renderer": "None",
+  "embodiment": "free-standing G1 Dex3",
+  "controller": "Decoupled WBC",
+  "hardware": "local CPU, two workers",
+  "status": "completed",
+  "ended": "2026-11-10T23:06:34+11:00",
+  "exit_status": 0,
+  "cases_attempted": 4,
+  "cases_completed": 4,
+  "metrics": {
+    "cases": [
+      {
+        "name": "bottle",
+        "verified": false,
+        "peak_lift_m": 0.1404164836952575,
+        "stop": {
+          "t": 25.139999999999283,
+          "reason": "grip lost",
+          "detail": {
+            "weakest_normal_n": 0.0
+          }
+        },
+        "preview": {
+          "proposed_rank": 0,
+          "executed_rank": 0,
+          "predicted_verified": false,
+          "predicted_peak_lift_m": 0.138217322633579,
+          "predicted_stop": {
+            "t": 24.95999999999932,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "attempts": [
+            {
+              "rank": 0,
+              "verified": false,
+              "peak_lift_m": 0.138217322633579,
+              "stop": {
+                "t": 24.95999999999932,
+                "reason": "grip lost",
+                "detail": {
+                  "weakest_normal_n": 0.0
+                }
+              }
+            }
+          ]
+        },
+        "preclose": {
+          "grasp_xyz_m": [
+            0.46480662601127676,
+            -0.17526660002893363,
+            0.8359555460377255
+          ],
+          "wrist_rotation": [
+            [
+              0.9981517784466377,
+              -0.003291924638790312,
+              0.060681054835814874
+            ],
+            [
+              -0.013358599351055803,
+              0.9622221066289353,
+              0.2719377968174927
+            ],
+            [
+              -0.05928385115014559,
+              -0.2722458094199918,
+              0.9603997314899985
+            ]
+          ],
+          "table_clearance_m": 0.05036894486077026,
+          "opposing_gap_m": -0.017327260766766054,
+          "position_error_m": [
+            0.00018462378684441783,
+            0.0002502538811112731,
+            -6.426460576924864e-05
+          ],
+          "clear": true
+        },
+        "close": {
+          "opposed_touch": true,
+          "closure_fraction": 0.5200000000000001
+        }
+      },
+      {
+        "name": "mug",
+        "verified": true,
+        "peak_lift_m": 0.13736806699165616,
+        "stop": null,
+        "preview": {
+          "proposed_rank": 32,
+          "executed_rank": 32,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.13737615848349427,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 32,
+              "verified": true,
+              "peak_lift_m": 0.13737615848349427,
+              "stop": null
+            }
+          ]
+        },
+        "preclose": {
+          "grasp_xyz_m": [
+            0.4850427694494688,
+            -0.161818430585639,
+            0.8122119335446536
+          ],
+          "wrist_rotation": [
+            [
+              0.9981886073085283,
+              -0.03510797657675847,
+              0.04885626080808544
+            ],
+            [
+              0.020705215637276914,
+              0.9629364318366643,
+              0.268932560853252
+            ],
+            [
+              -0.05648715150258287,
+              -0.2674338389627611,
+              0.9619190940472931
+            ]
+          ],
+          "table_clearance_m": 0.016752681957428517,
+          "opposing_gap_m": -0.011296854835561577,
+          "position_error_m": [
+            0.0005492077906551485,
+            0.0031344535645785876,
+            -0.0010813870619066357
+          ],
+          "clear": true
+        },
+        "close": {
+          "opposed_touch": true,
+          "closure_fraction": 0.6800000000000003
+        }
+      },
+      {
+        "name": "bottle_shift",
+        "verified": false,
+        "peak_lift_m": 0.07063394147177426,
+        "stop": null,
+        "preview": {
+          "proposed_rank": 0,
+          "executed_rank": 0,
+          "predicted_verified": false,
+          "predicted_peak_lift_m": 0.13054584898519073,
+          "predicted_stop": {
+            "t": 21.77999999999995,
+            "reason": "grip lost",
+            "detail": {
+              "weakest_normal_n": 0.0
+            }
+          },
+          "attempts": [
+            {
+              "rank": 0,
+              "verified": false,
+              "peak_lift_m": 0.13054584898519073,
+              "stop": {
+                "t": 21.77999999999995,
+                "reason": "grip lost",
+                "detail": {
+                  "weakest_normal_n": 0.0
+                }
+              }
+            }
+          ]
+        },
+        "preclose": {
+          "grasp_xyz_m": [
+            0.4558779032663946,
+            -0.17041675826812164,
+            0.8481212076402002
+          ],
+          "wrist_rotation": [
+            [
+              0.998296182073351,
+              -0.01951564804309302,
+              0.05498974758288816
+            ],
+            [
+              0.003775554879834442,
+              0.9620400946388435,
+              0.27288202852631294
+            ],
+            [
+              -0.058227811594812606,
+              -0.2722094704244219,
+              0.9604746358796447
+            ]
+          ],
+          "table_clearance_m": 0.032549861912814386,
+          "opposing_gap_m": -0.01817750661819708,
+          "position_error_m": [
+            0.0001859567555884123,
+            0.0015328533915437148,
+            -0.00022890851543322377
+          ],
+          "clear": true
+        },
+        "close": {
+          "opposed_touch": true,
+          "closure_fraction": 0.4200000000000001
+        }
+      },
+      {
+        "name": "mug_shift",
+        "verified": false,
+        "peak_lift_m": 0.01579669050401622,
+        "stop": null,
+        "preview": {
+          "proposed_rank": 8,
+          "executed_rank": 8,
+          "predicted_verified": true,
+          "predicted_peak_lift_m": 0.13039791063263484,
+          "predicted_stop": null,
+          "attempts": [
+            {
+              "rank": 8,
+              "verified": true,
+              "peak_lift_m": 0.13039791063263484,
+              "stop": null
+            }
+          ]
+        },
+        "preclose": {
+          "grasp_xyz_m": [
+            0.48607969724700084,
+            -0.14639520146067053,
+            0.773175093040809
+          ],
+          "wrist_rotation": [
+            [
+              0.9876158732871119,
+              0.05946113030265642,
+              0.1451869856924697
+            ],
+            [
+              -0.09885669254401405,
+              0.9544338929991429,
+              0.2815729003895052
+            ],
+            [
+              -0.1218287370475175,
+              -0.29243857111815885,
+              0.9484921934058159
+            ]
+          ],
+          "table_clearance_m": 0.005859486563438598,
+          "opposing_gap_m": -0.006827272989689277,
+          "position_error_m": [
+            0.00642204992748624,
+            0.009241935466588552,
+            -0.0012484932449285946
+          ],
+          "clear": true
+        },
+        "close": {
+          "opposed_touch": true,
+          "closure_fraction": 0.6000000000000002
+        }
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-compound-live-001",
+      "kind": "dir",
+      "sha256": "14b7fa527eac5e16a32b997d9bc73fc3bd3fb1edde6ed78f6697bd73fbcbd49a",
+      "skipped": []
+    }
+  ],
+  "cloud": null
+}

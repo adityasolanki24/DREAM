@@ -71,6 +71,17 @@ one for the previous selector. The sphere still failed the lift probe.
 [Matched results](results/g1_r1_depth_dev_20261110/summary.json) and
 [development report](Reports/2026-11-10/011-r1-grasp-depth/REPORT.md).
 
+The latest replay independently checks the lowest point of every object
+collider for 10 cm of table clearance, including object tilt and compound parts.
+It also records the robot's sensed hold from tactile opposition, encoder travel
+and its oracle-assisted object observation. All 8 previous matched holds and
+both geometry-shift holds passed these checks. Two open mug fixtures passed,
+while two compound bottles and the sphere failed. Bottle and mug colliders
+retain their neck, cavity and handle geometry. Configured object friction
+overrides the hand and table contact coefficient during the material tests.
+[Measurements](results/g1_r1_compound_dev_20261110/summary.json) and
+[contact report](Reports/2026-11-10/012-r1-wrap-grasp/REPORT.md).
+
 ## Executive summary
 
 **New on 8-9 November**, all in simulation:

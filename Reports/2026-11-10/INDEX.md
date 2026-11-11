@@ -6,6 +6,7 @@
 
 | Date | Task ID | Prompt | Status | Main finding | Runs | Report |
 |---|---|---|---|---|---|---|
+| 2026-11-10 | 2026-11-10-012 | [R1 enveloping grasp contact search](012-r1-wrap-grasp/PROMPT.md) | partially_completed | Complete-clearance scoring retained earlier holds and verified two compound mugs. Bottle, sphere and mobility remain open. | 3 | [REPORT](012-r1-wrap-grasp/REPORT.md) |
 | 2026-11-10 | 2026-11-10-011 | [R1 depth-aware candidate search](011-r1-grasp-depth/PROMPT.md) | partially_completed | Depth and thumb adaptation recovered two matched holds and a geometry-shifted cylinder. Sphere retention and the full R1 milestone remain open. | 5 | [REPORT](011-r1-grasp-depth/REPORT.md) |
 | 2026-11-10 | 2026-11-10-010 | [R1 grasp retention rehearsal](010-r1-physical-rehearsal/PROMPT.md) | partially_completed | An independently seeded whole-body preview recovered two verified fixed-stance holds while retaining all four previous passes. | 29 | [REPORT](010-r1-physical-rehearsal/REPORT.md) |
 | 2026-11-10 | 2026-11-10-009 | [Improve R1 grasp retention and transfer](009-r1-contact-retention/PROMPT.md) | partially_completed | Geometry-ranked pinch recovered one matched cube hold and exercised three new shapes. Retention on wider and curved objects still fails the R1 gate. | 17 | [REPORT](009-r1-contact-retention/REPORT.md) |
@@ -25,6 +26,9 @@
 
 | Run | Task | Status | Started | Report |
 |---|---|---|---|---|
+| 20261110-230150-wrap-stage | 2026-11-10-012 | completed | 2026-11-10T23:01:50+11:00 | [REPORT](012-r1-wrap-grasp/runs/20261110-230150-wrap-stage/REPORT.md) |
+| 20261110-230421-compound-live | 2026-11-10-012 | completed | 2026-11-10T23:04:21+11:00 | [REPORT](012-r1-wrap-grasp/runs/20261110-230421-compound-live/REPORT.md) |
+| 20261110-230836-clearance-and-material | 2026-11-10-012 | completed | 2026-11-10T23:08:36+11:00 | [REPORT](012-r1-wrap-grasp/runs/20261110-230836-clearance-and-material/REPORT.md) |
 | 20261110-225016-depth-preview | 2026-11-10-011 | completed | 2026-11-10T22:50:16+11:00 | [REPORT](011-r1-grasp-depth/runs/20261110-225016-depth-preview/REPORT.md) |
 | 20261110-225230-closure-screen | 2026-11-10-011 | completed | 2026-11-10T22:52:30+11:00 | [REPORT](011-r1-grasp-depth/runs/20261110-225230-closure-screen/REPORT.md) |
 | 20261110-225425-thumb-preview | 2026-11-10-011 | completed | 2026-11-10T22:54:25+11:00 | [REPORT](011-r1-grasp-depth/runs/20261110-225425-thumb-preview/REPORT.md) |

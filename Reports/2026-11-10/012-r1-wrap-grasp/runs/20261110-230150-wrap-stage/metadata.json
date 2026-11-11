@@ -1,0 +1,83 @@
+{
+  "run_id": "2026-11-10-012/20261110-230150-wrap-stage",
+  "task_id": "2026-11-10-012",
+  "title": "Compare pinch and wrap articulation with wrist roll around round objects",
+  "started": "2026-11-10T23:01:50+11:00",
+  "commit": "acc45456ad2c216390d156e2dc43ae01b72debab",
+  "dirty": true,
+  "branch": "codex/g1-integration",
+  "configs": [
+    {
+      "path": "experiments/configs/g1_grasp_bringup_sphere.json",
+      "sha256": "7765331ea21723f3cf865a23638312077868948214294e28a2c429ecd078ac14"
+    },
+    {
+      "path": "experiments/configs/g1_grasp_bringup_cylinder.json",
+      "sha256": "ecb6de06dd040e4a769537eaa933a0462ccfe70d962cf308c713a20fb345dcd8"
+    }
+  ],
+  "command": "python C:/Users/24adi/DREAM-r1-evidence/r1-wrap-stage-001/screen.py",
+  "seeds": "43,41",
+  "model": "Dex3 articulation",
+  "simulator": "MuJoCo 3.16.0",
+  "renderer": "None",
+  "embodiment": "Dex3 rehearsal stage",
+  "controller": "Force-limited vertical stage",
+  "hardware": "local CPU",
+  "status": "completed",
+  "ended": "2026-11-10T23:02:36+11:00",
+  "exit_status": 0,
+  "cases_attempted": 6,
+  "cases_completed": 6,
+  "metrics": {
+    "sphere": {
+      "pinch": {
+        "screened": 67,
+        "opposed": 67,
+        "holds": 0,
+        "best_hold_m": -0.00036718184245987384
+      },
+      "proximal_wrap": {
+        "screened": 73,
+        "opposed": 72,
+        "holds": 0,
+        "best_hold_m": 0.0
+      },
+      "distal_hook": {
+        "screened": 55,
+        "opposed": 55,
+        "holds": 0,
+        "best_hold_m": -0.00036718184245987384
+      }
+    },
+    "cylinder": {
+      "pinch": {
+        "screened": 80,
+        "opposed": 80,
+        "holds": 21,
+        "best_hold_m": 0.12035997197236081
+      },
+      "proximal_wrap": {
+        "screened": 81,
+        "opposed": 81,
+        "holds": 19,
+        "best_hold_m": 0.1173432677499947
+      },
+      "distal_hook": {
+        "screened": 118,
+        "opposed": 114,
+        "holds": 42,
+        "best_hold_m": 0.11505797856800737
+      }
+    }
+  },
+  "evidence": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-wrap-stage-001",
+      "kind": "dir",
+      "sha256": "a0140476cff5440040b03d970a424c02e09ee9530967ba9566fb2b25114540c0",
+      "skipped": []
+    }
+  ],
+  "cloud": null
+}
