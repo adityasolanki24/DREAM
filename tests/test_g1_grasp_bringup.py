@@ -147,3 +147,34 @@ def test_observed_object_loss_stops_despite_pressure_between_fingers():
     result = _attempt(cfg, planned_rank=414)
     assert not result["grasp_verified"]
     assert result["stop"]["reason"] == "object contact lost"
+
+
+@pytest.mark.parametrize("rotated", [False, True])
+def test_walk_to_grasp_reaches_a_selected_stance_and_holds(rotated):
+    cfg = json.loads((CONFIG / "g1_walk_grasp.json").read_text())
+    heading = 0.0
+    if rotated:
+        rotation = np.array([[0.0, -1.0], [1.0, 0.0]])
+        translation = np.array([-0.4, 0.25])
+        for key in ("table_center_xy_m", "object_center_xy_m"):
+            cfg[key] = (rotation @ cfg[key] + translation).tolist()
+        start = cfg["starting_stance_xy_yaw"]
+        heading = np.pi / 2
+        cfg["starting_stance_xy_yaw"] = [
+            *(rotation @ start[:2] + translation),
+            start[2] + heading,
+        ]
+        cfg["seed"] = 89
+    result = attempt(cfg)
+    phases = result["phases"]
+    assert phases["stance"]["goal"] != tuple(cfg["starting_stance_xy_yaw"])
+    assert phases["stance"]["heading"] == pytest.approx(heading)
+    walk = phases["walk"]
+    assert walk["status"] == "arrived"
+    assert walk["true_displacement_m"] >= 1.0
+    assert walk["table_contact_samples"] == 0
+    assert result["grasp_observed"] and result["grasp_verified"], phases
+    rows = result["rows"]
+    assert max(r["t"] for r in rows if r["phase"] == "walk") < min(
+        r["t"] for r in rows if r["phase"] == "hold"
+    )

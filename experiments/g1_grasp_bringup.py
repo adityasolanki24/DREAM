@@ -1,4 +1,4 @@
-"""Fixed-stance G1 grasp diagnostic using a labelled oracle-assisted object pose."""
+"""G1 grasp diagnostic using labelled oracle-assisted object pose and odometry."""
 
 import argparse
 import json
@@ -12,16 +12,24 @@ import mujoco
 import numpy as np
 
 from dream.eval.g1 import lowest_collision_point_z
+from dream.navigation.follow import wrap
 from dream.robot.g1_grasp_geometry import rank_pinches, regulate_closure, rehearse_pinches
-from dream.robot.g1_posture import PerceivedBox, PosturePlanner
+from dream.robot.g1_posture import (
+    PERCEPTION_MARGIN,
+    PerceivedBox,
+    PlannerConfig,
+    PosturePlanner,
+    stance_blocked,
+)
 from dream.robot.g1_supervisor import SafetyLimits, WholeBodySupervisor
-from dream.robot.g1_wbc import WBCLocomotion
+from dream.robot.g1_wbc import WALK_COMMAND_THRESHOLD, WBCLocomotion
 from dream.robot.wholebody import (
     TICK,
     ControllerCapabilities,
     PostureCommand,
     StopEvent,
     WBCBackend,
+    yaw_matrix,
 )
 from dream.sim.g1_grasp_fixtures import add_grasp_object
 from dream.sim.g1_mobile import TOUCH_THRESHOLD, G1MobileEnv, build_grasp_rehearsal, build_mobile_g1
@@ -186,7 +194,23 @@ def _attempt(
         ctrl.arm_target[:] = arm
         mujoco.mj_forward(model, env.data)
     caps = ControllerCapabilities.from_envelope_json()
-    planner = PosturePlanner(caps, grip_offsets={"right": GRASP_OFFSET})
+    mobile = cfg.get("walk_to_grasp", False)
+    trajectory_model = model
+    if mobile:
+        prior_mass, prior_friction = _material_prior(cfg)
+        trajectory_model = build_mobile_g1(
+            lambda spec: scene(spec, mass=prior_mass, friction=prior_friction),
+            head_camera=None,
+            hands=True,
+            touch=True,
+        )
+    planner_config = (
+        PlannerConfig(
+            radii=(0.32, 0.40, 0.48, 0.60), n_angles=16,
+            yaw_offsets=(0.35, 0.0, -0.35), max_stances=192,
+        ) if mobile else None
+    )  # fmt: skip
+    planner = PosturePlanner(caps, config=planner_config, grip_offsets={"right": GRASP_OFFSET})
     # Engineering commissioning limit for this diagnostic, not a sensor calibration.
     backend_force = lambda: sum(env.touch("right").values())  # noqa: E731
     monitor = WholeBodySupervisor(planner.pm, SafetyLimits(contact_force=35.0))
@@ -214,6 +238,12 @@ def _attempt(
     reference_z = env.data.xpos[box_id, 2]
     scratch = mujoco.MjData(model)
     table_geom = model.geom("tabletop").id
+    robot_geoms = [
+        g
+        for g in range(model.ngeom)
+        if model.body_rootid[model.geom_bodyid[g]] == env.pelvis
+        and (model.geom_contype[g] or model.geom_conaffinity[g])
+    ]
     collision_geoms = sorted(g for g in hand_geoms | left_hand_geoms if model.geom_contype[g])
     # Keep the generic obstacle guard on the body. For the hands this runner
     # checks the articulated meshes against the known fixture dimensions.
@@ -254,6 +284,11 @@ def _attempt(
         return min(
             mujoco.mj_geomDistance(model, scratch, g, table_geom, 0.10, None)
             for g in collision_geoms
+        )
+
+    def body_table_distance():
+        return min(
+            mujoco.mj_geomDistance(model, scratch, g, table_geom, 0.10, None) for g in robot_geoms
         )
 
     def measured_opposing_gap():
@@ -335,13 +370,24 @@ def _attempt(
             rows[-1]["table_clearance_m"] = (
                 lowest_collision_point_z(model, env.data, object_geoms) - top
             )
+        if phase in {"walk", "walk_settle"}:
+            rows[-1]["robot_table_contact"] = any(
+                (c.geom1 == table_geom and c.geom2 in robot_geoms)
+                or (c.geom2 == table_geom and c.geom1 in robot_geoms)
+                for c in env.data.contact
+            )
 
     def tick(phase):
         env.step(ctrl)
         sample(phase)
         obs = backend.observe()
         stop = monitor(obs)
-        if stop is None and phase != "settle":
+        if stop is None and phase in {"walk", "walk_settle"}:
+            set_scratch(obs)
+            gap = body_table_distance()
+            if gap < PERCEPTION_MARGIN:
+                stop = StopEvent(obs.t, "walking clearance", {"table_clearance_m": gap})
+        elif stop is None and phase != "settle":
             stop = clearance_stop(obs)
         if stop and not ctrl.stopped:
             backend.hold(stop)
@@ -354,6 +400,12 @@ def _attempt(
             return StopEvent(obs.t, "hand clearance", {"table_clearance_m": distance})
         return None
 
+    def unplanned_object_motion(obs, current, reference):
+        displacement = float(np.linalg.norm(current - reference))
+        if displacement > TABLE_CLEARANCE_M:
+            return StopEvent(obs.t, "object moved before closure", {"displacement_m": displacement})
+        return None
+
     def plan_at(point, stance, orientation):
         return planner.plan(
             point,
@@ -363,11 +415,114 @@ def _attempt(
             orientation=orientation,
         )
 
+    def select_stance(point):
+        initial = env.odometry()
+        candidates, _ = planner.stances(point, initial, [])
+        obs = backend.observe()
+        set_scratch(obs)
+        shoulder = scratch.body("right_shoulder_pitch_link").xpos[:2] - initial[:2]
+        shoulder_y = float(yaw_matrix(initial[2])[:2, 1] @ shoulder)
+
+        def table_face(position):
+            offset = np.asarray(position[:2]) - table[:2]
+            axis = int(np.argmax(np.abs(offset) - table_half[:2]))
+            return axis, float(np.sign(offset[axis]))
+
+        def stance_priority(candidate):
+            displacement = point[:2] - candidate[:2]
+            lateral = yaw_matrix(candidate[2])[:2, 1] @ displacement
+            axis, _ = table_face(candidate)
+            # Equivalent shoulder offsets should not depend on floating-point
+            # differences after a world-frame rotation. Prefer a straight
+            # approach to the selected table face among those ties.
+            return (
+                round(float(np.linalg.norm(displacement)), 6),
+                round(abs(lateral - shoulder_y), 3),
+                round(abs(displacement[1 - axis]), 3),
+            )
+
+        # Reserve arm reach and align the object with the working shoulder.
+        # Walking cost from the existing planner breaks ties.
+        candidates.sort(key=stance_priority)
+        tested = 0
+        for candidate in candidates:
+            destination = np.asarray(candidate[:2])
+            axis, side = table_face(destination)
+            # A straight segment stays outside a table face when both ends
+            # are on its exterior. Close to the face, use the actual meshes.
+            exterior = min(side * (p[axis] - table[axis]) for p in (initial, destination))
+            if exterior <= table_half[axis]:
+                continue
+            axis_in = np.zeros(3)
+            axis_in[axis] = -side
+            bearing = float(np.arctan2(axis_in[1], axis_in[0]))
+            set_scratch(obs)
+            scratch.qpos[:2] = destination
+            angle = candidate[2] - initial[2]
+            turn = np.array([np.cos(angle / 2), 0, 0, np.sin(angle / 2)])
+            attitude = scratch.qpos[3:7].copy()
+            mujoco.mju_mulQuat(scratch.qpos[3:7], turn, attitude)
+            mujoco.mj_kinematics(model, scratch)
+            if body_table_distance() < PERCEPTION_MARGIN:
+                continue
+            tested += 1
+            rotation = yaw_matrix(bearing)
+            pregrasp = point - 0.06 * axis_in
+            if all(plan_at(target, candidate, rotation).feasible for target in (point, pregrasp)):
+                phases["stance"] = {"goal": candidate, "heading": bearing, "tested": tested}
+                return candidate, bearing
+        phases["stance"] = {"refused": "no directly reachable grasp stance", "tested": tested}
+        return None, 0.0
+
+    def walk_to_stance(destination):
+        if not all(tick("settle") for _ in range(round(1.0 / TICK))):
+            return False
+        start = env.odometry()
+        true_start = env.true_pose()
+        target_xy = np.asarray(destination[:2])
+        for _ in range(round(25.0 / TICK)):
+            pose = env.odometry()
+            error_xy = target_xy - pose[:2]
+            distance = float(np.linalg.norm(error_xy))
+            heading_error = wrap(destination[2] - pose[2])
+            if distance < 0.05 and abs(heading_error) < 0.10:
+                status = "arrived"
+                break
+            # Translate in the observed body frame while holding the target
+            # heading. Turning toward a near waypoint makes foot sway dominate.
+            body_error = yaw_matrix(pose[2]).T[:2, :2] @ error_xy
+            speed_limit = 0.12 if stance_blocked(pose[:2], [obstacle]) else 0.30
+            linear = min(0.8, speed_limit / max(distance, 1e-9)) * body_error
+            turn = np.clip(1.5 * heading_error, -0.5, 0.5)
+            command = np.r_[linear, turn]
+            magnitude = np.linalg.norm(command)
+            if 0 < magnitude < WALK_COMMAND_THRESHOLD:
+                command *= (1.05 * WALK_COMMAND_THRESHOLD) / magnitude
+            ctrl.set_command(*command)
+            if not tick("walk"):
+                status = "protective stop"
+                break
+        else:
+            status = "time limit"
+        ctrl.set_command(0.0, 0.0, 0.0)
+        arrived = env.odometry()
+        phases["walk"] = {
+            "status": status, "initial": start.tolist(), "arrival": arrived.tolist(),
+            "displacement_m": float(np.linalg.norm(arrived[:2] - start[:2])),
+            # Evaluation evidence only.
+            "true_displacement_m": float(np.linalg.norm(env.true_pose()[:2] - true_start[:2])),
+        }  # fmt: skip
+        return status == "arrived"
+
     def command_candidates(target):
         start = backend.command()
         end = PostureCommand(
             target.pelvis_height, target.torso_rpy, backend._arm_feedforward(target)
         )
+        if mobile:
+            arm = end.arm.copy()
+            arm[:7] = start.arm[:7]
+            yield "hold left arm", [replace(end, arm=arm)]
         yield "direct", [end]
         # Stage joints by anatomical groups. The command values come from
         # measured posture and IK; the rollout decides which order is feasible.
@@ -443,15 +598,21 @@ def _attempt(
         # labelled fixture. No live object state or evaluator contacts are copied.
         obs = backend.observe()
         set_scratch(obs)
-        trial = G1MobileEnv(model, np.random.default_rng(0), noise=env.noise, head_camera=None)
+        trial = G1MobileEnv(
+            trajectory_model, np.random.default_rng(0), noise=env.noise, head_camera=None
+        )
         trial.reset(*obs.pose)
         trial.data.qpos[:] = scratch.qpos
+        if mobile:
+            observed_pose = observe_box_pose()
+            trial.data.qpos[box_pose_qpos : box_pose_qpos + 7] = observed_pose
+            object_reference = observed_pose[:3]
         trial.data.qvel[3:6] = obs.prop.gyro
         trial.data.qvel[trial.vadr] = obs.prop.dq
         if len(rows) > 1:
             trial.data.qvel[:2] = (np.array(rows[-1]["odom"][:2]) - rows[-2]["odom"][:2]) / TICK
         trial.set_hand(env.hand_targets)
-        mujoco.mj_forward(model, trial.data)
+        mujoco.mj_forward(trajectory_model, trial.data)
         trial.localise(obs.pose)
         policy = copy(ctrl)
         policy.history = copy(ctrl.history)
@@ -465,10 +626,32 @@ def _attempt(
             stop = supervisor(state)
             if stop:
                 return stop
+            if mobile:
+                stop = unplanned_object_motion(state, trial.data.xpos[box_id], object_reference)
+                if stop:
+                    return stop
             set_scratch(state, hand=trial.hand_positions())
             d = table_distance()
             if d < TABLE_CLEARANCE_M:
-                return StopEvent(state.t, "hand clearance", {"table_clearance_m": d})
+                nearest = min(
+                    collision_geoms,
+                    key=lambda g: mujoco.mj_geomDistance(
+                        model,
+                        scratch,
+                        g,
+                        table_geom,
+                        0.10,
+                        None,
+                    ),
+                )
+                return StopEvent(
+                    state.t,
+                    "hand clearance",
+                    {
+                        "table_clearance_m": d,
+                        "body": model.body(model.geom_bodyid[nearest]).name,
+                    },
+                )
             return None
 
         report = trial_backend.follow(commands, monitor=guard, rate_scale=rate_scale)
@@ -490,28 +673,32 @@ def _attempt(
         for z in (point[2], point[2] + 2 * half):
             raised = np.array([hand[0], hand[1], z])
             yield "vertical raise in measured orientation", raised, wrist_rot
-            raised[0] -= 2 * half
+            raised -= 2 * half * approach_axis
             yield "vertical raise with retreat", raised.copy(), wrist_rot
         # A raised wrist angle retracts the fingertips in x during ascent.
         yield "nominal", point, pinch_rotation
         width = 2.0 * half
         for up, back in ((0, 0), (1, 0), (1, 1), (2, 0), (2, 1), (1, 2)):
-            waypoint = point + [-back * width, 0.0, up * width]
+            waypoint = point - back * width * approach_axis + [0.0, 0.0, up * width]
             for pitch in (-np.pi / 4, -np.pi / 2, 0.0):
                 c, sn = np.cos(pitch), np.sin(pitch)
-                rotation = np.array([[c, 0, sn], [0, 1, 0], [-sn, 0, c]])
+                rotation = approach_frame @ np.array([[c, 0, sn], [0, 1, 0], [-sn, 0, c]])
                 if up or back or pitch:
                     yield f"up {up}, retreat {back}, pitch {pitch:.2f}", waypoint, rotation
 
     def reach(phase, point):
         attempts = []
+        object_reference = observe_box()
         use_search = cfg.get("trajectory_search", True) and (
             phase in {"raise", "pregrasp", "reach"} or phase.startswith("align")
         )
 
         def watch(obs):
             sample(phase)
-            return monitor(obs) or clearance_stop(obs)
+            stop = monitor(obs) or clearance_stop(obs)
+            if stop is None and mobile:
+                stop = unplanned_object_motion(obs, observe_box(), object_reference)
+            return stop
 
         candidates = goals(phase, point) if use_search else [("nominal", point, pinch_rotation)]
         for label, waypoint, rotation in candidates:
@@ -531,7 +718,11 @@ def _attempt(
                 if label == "nominal":
                     paths = chain(paths, clearance_paths(target))
                 for name, commands in paths:
-                    if label != "nominal" and name not in {"direct", "upper arm first 1"}:
+                    if label != "nominal" and name not in {
+                        "direct",
+                        "upper arm first 1",
+                        "hold left arm",
+                    }:
                         continue
                     prediction = preview(commands)
                     attempts.append({
@@ -671,6 +862,7 @@ def _attempt(
             # the model and reobserve after every executed step.
             delta = np.clip(error, -half / 2, half / 2)
             rot = np.asarray(geometry["wrist_rotation"])
+            object_reference = observe_box()
             for scale in (1.0, 0.5, 0.25):
                 command = relative_command(position + scale * delta, rot)
                 if command is None:
@@ -682,9 +874,12 @@ def _attempt(
                 if np.linalg.norm(goal - predicted) >= np.linalg.norm(error) - 0.0005:
                     continue
 
-                def watch(state):
+                def watch(state, reference=object_reference):
                     sample("descend")
-                    return monitor(state) or clearance_stop(state)
+                    stop = monitor(state) or clearance_stop(state)
+                    if stop is None and mobile:
+                        stop = unplanned_object_motion(state, observe_box(), reference)
+                    return stop
 
                 run = backend.follow([command], monitor=watch, rate_scale=0.5)
                 attempts.append({
@@ -703,10 +898,17 @@ def _attempt(
     # Keep the pinch near the upper part of the box. The wrist must be high
     # enough to clear the table with the wider palm and fingers.
     pinch_offset = np.array([0.0, 0.0, half_height])
-    pinch_rotation = np.eye(3)
+    destination, heading = (
+        select_stance(observe_box() + [0, 0, 3 * half_height]) if mobile else (None, 0.0)
+    )
+    approach_frame = yaw_matrix(heading)
+    approach_axis = approach_frame[:, 0]
+    pinch_rotation = approach_frame
     rehearsal_search = planned_rank is None and cfg.get("contact_rehearsal_search", False)
     depth_search = cfg.get("grasp_depth_search", False)
-    if cfg.get("contact_geometry_search", False) or rehearsal_search or planned_rank is not None:
+    if (not mobile or destination is not None) and (
+        cfg.get("contact_geometry_search", False) or rehearsal_search or planned_rank is not None
+    ):
         set_scratch(backend.observe())
         object_pose = observe_box_pose()
 
@@ -724,6 +926,7 @@ def _attempt(
                 object_body_id=box_id,
                 support_geom=table_geom,
                 depth_search=depth_search,
+                heading=heading,
                 **sampling,
             )
 
@@ -745,12 +948,16 @@ def _attempt(
                 lambda spec: scene(spec, mass=prior_mass, friction=prior_friction)
             )
 
+            def depth_band(pinch):
+                # Depth is a distance along the approach, in every world frame.
+                return round(float(approach_axis @ pinch.offset), 9), pinch.thumb_bias_rad
+
             def screen(first):
                 shortlist = list(enumerate(pinches[first:], start=first))
                 if depth_search:
                     bands = {}
                     for index, pinch in shortlist:
-                        band = pinch.offset[0], pinch.thumb_bias_rad
+                        band = depth_band(pinch)
                         bands.setdefault(band, []).append((index, pinch))
                     shortlist = [entry for band in bands.values() for entry in band[:4]]
                 else:
@@ -785,11 +992,11 @@ def _attempt(
                 retained.sort(key=lambda r: r.maximum_slip_m)
                 rank = retained[0].rank
                 if depth_search:
-                    used = {(pinches[rank].offset[0], pinches[rank].thumb_bias_rad)}
+                    used = {depth_band(pinches[rank])}
                     alternatives = []
                     for candidate in retained[1:]:
                         pinch = pinches[candidate.rank]
-                        band = pinch.offset[0], pinch.thumb_bias_rad
+                        band = depth_band(pinch)
                         if band not in used:
                             used.add(band)
                             alternatives.append(candidate.rank)
@@ -810,19 +1017,22 @@ def _attempt(
             }  # fmt: skip
         else:
             phases["grasp_geometry"] = {"candidates": 0}
+    positioned = not mobile or (destination is not None and walk_to_stance(destination))
     grip_point = observe_box() + pinch_offset
     # Raise on the near side of the table before moving over it. The open
     # fingertip extends about 87 mm beyond the grasp centre along +x.
-    approach = grip_point + [-0.06, 0.0, 0.04]
+    approach = grip_point - 0.06 * approach_axis + [0.0, 0.0, 0.04]
     raise_point = approach.copy()
-    raise_point[0] = min(approach[0], table[0] - table_half[0] - 0.11)
-    settled = all(tick("settle") for _ in range(round(1.0 / TICK)))
+    near_plane = approach_axis @ table - np.abs(approach_axis) @ table_half
+    raise_point -= max(0.0, approach_axis @ approach - near_plane + 0.11) * approach_axis
+    settle_phase = "walk_settle" if mobile else "settle"
+    settled = positioned and all(tick(settle_phase) for _ in range(round(1.0 / TICK)))
     if settled and cfg.get("trajectory_search", True):
         # Balance can keep moving the pelvis after the initial hold. This
         # window needs to resolve drift below the table clearance allowance.
         window = round(0.4 / TICK)
         for _ in range(round(3.0 / TICK)):
-            if not tick("settle"):
+            if not tick(settle_phase):
                 settled = False
                 break
             xy = np.asarray([row["odom"][:2] for row in rows[-window:]])
@@ -831,6 +1041,11 @@ def _attempt(
         else:
             settled = False
         phases["settle"] = {"stable": settled}
+    if mobile and "walk" in phases:
+        phases["walk"]["settled_pose"] = env.odometry().tolist()
+        phases["walk"]["table_contact_samples"] = sum(
+            row.get("robot_table_contact", False) for row in rows
+        )
 
     can_close = False
     above = grip_point + [0.0, 0.0, 2 * half_height]
@@ -901,12 +1116,13 @@ def _attempt(
 
     hold = [r for r in rows if r["phase"] == "hold"]
     completed_hold = not backend.held and not ctrl.stopped and len(hold) == round(HOLD_S / TICK)
+    walked_clear = not mobile or phases.get("walk", {}).get("table_contact_samples") == 0
     return {
         "phases": phases, "rows": rows,
         "stop": asdict(backend.held) if backend.held else ctrl.stopped,
         "peak_lift_m": max((r["lift_m"] for r in rows), default=0.0),
         "grasp_observed": completed_hold and all(r["observed_hold"] for r in hold),
-        "grasp_verified": completed_hold
+        "grasp_verified": completed_hold and walked_clear
         and all(r["table_clearance_m"] >= LIFT_M and r["hand_only_contact"] for r in hold),
     }  # fmt: skip
 

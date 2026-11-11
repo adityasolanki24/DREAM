@@ -72,6 +72,7 @@ HISTORY = 6
 # DREAM commissioning envelope (m/s, m/s, rad/s): the range exercised in
 # experiments/g1_locomotion.py, not a statement of what the policy was trained on.
 MAX_COMMAND = np.array([0.5, 0.3, 0.6])
+WALK_COMMAND_THRESHOLD = 0.05
 FALL_TILT = 0.6  # rad between pelvis z and vertical: a stand-up is not within this policy
 
 
@@ -225,7 +226,7 @@ class WBCLocomotion:
             build_observation(prop, self.command, self.action, self.height, self.rpy)
         )
         x = np.concatenate(self.history)[None]
-        walking = np.linalg.norm(self.command) >= 0.05
+        walking = np.linalg.norm(self.command) >= WALK_COMMAND_THRESHOLD
         session = self._walk if walking else self._balance
         self.active = "walk" if walking else "balance"
         out = session.run(None, {session.get_inputs()[0].name: x})[0][0]

@@ -161,6 +161,7 @@ def rank_pinches(
     depth_search: bool = False,
     thumb_biases: tuple[float, ...] = (0.0,),
     height_fractions: tuple[float, ...] = (0.5, 0.75, 1.0, 1.25),
+    heading: float = 0.0,
 ) -> list[PinchCandidate]:
     """Use the observed object pose and mesh geometry in a separate kinematic state."""
     data = mujoco.MjData(model)
@@ -253,11 +254,12 @@ def rank_pinches(
     # Sample between the centre and the front and back surfaces. Changing how
     # far the fingers wrap around an object changes which links carry the load.
     depths = (-0.8, -0.4, 0.0, 0.4, 0.8) if depth_search else (0.0,)
+    frame = Rotation.from_euler("z", heading).as_matrix()
     for thumb_bias, depth, roll, pitch, height, lateral in product(
         thumb_biases, depths, (-15, 0, 15), (0, 15, 30), height_fractions, (-0.2, 0.0, 0.2)
     ):
-        rot = Rotation.from_euler("xy", [roll, pitch], degrees=True).as_matrix()
-        offset = np.array([depth * depth_extent, lateral * width, height * height_extent])
+        rot = frame @ Rotation.from_euler("xy", [roll, pitch], degrees=True).as_matrix()
+        offset = frame @ np.array([depth * depth_extent, lateral * width, height * height_extent])
         candidate = evaluate(rot, offset, thumb_bias)
         if candidate is not None:
             candidates.append(candidate)
