@@ -498,7 +498,7 @@ def serve(args, cfg):
                     )
                     stream.flush()
 
-            from experiments.g1_explore_room import Budgeted
+            from dream.runtime.budget import Budgeted
 
             episode = TaskAgent(
                 toolbox,

@@ -35,12 +35,12 @@ sys.path.insert(0, str(ROOT))
 from dream.perception.spatial import SpatialMemory  # noqa: E402
 from dream.robot.g1_wbc import WBCLocomotion  # noqa: E402
 from dream.runtime.agent import TaskAgent  # noqa: E402
+from dream.runtime.budget import Budgeted  # noqa: E402
 from dream.runtime.search import RoomSearchPlanner  # noqa: E402
 from dream.sim.g1_mobile import HEAD_CAMERA, G1MobileBase, G1MobileEnv, build_mobile_g1  # noqa: E402
 from dream.sim.room import add_room, sample_room  # noqa: E402
 from dream.tools.goals import Inspect  # noqa: E402
 from dream.tools.mobile import MobileToolbox  # noqa: E402
-from experiments.g1_explore_room import Budgeted  # noqa: E402
 
 TO_OPTICAL = np.diag([1.0, -1.0, -1.0])  # MuJoCo camera axes -> optical axes
 DEPTH_SCALE = 5000.0  # TUM convention

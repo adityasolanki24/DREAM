@@ -42,12 +42,13 @@ from dream.navigation.follow import wrap  # noqa: E402
 from dream.perception.spatial import SpatialMemory  # noqa: E402
 from dream.robot.g1_wbc import WBCLocomotion  # noqa: E402
 from dream.runtime.agent import TaskAgent  # noqa: E402
+from dream.runtime.budget import Budgeted  # noqa: E402
 from dream.runtime.search import RoomSearchPlanner  # noqa: E402
 from dream.sim.g1_mobile import G1MobileBase, G1MobileEnv, build_mobile_g1  # noqa: E402
 from dream.sim.room import add_room, sample_room  # noqa: E402
 from dream.tools.goals import Inspect  # noqa: E402
 from dream.tools.mobile import MobileToolbox  # noqa: E402
-from experiments.g1_explore_room import Budgeted, Monitor, score  # noqa: E402
+from experiments.g1_explore_room import Monitor, score  # noqa: E402
 
 NAV_TOOLS = ("go_to", "approach")
 DT_TICK = 0.02  # s, one policy tick

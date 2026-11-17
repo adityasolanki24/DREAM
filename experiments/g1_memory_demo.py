@@ -41,6 +41,7 @@ from dream.memory.home import HomeMemory  # noqa: E402
 from dream.perception.spatial import SpatialMemory  # noqa: E402
 from dream.robot.g1_wbc import WBCLocomotion  # noqa: E402
 from dream.runtime.agent import TaskAgent  # noqa: E402
+from dream.runtime.budget import Budgeted  # noqa: E402
 from dream.runtime.memory_search import (  # noqa: E402
     MemoryGuidedPlanner,
     remember_inspections,
@@ -51,7 +52,7 @@ from dream.sim.g1_mobile import G1MobileBase, G1MobileEnv, build_mobile_g1  # no
 from dream.sim.room import add_room, sample_room  # noqa: E402
 from dream.tools.goals import Inspect  # noqa: E402
 from dream.tools.mobile import MobileToolbox  # noqa: E402
-from experiments.g1_explore_room import Budgeted, Monitor, score  # noqa: E402
+from experiments.g1_explore_room import Monitor, score  # noqa: E402
 
 DAY = 86400.0
 GOAL = Inspect("cabinet")

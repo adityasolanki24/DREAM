@@ -17,12 +17,13 @@ import numpy as np
 from dream.perception.spatial import SpatialMemory
 from dream.robot.g1_wbc import WBCLocomotion
 from dream.runtime.agent import Finish, TaskAgent
+from dream.runtime.budget import Budgeted
 from dream.runtime.mobile_model import available_actions
 from dream.sim.g1_mobile import G1MobileBase, G1MobileEnv, build_mobile_g1
 from dream.sim.room import add_room, sample_room
 from dream.tools.goals import Inspect
 from dream.tools.mobile import MobileToolbox
-from experiments.g1_explore_room import Budgeted, Monitor, score
+from experiments.g1_explore_room import Monitor, score
 
 
 class RecoveryBaseline:

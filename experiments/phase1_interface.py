@@ -26,6 +26,7 @@ from dream.perception.occupancy import CELL
 from dream.perception.spatial import SpatialMemory
 from dream.robot.g1_wbc import WBCLocomotion
 from dream.runtime.agent import TaskAgent
+from dream.runtime.budget import Budgeted
 from dream.runtime.phone_api import PhoneAPI, load_or_create_token, token_file
 from dream.runtime.scheduler import TaskScheduler
 from dream.runtime.search import PlacePlanner, RoomSearchPlanner
@@ -40,7 +41,6 @@ from dream.tools.goals import (
     parse_goal,
 )
 from dream.tools.mobile import MobileToolbox
-from experiments.g1_explore_room import Budgeted
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 

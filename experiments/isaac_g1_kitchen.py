@@ -473,10 +473,10 @@ def explore(env, base, cfg, ev, handles) -> dict:
 
     from dream.perception.spatial import SpatialMemory
     from dream.runtime.agent import TaskAgent
+    from dream.runtime.budget import Budgeted
     from dream.runtime.search import RoomSearchPlanner
     from dream.tools.goals import Inspect
     from dream.tools.mobile import MobileToolbox
-    from experiments.g1_explore_room import Budgeted
 
     e = cfg["explore"]
 

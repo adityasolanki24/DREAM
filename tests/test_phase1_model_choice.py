@@ -14,12 +14,12 @@ import pytest
 
 import dream.runtime.openai_plan as openai_plan
 import experiments.phase1_interface as phase1
+from dream.runtime.budget import Budgeted
 from dream.runtime.mobile_model import MobileModelPlanner
 from dream.runtime.openai_plan import ChatGPTPlanBackend
 from dream.runtime.phone_api import PhoneAPI
 from dream.runtime.scheduler import TaskScheduler
 from dream.runtime.search import RoomSearchPlanner
-from experiments.g1_explore_room import Budgeted
 
 TOKEN = "t" * 32
 SECRET = "secret-access-token-value-12345"

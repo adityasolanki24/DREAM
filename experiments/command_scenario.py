@@ -46,7 +46,7 @@ INTERRUPT_AFTER_S = 2.0
 def run_commands(env, base, tb, home, map_id: str, cfg: dict, scorer, log, store) -> dict:
     """Run the scenario. ``scorer(task_text, claimed)`` returns the independent verdict;
     ``log(kind, text, **data)`` receives every event (for captions and the timeline)."""
-    from experiments.g1_explore_room import Budgeted
+    from dream.runtime.budget import Budgeted
 
     home.add_place("entrance", "place", map_id, (0.0, 0.0))
     tb.places = {"entrance": np.zeros(2)}

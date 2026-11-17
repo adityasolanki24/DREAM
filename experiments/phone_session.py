@@ -30,6 +30,7 @@ sys.path.insert(0, str(ROOT))
 from dream.perception.spatial import SpatialMemory  # noqa: E402
 from dream.robot.g1_wbc import WBCLocomotion  # noqa: E402
 from dream.runtime.agent import TaskAgent  # noqa: E402
+from dream.runtime.budget import Budgeted  # noqa: E402
 from dream.runtime.phone_api import PhoneAPI, load_or_create_token, token_file  # noqa: E402
 from dream.runtime.scheduler import TaskScheduler  # noqa: E402
 from dream.runtime.search import PlacePlanner, RoomSearchPlanner  # noqa: E402
@@ -37,7 +38,6 @@ from dream.sim.g1_mobile import G1MobileBase, G1MobileEnv, build_mobile_g1  # no
 from dream.sim.room import add_room, sample_room  # noqa: E402
 from dream.tools.goals import GoToPlace, parse_goal  # noqa: E402
 from dream.tools.mobile import MobileToolbox  # noqa: E402
-from experiments.g1_explore_room import Budgeted  # noqa: E402
 
 
 def main() -> None:
