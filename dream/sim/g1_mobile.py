@@ -20,12 +20,13 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, replace
-from math import atan2, cos, pi, sin
+from math import atan2, cos, sin
 from pathlib import Path
 
 import mujoco
 import numpy as np
 
+from dream.navigation.follow import wrap
 from dream.robot.g1_wbc import DECIMATION, DEFAULT, DT_PHYSICS, N_BODY, Proprioception
 from dream.sim.camera import ROBOT_GEOM_GROUP, CameraSpec, RGBDCamera
 from dream.types import CameraCalibration, RGBDFrame
@@ -198,10 +199,6 @@ def _add_touch_sensors(spec: mujoco.MjSpec) -> None:
                 name=name, type=mujoco.mjtSensor.mjSENS_TOUCH,
                 objtype=mujoco.mjtObj.mjOBJ_SITE, objname=name,
             )  # fmt: skip
-
-
-def wrap(a: float) -> float:
-    return (a + pi) % (2 * pi) - pi
 
 
 def _yaw(quat: np.ndarray) -> float:

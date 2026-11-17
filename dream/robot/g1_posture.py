@@ -40,6 +40,7 @@ import mink
 import mujoco
 import numpy as np
 
+from dream.navigation.follow import wrap
 from dream.robot.g1_wbc import DEFAULT, N_ACTION, N_BODY
 from dream.robot.wholebody import (
     ControllerCapabilities,
@@ -108,10 +109,6 @@ ARMS = ("left", "right")
 # those origins, so no surface could ever be touched with that point within 3 cm.)
 GRIP_BODIES = ("index_1",)
 TIP_VERTICES = 20  # the reach point averages the farthest this many mesh vertices
-
-
-def wrap(a: float) -> float:
-    return (a + math.pi) % (2 * math.pi) - math.pi
 
 
 @dataclass(frozen=True)

@@ -11,9 +11,7 @@ from math import atan2, cos, hypot, pi, sin
 
 import numpy as np
 
-
-def wrap(angle: float) -> float:
-    return (angle + pi) % (2 * pi) - pi
+from dream.navigation.follow import wrap
 
 
 @dataclass(frozen=True)

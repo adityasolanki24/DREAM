@@ -31,10 +31,6 @@ FALL_HEIGHT_M = 0.45  # pelvis height below this means the robot is not standing
 STANDING_HEIGHT_M = 0.7
 
 
-def _wrap(a: float) -> float:
-    return (a + math.pi) % (2 * math.pi) - math.pi
-
-
 def goal_kind(goal) -> str:
     if isinstance(goal, Inspect):
         return "inspect"
