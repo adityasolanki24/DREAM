@@ -4,7 +4,7 @@ Ground truth for inspection only: rooms coloured by type, objects labelled, star
 doorways. Writes one PNG per (generator, scenario, seed) and ``summary.json`` with room-type
 counts, object counts per class and the target-room distribution per scenario.
 
-    python experiments/render_homes.py --seeds 3 --out <dir>
+    python experiments/archive/render_homes.py --seeds 3 --out <dir>
 """
 
 from __future__ import annotations

@@ -1,5 +1,7 @@
 """CPU-testable Isaac Lab T1 policy contract, isolated from navigation and scene state.
 
+EXPERIMENTAL: Isaac Lab T1 pilot, failed (results/t1_*); not part of the G1 pipeline.
+
 Reference: APM f74e2dec, src/apm_isaac/robots.py and lab/t1.py. No APM code or weights
 are vendored. The 81-value Isaac Lab PPO contract is not Booster's different 47-value
 published leg-policy contract. Config and policy hashes are required at the boundary.

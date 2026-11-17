@@ -5,7 +5,7 @@ list and records what is omitted, or why the case is refused (excluded target, s
 on an excluded class, generator failure, a class with no validated asset). Written to
 results/isaac_env_validation/home_refusals.json so refusals are listed, never silent.
 
-    python experiments/isaac_home_refusals.py --seeds 100-103 --out <json>
+    python experiments/archive/isaac_home_refusals.py --seeds 100-103 --out <json>
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ import time
 
 import numpy as np
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
+ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dream.sim.home import HomeGenerationError, sample_home  # noqa: E402

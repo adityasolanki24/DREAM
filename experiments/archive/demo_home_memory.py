@@ -8,7 +8,7 @@ Sessions with real data are served by pointing the interface backend at a real
 ``--memory`` database instead; this file only exists so the graph, details and filters
 can be developed against a fully populated memory without simulating a robot.
 
-    python experiments/demo_home_memory.py [--out path] [--now unix-time]
+    python experiments/archive/demo_home_memory.py [--out path] [--now unix-time]
 
 The default path is under the machine's temp directory, next to the other interface
 dev stores.
@@ -22,7 +22,7 @@ import pathlib
 import sys
 import time
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
+ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from dream.memory.home import HomeMemory  # noqa: E402

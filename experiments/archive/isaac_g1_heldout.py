@@ -1,6 +1,7 @@
 """The 12 frozen held-out NVIDIA kitchen episodes, a few at a time on one GPU.
 
-    python experiments/isaac_g1_heldout.py --config experiments/configs/isaac_g1_kitchen.json \
+    python -m experiments.archive.isaac_g1_heldout \
+        --config experiments/configs/isaac_g1_kitchen.json \
         --robot-dir <dir> --prepare-with <converter python> --out <dir> [--workers 3]
 
 Each episode is the unchanged ``experiments/isaac_g1_kitchen.py --mode explore`` in its own
@@ -20,7 +21,7 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
+ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 
 def episode(args, kitchen: str, start: int) -> dict:

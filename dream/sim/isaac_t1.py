@@ -1,5 +1,7 @@
 """Experimental Isaac Sim 5.1 T1 adapter; import only after SimulationApp starts.
 
+EXPERIMENTAL: Isaac Lab T1 pilot, failed (results/t1_*); not part of the G1 pipeline.
+
 Own implementation of the audited Isaac Lab v2 PPO deployment contract. APM reference
 provenance is in navigation_sources.json. No APM import, world-pose planning, state writes
 during execution, learned navigation, or claim of walking validation.

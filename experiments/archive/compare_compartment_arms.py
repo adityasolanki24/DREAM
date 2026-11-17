@@ -1,6 +1,6 @@
 """Per-seed table of the vision arm against the oracle reference arm, from saved episodes.
 
-    python experiments/compare_compartment_arms.py results/compartment_vision_closeout \
+    python experiments/archive/compare_compartment_arms.py results/compartment_vision_closeout \
         results/compartment_oracle_reference_closeout --out <file.json>
 
 Observational: the arms differ in perception only, on the same seeds, but a per-seed

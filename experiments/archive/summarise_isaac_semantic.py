@@ -1,6 +1,6 @@
 """Merge the retrieved jobs of the Isaac semantic evaluation into results/isaac_semantic_eval.
 
-    python experiments/summarise_isaac_semantic.py --out results/isaac_semantic_eval \
+    python experiments/archive/summarise_isaac_semantic.py --out results/isaac_semantic_eval \
         --run <session>:<job>:<path to the job's output folder holding summary.json> ...
 
 Reads each job's ``summary.json`` (written by experiments/isaac_semantic_eval.py), merges them
@@ -21,7 +21,7 @@ import pathlib
 import shutil
 import sys
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
+ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from experiments.isaac_semantic_eval import CONFIG, load_config, merge_summaries  # noqa: E402

@@ -1,7 +1,7 @@
 """RTAB-Map on the walking G1's own sensors, scored against ground truth it never sees.
 
-    python experiments/rtabmap_eval.py --seed 3 --out <dir>      # needs Docker (cloud VM)
-    python experiments/rtabmap_eval.py --sequence <saved sequence> --engine podman --out <dir>
+    python experiments/archive/rtabmap_eval.py --seed 3 --out <dir>      # needs Docker (cloud VM)
+    python -m experiments.archive.rtabmap_eval --sequence <saved> --engine podman --out <dir>
 
 1. Record the G1 search-and-return sequence (experiments/record_rgbd_sequence.py) in MuJoCo.
 2. Convert it to a ROS 2 bag (experiments/tum_to_rosbag.py): RGB-D, camera info, IMU, TF.
@@ -27,7 +27,7 @@ from pathlib import Path
 
 import numpy as np
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 IMAGE = "introlab3it/rtabmap_ros:jazzy-latest"
 

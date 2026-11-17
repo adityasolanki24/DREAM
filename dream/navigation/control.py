@@ -1,5 +1,7 @@
 """Navigation contracts: estimated local odometry, never simulator world coordinates.
 
+EXPERIMENTAL: Isaac Lab T1 pilot, failed (results/t1_*); not part of the G1 pipeline.
+
 NavGPT frame/scale references are pinned in experiments/configs/navigation_sources.json.
 The Habitat TELEPORT command is intentionally not part of this interface.
 """
