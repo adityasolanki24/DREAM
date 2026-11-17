@@ -1,6 +1,6 @@
 """Live session: the simulated walking G1 takes tasks from the phone page.
 
-    python experiments/archive/phone_session.py --seed 4100 [--host 127.0.0.1] [--port 8765]
+    python experiments/phone_session.py --seed 4100 [--host 127.0.0.1] [--port 8765]
 
 Open http://<host>:<port>/ and paste the token from the file this prints (the token itself
 is never printed or logged). Requests are structured goals for now ("inspect cabinet",
@@ -24,7 +24,7 @@ if os.name != "nt" and "DISPLAY" not in os.environ:
 
 import numpy as np  # noqa: E402
 
-ROOT = pathlib.Path(__file__).resolve().parents[2]
+ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from dream.perception.spatial import SpatialMemory  # noqa: E402
