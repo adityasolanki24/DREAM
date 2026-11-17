@@ -1,0 +1,6448 @@
+{
+ "cloud.build_g1_runtime_image": {
+  "lines": 165,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "cloud.cached_runtime",
+   "experiments.cloud_g1_qwen"
+  ],
+  "text_refs": []
+ },
+ "cloud.cached_runtime": {
+  "lines": 59,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_cached_runtime"
+  ],
+  "imported_by_cloud": [
+   "cloud.build_g1_runtime_image"
+  ],
+  "imports": [],
+  "text_refs": []
+ },
+ "cloud.isaac_session": {
+  "lines": 489,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_isaac_g1"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "cloud.launch",
+   "cloud.tailnet"
+  ],
+  "text_refs": []
+ },
+ "cloud.isaac_session_guest": {
+  "lines": 144,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_isaac_g1"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "cloud.launch": {
+  "lines": 1122,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.audit_t1_run",
+   "experiments.inspect_t1_stand",
+   "experiments.verify_cloud_recovery"
+  ],
+  "imported_by_tests": [
+   "tests.test_cached_runtime",
+   "tests.test_cloud",
+   "tests.test_cloud_transfer_runtime",
+   "tests.test_g1_cloud",
+   "tests.test_g1_recording_destination",
+   "tests.test_groot_openloop",
+   "tests.test_molmo_multichunk",
+   "tests.test_vlm_compare_cloud"
+  ],
+  "imported_by_cloud": [
+   "cloud.isaac_session"
+  ],
+  "imports": [
+   "experiments.cloud_g1_qwen",
+   "experiments.groot_assets",
+   "experiments.groot_openloop"
+  ],
+  "text_refs": []
+ },
+ "cloud.tailnet": {
+  "lines": 86,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.isaac_g1_live"
+  ],
+  "imported_by_tests": [
+   "tests.test_cloud_tailnet"
+  ],
+  "imported_by_cloud": [
+   "cloud.isaac_session"
+  ],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream": {
+  "lines": 8,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.render_homes"
+  ],
+  "imported_by_tests": [
+   "tests.conftest"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.agent": {
+  "lines": 0,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.agent.belief": {
+  "lines": 518,
+  "imported_by_dream": [
+   "dream.agent.exploration",
+   "dream.agent.operate",
+   "dream.eval.episode",
+   "dream.eval.metrics",
+   "dream.tools.discovery"
+  ],
+  "imported_by_experiments": [
+   "experiments.calibrate_panda_adequacy",
+   "experiments.validate_adequacy"
+  ],
+  "imported_by_tests": [
+   "tests.test_belief"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.agent.model",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.agent.exploration": {
+  "lines": 151,
+  "imported_by_dream": [
+   "dream.eval.episode",
+   "dream.tools.discovery"
+  ],
+  "imported_by_experiments": [
+   "experiments.calibrate_adequacy",
+   "experiments.demo",
+   "experiments.run_benchmark",
+   "experiments.validate_adequacy"
+  ],
+  "imported_by_tests": [
+   "tests.test_eval"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.agent.belief",
+   "dream.agent.model",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.agent.model": {
+  "lines": 204,
+  "imported_by_dream": [
+   "dream.agent.belief",
+   "dream.agent.exploration",
+   "dream.agent.operate",
+   "dream.eval.episode",
+   "dream.eval.metrics",
+   "dream.eval.truth",
+   "dream.tools.discovery"
+  ],
+  "imported_by_experiments": [
+   "experiments.demo"
+  ],
+  "imported_by_tests": [
+   "tests.test_belief",
+   "tests.test_compartment",
+   "tests.test_model"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.agent.movability": {
+  "lines": 78,
+  "imported_by_dream": [
+   "dream.tools.object_exploration"
+  ],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_g1_exploration"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.agent.operate": {
+  "lines": 87,
+  "imported_by_dream": [
+   "dream.eval.episode",
+   "dream.tools.discovery"
+  ],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.agent.belief",
+   "dream.agent.model"
+  ],
+  "text_refs": []
+ },
+ "dream.eval": {
+  "lines": 0,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.eval.adequacy": {
+  "lines": 81,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.g1_explore_room",
+   "experiments.g1_memory_demo",
+   "experiments.g1_navigation_eval",
+   "experiments.run_compartment",
+   "experiments.run_pick_place",
+   "experiments.run_tasks",
+   "experiments.run_vision",
+   "experiments.run_vlm",
+   "experiments.validate_adequacy"
+  ],
+  "imported_by_tests": [
+   "tests.test_adequacy"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.eval.episode": {
+  "lines": 172,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.calibrate_adequacy",
+   "experiments.demo",
+   "experiments.run_benchmark",
+   "experiments.validate_adequacy"
+  ],
+  "imported_by_tests": [
+   "tests.test_eval"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.agent.belief",
+   "dream.agent.exploration",
+   "dream.agent.model",
+   "dream.agent.operate",
+   "dream.eval.metrics",
+   "dream.sim.env",
+   "dream.sim.mechanisms",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.eval.g1": {
+  "lines": 110,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.g1_contact_resolution",
+   "experiments.g1_dexterous",
+   "experiments.g1_explore_unknown",
+   "experiments.g1_grasp_bringup"
+  ],
+  "imported_by_tests": [
+   "tests.test_g1",
+   "tests.test_g1_grasp_fixtures"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.eval.isaac_scene": {
+  "lines": 124,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.isaac_g1_kitchen",
+   "experiments.isaac_g1_live",
+   "experiments.isaac_home_runs",
+   "experiments.isaac_semantic_dev",
+   "experiments.isaac_task"
+  ],
+  "imported_by_tests": [
+   "tests.test_isaac_g1"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.eval.joint": {
+  "lines": 121,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.cloud_molmo_closedloop",
+   "experiments.replay_molmo_prefix",
+   "experiments.validate_joint_controller"
+  ],
+  "imported_by_tests": [
+   "tests.test_joint"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.eval.manipulation": {
+  "lines": 72,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.cloud_molmo_closedloop",
+   "experiments.cloud_qwen_pilot",
+   "experiments.compartment_experience",
+   "experiments.demo_compartment",
+   "experiments.demo_vision",
+   "experiments.replay_molmo_prefix",
+   "experiments.run_compartment",
+   "experiments.run_pick_place",
+   "experiments.run_tasks",
+   "experiments.run_vision",
+   "experiments.run_vlm",
+   "experiments.validate_joint_controller"
+  ],
+  "imported_by_tests": [
+   "tests.test_compartment",
+   "tests.test_session",
+   "tests.test_tools_runtime",
+   "tests.test_vision",
+   "tests.test_vlm"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.sim.compartment",
+   "dream.sim.tabletop_env"
+  ],
+  "text_refs": []
+ },
+ "dream.eval.metrics": {
+  "lines": 67,
+  "imported_by_dream": [
+   "dream.eval.episode"
+  ],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.agent.belief",
+   "dream.agent.model",
+   "dream.sim.mechanisms"
+  ],
+  "text_refs": []
+ },
+ "dream.eval.plots": {
+  "lines": 98,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.run_benchmark",
+   "experiments.summarise"
+  ],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.eval.semantic_scoring": {
+  "lines": 165,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.compare_room_knowledge",
+   "experiments.isaac_semantic",
+   "experiments.semantic_search_diagnosis",
+   "experiments.semantic_search_eval"
+  ],
+  "imported_by_tests": [
+   "tests.test_semantic_scoring"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.eval.summary": {
+  "lines": 128,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.run_benchmark",
+   "experiments.summarise"
+  ],
+  "imported_by_tests": [
+   "tests.test_eval"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.eval.task_scoring": {
+  "lines": 264,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.isaac_g1_live",
+   "experiments.isaac_home_runs",
+   "experiments.isaac_semantic_dev"
+  ],
+  "imported_by_tests": [
+   "tests.test_task_scoring"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.tools.goals"
+  ],
+  "text_refs": []
+ },
+ "dream.eval.truth": {
+  "lines": 33,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_compartment",
+   "tests.test_model"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.agent.model",
+   "dream.sim.mechanisms"
+  ],
+  "text_refs": []
+ },
+ "dream.eval.vision": {
+  "lines": 72,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.run_vision"
+  ],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.detect",
+   "dream.sim.tabletop_env"
+  ],
+  "text_refs": []
+ },
+ "dream.memory": {
+  "lines": 0,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.memory.experience": {
+  "lines": 112,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.compartment_experience"
+  ],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.memory.home",
+   "dream.skills",
+   "dream.skills.articulation",
+   "dream.tools.toolbox"
+  ],
+  "text_refs": []
+ },
+ "dream.memory.home": {
+  "lines": 292,
+  "imported_by_dream": [
+   "dream.memory.experience",
+   "dream.memory.scene_graph",
+   "dream.runtime.memory_search"
+  ],
+  "imported_by_experiments": [
+   "experiments.compartment_experience",
+   "experiments.demo_home_memory",
+   "experiments.g1_command_demo",
+   "experiments.g1_interruption_demo",
+   "experiments.g1_memory_demo",
+   "experiments.g1_relocalise_demo",
+   "experiments.isaac_g1_kitchen",
+   "experiments.semantic_search_eval"
+  ],
+  "imported_by_tests": [
+   "tests.test_home_memory",
+   "tests.test_memory_search",
+   "tests.test_mobile_model",
+   "tests.test_scene_graph"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.memory.relocalise": {
+  "lines": 194,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.g1_relocalise_demo"
+  ],
+  "imported_by_tests": [
+   "tests.test_relocalise"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.occupancy"
+  ],
+  "text_refs": []
+ },
+ "dream.memory.scene_graph": {
+  "lines": 145,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.g1_relocalise_demo"
+  ],
+  "imported_by_tests": [
+   "tests.test_scene_graph"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.memory.home"
+  ],
+  "text_refs": []
+ },
+ "dream.navigation": {
+  "lines": 1,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.navigation.control": {
+  "lines": 161,
+  "imported_by_dream": [
+   "dream.sim.isaac_t1"
+  ],
+  "imported_by_experiments": [
+   "experiments.isaac_t1_walk"
+  ],
+  "imported_by_tests": [
+   "tests.test_navigation"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.navigation.follow": {
+  "lines": 66,
+  "imported_by_dream": [
+   "dream.navigation.rpp",
+   "dream.tools.mobile"
+  ],
+  "imported_by_experiments": [
+   "experiments.g1_explore_room",
+   "experiments.g1_grasp_bringup",
+   "experiments.g1_locomotion",
+   "experiments.g1_navigation_eval",
+   "experiments.isaac_g1_kitchen"
+  ],
+  "imported_by_tests": [
+   "tests.test_rpp"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.navigation.planning": {
+  "lines": 128,
+  "imported_by_dream": [
+   "dream.runtime.semantic_search",
+   "dream.tools.mobile"
+  ],
+  "imported_by_experiments": [
+   "experiments.audit_mobile_inspection",
+   "experiments.isaac_task"
+  ],
+  "imported_by_tests": [
+   "tests.test_mobile_exploration",
+   "tests.test_semantic_diagnostics"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.occupancy"
+  ],
+  "text_refs": []
+ },
+ "dream.navigation.rpp": {
+  "lines": 211,
+  "imported_by_dream": [
+   "dream.runtime.semantic_search",
+   "dream.tools.mobile"
+  ],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_rpp"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.navigation.follow"
+  ],
+  "text_refs": []
+ },
+ "dream.perception": {
+  "lines": 0,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.diagnose_search_episode"
+  ],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.perception.box_detectors": {
+  "lines": 434,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.detector_compare"
+  ],
+  "imported_by_tests": [
+   "tests.test_box_detectors"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.vlm_detect",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.perception.detect": {
+  "lines": 538,
+  "imported_by_dream": [
+   "dream.eval.vision",
+   "dream.perception.spatial",
+   "dream.perception.sphere",
+   "dream.perception.vision",
+   "dream.perception.world"
+  ],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_vision"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.geometry",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.perception.geometry": {
+  "lines": 110,
+  "imported_by_dream": [
+   "dream.perception.detect",
+   "dream.perception.occupancy",
+   "dream.perception.semantic",
+   "dream.perception.sphere",
+   "dream.runtime.memory_search"
+  ],
+  "imported_by_experiments": [
+   "experiments.isaac_task",
+   "experiments.nested_replay"
+  ],
+  "imported_by_tests": [
+   "tests.test_memory_search",
+   "tests.test_semantic_nested",
+   "tests.test_vision"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.perception.occupancy": {
+  "lines": 89,
+  "imported_by_dream": [
+   "dream.memory.relocalise",
+   "dream.navigation.planning",
+   "dream.perception.semantic",
+   "dream.perception.spatial",
+   "dream.runtime.semantic_search",
+   "dream.semantics.belief",
+   "dream.semantics.rooms",
+   "dream.semantics.world",
+   "dream.tools.mobile"
+  ],
+  "imported_by_experiments": [
+   "experiments.audit_mobile_inspection",
+   "experiments.g1_relocalise_demo",
+   "experiments.nested_replay",
+   "experiments.phase1_interface"
+  ],
+  "imported_by_tests": [
+   "tests.test_mobile_exploration",
+   "tests.test_relocalise",
+   "tests.test_semantic_nested",
+   "tests.test_semantics"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.geometry",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.perception.semantic": {
+  "lines": 285,
+  "imported_by_dream": [
+   "dream.runtime.semantic_search",
+   "dream.semantics.belief",
+   "dream.semantics.rooms",
+   "dream.semantics.verify",
+   "dream.semantics.world"
+  ],
+  "imported_by_experiments": [
+   "experiments.diagnose_search_episode",
+   "experiments.nested_replay"
+  ],
+  "imported_by_tests": [
+   "tests.test_semantic_nested",
+   "tests.test_semantics",
+   "tests.test_unexplored_rooms",
+   "tests.test_verifier_purity"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.geometry",
+   "dream.perception.occupancy",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.perception.spatial": {
+  "lines": 194,
+  "imported_by_dream": [
+   "dream.tools.mobile"
+  ],
+  "imported_by_experiments": [
+   "experiments.audit_mobile_inspection",
+   "experiments.g1_command_demo",
+   "experiments.g1_explore_room",
+   "experiments.g1_interruption_demo",
+   "experiments.g1_memory_demo",
+   "experiments.g1_navigation_eval",
+   "experiments.g1_relocalise_demo",
+   "experiments.isaac_g1_kitchen",
+   "experiments.isaac_g1_live",
+   "experiments.isaac_home_runs",
+   "experiments.isaac_task",
+   "experiments.mobile_recovery_validation",
+   "experiments.phase1_interface",
+   "experiments.phone_session",
+   "experiments.record_rgbd_sequence",
+   "experiments.semantic_search_eval"
+  ],
+  "imported_by_tests": [
+   "tests.test_closeout_defects",
+   "tests.test_isaac_live_replay",
+   "tests.test_mobile_exploration",
+   "tests.test_semantics"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.detect",
+   "dream.perception.occupancy",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.perception.sphere": {
+  "lines": 118,
+  "imported_by_dream": [
+   "dream.tools.object_exploration"
+  ],
+  "imported_by_experiments": [
+   "experiments.compare_g1_rendering",
+   "experiments.g1_explore_unknown"
+  ],
+  "imported_by_tests": [
+   "tests.test_g1_autonomy",
+   "tests.test_g1_exploration",
+   "tests.test_g1_regrasp"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.detect",
+   "dream.perception.geometry",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.perception.vision": {
+  "lines": 208,
+  "imported_by_dream": [
+   "dream.session"
+  ],
+  "imported_by_experiments": [
+   "experiments.calibrate_handle_measurement",
+   "experiments.run_compartment",
+   "experiments.run_vision",
+   "experiments.run_vlm"
+  ],
+  "imported_by_tests": [
+   "tests.test_vision"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.detect",
+   "dream.perception.world",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.perception.vlm_detect": {
+  "lines": 116,
+  "imported_by_dream": [
+   "dream.perception.box_detectors"
+  ],
+  "imported_by_experiments": [
+   "experiments.detector_compare",
+   "experiments.isaac_home_runs",
+   "experiments.isaac_semantic",
+   "experiments.isaac_semantic_dev"
+  ],
+  "imported_by_tests": [
+   "tests.test_box_detectors",
+   "tests.test_isaac_semantic_dev",
+   "tests.test_semantic_scoring"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.perception.world": {
+  "lines": 184,
+  "imported_by_dream": [
+   "dream.perception.vision"
+  ],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_vision"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.detect"
+  ],
+  "text_refs": []
+ },
+ "dream.robot": {
+  "lines": 0,
+  "imported_by_dream": [
+   "dream.robot.wholebody"
+  ],
+  "imported_by_experiments": [
+   "experiments.g1_wbc_envelope"
+  ],
+  "imported_by_tests": [
+   "tests.test_g1_hands",
+   "tests.test_g1_posture",
+   "tests.test_g1_supervisor",
+   "tests.test_g1_wbc",
+   "tests.test_mobile_exploration"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.robot.g1": {
+  "lines": 268,
+  "imported_by_dream": [
+   "dream.sim.g1"
+  ],
+  "imported_by_experiments": [
+   "experiments.capture_groot_input",
+   "experiments.g1_dexterous"
+  ],
+  "imported_by_tests": [
+   "tests.test_g1"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.robot.g1_assisted_demo": {
+  "lines": 95,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.isaac_task"
+  ],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.robot.g1_correction": {
+  "lines": 202,
+  "imported_by_dream": [
+   "dream.robot.g1_rollout"
+  ],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_g1_posture"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.robot.g1_posture",
+   "dream.robot.g1_supervisor",
+   "dream.robot.wholebody"
+  ],
+  "text_refs": []
+ },
+ "dream.robot.g1_grasp_geometry": {
+  "lines": 266,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.g1_grasp_bringup"
+  ],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.robot.g1_posture": {
+  "lines": 1077,
+  "imported_by_dream": [
+   "dream.robot.g1_correction",
+   "dream.robot.g1_rollout",
+   "dream.robot.g1_supervisor"
+  ],
+  "imported_by_experiments": [
+   "experiments.g1_grasp_bringup"
+  ],
+  "imported_by_tests": [
+   "tests.test_g1_posture",
+   "tests.test_g1_supervisor"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.robot.g1_wbc",
+   "dream.robot.wholebody"
+  ],
+  "text_refs": []
+ },
+ "dream.robot.g1_rollout": {
+  "lines": 341,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_g1_posture"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.robot.g1_correction",
+   "dream.robot.g1_posture",
+   "dream.robot.g1_supervisor",
+   "dream.robot.g1_wbc",
+   "dream.robot.wholebody"
+  ],
+  "text_refs": []
+ },
+ "dream.robot.g1_supervisor": {
+  "lines": 216,
+  "imported_by_dream": [
+   "dream.robot.g1_correction",
+   "dream.robot.g1_rollout"
+  ],
+  "imported_by_experiments": [
+   "experiments.g1_grasp_bringup"
+  ],
+  "imported_by_tests": [
+   "tests.test_g1_posture",
+   "tests.test_g1_supervisor"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.robot.g1_posture",
+   "dream.robot.g1_wbc",
+   "dream.robot.wholebody"
+  ],
+  "text_refs": []
+ },
+ "dream.robot.g1_wbc": {
+  "lines": 246,
+  "imported_by_dream": [
+   "dream.robot.g1_posture",
+   "dream.robot.g1_rollout",
+   "dream.robot.g1_supervisor",
+   "dream.robot.wholebody",
+   "dream.sim.g1_mobile",
+   "dream.sim.isaac_g1",
+   "dream.sim.kinematic_base"
+  ],
+  "imported_by_experiments": [
+   "experiments.camera_noninterference",
+   "experiments.fetch_wbc_policy",
+   "experiments.g1_command_demo",
+   "experiments.g1_explore_room",
+   "experiments.g1_grasp_bringup",
+   "experiments.g1_interruption_demo",
+   "experiments.g1_locomotion",
+   "experiments.g1_memory_demo",
+   "experiments.g1_navigation_eval",
+   "experiments.g1_relocalise_demo",
+   "experiments.g1_wbc_envelope",
+   "experiments.isaac_g1_kitchen",
+   "experiments.isaac_g1_live",
+   "experiments.isaac_home_runs",
+   "experiments.isaac_semantic_dev",
+   "experiments.mobile_recovery_validation",
+   "experiments.phase1_interface",
+   "experiments.phone_session",
+   "experiments.record_rgbd_sequence",
+   "experiments.semantic_search_eval"
+  ],
+  "imported_by_tests": [
+   "tests.test_g1_grasp_bringup",
+   "tests.test_g1_hands",
+   "tests.test_g1_posture",
+   "tests.test_g1_supervisor",
+   "tests.test_g1_wbc",
+   "tests.test_isaac_g1",
+   "tests.test_kinematic_base",
+   "tests.test_mobile_exploration",
+   "tests.test_wholebody_height_contract"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.robot.joint": {
+  "lines": 192,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.cloud_molmo_closedloop",
+   "experiments.replay_molmo_prefix",
+   "experiments.validate_joint_controller"
+  ],
+  "imported_by_tests": [
+   "tests.test_joint"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.robot.panda"
+  ],
+  "text_refs": []
+ },
+ "dream.robot.panda": {
+  "lines": 315,
+  "imported_by_dream": [
+   "dream.robot.joint",
+   "dream.sim.tabletop",
+   "dream.sim.tabletop_env"
+  ],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_panda"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.robot.t1": {
+  "lines": 100,
+  "imported_by_dream": [
+   "dream.sim.isaac_t1"
+  ],
+  "imported_by_experiments": [
+   "experiments.inspect_t1_stand",
+   "experiments.isaac_t1_walk"
+  ],
+  "imported_by_tests": [
+   "tests.test_navigation"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.robot.wholebody": {
+  "lines": 445,
+  "imported_by_dream": [
+   "dream.robot.g1_correction",
+   "dream.robot.g1_posture",
+   "dream.robot.g1_rollout",
+   "dream.robot.g1_supervisor"
+  ],
+  "imported_by_experiments": [
+   "experiments.g1_grasp_bringup"
+  ],
+  "imported_by_tests": [
+   "tests.test_g1_posture",
+   "tests.test_g1_supervisor",
+   "tests.test_wholebody_height_contract"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.robot",
+   "dream.robot.g1_wbc"
+  ],
+  "text_refs": []
+ },
+ "dream.runtime": {
+  "lines": 0,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.camera_latency_measure",
+   "experiments.diagnose_search_episode"
+  ],
+  "imported_by_tests": [
+   "tests.test_g1_cloud",
+   "tests.test_volo_contract"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.runtime.agent": {
+  "lines": 423,
+  "imported_by_dream": [
+   "dream.runtime.exploration",
+   "dream.runtime.memory_search",
+   "dream.runtime.mobile_model",
+   "dream.runtime.scheduler",
+   "dream.runtime.search",
+   "dream.runtime.semantic_search",
+   "dream.session"
+  ],
+  "imported_by_experiments": [
+   "experiments.audit_mobile_inspection",
+   "experiments.cloud_molmo_closedloop",
+   "experiments.cloud_qwen_pilot",
+   "experiments.command_scenario",
+   "experiments.compartment_experience",
+   "experiments.g1_explore_room",
+   "experiments.g1_explore_unknown",
+   "experiments.g1_interruption_demo",
+   "experiments.g1_memory_demo",
+   "experiments.g1_navigation_eval",
+   "experiments.g1_relocalise_demo",
+   "experiments.isaac_g1_kitchen",
+   "experiments.isaac_g1_live",
+   "experiments.mobile_recovery_validation",
+   "experiments.p6_frozen_mobile_model",
+   "experiments.phase1_interface",
+   "experiments.phone_session",
+   "experiments.record_rgbd_sequence",
+   "experiments.run_compartment",
+   "experiments.run_tasks",
+   "experiments.run_vision",
+   "experiments.run_vlm",
+   "experiments.semantic_search_eval",
+   "experiments.vlm_compare"
+  ],
+  "imported_by_tests": [
+   "tests.test_closeout_defects",
+   "tests.test_compartment",
+   "tests.test_g1_exploration",
+   "tests.test_g1_release",
+   "tests.test_intent",
+   "tests.test_isaac_live_eval",
+   "tests.test_isaac_live_replay",
+   "tests.test_memory_search",
+   "tests.test_mobile_exploration",
+   "tests.test_mobile_model",
+   "tests.test_mobile_recovery",
+   "tests.test_p6_frozen_replay",
+   "tests.test_room_instrumentation",
+   "tests.test_scheduler",
+   "tests.test_tools_runtime",
+   "tests.test_vision"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.tools.goals",
+   "dream.tools.intent",
+   "dream.tools.toolbox",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.runtime.camera_stream": {
+  "lines": 139,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.camera_latency_measure",
+   "experiments.camera_noninterference",
+   "experiments.isaac_g1_live",
+   "experiments.phase1_interface"
+  ],
+  "imported_by_tests": [
+   "tests.test_camera_stream",
+   "tests.test_phone_api"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.runtime.exploration": {
+  "lines": 53,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.g1_explore_unknown"
+  ],
+  "imported_by_tests": [
+   "tests.test_g1_exploration",
+   "tests.test_g1_release"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.agent",
+   "dream.tools.goals"
+  ],
+  "text_refs": []
+ },
+ "dream.runtime.media_runtime": {
+  "lines": 307,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.camera_media_vm_probe",
+   "experiments.isaac_g1_live"
+  ],
+  "imported_by_tests": [
+   "tests.test_media_runtime"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.runtime.memory_search": {
+  "lines": 121,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.command_scenario",
+   "experiments.g1_memory_demo",
+   "experiments.g1_relocalise_demo"
+  ],
+  "imported_by_tests": [
+   "tests.test_memory_search"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.memory.home",
+   "dream.perception.geometry",
+   "dream.runtime.agent"
+  ],
+  "text_refs": []
+ },
+ "dream.runtime.mobile_model": {
+  "lines": 515,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.audit_mobile_inspection",
+   "experiments.isaac_g1_live",
+   "experiments.isaac_semantic",
+   "experiments.mobile_recovery_validation",
+   "experiments.phase1_interface",
+   "experiments.vlm_compare"
+  ],
+  "imported_by_tests": [
+   "tests.test_closeout_defects",
+   "tests.test_intent",
+   "tests.test_isaac_live_replay",
+   "tests.test_mobile_model",
+   "tests.test_mobile_recovery",
+   "tests.test_phase1_model_choice",
+   "tests.test_task_scoring"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.agent",
+   "dream.runtime.vlm",
+   "dream.tools.goals",
+   "dream.tools.intent",
+   "dream.tools.mobile"
+  ],
+  "text_refs": []
+ },
+ "dream.runtime.molmo": {
+  "lines": 166,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.cloud_molmo_closedloop",
+   "experiments.molmo_openloop",
+   "experiments.replay_molmo_prefix",
+   "experiments.validate_joint_controller"
+  ],
+  "imported_by_tests": [
+   "tests.test_molmo"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.runtime.openai_plan": {
+  "lines": 219,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.phase1_interface",
+   "experiments.vlm_compare"
+  ],
+  "imported_by_tests": [
+   "tests.test_openai_plan_resume",
+   "tests.test_phase1_backends",
+   "tests.test_phase1_model_choice"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.siwc_auth"
+  ],
+  "text_refs": []
+ },
+ "dream.runtime.phone_api": {
+  "lines": 433,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.camera_latency_measure",
+   "experiments.command_scenario",
+   "experiments.g1_interruption_demo",
+   "experiments.isaac_g1_live",
+   "experiments.phase1_interface",
+   "experiments.phone_session"
+  ],
+  "imported_by_tests": [
+   "tests.test_camera_stream",
+   "tests.test_isaac_live",
+   "tests.test_media_runtime",
+   "tests.test_phase1_model_choice",
+   "tests.test_phone_api"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.runtime.qwen": {
+  "lines": 214,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.cloud_qwen_pilot",
+   "experiments.detector_compare",
+   "experiments.g1_explore_unknown",
+   "experiments.isaac_home_runs",
+   "experiments.isaac_semantic_dev",
+   "experiments.phase1_interface",
+   "experiments.qwen_room_priors",
+   "experiments.qwen_tool_server",
+   "experiments.run_vlm",
+   "experiments.vlm_compare"
+  ],
+  "imported_by_tests": [
+   "tests.test_g1_cloud",
+   "tests.test_vlm"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.runtime.scheduler": {
+  "lines": 240,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.command_scenario",
+   "experiments.g1_interruption_demo",
+   "experiments.isaac_g1_live",
+   "experiments.phase1_interface",
+   "experiments.phone_session"
+  ],
+  "imported_by_tests": [
+   "tests.test_isaac_live_eval",
+   "tests.test_phase1_model_choice",
+   "tests.test_phone_api",
+   "tests.test_scheduler"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.agent",
+   "dream.tools.toolbox"
+  ],
+  "text_refs": []
+ },
+ "dream.runtime.search": {
+  "lines": 122,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.command_scenario",
+   "experiments.g1_explore_room",
+   "experiments.g1_interruption_demo",
+   "experiments.g1_memory_demo",
+   "experiments.g1_navigation_eval",
+   "experiments.g1_relocalise_demo",
+   "experiments.isaac_g1_kitchen",
+   "experiments.phase1_interface",
+   "experiments.phone_session",
+   "experiments.record_rgbd_sequence"
+  ],
+  "imported_by_tests": [
+   "tests.test_mobile_exploration",
+   "tests.test_phase1_model_choice",
+   "tests.test_room_instrumentation"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.agent",
+   "dream.tools.goals",
+   "dream.tools.mobile"
+  ],
+  "text_refs": []
+ },
+ "dream.runtime.semantic_search": {
+  "lines": 457,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.diagnose_search_episode",
+   "experiments.isaac_semantic",
+   "experiments.semantic_search_eval"
+  ],
+  "imported_by_tests": [
+   "tests.test_semantic_diagnostics"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.navigation.planning",
+   "dream.navigation.rpp",
+   "dream.perception.occupancy",
+   "dream.perception.semantic",
+   "dream.runtime.agent",
+   "dream.semantics.belief",
+   "dream.tools.goals",
+   "dream.tools.mobile"
+  ],
+  "text_refs": []
+ },
+ "dream.runtime.siwc_auth": {
+  "lines": 89,
+  "imported_by_dream": [
+   "dream.runtime.openai_plan"
+  ],
+  "imported_by_experiments": [
+   "experiments.openai_plan_login",
+   "experiments.openai_plan_refresh"
+  ],
+  "imported_by_tests": [
+   "tests.test_openai_plan_auth",
+   "tests.test_openai_plan_refresh",
+   "tests.test_openai_plan_resume",
+   "tests.test_phase1_backends"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.runtime.vlm": {
+  "lines": 400,
+  "imported_by_dream": [
+   "dream.runtime.mobile_model"
+  ],
+  "imported_by_experiments": [
+   "experiments.cloud_qwen_pilot",
+   "experiments.g1_explore_unknown",
+   "experiments.p6_frozen_mobile_model",
+   "experiments.run_vlm"
+  ],
+  "imported_by_tests": [
+   "tests.test_g1",
+   "tests.test_g1_exploration",
+   "tests.test_g1_goal_contract",
+   "tests.test_vlm"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.tools.goals",
+   "dream.tools.toolbox"
+  ],
+  "text_refs": []
+ },
+ "dream.runtime.volo_contract": {
+  "lines": 400,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_phase1_backends",
+   "tests.test_volo_contract"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.tools.toolbox"
+  ],
+  "text_refs": []
+ },
+ "dream.semantics": {
+  "lines": 0,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.diagnose_search_episode"
+  ],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.semantics.belief": {
+  "lines": 340,
+  "imported_by_dream": [
+   "dream.runtime.semantic_search",
+   "dream.semantics.world"
+  ],
+  "imported_by_experiments": [
+   "experiments.semantic_search_eval"
+  ],
+  "imported_by_tests": [
+   "tests.test_semantics",
+   "tests.test_unexplored_rooms"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.occupancy",
+   "dream.perception.semantic",
+   "dream.semantics.knowledge",
+   "dream.semantics.rooms"
+  ],
+  "text_refs": []
+ },
+ "dream.semantics.graph": {
+  "lines": 107,
+  "imported_by_dream": [
+   "dream.semantics.world"
+  ],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_semantics"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.semantics.knowledge": {
+  "lines": 195,
+  "imported_by_dream": [
+   "dream.semantics.belief",
+   "dream.semantics.rooms",
+   "dream.semantics.world"
+  ],
+  "imported_by_experiments": [
+   "experiments.compare_room_knowledge",
+   "experiments.detector_compare",
+   "experiments.isaac_g1_live",
+   "experiments.isaac_home_runs",
+   "experiments.isaac_semantic",
+   "experiments.isaac_semantic_dev",
+   "experiments.semantic_search_eval"
+  ],
+  "imported_by_tests": [
+   "tests.test_isaac_semantic",
+   "tests.test_knowledge_sources",
+   "tests.test_semantics",
+   "tests.test_unexplored_rooms"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.semantics.rooms": {
+  "lines": 256,
+  "imported_by_dream": [
+   "dream.semantics.belief",
+   "dream.semantics.world"
+  ],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_semantics",
+   "tests.test_unexplored_rooms"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.occupancy",
+   "dream.perception.semantic",
+   "dream.semantics.knowledge"
+  ],
+  "text_refs": []
+ },
+ "dream.semantics.verify": {
+  "lines": 163,
+  "imported_by_dream": [
+   "dream.semantics.world"
+  ],
+  "imported_by_experiments": [
+   "experiments.nested_replay",
+   "experiments.semantic_search_eval"
+  ],
+  "imported_by_tests": [
+   "tests.test_semantics",
+   "tests.test_verifier_purity"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.semantic"
+  ],
+  "text_refs": []
+ },
+ "dream.semantics.world": {
+  "lines": 133,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.diagnose_search_episode",
+   "experiments.isaac_semantic",
+   "experiments.semantic_search_eval"
+  ],
+  "imported_by_tests": [
+   "tests.test_semantic_diagnostics"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.occupancy",
+   "dream.perception.semantic",
+   "dream.semantics.belief",
+   "dream.semantics.graph",
+   "dream.semantics.knowledge",
+   "dream.semantics.rooms",
+   "dream.semantics.verify",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.session": {
+  "lines": 302,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.analyse_molmo_failure_mode",
+   "experiments.cloud_molmo_closedloop",
+   "experiments.cloud_qwen_pilot",
+   "experiments.demo_compartment",
+   "experiments.demo_vision",
+   "experiments.inspect_molmo_feedback",
+   "experiments.replay",
+   "experiments.replay_molmo_prefix",
+   "experiments.session"
+  ],
+  "imported_by_tests": [
+   "tests.test_cloud",
+   "tests.test_joint",
+   "tests.test_session"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.vision",
+   "dream.runtime.agent",
+   "dream.sim.camera",
+   "dream.sim.tabletop",
+   "dream.sim.tabletop_env",
+   "dream.tools.goals",
+   "dream.tools.toolbox"
+  ],
+  "text_refs": []
+ },
+ "dream.sim": {
+  "lines": 0,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.semantic_search_eval"
+  ],
+  "imported_by_tests": [
+   "tests.test_g1_hands",
+   "tests.test_t1_adapter"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.sim.camera": {
+  "lines": 152,
+  "imported_by_dream": [
+   "dream.session",
+   "dream.sim.g1",
+   "dream.sim.g1_mobile",
+   "dream.sim.home",
+   "dream.sim.isaac_g1",
+   "dream.sim.kinematic_base",
+   "dream.sim.semantic_sensor",
+   "dream.sim.tabletop",
+   "dream.sim.tabletop_env"
+  ],
+  "imported_by_experiments": [
+   "experiments.calibrate_handle_measurement",
+   "experiments.capture_groot_input",
+   "experiments.cloud_molmo_closedloop",
+   "experiments.g1_explore_unknown",
+   "experiments.molmo_openloop",
+   "experiments.replay",
+   "experiments.run_compartment",
+   "experiments.run_vision",
+   "experiments.summarize_g1_exploration"
+  ],
+  "imported_by_tests": [
+   "tests.test_g1_exploration",
+   "tests.test_isaac_g1",
+   "tests.test_molmo",
+   "tests.test_molmo_feedback",
+   "tests.test_semantic_sensor",
+   "tests.test_vision"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.sim.compartment": {
+  "lines": 294,
+  "imported_by_dream": [
+   "dream.eval.manipulation",
+   "dream.sim.tabletop",
+   "dream.sim.tabletop_env"
+  ],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.sim.env": {
+  "lines": 205,
+  "imported_by_dream": [
+   "dream.eval.episode"
+  ],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_model",
+   "tests.test_sim"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.sim.mechanisms",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.sim.g1": {
+  "lines": 130,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.audit_groot_actions",
+   "experiments.capture_groot_input",
+   "experiments.g1_contact_resolution",
+   "experiments.g1_dexterous",
+   "experiments.g1_explore_unknown",
+   "experiments.resolve_g1_contract",
+   "experiments.summarize_g1_exploration"
+  ],
+  "imported_by_tests": [
+   "tests.test_g1",
+   "tests.test_g1_autonomy",
+   "tests.test_g1_dataset",
+   "tests.test_g1_exploration",
+   "tests.test_g1_recording"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.robot.g1",
+   "dream.sim.camera"
+  ],
+  "text_refs": []
+ },
+ "dream.sim.g1_grasp_fixtures": {
+  "lines": 87,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.g1_grasp_bringup"
+  ],
+  "imported_by_tests": [
+   "tests.test_g1_grasp_fixtures"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.sim.g1_mobile": {
+  "lines": 481,
+  "imported_by_dream": [
+   "dream.sim.isaac_g1",
+   "dream.sim.kinematic_base"
+  ],
+  "imported_by_experiments": [
+   "experiments.camera_noninterference",
+   "experiments.g1_command_demo",
+   "experiments.g1_explore_room",
+   "experiments.g1_grasp_bringup",
+   "experiments.g1_interruption_demo",
+   "experiments.g1_locomotion",
+   "experiments.g1_memory_demo",
+   "experiments.g1_navigation_eval",
+   "experiments.g1_relocalise_demo",
+   "experiments.g1_wbc_envelope",
+   "experiments.isaac_g1_kitchen",
+   "experiments.isaac_g1_live",
+   "experiments.isaac_home_runs",
+   "experiments.isaac_replay_video",
+   "experiments.isaac_semantic_dev",
+   "experiments.isaac_task",
+   "experiments.mobile_recovery_validation",
+   "experiments.phase1_interface",
+   "experiments.phone_session",
+   "experiments.record_rgbd_sequence",
+   "experiments.semantic_search_eval",
+   "experiments.vlm_compare_frames"
+  ],
+  "imported_by_tests": [
+   "tests.test_g1_hands",
+   "tests.test_g1_posture",
+   "tests.test_g1_wbc",
+   "tests.test_home",
+   "tests.test_isaac_g1",
+   "tests.test_kinematic_base",
+   "tests.test_mobile_exploration",
+   "tests.test_semantic_sensor"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.robot.g1_wbc",
+   "dream.sim.camera",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.sim.home": {
+  "lines": 1559,
+  "imported_by_dream": [
+   "dream.sim.kinematic_base",
+   "dream.sim.semantic_sensor"
+  ],
+  "imported_by_experiments": [
+   "experiments.compare_room_knowledge",
+   "experiments.isaac_asset_validation",
+   "experiments.isaac_home_compose",
+   "experiments.isaac_home_refusals",
+   "experiments.isaac_home_runs",
+   "experiments.render_homes",
+   "experiments.semantic_search_eval"
+  ],
+  "imported_by_tests": [
+   "tests.test_home",
+   "tests.test_home_xl",
+   "tests.test_isaac_home_compose",
+   "tests.test_isaac_home_exclusions",
+   "tests.test_isaac_home_runs",
+   "tests.test_isaac_home_scale",
+   "tests.test_isaac_home_usd",
+   "tests.test_kinematic_base",
+   "tests.test_semantic_sensor"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.sim.camera",
+   "dream.sim.kinematic_base"
+  ],
+  "text_refs": []
+ },
+ "dream.sim.isaac_g1": {
+  "lines": 548,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.isaac_g1_kitchen",
+   "experiments.isaac_g1_live",
+   "experiments.isaac_home_runs",
+   "experiments.isaac_replay_video",
+   "experiments.isaac_semantic_dev"
+  ],
+  "imported_by_tests": [
+   "tests.test_isaac_g1"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.robot.g1_wbc",
+   "dream.sim.camera",
+   "dream.sim.g1_mobile",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.sim.isaac_t1": {
+  "lines": 309,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.isaac_t1_walk"
+  ],
+  "imported_by_tests": [
+   "tests.test_navigation",
+   "tests.test_t1_adapter"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.navigation.control",
+   "dream.robot.t1"
+  ],
+  "text_refs": []
+ },
+ "dream.sim.kinematic_base": {
+  "lines": 277,
+  "imported_by_dream": [
+   "dream.sim.home"
+  ],
+  "imported_by_experiments": [
+   "experiments.semantic_search_eval"
+  ],
+  "imported_by_tests": [
+   "tests.test_kinematic_base",
+   "tests.test_semantic_sensor"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.robot.g1_wbc",
+   "dream.sim.camera",
+   "dream.sim.g1_mobile",
+   "dream.sim.home",
+   "dream.sim.semantic_sensor",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.sim.mechanisms": {
+  "lines": 292,
+  "imported_by_dream": [
+   "dream.eval.episode",
+   "dream.eval.metrics",
+   "dream.eval.truth",
+   "dream.sim.env"
+  ],
+  "imported_by_experiments": [
+   "experiments.calibrate_adequacy",
+   "experiments.demo",
+   "experiments.run_benchmark",
+   "experiments.validate_adequacy"
+  ],
+  "imported_by_tests": [
+   "tests.test_eval",
+   "tests.test_model",
+   "tests.test_sim"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.sim.room": {
+  "lines": 266,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.camera_noninterference",
+   "experiments.g1_command_demo",
+   "experiments.g1_explore_room",
+   "experiments.g1_interruption_demo",
+   "experiments.g1_memory_demo",
+   "experiments.g1_navigation_eval",
+   "experiments.g1_relocalise_demo",
+   "experiments.mobile_recovery_validation",
+   "experiments.phase1_interface",
+   "experiments.phone_session",
+   "experiments.record_rgbd_sequence",
+   "experiments.vlm_compare_frames"
+  ],
+  "imported_by_tests": [
+   "tests.test_mobile_exploration"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.sim.semantic_sensor": {
+  "lines": 210,
+  "imported_by_dream": [
+   "dream.sim.kinematic_base"
+  ],
+  "imported_by_experiments": [
+   "experiments.semantic_search_eval"
+  ],
+  "imported_by_tests": [
+   "tests.test_semantic_sensor"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.sim.camera",
+   "dream.sim.home",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.sim.tabletop": {
+  "lines": 242,
+  "imported_by_dream": [
+   "dream.session",
+   "dream.sim.tabletop_env"
+  ],
+  "imported_by_experiments": [
+   "experiments.calibrate_handle_measurement",
+   "experiments.calibrate_panda_adequacy",
+   "experiments.compartment_experience",
+   "experiments.molmo_openloop",
+   "experiments.replay",
+   "experiments.run_compartment",
+   "experiments.run_pick_place",
+   "experiments.run_tasks",
+   "experiments.run_vision",
+   "experiments.run_vlm",
+   "experiments.stress_shoulder_singularity",
+   "experiments.validate_joint_controller"
+  ],
+  "imported_by_tests": [
+   "tests.test_compartment",
+   "tests.test_joint",
+   "tests.test_molmo",
+   "tests.test_panda",
+   "tests.test_tools_runtime",
+   "tests.test_vision",
+   "tests.test_vlm"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.robot.panda",
+   "dream.sim.camera",
+   "dream.sim.compartment"
+  ],
+  "text_refs": []
+ },
+ "dream.sim.tabletop_env": {
+  "lines": 351,
+  "imported_by_dream": [
+   "dream.eval.manipulation",
+   "dream.eval.vision",
+   "dream.session"
+  ],
+  "imported_by_experiments": [
+   "experiments.calibrate_handle_measurement",
+   "experiments.calibrate_panda_adequacy",
+   "experiments.compartment_experience",
+   "experiments.molmo_openloop",
+   "experiments.replay_molmo_prefix",
+   "experiments.run_compartment",
+   "experiments.run_pick_place",
+   "experiments.run_tasks",
+   "experiments.run_vision",
+   "experiments.run_vlm",
+   "experiments.stress_shoulder_singularity",
+   "experiments.validate_joint_controller"
+  ],
+  "imported_by_tests": [
+   "tests.test_compartment",
+   "tests.test_joint",
+   "tests.test_molmo",
+   "tests.test_panda",
+   "tests.test_tools_runtime",
+   "tests.test_vision",
+   "tests.test_vlm"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.robot.panda",
+   "dream.sim.camera",
+   "dream.sim.compartment",
+   "dream.sim.tabletop",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.skills": {
+  "lines": 0,
+  "imported_by_dream": [
+   "dream.memory.experience",
+   "dream.tools.toolbox"
+  ],
+  "imported_by_experiments": [
+   "experiments.compartment_experience"
+  ],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.skills.articulation": {
+  "lines": 292,
+  "imported_by_dream": [
+   "dream.memory.experience",
+   "dream.tools.discovery",
+   "dream.tools.toolbox"
+  ],
+  "imported_by_experiments": [
+   "experiments.calibrate_handle_measurement",
+   "experiments.compartment_experience"
+  ],
+  "imported_by_tests": [
+   "tests.test_compartment",
+   "tests.test_vision"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.skills.manipulation",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.skills.manipulation": {
+  "lines": 291,
+  "imported_by_dream": [
+   "dream.skills.articulation",
+   "dream.tools.discovery",
+   "dream.tools.toolbox"
+  ],
+  "imported_by_experiments": [
+   "experiments.run_pick_place",
+   "experiments.run_tasks",
+   "experiments.stress_shoulder_singularity"
+  ],
+  "imported_by_tests": [
+   "tests.test_panda",
+   "tests.test_tools_runtime"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.tools": {
+  "lines": 0,
+  "imported_by_dream": [
+   "dream.tools.toolbox"
+  ],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_tools_runtime"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "dream.tools.dexterous": {
+  "lines": 113,
+  "imported_by_dream": [
+   "dream.tools.object_exploration"
+  ],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_g1"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.tools.toolbox",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.tools.discovery": {
+  "lines": 595,
+  "imported_by_dream": [
+   "dream.tools.toolbox"
+  ],
+  "imported_by_experiments": [
+   "experiments.calibrate_panda_adequacy"
+  ],
+  "imported_by_tests": [
+   "tests.test_tools_runtime"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.agent.belief",
+   "dream.agent.exploration",
+   "dream.agent.model",
+   "dream.agent.operate",
+   "dream.skills.articulation",
+   "dream.skills.manipulation",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.tools.goals": {
+  "lines": 220,
+  "imported_by_dream": [
+   "dream.eval.task_scoring",
+   "dream.runtime.agent",
+   "dream.runtime.exploration",
+   "dream.runtime.mobile_model",
+   "dream.runtime.search",
+   "dream.runtime.semantic_search",
+   "dream.runtime.vlm",
+   "dream.session",
+   "dream.tools.intent",
+   "dream.tools.mobile",
+   "dream.tools.object_exploration",
+   "dream.tools.toolbox"
+  ],
+  "imported_by_experiments": [
+   "experiments.audit_mobile_inspection",
+   "experiments.cloud_molmo_closedloop",
+   "experiments.cloud_qwen_pilot",
+   "experiments.command_scenario",
+   "experiments.compartment_experience",
+   "experiments.g1_explore_room",
+   "experiments.g1_explore_unknown",
+   "experiments.g1_interruption_demo",
+   "experiments.g1_memory_demo",
+   "experiments.g1_navigation_eval",
+   "experiments.g1_relocalise_demo",
+   "experiments.isaac_g1_kitchen",
+   "experiments.isaac_g1_live",
+   "experiments.isaac_semantic",
+   "experiments.mobile_recovery_validation",
+   "experiments.phase1_interface",
+   "experiments.phone_session",
+   "experiments.record_rgbd_sequence",
+   "experiments.run_compartment",
+   "experiments.run_tasks",
+   "experiments.run_vision",
+   "experiments.run_vlm",
+   "experiments.semantic_search_eval"
+  ],
+  "imported_by_tests": [
+   "tests.test_closeout_defects",
+   "tests.test_compartment",
+   "tests.test_g1_exploration",
+   "tests.test_g1_release",
+   "tests.test_intent",
+   "tests.test_isaac_live",
+   "tests.test_isaac_live_eval",
+   "tests.test_isaac_live_replay",
+   "tests.test_isaac_semantic",
+   "tests.test_memory_search",
+   "tests.test_mobile_exploration",
+   "tests.test_mobile_model",
+   "tests.test_mobile_recovery",
+   "tests.test_room_instrumentation",
+   "tests.test_scheduler",
+   "tests.test_task_scoring",
+   "tests.test_tools_runtime",
+   "tests.test_vision",
+   "tests.test_vlm"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.tools.intent": {
+  "lines": 382,
+  "imported_by_dream": [
+   "dream.runtime.agent",
+   "dream.runtime.mobile_model"
+  ],
+  "imported_by_experiments": [
+   "experiments.isaac_home_runs",
+   "experiments.isaac_semantic",
+   "experiments.semantic_search_eval"
+  ],
+  "imported_by_tests": [
+   "tests.test_intent"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.tools.goals"
+  ],
+  "text_refs": []
+ },
+ "dream.tools.mobile": {
+  "lines": 797,
+  "imported_by_dream": [
+   "dream.runtime.mobile_model",
+   "dream.runtime.search",
+   "dream.runtime.semantic_search"
+  ],
+  "imported_by_experiments": [
+   "experiments.audit_mobile_inspection",
+   "experiments.g1_command_demo",
+   "experiments.g1_explore_room",
+   "experiments.g1_interruption_demo",
+   "experiments.g1_memory_demo",
+   "experiments.g1_navigation_eval",
+   "experiments.g1_relocalise_demo",
+   "experiments.isaac_g1_kitchen",
+   "experiments.isaac_g1_live",
+   "experiments.isaac_home_runs",
+   "experiments.isaac_task",
+   "experiments.mobile_recovery_validation",
+   "experiments.phase1_interface",
+   "experiments.phone_session",
+   "experiments.record_rgbd_sequence",
+   "experiments.semantic_search_eval"
+  ],
+  "imported_by_tests": [
+   "tests.test_closeout_defects",
+   "tests.test_g1_posture",
+   "tests.test_isaac_live",
+   "tests.test_isaac_live_replay",
+   "tests.test_mobile_exploration",
+   "tests.test_scheduler",
+   "tests.test_semantics"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.navigation.follow",
+   "dream.navigation.planning",
+   "dream.navigation.rpp",
+   "dream.perception.occupancy",
+   "dream.perception.spatial",
+   "dream.tools.goals",
+   "dream.tools.toolbox",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.tools.object_exploration": {
+  "lines": 460,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.g1_explore_unknown"
+  ],
+  "imported_by_tests": [
+   "tests.test_g1_autonomy",
+   "tests.test_g1_exploration",
+   "tests.test_g1_goal_contract",
+   "tests.test_g1_regrasp",
+   "tests.test_g1_release"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.agent.movability",
+   "dream.perception.sphere",
+   "dream.tools.dexterous",
+   "dream.tools.goals",
+   "dream.tools.toolbox",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.tools.toolbox": {
+  "lines": 588,
+  "imported_by_dream": [
+   "dream.memory.experience",
+   "dream.runtime.agent",
+   "dream.runtime.scheduler",
+   "dream.runtime.vlm",
+   "dream.runtime.volo_contract",
+   "dream.session",
+   "dream.tools.dexterous",
+   "dream.tools.mobile",
+   "dream.tools.object_exploration"
+  ],
+  "imported_by_experiments": [
+   "experiments.audit_mobile_inspection",
+   "experiments.cloud_qwen_pilot",
+   "experiments.run_compartment",
+   "experiments.run_tasks",
+   "experiments.run_vision",
+   "experiments.run_vlm"
+  ],
+  "imported_by_tests": [
+   "tests.test_closeout_defects",
+   "tests.test_compartment",
+   "tests.test_g1_exploration",
+   "tests.test_g1_release",
+   "tests.test_intent",
+   "tests.test_isaac_live",
+   "tests.test_isaac_live_replay",
+   "tests.test_memory_search",
+   "tests.test_mobile_exploration",
+   "tests.test_mobile_recovery",
+   "tests.test_room_instrumentation",
+   "tests.test_scheduler",
+   "tests.test_tools_runtime",
+   "tests.test_vision",
+   "tests.test_vlm",
+   "tests.test_volo_contract"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.skills",
+   "dream.skills.articulation",
+   "dream.skills.manipulation",
+   "dream.tools",
+   "dream.tools.discovery",
+   "dream.tools.goals",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "dream.types": {
+  "lines": 273,
+  "imported_by_dream": [
+   "dream.agent.belief",
+   "dream.agent.exploration",
+   "dream.agent.model",
+   "dream.eval.episode",
+   "dream.perception.box_detectors",
+   "dream.perception.detect",
+   "dream.perception.geometry",
+   "dream.perception.occupancy",
+   "dream.perception.semantic",
+   "dream.perception.spatial",
+   "dream.perception.sphere",
+   "dream.perception.vision",
+   "dream.perception.vlm_detect",
+   "dream.robot.g1",
+   "dream.robot.panda",
+   "dream.runtime.agent",
+   "dream.runtime.molmo",
+   "dream.semantics.world",
+   "dream.sim.camera",
+   "dream.sim.env",
+   "dream.sim.g1_mobile",
+   "dream.sim.isaac_g1",
+   "dream.sim.kinematic_base",
+   "dream.sim.mechanisms",
+   "dream.sim.semantic_sensor",
+   "dream.sim.tabletop_env",
+   "dream.skills.articulation",
+   "dream.skills.manipulation",
+   "dream.tools.dexterous",
+   "dream.tools.discovery",
+   "dream.tools.goals",
+   "dream.tools.mobile",
+   "dream.tools.object_exploration",
+   "dream.tools.toolbox"
+  ],
+  "imported_by_experiments": [
+   "experiments.compare_g1_rendering",
+   "experiments.g1_explore_unknown",
+   "experiments.nested_replay"
+  ],
+  "imported_by_tests": [
+   "tests.test_belief",
+   "tests.test_box_detectors",
+   "tests.test_groot_openloop",
+   "tests.test_memory_search",
+   "tests.test_model",
+   "tests.test_semantic_nested",
+   "tests.test_semantic_sensor",
+   "tests.test_semantics",
+   "tests.test_sim",
+   "tests.test_tools_runtime",
+   "tests.test_vision"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "experiments.analyse_molmo_failure_mode": {
+  "lines": 148,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.session"
+  ],
+  "text_refs": [
+   "experiments/analyse_molmo_failure_mode.py"
+  ]
+ },
+ "experiments.analyse_molmo_multichunk": {
+  "lines": 98,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_molmo_multichunk_rule"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": [
+   "experiments/analyse_molmo_multichunk.py"
+  ]
+ },
+ "experiments.audit_foundation_models": {
+  "lines": 200,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": [
+   "experiments/audit_foundation_models.py"
+  ]
+ },
+ "experiments.audit_g1_terminal": {
+  "lines": 65,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.g1_dexterous"
+  ],
+  "text_refs": []
+ },
+ "experiments.audit_groot_actions": {
+  "lines": 141,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.groot_contract"
+  ],
+  "imported_by_tests": [
+   "tests.test_groot_audit"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.sim.g1",
+   "experiments.g1_dexterous",
+   "experiments.groot_openloop"
+  ],
+  "text_refs": []
+ },
+ "experiments.audit_mobile_inspection": {
+  "lines": 139,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_mobile_recovery"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.navigation.planning",
+   "dream.perception.occupancy",
+   "dream.perception.spatial",
+   "dream.runtime.agent",
+   "dream.runtime.mobile_model",
+   "dream.tools.goals",
+   "dream.tools.mobile",
+   "dream.tools.toolbox"
+  ],
+  "text_refs": []
+ },
+ "experiments.audit_t1_run": {
+  "lines": 45,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "cloud.launch"
+  ],
+  "text_refs": []
+ },
+ "experiments.audit_vla_sources": {
+  "lines": 56,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "experiments.calibrate_adequacy": {
+  "lines": 82,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.agent.exploration",
+   "dream.eval.episode",
+   "dream.sim.mechanisms"
+  ],
+  "text_refs": [
+   "dream/agent/belief.py",
+   "experiments/calibrate_adequacy.py",
+   "experiments/calibrate_panda_adequacy.py"
+  ]
+ },
+ "experiments.calibrate_handle_measurement": {
+  "lines": 145,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.vision",
+   "dream.sim.camera",
+   "dream.sim.tabletop",
+   "dream.sim.tabletop_env",
+   "dream.skills.articulation"
+  ],
+  "text_refs": [
+   "experiments/calibrate_handle_measurement.py"
+  ]
+ },
+ "experiments.calibrate_panda_adequacy": {
+  "lines": 99,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.agent.belief",
+   "dream.sim.tabletop",
+   "dream.sim.tabletop_env",
+   "dream.tools.discovery"
+  ],
+  "text_refs": [
+   "dream/tools/discovery.py",
+   "experiments/calibrate_panda_adequacy.py"
+  ]
+ },
+ "experiments.camera_delivery_benchmark": {
+  "lines": 67,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "experiments.camera_latency_measure": {
+  "lines": 1202,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.camera_noninterference"
+  ],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime",
+   "dream.runtime.camera_stream",
+   "dream.runtime.phone_api"
+  ],
+  "text_refs": []
+ },
+ "experiments.camera_media_vm_probe": {
+  "lines": 152,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.media_runtime"
+  ],
+  "text_refs": [
+   "experiments/camera_media_vm_probe.py"
+  ]
+ },
+ "experiments.camera_noninterference": {
+  "lines": 207,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.robot.g1_wbc",
+   "dream.runtime.camera_stream",
+   "dream.sim.g1_mobile",
+   "dream.sim.room",
+   "experiments.camera_latency_measure"
+  ],
+  "text_refs": []
+ },
+ "experiments.camera_remote_measure": {
+  "lines": 414,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_camera_remote_measure"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": [
+   "experiments/camera_remote_measure.py"
+  ]
+ },
+ "experiments.capture_groot_input": {
+  "lines": 114,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_groot_openloop"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.robot.g1",
+   "dream.sim.camera",
+   "dream.sim.g1",
+   "experiments.g1_dexterous"
+  ],
+  "text_refs": []
+ },
+ "experiments.cloud_bootstrap": {
+  "lines": 51,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.detector_compare"
+  ],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": [
+   "README.md",
+   "experiments/cloud_bootstrap.py"
+  ]
+ },
+ "experiments.cloud_g1_qwen": {
+  "lines": 222,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.g1_autonomy_report"
+  ],
+  "imported_by_tests": [
+   "tests.test_g1_cloud",
+   "tests.test_g1_snapshot_gate"
+  ],
+  "imported_by_cloud": [
+   "cloud.build_g1_runtime_image",
+   "cloud.launch"
+  ],
+  "imports": [
+   "experiments.g1_dexterous",
+   "experiments.g1_explore_unknown"
+  ],
+  "text_refs": []
+ },
+ "experiments.cloud_groot_openloop": {
+  "lines": 142,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_groot_assets",
+   "tests.test_groot_openloop"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.g1_dexterous",
+   "experiments.groot_assets"
+  ],
+  "text_refs": []
+ },
+ "experiments.cloud_molmo_closedloop": {
+  "lines": 270,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_molmo_feedback",
+   "tests.test_molmo_multichunk"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.joint",
+   "dream.eval.manipulation",
+   "dream.robot.joint",
+   "dream.runtime.agent",
+   "dream.runtime.molmo",
+   "dream.session",
+   "dream.sim.camera",
+   "dream.tools.goals",
+   "experiments.cloud_molmo_openloop"
+  ],
+  "text_refs": [
+   "cloud/vm_startup.sh",
+   "experiments/analyse_molmo_multichunk.py"
+  ]
+ },
+ "experiments.cloud_molmo_openloop": {
+  "lines": 67,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.cloud_molmo_closedloop"
+  ],
+  "imported_by_tests": [
+   "tests.test_molmo"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": [
+   "cloud/vm_startup.sh"
+  ]
+ },
+ "experiments.cloud_qwen_pilot": {
+  "lines": 256,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.g1_explore_unknown"
+  ],
+  "imported_by_tests": [
+   "tests.test_cloud"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.manipulation",
+   "dream.runtime.agent",
+   "dream.runtime.qwen",
+   "dream.runtime.vlm",
+   "dream.session",
+   "dream.tools.goals",
+   "dream.tools.toolbox"
+  ],
+  "text_refs": [
+   "cloud/vm_startup.sh"
+  ]
+ },
+ "experiments.code_version": {
+  "lines": 25,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.detector_compare",
+   "experiments.g1_explore_room",
+   "experiments.nested_replay",
+   "experiments.run_compartment",
+   "experiments.semantic_search_eval",
+   "experiments.vlm_compare"
+  ],
+  "imported_by_tests": [
+   "tests.test_code_version"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "experiments.command_scenario": {
+  "lines": 142,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.g1_command_demo",
+   "experiments.isaac_g1_kitchen"
+  ],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.agent",
+   "dream.runtime.memory_search",
+   "dream.runtime.phone_api",
+   "dream.runtime.scheduler",
+   "dream.runtime.search",
+   "dream.tools.goals",
+   "experiments.g1_explore_room"
+  ],
+  "text_refs": [
+   "experiments/g1_command_demo.py",
+   "experiments/isaac_g1_kitchen.py"
+  ]
+ },
+ "experiments.compare_compartment_arms": {
+  "lines": 63,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": [
+   "experiments/compare_compartment_arms.py"
+  ]
+ },
+ "experiments.compare_g1_rendering": {
+  "lines": 81,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_g1_platform_audit"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.sphere",
+   "dream.types",
+   "experiments.g1_dexterous"
+  ],
+  "text_refs": []
+ },
+ "experiments.compare_room_knowledge": {
+  "lines": 106,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.semantic_scoring",
+   "dream.semantics.knowledge",
+   "dream.sim.home"
+  ],
+  "text_refs": [
+   "README.md",
+   "experiments/compare_room_knowledge.py"
+  ]
+ },
+ "experiments.compare_room_regression": {
+  "lines": 109,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_room_regression_config"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": [
+   "experiments/compare_room_regression.py"
+  ]
+ },
+ "experiments.compartment_experience": {
+  "lines": 189,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.manipulation",
+   "dream.memory.experience",
+   "dream.memory.home",
+   "dream.runtime.agent",
+   "dream.sim.tabletop",
+   "dream.sim.tabletop_env",
+   "dream.skills",
+   "dream.skills.articulation",
+   "dream.tools.goals",
+   "experiments.provenance"
+  ],
+  "text_refs": [
+   "experiments/compartment_experience.py"
+  ]
+ },
+ "experiments.compose_demo_video": {
+  "lines": 82,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": [
+   "experiments/compose_demo_video.py",
+   "experiments/isaac_replay_video.py"
+  ]
+ },
+ "experiments.demo": {
+  "lines": 285,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.agent.exploration",
+   "dream.agent.model",
+   "dream.eval.episode",
+   "dream.sim.mechanisms"
+  ],
+  "text_refs": [
+   "experiments/demo.py"
+  ]
+ },
+ "experiments.demo_compartment": {
+  "lines": 84,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.manipulation",
+   "dream.session"
+  ],
+  "text_refs": [
+   "experiments/demo_compartment.py"
+  ]
+ },
+ "experiments.demo_home_memory": {
+  "lines": 166,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.memory.home"
+  ],
+  "text_refs": [
+   "experiments/demo_home_memory.py"
+  ]
+ },
+ "experiments.demo_vision": {
+  "lines": 74,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.manipulation",
+   "dream.session"
+  ],
+  "text_refs": [
+   "experiments/demo_vision.py"
+  ]
+ },
+ "experiments.detector_compare": {
+  "lines": 807,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.nested_replay"
+  ],
+  "imported_by_tests": [
+   "tests.test_detector_compare"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.box_detectors",
+   "dream.perception.vlm_detect",
+   "dream.runtime.qwen",
+   "dream.semantics.knowledge",
+   "experiments.cloud_bootstrap",
+   "experiments.code_version",
+   "experiments.isaac_semantic"
+  ],
+  "text_refs": [
+   "dream/perception/box_detectors.py",
+   "experiments/detector_compare.py"
+  ]
+ },
+ "experiments.diagnose_search_episode": {
+  "lines": 189,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception",
+   "dream.perception.semantic",
+   "dream.runtime",
+   "dream.runtime.semantic_search",
+   "dream.semantics",
+   "dream.semantics.world",
+   "experiments.semantic_search_eval"
+  ],
+  "text_refs": [
+   "README.md",
+   "experiments/diagnose_search_episode.py"
+  ]
+ },
+ "experiments.extract_household_knowledge": {
+  "lines": 492,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": [
+   "README.md",
+   "experiments/extract_household_knowledge.py"
+  ]
+ },
+ "experiments.fetch_wbc_policy": {
+  "lines": 46,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.robot.g1_wbc"
+  ],
+  "text_refs": [
+   "cloud/isaac_g1_session.sh",
+   "experiments/fetch_wbc_policy.py",
+   "tests/test_g1_wbc.py"
+  ]
+ },
+ "experiments.g1_autonomy_report": {
+  "lines": 158,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_g1_autonomy_report"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.cloud_g1_qwen"
+  ],
+  "text_refs": []
+ },
+ "experiments.g1_command_demo": {
+  "lines": 102,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.memory.home",
+   "dream.perception.spatial",
+   "dream.robot.g1_wbc",
+   "dream.sim.g1_mobile",
+   "dream.sim.room",
+   "dream.tools.mobile",
+   "experiments.command_scenario",
+   "experiments.g1_explore_room",
+   "experiments.mobile_recording"
+  ],
+  "text_refs": [
+   "experiments/g1_command_demo.py"
+  ]
+ },
+ "experiments.g1_contact_resolution": {
+  "lines": 81,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.g1",
+   "dream.sim.g1",
+   "experiments.g1_dexterous"
+  ],
+  "text_refs": []
+ },
+ "experiments.g1_dataset": {
+  "lines": 262,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.g1_skill_collection"
+  ],
+  "imported_by_tests": [
+   "tests.test_g1_dataset"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.g1_dexterous",
+   "experiments.g1_recording"
+  ],
+  "text_refs": []
+ },
+ "experiments.g1_dexterous": {
+  "lines": 215,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.audit_g1_terminal",
+   "experiments.audit_groot_actions",
+   "experiments.capture_groot_input",
+   "experiments.cloud_g1_qwen",
+   "experiments.cloud_groot_openloop",
+   "experiments.compare_g1_rendering",
+   "experiments.g1_contact_resolution",
+   "experiments.g1_dataset",
+   "experiments.g1_explore_unknown",
+   "experiments.g1_failure_audit",
+   "experiments.g1_recording",
+   "experiments.g1_replay_decisions",
+   "experiments.groot_contract",
+   "experiments.groot_openloop",
+   "experiments.resolve_g1_contract",
+   "experiments.summarize_g1_exploration",
+   "experiments.summarize_g1_reliability"
+  ],
+  "imported_by_tests": [
+   "tests.test_g1"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.g1",
+   "dream.robot.g1",
+   "dream.sim.g1",
+   "experiments.g1_recording"
+  ],
+  "text_refs": []
+ },
+ "experiments.g1_explore_room": {
+  "lines": 496,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.command_scenario",
+   "experiments.g1_command_demo",
+   "experiments.g1_interruption_demo",
+   "experiments.g1_memory_demo",
+   "experiments.g1_navigation_eval",
+   "experiments.g1_relocalise_demo",
+   "experiments.isaac_g1_kitchen",
+   "experiments.isaac_g1_live",
+   "experiments.mobile_recovery_validation",
+   "experiments.phase1_interface",
+   "experiments.phone_session",
+   "experiments.record_rgbd_sequence"
+  ],
+  "imported_by_tests": [
+   "tests.test_phase1_model_choice",
+   "tests.test_room_instrumentation",
+   "tests.test_room_postfix_config",
+   "tests.test_room_regression_config",
+   "tests.test_room_scene_failure"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.adequacy",
+   "dream.navigation.follow",
+   "dream.perception.spatial",
+   "dream.robot.g1_wbc",
+   "dream.runtime.agent",
+   "dream.runtime.search",
+   "dream.sim.g1_mobile",
+   "dream.sim.room",
+   "dream.tools.goals",
+   "dream.tools.mobile",
+   "experiments.code_version",
+   "experiments.mobile_recording"
+  ],
+  "text_refs": [
+   "README.md",
+   "experiments/configs/g1_explore_room_closeout.json",
+   "experiments/g1_explore_room.py",
+   "tests/test_room_instrumentation.py"
+  ]
+ },
+ "experiments.g1_explore_unknown": {
+  "lines": 375,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.cloud_g1_qwen",
+   "experiments.g1_replay_decisions"
+  ],
+  "imported_by_tests": [
+   "tests.test_g1_cloud",
+   "tests.test_g1_inference_recording"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.g1",
+   "dream.perception.sphere",
+   "dream.runtime.agent",
+   "dream.runtime.exploration",
+   "dream.runtime.qwen",
+   "dream.runtime.vlm",
+   "dream.sim.camera",
+   "dream.sim.g1",
+   "dream.tools.goals",
+   "dream.tools.object_exploration",
+   "dream.types",
+   "experiments.cloud_qwen_pilot",
+   "experiments.g1_dexterous",
+   "experiments.g1_recording"
+  ],
+  "text_refs": []
+ },
+ "experiments.g1_failure_audit": {
+  "lines": 98,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.g1_dexterous"
+  ],
+  "text_refs": []
+ },
+ "experiments.g1_grasp_bringup": {
+  "lines": 1148,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_g1_grasp_bringup"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.g1",
+   "dream.navigation.follow",
+   "dream.robot.g1_grasp_geometry",
+   "dream.robot.g1_posture",
+   "dream.robot.g1_supervisor",
+   "dream.robot.g1_wbc",
+   "dream.robot.wholebody",
+   "dream.sim.g1_grasp_fixtures",
+   "dream.sim.g1_mobile"
+  ],
+  "text_refs": []
+ },
+ "experiments.g1_interruption_demo": {
+  "lines": 199,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_scheduler"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.memory.home",
+   "dream.perception.spatial",
+   "dream.robot.g1_wbc",
+   "dream.runtime.agent",
+   "dream.runtime.phone_api",
+   "dream.runtime.scheduler",
+   "dream.runtime.search",
+   "dream.sim.g1_mobile",
+   "dream.sim.room",
+   "dream.tools.goals",
+   "dream.tools.mobile",
+   "experiments.g1_explore_room",
+   "experiments.mobile_recording",
+   "experiments.provenance"
+  ],
+  "text_refs": [
+   "experiments/g1_interruption_demo.py"
+  ]
+ },
+ "experiments.g1_locomotion": {
+  "lines": 268,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.navigation.follow",
+   "dream.robot.g1_wbc",
+   "dream.sim.g1_mobile",
+   "experiments.mobile_recording"
+  ],
+  "text_refs": [
+   "dream/robot/g1_wbc.py",
+   "experiments/g1_locomotion.py"
+  ]
+ },
+ "experiments.g1_memory_demo": {
+  "lines": 217,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.g1_relocalise_demo"
+  ],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.adequacy",
+   "dream.memory.home",
+   "dream.perception.spatial",
+   "dream.robot.g1_wbc",
+   "dream.runtime.agent",
+   "dream.runtime.memory_search",
+   "dream.runtime.search",
+   "dream.sim.g1_mobile",
+   "dream.sim.room",
+   "dream.tools.goals",
+   "dream.tools.mobile",
+   "experiments.g1_explore_room",
+   "experiments.mobile_recording",
+   "experiments.provenance"
+  ],
+  "text_refs": [
+   "experiments/g1_memory_demo.py"
+  ]
+ },
+ "experiments.g1_modality": {
+  "lines": 41,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": [
+   "experiments/g1_validate_loader.py"
+  ]
+ },
+ "experiments.g1_navigation_eval": {
+  "lines": 243,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_navigation_eval"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.adequacy",
+   "dream.navigation.follow",
+   "dream.perception.spatial",
+   "dream.robot.g1_wbc",
+   "dream.runtime.agent",
+   "dream.runtime.search",
+   "dream.sim.g1_mobile",
+   "dream.sim.room",
+   "dream.tools.goals",
+   "dream.tools.mobile",
+   "experiments.g1_explore_room",
+   "experiments.provenance"
+  ],
+  "text_refs": [
+   "experiments/g1_navigation_eval.py",
+   "tests/test_navigation_eval.py",
+   "tests/test_rpp.py"
+  ]
+ },
+ "experiments.g1_recording": {
+  "lines": 317,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.g1_dataset",
+   "experiments.g1_dexterous",
+   "experiments.g1_explore_unknown",
+   "experiments.g1_replay_decisions",
+   "experiments.g1_skill_collection",
+   "experiments.mobile_recording",
+   "experiments.resolve_g1_contract"
+  ],
+  "imported_by_tests": [
+   "tests.test_g1_dataset",
+   "tests.test_g1_recording"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.g1_dexterous"
+  ],
+  "text_refs": [
+   "experiments/mobile_recording.py"
+  ]
+ },
+ "experiments.g1_relocalise_demo": {
+  "lines": 235,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.memory.home",
+   "dream.memory.relocalise",
+   "dream.memory.scene_graph",
+   "dream.perception.occupancy",
+   "dream.perception.spatial",
+   "dream.robot.g1_wbc",
+   "dream.runtime.agent",
+   "dream.runtime.memory_search",
+   "dream.runtime.search",
+   "dream.sim.g1_mobile",
+   "dream.sim.room",
+   "dream.tools.goals",
+   "dream.tools.mobile",
+   "experiments.g1_explore_room",
+   "experiments.g1_memory_demo",
+   "experiments.provenance"
+  ],
+  "text_refs": [
+   "experiments/g1_relocalise_demo.py"
+  ]
+ },
+ "experiments.g1_replay_decisions": {
+  "lines": 80,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.g1_dexterous",
+   "experiments.g1_explore_unknown",
+   "experiments.g1_recording"
+  ],
+  "text_refs": []
+ },
+ "experiments.g1_skill_collection": {
+  "lines": 114,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_g1_skill_collection"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.g1_dataset",
+   "experiments.g1_recording"
+  ],
+  "text_refs": []
+ },
+ "experiments.g1_validate_loader": {
+  "lines": 110,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "experiments.g1_wbc_envelope": {
+  "lines": 700,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.robot",
+   "dream.robot.g1_wbc",
+   "dream.sim.g1_mobile"
+  ],
+  "text_refs": [
+   "dream/robot/g1_wbc.py",
+   "experiments/g1_wbc_envelope.py"
+  ]
+ },
+ "experiments.groot_assets": {
+  "lines": 162,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.cloud_groot_openloop"
+  ],
+  "imported_by_tests": [
+   "tests.test_groot_assets"
+  ],
+  "imported_by_cloud": [
+   "cloud.launch"
+  ],
+  "imports": [],
+  "text_refs": []
+ },
+ "experiments.groot_contract": {
+  "lines": 237,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_groot_contract"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.audit_groot_actions",
+   "experiments.g1_dexterous",
+   "experiments.groot_openloop"
+  ],
+  "text_refs": []
+ },
+ "experiments.groot_openloop": {
+  "lines": 157,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.audit_groot_actions",
+   "experiments.groot_contract"
+  ],
+  "imported_by_tests": [
+   "tests.test_groot_openloop"
+  ],
+  "imported_by_cloud": [
+   "cloud.launch"
+  ],
+  "imports": [
+   "experiments.g1_dexterous"
+  ],
+  "text_refs": []
+ },
+ "experiments.inspect_molmo_actions": {
+  "lines": 54,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "experiments.inspect_molmo_feedback": {
+  "lines": 131,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.session"
+  ],
+  "text_refs": []
+ },
+ "experiments.inspect_t1_residuals": {
+  "lines": 91,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_t1_residuals"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "experiments.inspect_t1_stand": {
+  "lines": 149,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "cloud.launch",
+   "dream.robot.t1"
+  ],
+  "text_refs": []
+ },
+ "experiments.isaac_asset_validation": {
+  "lines": 673,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_isaac_asset_validation",
+   "tests.test_isaac_home_usd",
+   "tests.test_isaac_marker_check"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.sim.home",
+   "experiments.isaac_g1_kitchen",
+   "experiments.isaac_home_compose"
+  ],
+  "text_refs": [
+   "experiments/isaac_asset_validation.py",
+   "experiments/isaac_home_compose.py"
+  ]
+ },
+ "experiments.isaac_capture_manifest": {
+  "lines": 116,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_isaac_capture_manifest"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": [
+   "experiments/isaac_capture_manifest.py"
+  ]
+ },
+ "experiments.isaac_g1_heldout": {
+  "lines": 75,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": [
+   "experiments/isaac_g1_heldout.py"
+  ]
+ },
+ "experiments.isaac_g1_kitchen": {
+  "lines": 540,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.isaac_asset_validation",
+   "experiments.isaac_g1_live",
+   "experiments.isaac_home_runs",
+   "experiments.isaac_replay_video",
+   "experiments.isaac_scene_probe",
+   "experiments.isaac_semantic_dev"
+  ],
+  "imported_by_tests": [
+   "tests.test_isaac_g1",
+   "tests.test_isaac_live"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.isaac_scene",
+   "dream.memory.home",
+   "dream.navigation.follow",
+   "dream.perception.spatial",
+   "dream.robot.g1_wbc",
+   "dream.runtime.agent",
+   "dream.runtime.search",
+   "dream.sim.g1_mobile",
+   "dream.sim.isaac_g1",
+   "dream.tools.goals",
+   "dream.tools.mobile",
+   "experiments.command_scenario",
+   "experiments.g1_explore_room",
+   "experiments.isaac_task"
+  ],
+  "text_refs": [
+   "cloud/isaac_session.py",
+   "experiments/g1_command_demo.py",
+   "experiments/g1_explore_room.py",
+   "experiments/isaac_g1_heldout.py",
+   "experiments/isaac_g1_kitchen.py",
+   "experiments/isaac_task.py"
+  ]
+ },
+ "experiments.isaac_g1_live": {
+  "lines": 764,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.isaac_g1_live_eval",
+   "experiments.isaac_home_runs",
+   "experiments.isaac_semantic_dev",
+   "experiments.qwen_room_priors"
+  ],
+  "imported_by_tests": [
+   "tests.test_isaac_live",
+   "tests.test_isaac_live_eval",
+   "tests.test_isaac_semantic"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "cloud.tailnet",
+   "dream.eval.isaac_scene",
+   "dream.eval.task_scoring",
+   "dream.perception.spatial",
+   "dream.robot.g1_wbc",
+   "dream.runtime.agent",
+   "dream.runtime.camera_stream",
+   "dream.runtime.media_runtime",
+   "dream.runtime.mobile_model",
+   "dream.runtime.phone_api",
+   "dream.runtime.scheduler",
+   "dream.semantics.knowledge",
+   "dream.sim.g1_mobile",
+   "dream.sim.isaac_g1",
+   "dream.tools.goals",
+   "dream.tools.mobile",
+   "experiments.g1_explore_room",
+   "experiments.isaac_g1_kitchen",
+   "experiments.isaac_semantic",
+   "experiments.phase1_interface"
+  ],
+  "text_refs": [
+   "experiments/configs/isaac_semantic_eval.json",
+   "experiments/isaac_g1_live_eval.py",
+   "experiments/isaac_semantic.py",
+   "experiments/isaac_semantic_eval.py"
+  ]
+ },
+ "experiments.isaac_g1_live_eval": {
+  "lines": 683,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.isaac_home_runs",
+   "experiments.isaac_semantic_dev",
+   "experiments.isaac_semantic_eval",
+   "experiments.qwen_room_priors",
+   "experiments.summarise_isaac_postfix"
+  ],
+  "imported_by_tests": [
+   "tests.test_isaac_live_eval"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.isaac_g1_live"
+  ],
+  "text_refs": [
+   "README.md",
+   "experiments/isaac_g1_live_eval.py",
+   "experiments/isaac_semantic_eval.py",
+   "tests/test_isaac_live_eval.py"
+  ]
+ },
+ "experiments.isaac_home_compose": {
+  "lines": 532,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.isaac_asset_validation",
+   "experiments.isaac_home_refusals",
+   "experiments.isaac_home_runs"
+  ],
+  "imported_by_tests": [
+   "tests.test_isaac_asset_validation",
+   "tests.test_isaac_home_compose",
+   "tests.test_isaac_home_exclusions",
+   "tests.test_isaac_home_scale",
+   "tests.test_isaac_home_usd"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.sim.home"
+  ],
+  "text_refs": [
+   "experiments/isaac_home_compose.py",
+   "experiments/isaac_home_runs.py"
+  ]
+ },
+ "experiments.isaac_home_refusals": {
+  "lines": 86,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.sim.home",
+   "experiments.isaac_home_compose"
+  ],
+  "text_refs": [
+   "experiments/isaac_home_refusals.py"
+  ]
+ },
+ "experiments.isaac_home_runs": {
+  "lines": 648,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_isaac_home_runs"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.isaac_scene",
+   "dream.eval.task_scoring",
+   "dream.perception.spatial",
+   "dream.perception.vlm_detect",
+   "dream.robot.g1_wbc",
+   "dream.runtime.qwen",
+   "dream.semantics.knowledge",
+   "dream.sim.g1_mobile",
+   "dream.sim.home",
+   "dream.sim.isaac_g1",
+   "dream.tools.intent",
+   "dream.tools.mobile",
+   "experiments.isaac_g1_kitchen",
+   "experiments.isaac_g1_live",
+   "experiments.isaac_g1_live_eval",
+   "experiments.isaac_home_compose",
+   "experiments.isaac_kitchen_repair",
+   "experiments.isaac_semantic_dev"
+  ],
+  "text_refs": [
+   "experiments/isaac_home_runs.py"
+  ]
+ },
+ "experiments.isaac_kitchen_repair": {
+  "lines": 110,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.isaac_home_runs"
+  ],
+  "imported_by_tests": [
+   "tests.test_isaac_kitchen_repair"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "experiments.isaac_replay_video": {
+  "lines": 123,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.sim.g1_mobile",
+   "dream.sim.isaac_g1",
+   "experiments.isaac_g1_kitchen"
+  ],
+  "text_refs": [
+   "experiments/compose_demo_video.py",
+   "experiments/isaac_replay_video.py"
+  ]
+ },
+ "experiments.isaac_scene_probe": {
+  "lines": 128,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.isaac_g1_kitchen"
+  ],
+  "text_refs": [
+   "experiments/isaac_scene_probe.py"
+  ]
+ },
+ "experiments.isaac_semantic": {
+  "lines": 295,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.detector_compare",
+   "experiments.isaac_g1_live",
+   "experiments.isaac_semantic_dev"
+  ],
+  "imported_by_tests": [
+   "tests.test_isaac_semantic"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.semantic_scoring",
+   "dream.perception.vlm_detect",
+   "dream.runtime.mobile_model",
+   "dream.runtime.semantic_search",
+   "dream.semantics.knowledge",
+   "dream.semantics.world",
+   "dream.tools.goals",
+   "dream.tools.intent"
+  ],
+  "text_refs": []
+ },
+ "experiments.isaac_semantic_dev": {
+  "lines": 379,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.isaac_home_runs"
+  ],
+  "imported_by_tests": [
+   "tests.test_isaac_semantic_dev"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.isaac_scene",
+   "dream.eval.task_scoring",
+   "dream.perception.vlm_detect",
+   "dream.robot.g1_wbc",
+   "dream.runtime.qwen",
+   "dream.semantics.knowledge",
+   "dream.sim.g1_mobile",
+   "dream.sim.isaac_g1",
+   "experiments.isaac_g1_kitchen",
+   "experiments.isaac_g1_live",
+   "experiments.isaac_g1_live_eval",
+   "experiments.isaac_semantic"
+  ],
+  "text_refs": [
+   "experiments/detector_compare.py",
+   "experiments/isaac_semantic_dev.py"
+  ]
+ },
+ "experiments.isaac_semantic_eval": {
+  "lines": 416,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.summarise_isaac_semantic"
+  ],
+  "imported_by_tests": [
+   "tests.test_isaac_semantic"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.isaac_g1_live_eval"
+  ],
+  "text_refs": [
+   "experiments/configs/isaac_semantic_eval.json",
+   "experiments/isaac_semantic_eval.py",
+   "experiments/summarise_isaac_semantic.py"
+  ]
+ },
+ "experiments.isaac_t1_walk": {
+  "lines": 415,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_t1_packaging"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.navigation.control",
+   "dream.robot.t1",
+   "dream.sim.isaac_t1",
+   "experiments.t1_recording"
+  ],
+  "text_refs": [
+   "cloud/isaac_t1_job.sh"
+  ]
+ },
+ "experiments.isaac_task": {
+  "lines": 486,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.isaac_g1_kitchen"
+  ],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.isaac_scene",
+   "dream.navigation.planning",
+   "dream.perception.geometry",
+   "dream.perception.spatial",
+   "dream.robot.g1_assisted_demo",
+   "dream.sim.g1_mobile",
+   "dream.tools.mobile"
+  ],
+  "text_refs": []
+ },
+ "experiments.mobile_recording": {
+  "lines": 147,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.g1_command_demo",
+   "experiments.g1_explore_room",
+   "experiments.g1_interruption_demo",
+   "experiments.g1_locomotion",
+   "experiments.g1_memory_demo"
+  ],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.g1_recording"
+  ],
+  "text_refs": [
+   "experiments/mobile_recording.py"
+  ]
+ },
+ "experiments.mobile_recovery_validation": {
+  "lines": 115,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.spatial",
+   "dream.robot.g1_wbc",
+   "dream.runtime.agent",
+   "dream.runtime.mobile_model",
+   "dream.sim.g1_mobile",
+   "dream.sim.room",
+   "dream.tools.goals",
+   "dream.tools.mobile",
+   "experiments.g1_explore_room"
+  ],
+  "text_refs": []
+ },
+ "experiments.molmo_openloop": {
+  "lines": 156,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.molmo",
+   "dream.sim.camera",
+   "dream.sim.tabletop",
+   "dream.sim.tabletop_env"
+  ],
+  "text_refs": [
+   "experiments/cloud_molmo_openloop.py"
+  ]
+ },
+ "experiments.nested_replay": {
+  "lines": 278,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_nested_replay"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.geometry",
+   "dream.perception.occupancy",
+   "dream.perception.semantic",
+   "dream.semantics.verify",
+   "dream.types",
+   "experiments.code_version",
+   "experiments.detector_compare"
+  ],
+  "text_refs": [
+   "experiments/nested_replay.py"
+  ]
+ },
+ "experiments.openai_plan_login": {
+  "lines": 196,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.siwc_auth"
+  ],
+  "text_refs": [
+   "experiments/phase1_interface.py",
+   "tests/test_phase1_model_choice.py"
+  ]
+ },
+ "experiments.openai_plan_refresh": {
+  "lines": 86,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_openai_plan_refresh"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.siwc_auth"
+  ],
+  "text_refs": []
+ },
+ "experiments.p6_frozen_mobile_model": {
+  "lines": 129,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.vlm_compare_p6_qwen"
+  ],
+  "imported_by_tests": [
+   "tests.test_p6_frozen_replay"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.agent",
+   "dream.runtime.vlm"
+  ],
+  "text_refs": [
+   "experiments/configs/p6_qwen_frozen11_closeout.json",
+   "experiments/vlm_compare_p6_qwen.py"
+  ]
+ },
+ "experiments.phase1_interface": {
+  "lines": 553,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.isaac_g1_live"
+  ],
+  "imported_by_tests": [
+   "tests.test_isaac_live_eval",
+   "tests.test_mobile_model",
+   "tests.test_phase1_model_choice"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.occupancy",
+   "dream.perception.spatial",
+   "dream.robot.g1_wbc",
+   "dream.runtime.agent",
+   "dream.runtime.camera_stream",
+   "dream.runtime.mobile_model",
+   "dream.runtime.openai_plan",
+   "dream.runtime.phone_api",
+   "dream.runtime.qwen",
+   "dream.runtime.scheduler",
+   "dream.runtime.search",
+   "dream.sim.g1_mobile",
+   "dream.sim.room",
+   "dream.tools.goals",
+   "dream.tools.mobile",
+   "experiments.g1_explore_room"
+  ],
+  "text_refs": []
+ },
+ "experiments.phone_session": {
+  "lines": 82,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.spatial",
+   "dream.robot.g1_wbc",
+   "dream.runtime.agent",
+   "dream.runtime.phone_api",
+   "dream.runtime.scheduler",
+   "dream.runtime.search",
+   "dream.sim.g1_mobile",
+   "dream.sim.room",
+   "dream.tools.goals",
+   "dream.tools.mobile",
+   "experiments.g1_explore_room"
+  ],
+  "text_refs": [
+   "experiments/phone_session.py"
+  ]
+ },
+ "experiments.plot_g1_qwen": {
+  "lines": 87,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "experiments.preflight_groot_tokenizer": {
+  "lines": 62,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "experiments.prepare_g1_usd": {
+  "lines": 97,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": [
+   "cloud/isaac_g1_session.sh",
+   "dream/sim/isaac_g1.py",
+   "experiments/configs/integration_sources.json",
+   "experiments/isaac_g1_heldout.py",
+   "experiments/isaac_g1_kitchen.py",
+   "experiments/prepare_g1_usd.py"
+  ]
+ },
+ "experiments.provenance": {
+  "lines": 20,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.compartment_experience",
+   "experiments.g1_interruption_demo",
+   "experiments.g1_memory_demo",
+   "experiments.g1_navigation_eval",
+   "experiments.g1_relocalise_demo"
+  ],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "experiments.qwen_room_priors": {
+  "lines": 123,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_isaac_semantic_dev",
+   "tests.test_knowledge_sources"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.qwen",
+   "experiments.isaac_g1_live",
+   "experiments.isaac_g1_live_eval"
+  ],
+  "text_refs": [
+   "experiments/qwen_room_priors.py"
+  ]
+ },
+ "experiments.qwen_tool_server": {
+  "lines": 147,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.qwen"
+  ],
+  "text_refs": []
+ },
+ "experiments.record_rgbd_sequence": {
+  "lines": 173,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.rtabmap_eval"
+  ],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.spatial",
+   "dream.robot.g1_wbc",
+   "dream.runtime.agent",
+   "dream.runtime.search",
+   "dream.sim.g1_mobile",
+   "dream.sim.room",
+   "dream.tools.goals",
+   "dream.tools.mobile",
+   "experiments.g1_explore_room"
+  ],
+  "text_refs": [
+   "experiments/configs/integration_sources.json",
+   "experiments/record_rgbd_sequence.py",
+   "experiments/rtabmap_eval.py",
+   "experiments/tum_to_rosbag.py"
+  ]
+ },
+ "experiments.record_volo_messages": {
+  "lines": 112,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": [
+   "experiments/record_volo_messages.py"
+  ]
+ },
+ "experiments.render_homes": {
+  "lines": 131,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream",
+   "dream.sim.home"
+  ],
+  "text_refs": [
+   "experiments/render_homes.py"
+  ]
+ },
+ "experiments.replay": {
+  "lines": 133,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.session",
+   "dream.sim.camera",
+   "dream.sim.tabletop"
+  ],
+  "text_refs": [
+   "experiments/replay.py",
+   "experiments/session.py"
+  ]
+ },
+ "experiments.replay_molmo_prefix": {
+  "lines": 115,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.joint",
+   "dream.eval.manipulation",
+   "dream.robot.joint",
+   "dream.runtime.molmo",
+   "dream.session",
+   "dream.sim.tabletop_env"
+  ],
+  "text_refs": []
+ },
+ "experiments.reports": {
+  "lines": 736,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_reports"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": [
+   "AGENTS.md",
+   "experiments/reports.py"
+  ]
+ },
+ "experiments.resolve_g1_contract": {
+  "lines": 165,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.sim.g1",
+   "experiments.g1_dexterous",
+   "experiments.g1_recording"
+  ],
+  "text_refs": []
+ },
+ "experiments.rtabmap_eval": {
+  "lines": 168,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.record_rgbd_sequence",
+   "experiments.tum_to_rosbag"
+  ],
+  "text_refs": [
+   "experiments/rtabmap_eval.py"
+  ]
+ },
+ "experiments.run_benchmark": {
+  "lines": 117,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.agent.exploration",
+   "dream.eval.episode",
+   "dream.eval.plots",
+   "dream.eval.summary",
+   "dream.sim.mechanisms"
+  ],
+  "text_refs": [
+   "experiments/run_benchmark.py"
+  ]
+ },
+ "experiments.run_compartment": {
+  "lines": 314,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.adequacy",
+   "dream.eval.manipulation",
+   "dream.perception.vision",
+   "dream.runtime.agent",
+   "dream.sim.camera",
+   "dream.sim.tabletop",
+   "dream.sim.tabletop_env",
+   "dream.tools.goals",
+   "dream.tools.toolbox",
+   "experiments.code_version"
+  ],
+  "text_refs": [
+   "experiments/run_compartment.py"
+  ]
+ },
+ "experiments.run_pick_place": {
+  "lines": 99,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.adequacy",
+   "dream.eval.manipulation",
+   "dream.sim.tabletop",
+   "dream.sim.tabletop_env",
+   "dream.skills.manipulation"
+  ],
+  "text_refs": [
+   "experiments/run_pick_place.py"
+  ]
+ },
+ "experiments.run_tasks": {
+  "lines": 296,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.adequacy",
+   "dream.eval.manipulation",
+   "dream.runtime.agent",
+   "dream.sim.tabletop",
+   "dream.sim.tabletop_env",
+   "dream.skills.manipulation",
+   "dream.tools.goals",
+   "dream.tools.toolbox"
+  ],
+  "text_refs": [
+   "experiments/run_tasks.py"
+  ]
+ },
+ "experiments.run_vision": {
+  "lines": 257,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.adequacy",
+   "dream.eval.manipulation",
+   "dream.eval.vision",
+   "dream.perception.vision",
+   "dream.runtime.agent",
+   "dream.sim.camera",
+   "dream.sim.tabletop",
+   "dream.sim.tabletop_env",
+   "dream.tools.goals",
+   "dream.tools.toolbox"
+  ],
+  "text_refs": [
+   "experiments/run_vision.py"
+  ]
+ },
+ "experiments.run_vlm": {
+  "lines": 170,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.adequacy",
+   "dream.eval.manipulation",
+   "dream.perception.vision",
+   "dream.runtime.agent",
+   "dream.runtime.qwen",
+   "dream.runtime.vlm",
+   "dream.sim.tabletop",
+   "dream.sim.tabletop_env",
+   "dream.tools.goals",
+   "dream.tools.toolbox"
+  ],
+  "text_refs": [
+   "experiments/run_vlm.py"
+  ]
+ },
+ "experiments.run_volo_passthrough_smoke": {
+  "lines": 189,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": [
+   "experiments/run_volo_passthrough_smoke.py"
+  ]
+ },
+ "experiments.semantic_exploration_compare": {
+  "lines": 102,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.semantic_knowledge_gates",
+   "experiments.summarise_semantic_search"
+  ],
+  "text_refs": [
+   "experiments/configs/semantic_exploration_k2.json",
+   "experiments/semantic_exploration_compare.py"
+  ]
+ },
+ "experiments.semantic_knowledge_gates": {
+  "lines": 218,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.semantic_exploration_compare"
+  ],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.summarise_semantic_search"
+  ],
+  "text_refs": [
+   "experiments/configs/semantic_knowledge_xl.json",
+   "experiments/semantic_knowledge_gates.py"
+  ]
+ },
+ "experiments.semantic_search_diagnosis": {
+  "lines": 276,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.semantic_search_eval"
+  ],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.semantic_scoring"
+  ],
+  "text_refs": [
+   "experiments/semantic_search_diagnosis.py"
+  ]
+ },
+ "experiments.semantic_search_eval": {
+  "lines": 545,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.diagnose_search_episode"
+  ],
+  "imported_by_tests": [
+   "tests.test_agent_base_isolation",
+   "tests.test_knowledge_sources",
+   "tests.test_semantic_search_integration"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.semantic_scoring",
+   "dream.memory.home",
+   "dream.perception.spatial",
+   "dream.robot.g1_wbc",
+   "dream.runtime.agent",
+   "dream.runtime.semantic_search",
+   "dream.semantics.belief",
+   "dream.semantics.knowledge",
+   "dream.semantics.verify",
+   "dream.semantics.world",
+   "dream.sim",
+   "dream.sim.g1_mobile",
+   "dream.sim.home",
+   "dream.sim.kinematic_base",
+   "dream.sim.semantic_sensor",
+   "dream.tools.goals",
+   "dream.tools.intent",
+   "dream.tools.mobile",
+   "experiments.code_version",
+   "experiments.semantic_search_diagnosis"
+  ],
+  "text_refs": [
+   "README.md",
+   "experiments/cloud_bootstrap.py",
+   "experiments/diagnose_search_episode.py",
+   "experiments/semantic_search_eval.py",
+   "tests/test_semantic_search_integration.py"
+  ]
+ },
+ "experiments.semantic_search_gates": {
+  "lines": 190,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.summarise_semantic_search"
+  ],
+  "text_refs": [
+   "README.md",
+   "experiments/semantic_search_gates.py"
+  ]
+ },
+ "experiments.session": {
+  "lines": 110,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.session"
+  ],
+  "text_refs": [
+   "experiments/demo_compartment.py",
+   "experiments/session.py"
+  ]
+ },
+ "experiments.stress_shoulder_singularity": {
+  "lines": 109,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.sim.tabletop",
+   "dream.sim.tabletop_env",
+   "dream.skills.manipulation"
+  ],
+  "text_refs": [
+   "experiments/stress_shoulder_singularity.py"
+  ]
+ },
+ "experiments.summarise": {
+  "lines": 30,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.plots",
+   "dream.eval.summary"
+  ],
+  "text_refs": [
+   "experiments/summarise.py"
+  ]
+ },
+ "experiments.summarise_closeout": {
+  "lines": 276,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_summarise_closeout"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": [
+   "experiments/summarise_closeout.py"
+  ]
+ },
+ "experiments.summarise_isaac_postfix": {
+  "lines": 88,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.isaac_g1_live_eval"
+  ],
+  "text_refs": [
+   "README.md",
+   "experiments/summarise_isaac_postfix.py"
+  ]
+ },
+ "experiments.summarise_isaac_semantic": {
+  "lines": 182,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.isaac_semantic_eval"
+  ],
+  "text_refs": [
+   "experiments/summarise_isaac_semantic.py"
+  ]
+ },
+ "experiments.summarise_room_postfix": {
+  "lines": 190,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": [
+   "README.md",
+   "experiments/summarise_room_postfix.py"
+  ]
+ },
+ "experiments.summarise_semantic_search": {
+  "lines": 221,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.semantic_exploration_compare",
+   "experiments.semantic_knowledge_gates",
+   "experiments.semantic_search_gates",
+   "experiments.verifier_v2_gates"
+  ],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": [
+   "README.md",
+   "experiments/configs/semantic_knowledge_xl.json",
+   "experiments/configs/semantic_search_heldout.json",
+   "experiments/configs/semantic_search_verifier_v2.json",
+   "experiments/summarise_semantic_search.py"
+  ]
+ },
+ "experiments.summarize_g1_exploration": {
+  "lines": 133,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.sim.camera",
+   "dream.sim.g1",
+   "experiments.g1_dexterous"
+  ],
+  "text_refs": []
+ },
+ "experiments.summarize_g1_qwen": {
+  "lines": 101,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "experiments.summarize_g1_reliability": {
+  "lines": 64,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.g1_dexterous"
+  ],
+  "text_refs": []
+ },
+ "experiments.summarize_isaac_live": {
+  "lines": 188,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "experiments.summarize_vlm_comparison": {
+  "lines": 135,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_summarize_vlm_comparison"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "experiments.t1_recording": {
+  "lines": 167,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.isaac_t1_walk"
+  ],
+  "imported_by_tests": [
+   "tests.test_t1_recording"
+  ],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "experiments.tum_to_rosbag": {
+  "lines": 118,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.rtabmap_eval"
+  ],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": [
+   "experiments/rtabmap_eval.py",
+   "experiments/tum_to_rosbag.py"
+  ]
+ },
+ "experiments.validate_adequacy": {
+  "lines": 112,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.agent.belief",
+   "dream.agent.exploration",
+   "dream.eval.adequacy",
+   "dream.eval.episode",
+   "dream.sim.mechanisms"
+  ],
+  "text_refs": [
+   "experiments/validate_adequacy.py"
+  ]
+ },
+ "experiments.validate_joint_controller": {
+  "lines": 128,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.joint",
+   "dream.eval.manipulation",
+   "dream.robot.joint",
+   "dream.runtime.molmo",
+   "dream.sim.tabletop",
+   "dream.sim.tabletop_env"
+  ],
+  "text_refs": [
+   "experiments/validate_joint_controller.py"
+  ]
+ },
+ "experiments.verifier_v2_gates": {
+  "lines": 159,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.summarise_semantic_search"
+  ],
+  "text_refs": [
+   "README.md",
+   "experiments/configs/semantic_search_verifier_v2.json",
+   "experiments/verifier_v2_gates.py"
+  ]
+ },
+ "experiments.verify_cloud_recovery": {
+  "lines": 94,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_cloud_recovery_integrity"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "cloud.launch"
+  ],
+  "text_refs": []
+ },
+ "experiments.vlm_compare": {
+  "lines": 260,
+  "imported_by_dream": [],
+  "imported_by_experiments": [
+   "experiments.vlm_compare_p6_qwen"
+  ],
+  "imported_by_tests": [
+   "tests.test_p6_frozen_replay"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.agent",
+   "dream.runtime.mobile_model",
+   "dream.runtime.openai_plan",
+   "dream.runtime.qwen",
+   "experiments.code_version"
+  ],
+  "text_refs": [
+   "cloud/vm_startup.sh",
+   "experiments/configs/p6_qwen_frozen11_closeout.json",
+   "experiments/vlm_compare.py",
+   "experiments/vlm_compare_p6_qwen.py",
+   "tests/test_vlm_compare_cloud.py"
+  ]
+ },
+ "experiments.vlm_compare_frames": {
+  "lines": 228,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.sim.g1_mobile",
+   "dream.sim.room"
+  ],
+  "text_refs": []
+ },
+ "experiments.vlm_compare_p6_qwen": {
+  "lines": 100,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_p6_frozen_replay"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.p6_frozen_mobile_model",
+   "experiments.vlm_compare"
+  ],
+  "text_refs": [
+   "experiments/configs/p6_qwen_frozen11_closeout.json",
+   "experiments/detector_compare.py",
+   "experiments/vlm_compare_p6_qwen.py"
+  ]
+ },
+ "tests.conftest": {
+  "lines": 4,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream"
+  ],
+  "text_refs": []
+ },
+ "tests.test_adequacy": {
+  "lines": 68,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.adequacy"
+  ],
+  "text_refs": []
+ },
+ "tests.test_agent_base_isolation": {
+  "lines": 72,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.semantic_search_eval"
+  ],
+  "text_refs": []
+ },
+ "tests.test_belief": {
+  "lines": 188,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.agent.belief",
+   "dream.agent.model",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "tests.test_box_detectors": {
+  "lines": 162,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.box_detectors",
+   "dream.perception.vlm_detect",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "tests.test_cached_runtime": {
+  "lines": 63,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "cloud.cached_runtime",
+   "cloud.launch"
+  ],
+  "text_refs": []
+ },
+ "tests.test_camera_remote_measure": {
+  "lines": 50,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.camera_remote_measure"
+  ],
+  "text_refs": []
+ },
+ "tests.test_camera_stream": {
+  "lines": 91,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.camera_stream",
+   "dream.runtime.phone_api"
+  ],
+  "text_refs": []
+ },
+ "tests.test_closeout_defects": {
+  "lines": 264,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.spatial",
+   "dream.runtime.agent",
+   "dream.runtime.mobile_model",
+   "dream.tools.goals",
+   "dream.tools.mobile",
+   "dream.tools.toolbox"
+  ],
+  "text_refs": []
+ },
+ "tests.test_cloud": {
+  "lines": 659,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "cloud.launch",
+   "dream.session",
+   "experiments.cloud_qwen_pilot"
+  ],
+  "text_refs": []
+ },
+ "tests.test_cloud_recovery_integrity": {
+  "lines": 21,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.verify_cloud_recovery"
+  ],
+  "text_refs": []
+ },
+ "tests.test_cloud_tailnet": {
+  "lines": 31,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "cloud.tailnet"
+  ],
+  "text_refs": []
+ },
+ "tests.test_cloud_telemetry": {
+  "lines": 37,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "tests.test_cloud_transfer_runtime": {
+  "lines": 37,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "cloud.launch"
+  ],
+  "text_refs": []
+ },
+ "tests.test_code_version": {
+  "lines": 8,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.code_version"
+  ],
+  "text_refs": []
+ },
+ "tests.test_compartment": {
+  "lines": 150,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.agent.model",
+   "dream.eval.manipulation",
+   "dream.eval.truth",
+   "dream.runtime.agent",
+   "dream.sim.tabletop",
+   "dream.sim.tabletop_env",
+   "dream.skills.articulation",
+   "dream.tools.goals",
+   "dream.tools.toolbox"
+  ],
+  "text_refs": []
+ },
+ "tests.test_detector_compare": {
+  "lines": 167,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.detector_compare"
+  ],
+  "text_refs": []
+ },
+ "tests.test_eval": {
+  "lines": 100,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.agent.exploration",
+   "dream.eval.episode",
+   "dream.eval.summary",
+   "dream.sim.mechanisms"
+  ],
+  "text_refs": []
+ },
+ "tests.test_g1": {
+  "lines": 174,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.g1",
+   "dream.robot.g1",
+   "dream.runtime.vlm",
+   "dream.sim.g1",
+   "dream.tools.dexterous",
+   "experiments.g1_dexterous"
+  ],
+  "text_refs": []
+ },
+ "tests.test_g1_autonomy": {
+  "lines": 69,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.sphere",
+   "dream.sim.g1",
+   "dream.tools.object_exploration"
+  ],
+  "text_refs": []
+ },
+ "tests.test_g1_autonomy_report": {
+  "lines": 57,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.g1_autonomy_report"
+  ],
+  "text_refs": []
+ },
+ "tests.test_g1_cloud": {
+  "lines": 166,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "cloud.launch",
+   "dream.runtime",
+   "dream.runtime.qwen",
+   "experiments.cloud_g1_qwen",
+   "experiments.g1_explore_unknown"
+  ],
+  "text_refs": []
+ },
+ "tests.test_g1_dataset": {
+  "lines": 87,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.sim.g1",
+   "experiments.g1_dataset",
+   "experiments.g1_recording"
+  ],
+  "text_refs": []
+ },
+ "tests.test_g1_exploration": {
+  "lines": 250,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.agent.movability",
+   "dream.perception.sphere",
+   "dream.runtime.agent",
+   "dream.runtime.exploration",
+   "dream.runtime.vlm",
+   "dream.sim.camera",
+   "dream.sim.g1",
+   "dream.tools.goals",
+   "dream.tools.object_exploration",
+   "dream.tools.toolbox"
+  ],
+  "text_refs": []
+ },
+ "tests.test_g1_goal_contract": {
+  "lines": 17,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.vlm",
+   "dream.tools.object_exploration"
+  ],
+  "text_refs": []
+ },
+ "tests.test_g1_grasp_bringup": {
+  "lines": 180,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.robot.g1_wbc",
+   "experiments.g1_grasp_bringup"
+  ],
+  "text_refs": []
+ },
+ "tests.test_g1_grasp_fixtures": {
+  "lines": 47,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.g1",
+   "dream.sim.g1_grasp_fixtures"
+  ],
+  "text_refs": []
+ },
+ "tests.test_g1_hands": {
+  "lines": 301,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.robot",
+   "dream.robot.g1_wbc",
+   "dream.sim",
+   "dream.sim.g1_mobile"
+  ],
+  "text_refs": []
+ },
+ "tests.test_g1_inference_recording": {
+  "lines": 39,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.g1_explore_unknown"
+  ],
+  "text_refs": []
+ },
+ "tests.test_g1_platform_audit": {
+  "lines": 21,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.compare_g1_rendering"
+  ],
+  "text_refs": []
+ },
+ "tests.test_g1_posture": {
+  "lines": 273,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.robot",
+   "dream.robot.g1_correction",
+   "dream.robot.g1_posture",
+   "dream.robot.g1_rollout",
+   "dream.robot.g1_supervisor",
+   "dream.robot.g1_wbc",
+   "dream.robot.wholebody",
+   "dream.sim.g1_mobile",
+   "dream.tools.mobile"
+  ],
+  "text_refs": []
+ },
+ "tests.test_g1_recording": {
+  "lines": 80,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.sim.g1",
+   "experiments.g1_recording"
+  ],
+  "text_refs": []
+ },
+ "tests.test_g1_recording_destination": {
+  "lines": 27,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "cloud.launch"
+  ],
+  "text_refs": []
+ },
+ "tests.test_g1_regrasp": {
+  "lines": 29,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.sphere",
+   "dream.tools.object_exploration"
+  ],
+  "text_refs": []
+ },
+ "tests.test_g1_release": {
+  "lines": 82,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.agent",
+   "dream.runtime.exploration",
+   "dream.tools.goals",
+   "dream.tools.object_exploration",
+   "dream.tools.toolbox"
+  ],
+  "text_refs": []
+ },
+ "tests.test_g1_skill_collection": {
+  "lines": 34,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.g1_skill_collection"
+  ],
+  "text_refs": []
+ },
+ "tests.test_g1_snapshot_gate": {
+  "lines": 25,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.cloud_g1_qwen"
+  ],
+  "text_refs": []
+ },
+ "tests.test_g1_supervisor": {
+  "lines": 296,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.robot",
+   "dream.robot.g1_posture",
+   "dream.robot.g1_supervisor",
+   "dream.robot.g1_wbc",
+   "dream.robot.wholebody"
+  ],
+  "text_refs": []
+ },
+ "tests.test_g1_wbc": {
+  "lines": 192,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.robot",
+   "dream.robot.g1_wbc",
+   "dream.sim.g1_mobile"
+  ],
+  "text_refs": []
+ },
+ "tests.test_groot_assets": {
+  "lines": 55,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.cloud_groot_openloop",
+   "experiments.groot_assets"
+  ],
+  "text_refs": []
+ },
+ "tests.test_groot_audit": {
+  "lines": 34,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.audit_groot_actions"
+  ],
+  "text_refs": []
+ },
+ "tests.test_groot_contract": {
+  "lines": 80,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.groot_contract"
+  ],
+  "text_refs": []
+ },
+ "tests.test_groot_openloop": {
+  "lines": 73,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "cloud.launch",
+   "dream.types",
+   "experiments.capture_groot_input",
+   "experiments.cloud_groot_openloop",
+   "experiments.groot_openloop"
+  ],
+  "text_refs": []
+ },
+ "tests.test_home": {
+  "lines": 199,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.sim.g1_mobile",
+   "dream.sim.home"
+  ],
+  "text_refs": []
+ },
+ "tests.test_home_memory": {
+  "lines": 102,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.memory.home"
+  ],
+  "text_refs": []
+ },
+ "tests.test_home_xl": {
+  "lines": 83,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.sim.home"
+  ],
+  "text_refs": []
+ },
+ "tests.test_intent": {
+  "lines": 273,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.agent",
+   "dream.runtime.mobile_model",
+   "dream.tools.goals",
+   "dream.tools.intent",
+   "dream.tools.toolbox"
+  ],
+  "text_refs": []
+ },
+ "tests.test_isaac_asset_validation": {
+  "lines": 90,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.isaac_asset_validation",
+   "experiments.isaac_home_compose"
+  ],
+  "text_refs": []
+ },
+ "tests.test_isaac_capture_manifest": {
+  "lines": 22,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.isaac_capture_manifest"
+  ],
+  "text_refs": []
+ },
+ "tests.test_isaac_g1": {
+  "lines": 396,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "cloud.isaac_session",
+   "cloud.isaac_session_guest",
+   "dream.eval.isaac_scene",
+   "dream.robot.g1_wbc",
+   "dream.sim.camera",
+   "dream.sim.g1_mobile",
+   "dream.sim.isaac_g1",
+   "experiments.isaac_g1_kitchen"
+  ],
+  "text_refs": []
+ },
+ "tests.test_isaac_home_compose": {
+  "lines": 132,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_isaac_home_exclusions"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.sim.home",
+   "experiments.isaac_home_compose"
+  ],
+  "text_refs": []
+ },
+ "tests.test_isaac_home_exclusions": {
+  "lines": 51,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.sim.home",
+   "experiments.isaac_home_compose",
+   "tests.test_isaac_home_compose"
+  ],
+  "text_refs": []
+ },
+ "tests.test_isaac_home_runs": {
+  "lines": 71,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.sim.home",
+   "experiments.isaac_home_runs"
+  ],
+  "text_refs": []
+ },
+ "tests.test_isaac_home_scale": {
+  "lines": 72,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.sim.home",
+   "experiments.isaac_home_compose"
+  ],
+  "text_refs": []
+ },
+ "tests.test_isaac_home_usd": {
+  "lines": 186,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.sim.home",
+   "experiments.isaac_asset_validation",
+   "experiments.isaac_home_compose"
+  ],
+  "text_refs": []
+ },
+ "tests.test_isaac_kitchen_repair": {
+  "lines": 30,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.isaac_kitchen_repair"
+  ],
+  "text_refs": []
+ },
+ "tests.test_isaac_live": {
+  "lines": 103,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.phone_api",
+   "dream.tools.goals",
+   "dream.tools.mobile",
+   "dream.tools.toolbox",
+   "experiments.isaac_g1_kitchen",
+   "experiments.isaac_g1_live"
+  ],
+  "text_refs": []
+ },
+ "tests.test_isaac_live_eval": {
+  "lines": 311,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.agent",
+   "dream.runtime.scheduler",
+   "dream.tools.goals",
+   "experiments.isaac_g1_live",
+   "experiments.isaac_g1_live_eval",
+   "experiments.phase1_interface"
+  ],
+  "text_refs": []
+ },
+ "tests.test_isaac_live_replay": {
+  "lines": 118,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.spatial",
+   "dream.runtime.agent",
+   "dream.runtime.mobile_model",
+   "dream.tools.goals",
+   "dream.tools.mobile",
+   "dream.tools.toolbox"
+  ],
+  "text_refs": []
+ },
+ "tests.test_isaac_marker_check": {
+  "lines": 24,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.isaac_asset_validation"
+  ],
+  "text_refs": []
+ },
+ "tests.test_isaac_semantic": {
+  "lines": 387,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.semantics.knowledge",
+   "dream.tools.goals",
+   "experiments.isaac_g1_live",
+   "experiments.isaac_semantic",
+   "experiments.isaac_semantic_eval"
+  ],
+  "text_refs": []
+ },
+ "tests.test_isaac_semantic_dev": {
+  "lines": 104,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.vlm_detect",
+   "experiments.isaac_semantic_dev",
+   "experiments.qwen_room_priors"
+  ],
+  "text_refs": []
+ },
+ "tests.test_isolation": {
+  "lines": 176,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [],
+  "text_refs": []
+ },
+ "tests.test_joint": {
+  "lines": 139,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.joint",
+   "dream.robot.joint",
+   "dream.session",
+   "dream.sim.tabletop",
+   "dream.sim.tabletop_env"
+  ],
+  "text_refs": []
+ },
+ "tests.test_kinematic_base": {
+  "lines": 179,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.robot.g1_wbc",
+   "dream.sim.g1_mobile",
+   "dream.sim.home",
+   "dream.sim.kinematic_base"
+  ],
+  "text_refs": []
+ },
+ "tests.test_knowledge_sources": {
+  "lines": 126,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.semantics.knowledge",
+   "experiments.qwen_room_priors",
+   "experiments.semantic_search_eval"
+  ],
+  "text_refs": []
+ },
+ "tests.test_media_runtime": {
+  "lines": 48,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.media_runtime",
+   "dream.runtime.phone_api"
+  ],
+  "text_refs": []
+ },
+ "tests.test_memory_search": {
+  "lines": 163,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.memory.home",
+   "dream.perception.geometry",
+   "dream.runtime.agent",
+   "dream.runtime.memory_search",
+   "dream.tools.goals",
+   "dream.tools.toolbox",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "tests.test_mobile_exploration": {
+  "lines": 143,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.navigation.planning",
+   "dream.perception.occupancy",
+   "dream.perception.spatial",
+   "dream.robot",
+   "dream.robot.g1_wbc",
+   "dream.runtime.agent",
+   "dream.runtime.search",
+   "dream.sim.g1_mobile",
+   "dream.sim.room",
+   "dream.tools.goals",
+   "dream.tools.mobile",
+   "dream.tools.toolbox"
+  ],
+  "text_refs": []
+ },
+ "tests.test_mobile_model": {
+  "lines": 85,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.memory.home",
+   "dream.runtime.agent",
+   "dream.runtime.mobile_model",
+   "dream.tools.goals",
+   "experiments.phase1_interface"
+  ],
+  "text_refs": []
+ },
+ "tests.test_mobile_recovery": {
+  "lines": 179,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.agent",
+   "dream.runtime.mobile_model",
+   "dream.tools.goals",
+   "dream.tools.toolbox",
+   "experiments.audit_mobile_inspection"
+  ],
+  "text_refs": []
+ },
+ "tests.test_model": {
+  "lines": 126,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.agent.model",
+   "dream.eval.truth",
+   "dream.sim.env",
+   "dream.sim.mechanisms",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "tests.test_molmo": {
+  "lines": 147,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.molmo",
+   "dream.sim.camera",
+   "dream.sim.tabletop",
+   "dream.sim.tabletop_env",
+   "experiments.cloud_molmo_openloop"
+  ],
+  "text_refs": []
+ },
+ "tests.test_molmo_feedback": {
+  "lines": 79,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.sim.camera",
+   "experiments.cloud_molmo_closedloop"
+  ],
+  "text_refs": []
+ },
+ "tests.test_molmo_multichunk": {
+  "lines": 99,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "cloud.launch",
+   "experiments.cloud_molmo_closedloop"
+  ],
+  "text_refs": []
+ },
+ "tests.test_molmo_multichunk_rule": {
+  "lines": 20,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.analyse_molmo_multichunk"
+  ],
+  "text_refs": []
+ },
+ "tests.test_navigation": {
+  "lines": 187,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.navigation.control",
+   "dream.robot.t1",
+   "dream.sim.isaac_t1"
+  ],
+  "text_refs": []
+ },
+ "tests.test_navigation_eval": {
+  "lines": 51,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.g1_navigation_eval"
+  ],
+  "text_refs": []
+ },
+ "tests.test_nested_replay": {
+  "lines": 56,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.nested_replay"
+  ],
+  "text_refs": []
+ },
+ "tests.test_openai_plan_auth": {
+  "lines": 18,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.siwc_auth"
+  ],
+  "text_refs": []
+ },
+ "tests.test_openai_plan_refresh": {
+  "lines": 73,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.siwc_auth",
+   "experiments.openai_plan_refresh"
+  ],
+  "text_refs": []
+ },
+ "tests.test_openai_plan_resume": {
+  "lines": 130,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.openai_plan",
+   "dream.runtime.siwc_auth"
+  ],
+  "text_refs": []
+ },
+ "tests.test_p6_frozen_replay": {
+  "lines": 75,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.agent",
+   "experiments.p6_frozen_mobile_model",
+   "experiments.vlm_compare",
+   "experiments.vlm_compare_p6_qwen"
+  ],
+  "text_refs": []
+ },
+ "tests.test_panda": {
+  "lines": 109,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.robot.panda",
+   "dream.sim.tabletop",
+   "dream.sim.tabletop_env",
+   "dream.skills.manipulation"
+  ],
+  "text_refs": []
+ },
+ "tests.test_phase1_backends": {
+  "lines": 74,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.openai_plan",
+   "dream.runtime.siwc_auth",
+   "dream.runtime.volo_contract"
+  ],
+  "text_refs": []
+ },
+ "tests.test_phase1_model_choice": {
+  "lines": 313,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.mobile_model",
+   "dream.runtime.openai_plan",
+   "dream.runtime.phone_api",
+   "dream.runtime.scheduler",
+   "dream.runtime.search",
+   "experiments.g1_explore_room",
+   "experiments.phase1_interface"
+  ],
+  "text_refs": []
+ },
+ "tests.test_phone_api": {
+  "lines": 245,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.camera_stream",
+   "dream.runtime.phone_api",
+   "dream.runtime.scheduler"
+  ],
+  "text_refs": []
+ },
+ "tests.test_relocalise": {
+  "lines": 72,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.memory.relocalise",
+   "dream.perception.occupancy"
+  ],
+  "text_refs": []
+ },
+ "tests.test_reports": {
+  "lines": 205,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.reports"
+  ],
+  "text_refs": []
+ },
+ "tests.test_room_instrumentation": {
+  "lines": 160,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.agent",
+   "dream.runtime.search",
+   "dream.tools.goals",
+   "dream.tools.toolbox",
+   "experiments.g1_explore_room"
+  ],
+  "text_refs": []
+ },
+ "tests.test_room_postfix_config": {
+  "lines": 26,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.g1_explore_room"
+  ],
+  "text_refs": []
+ },
+ "tests.test_room_regression_config": {
+  "lines": 49,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.compare_room_regression",
+   "experiments.g1_explore_room"
+  ],
+  "text_refs": []
+ },
+ "tests.test_room_scene_failure": {
+  "lines": 9,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.g1_explore_room"
+  ],
+  "text_refs": []
+ },
+ "tests.test_rpp": {
+  "lines": 121,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.navigation.follow",
+   "dream.navigation.rpp"
+  ],
+  "text_refs": []
+ },
+ "tests.test_scene_graph": {
+  "lines": 58,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.memory.home",
+   "dream.memory.scene_graph"
+  ],
+  "text_refs": []
+ },
+ "tests.test_scheduler": {
+  "lines": 320,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime.agent",
+   "dream.runtime.scheduler",
+   "dream.tools.goals",
+   "dream.tools.mobile",
+   "dream.tools.toolbox",
+   "experiments.g1_interruption_demo"
+  ],
+  "text_refs": []
+ },
+ "tests.test_semantic_diagnostics": {
+  "lines": 75,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.navigation.planning",
+   "dream.runtime.semantic_search",
+   "dream.semantics.world",
+   "tests.test_semantics"
+  ],
+  "text_refs": []
+ },
+ "tests.test_semantic_nested": {
+  "lines": 164,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.geometry",
+   "dream.perception.occupancy",
+   "dream.perception.semantic",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "tests.test_semantic_scoring": {
+  "lines": 83,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.semantic_scoring",
+   "dream.perception.vlm_detect"
+  ],
+  "text_refs": []
+ },
+ "tests.test_semantic_search_integration": {
+  "lines": 50,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.semantic_search_eval"
+  ],
+  "text_refs": []
+ },
+ "tests.test_semantic_sensor": {
+  "lines": 180,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.sim.camera",
+   "dream.sim.g1_mobile",
+   "dream.sim.home",
+   "dream.sim.kinematic_base",
+   "dream.sim.semantic_sensor",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "tests.test_semantics": {
+  "lines": 291,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [
+   "tests.test_semantic_diagnostics",
+   "tests.test_unexplored_rooms"
+  ],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.occupancy",
+   "dream.perception.semantic",
+   "dream.perception.spatial",
+   "dream.semantics.belief",
+   "dream.semantics.graph",
+   "dream.semantics.knowledge",
+   "dream.semantics.rooms",
+   "dream.semantics.verify",
+   "dream.tools.mobile",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "tests.test_session": {
+  "lines": 82,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.manipulation",
+   "dream.session"
+  ],
+  "text_refs": []
+ },
+ "tests.test_sim": {
+  "lines": 80,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.sim.env",
+   "dream.sim.mechanisms",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "tests.test_summarise_closeout": {
+  "lines": 102,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.summarise_closeout"
+  ],
+  "text_refs": []
+ },
+ "tests.test_summarize_vlm_comparison": {
+  "lines": 60,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.summarize_vlm_comparison"
+  ],
+  "text_refs": []
+ },
+ "tests.test_t1_adapter": {
+  "lines": 145,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.sim",
+   "dream.sim.isaac_t1"
+  ],
+  "text_refs": []
+ },
+ "tests.test_t1_packaging": {
+  "lines": 199,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.isaac_t1_walk"
+  ],
+  "text_refs": []
+ },
+ "tests.test_t1_recording": {
+  "lines": 55,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.t1_recording"
+  ],
+  "text_refs": []
+ },
+ "tests.test_t1_residuals": {
+  "lines": 29,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "experiments.inspect_t1_residuals"
+  ],
+  "text_refs": []
+ },
+ "tests.test_task_scoring": {
+  "lines": 155,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.task_scoring",
+   "dream.runtime.mobile_model",
+   "dream.tools.goals"
+  ],
+  "text_refs": []
+ },
+ "tests.test_tools_runtime": {
+  "lines": 389,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.manipulation",
+   "dream.runtime.agent",
+   "dream.sim.tabletop",
+   "dream.sim.tabletop_env",
+   "dream.skills.manipulation",
+   "dream.tools",
+   "dream.tools.discovery",
+   "dream.tools.goals",
+   "dream.tools.toolbox",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "tests.test_unexplored_rooms": {
+  "lines": 128,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.semantic",
+   "dream.semantics.belief",
+   "dream.semantics.knowledge",
+   "dream.semantics.rooms",
+   "tests.test_semantics"
+  ],
+  "text_refs": []
+ },
+ "tests.test_verifier_purity": {
+  "lines": 88,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.perception.semantic",
+   "dream.semantics.verify"
+  ],
+  "text_refs": []
+ },
+ "tests.test_vision": {
+  "lines": 330,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.manipulation",
+   "dream.perception.detect",
+   "dream.perception.geometry",
+   "dream.perception.vision",
+   "dream.perception.world",
+   "dream.runtime.agent",
+   "dream.sim.camera",
+   "dream.sim.tabletop",
+   "dream.sim.tabletop_env",
+   "dream.skills.articulation",
+   "dream.tools.goals",
+   "dream.tools.toolbox",
+   "dream.types"
+  ],
+  "text_refs": []
+ },
+ "tests.test_vlm": {
+  "lines": 400,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.eval.manipulation",
+   "dream.runtime.qwen",
+   "dream.runtime.vlm",
+   "dream.sim.tabletop",
+   "dream.sim.tabletop_env",
+   "dream.tools.goals",
+   "dream.tools.toolbox"
+  ],
+  "text_refs": []
+ },
+ "tests.test_vlm_compare_cloud": {
+  "lines": 78,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "cloud.launch"
+  ],
+  "text_refs": []
+ },
+ "tests.test_volo_contract": {
+  "lines": 183,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.runtime",
+   "dream.runtime.volo_contract",
+   "dream.tools.toolbox"
+  ],
+  "text_refs": []
+ },
+ "tests.test_wholebody_height_contract": {
+  "lines": 70,
+  "imported_by_dream": [],
+  "imported_by_experiments": [],
+  "imported_by_tests": [],
+  "imported_by_cloud": [],
+  "imports": [
+   "dream.robot.g1_wbc",
+   "dream.robot.wholebody"
+  ],
+  "text_refs": []
+ }
+}
