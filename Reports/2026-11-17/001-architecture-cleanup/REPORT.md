@@ -231,3 +231,9 @@ The minimum work for a reproducible G1 navigation-to-contact baseline:
 5. Then replace the oracle object pose with the depth-based estimate already used for search.
 
 Ready to merge into codex/g1-integration once the owner has reviewed it. The uncommitted R1 work in DREAM-g1-integration should be committed or rebased first. Nothing has been pushed.
+
+## Amendments
+
+### 2026-11-17T16:47:03+11:00
+
+On the owner's instruction ('Push the branch'), claude/architecture-cleanup-20261117 was pushed to origin at b646bb5 (12 commits on cf2851d; none carries a model trailer). It is not merged into codex/g1-integration or main, and no pull request was opened.
