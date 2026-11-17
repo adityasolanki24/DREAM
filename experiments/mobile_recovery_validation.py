@@ -22,6 +22,7 @@ from dream.runtime.mobile_model import available_actions
 from dream.sim.g1_mobile import G1MobileBase, G1MobileEnv, build_mobile_g1
 from dream.sim.room import add_room, sample_room
 from dream.tools.goals import Inspect
+from dream.tools.intent import spec_from_goal
 from dream.tools.mobile import MobileToolbox
 from experiments.g1_explore_room import Monitor, score
 
@@ -79,7 +80,9 @@ def run(seed, out):
     toolbox = MobileToolbox(base, memory, event, navigator="rpp")
     start = time.perf_counter()
     ep = TaskAgent(toolbox, Budgeted(RecoveryBaseline(), base, 180), max_steps=24).run(
-        Inspect("cabinet"), on_event=lambda kind, data: event(kind, "", **data)
+        Inspect("cabinet"),
+        on_event=lambda kind, data: event(kind, "", **data),
+        spec=spec_from_goal(Inspect("cabinet")),
     )
     result = {
         "source_sha": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),

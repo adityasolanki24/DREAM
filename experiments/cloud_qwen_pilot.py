@@ -37,6 +37,7 @@ from dream.runtime.vlm import (  # noqa: E402
 )
 from dream.session import LiveSession  # noqa: E402
 from dream.tools.goals import parse_goal  # noqa: E402
+from dream.tools.intent import spec_from_goal  # noqa: E402
 from dream.tools.toolbox import SPECS, _validate  # noqa: E402
 
 
@@ -156,7 +157,7 @@ def embodied_episode(backend, cfg: dict, item: dict, condition: str, out: Path) 
     session.start()
     try:
         if condition == "A_rule_based":
-            ep = TaskAgent(session.toolbox).run(goal)
+            ep = TaskAgent(session.toolbox).run(goal, spec=spec_from_goal(goal))
         else:
             recorded = RecordedBackend(backend, out / "inference", lambda: session.env.time)
             agent = VLMAgent(

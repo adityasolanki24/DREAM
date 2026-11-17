@@ -5,10 +5,20 @@ from __future__ import annotations
 
 import sqlite3
 import threading
+from dataclasses import dataclass
 
 from dream.runtime.agent import Finish, TaskAgent, ToolCall
 from dream.runtime.scheduler import TaskScheduler
+from dream.tools.goals import FindObject
+from dream.tools.intent import spec_from_goal
 from dream.tools.toolbox import ToolResult
+
+
+@dataclass(frozen=True)
+class Counted(FindObject):
+    """A request goal that also says how many sub-actions it takes (``target`` is its tag)."""
+
+    n: int = 0
 
 
 class FakeTools:
@@ -22,23 +32,23 @@ class FakeTools:
         self.log.append((name, dict(args or {})))
         if name == "work" and self.on_work:
             self.on_work(args)
-        data = {"satisfied": False} if name == "verify_goal" else {"protective_stop": False}
+        data = {"satisfied": True} if name == "verify_goal" else {"protective_stop": False}
         return ToolResult(name, "succeeded", "", data)
 
 
 class CountPlanner:
     def next_action(self, goal, scene, verdict, history):
         done = sum(1 for s in history if s.call.name == "work")
-        if done >= goal["n"]:
-            return Finish(True, f"{goal['tag']} done")
-        return ToolCall("work", {"tag": goal["tag"], "k": done})
+        if done >= goal.n:
+            return Finish(True, f"{goal.target} done")
+        return ToolCall("work", {"tag": goal.target, "k": done})
 
 
 def parse(text):
     tag, n = text.split(":")
     if not n.isdigit():
         raise ValueError("unsupported request")
-    return {"tag": tag, "n": int(n)}
+    return Counted(tag, n=int(n))
 
 
 def make(tmp_path, log, notes):
@@ -47,7 +57,7 @@ def make(tmp_path, log, notes):
     def run_task(task, history, preempt, cancel):
         tools.preempt, tools.cancel = preempt, cancel
         return TaskAgent(tools, CountPlanner(), max_steps=20).run(
-            task.goal, history=history, preempt=preempt
+            task.goal, history=history, preempt=preempt, spec=spec_from_goal(task.goal, task.text)
         )
 
     s = TaskScheduler(str(tmp_path / "tasks.sqlite"), run_task, parse,
@@ -200,7 +210,9 @@ def test_preemption_during_planning_never_dispatches_a_new_tool(tmp_path):
 
     def run(task, history, preempt, cancel):
         tools.preempt, tools.cancel = preempt, cancel
-        return TaskAgent(tools, SlowPlanner()).run(task.goal, history=history, preempt=preempt)
+        return TaskAgent(tools, SlowPlanner()).run(
+            task.goal, history=history, preempt=preempt, spec=spec_from_goal(task.goal, task.text)
+        )
 
     s.run_task = run
     s.step()
@@ -253,7 +265,9 @@ def test_cancellation_during_planning_never_dispatches_a_tool_or_claims_success(
 
     def run(task, history, preempt, cancel):
         tools.preempt, tools.cancel = preempt, cancel
-        return TaskAgent(tools, SlowPlanner()).run(task.goal, history=history, preempt=preempt)
+        return TaskAgent(tools, SlowPlanner()).run(
+            task.goal, history=history, preempt=preempt, spec=spec_from_goal(task.goal, task.text)
+        )
 
     s.run_task = run
     s.step()

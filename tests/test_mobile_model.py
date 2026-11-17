@@ -1,7 +1,7 @@
 import json
 
 from dream.runtime.agent import Finish, ToolCall
-from dream.runtime.mobile_model import MobileModelPlanner, interpret_mobile_goal
+from dream.runtime.mobile_model import MobileModelPlanner, propose_mobile_goal
 from dream.tools.goals import GoToPlace, Inspect
 
 
@@ -43,14 +43,14 @@ def test_model_cannot_claim_success_without_bound_goal_verification():
 
 
 def test_language_model_maps_request_to_only_supported_typed_goals():
-    assert interpret_mobile_goal(
+    assert propose_mobile_goal(
         Model("inspect_cabinet", {}),
         "go look for the cupboard",
         {},
         {"candidates": []},
         lambda: None,
     ) == Inspect("cabinet")
-    assert interpret_mobile_goal(
+    assert propose_mobile_goal(
         Model("go_to_place", {"place": "entrance"}),
         "take me to the door",
         {"entrance": [0, 0]},
@@ -59,7 +59,7 @@ def test_language_model_maps_request_to_only_supported_typed_goals():
     ) == GoToPlace("entrance")
     from dream.tools.goals import UnsupportedGoal
 
-    refusal = interpret_mobile_goal(
+    refusal = propose_mobile_goal(
         Model("go_to_place", {"place": "bedroom"}),
         "go to my bedroom",
         {"entrance": [0, 0]},

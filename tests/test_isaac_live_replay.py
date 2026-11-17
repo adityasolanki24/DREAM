@@ -17,8 +17,9 @@ import numpy as np
 import dream.tools.mobile as mobile
 from dream.perception.spatial import Candidate, SpatialMemory
 from dream.runtime.agent import TaskAgent
-from dream.runtime.mobile_model import MobileModelPlanner, interpret_mobile_goal
+from dream.runtime.mobile_model import MobileModelPlanner, propose_mobile_goal
 from dream.tools.goals import GoToObserved, UnsupportedGoal
+from dream.tools.intent import REACHED, GoalSpecification
 from dream.tools.mobile import MobileToolbox
 from dream.tools.toolbox import ToolResult
 
@@ -49,7 +50,7 @@ class Replay:
 def test_r3a_saved_refrigerator_request_is_no_longer_bound_to_a_reached_frontier():
     scene = saved_scene(0)
     assert scene["frontiers"][0]["cost_m"] == 0.07  # the frontier under the robot
-    goal = interpret_mobile_goal(Replay(0), "walk to the refrigerator", {}, scene, lambda: None)
+    goal = propose_mobile_goal(Replay(0), "walk to the refrigerator", {}, scene, lambda: None)
     assert isinstance(goal, UnsupportedGoal) and "already reached" in goal.reason
 
 
@@ -71,7 +72,11 @@ def test_r3a_saved_verdict_and_saved_finish_true_cannot_become_success():
             return ToolResult(name, "succeeded", "", data)
 
     planner = MobileModelPlanner(saved_finish, "walk to the refrigerator", lambda: None)
-    episode = TaskAgent(Tools(), planner).run(GoToObserved(-0.025, -0.075, "frontier:0"))
+    episode = TaskAgent(Tools(), planner).run(
+        GoToObserved(-0.025, -0.075, "frontier:0"),
+        # names the frontier itself, so the binding check passes and the typed outcome is tested
+        spec=GoalSpecification("walk to the refrigerator", None, None, "frontier:0", REACHED),
+    )
     assert not episode.success_claimed
     assert episode.completion == "exploration_point_reached_target_unverified"
     assert "refrigerator" not in episode.reason

@@ -206,7 +206,7 @@ def serve(args, cfg):
     from dream.perception.spatial import SpatialMemory
     from dream.robot.g1_wbc import WBCLocomotion
     from dream.runtime.agent import TaskAgent
-    from dream.runtime.mobile_model import MobileModelPlanner, interpret_mobile_goal
+    from dream.runtime.mobile_model import MobileModelPlanner
     from dream.runtime.scheduler import TaskScheduler
     from dream.sim.g1_mobile import DEFAULT_ODOMETRY_NOISE, HEAD_CAMERA, G1MobileBase
     from dream.sim.isaac_g1 import IsaacG1Env
@@ -220,6 +220,7 @@ def serve(args, cfg):
         free_space,
         kitchen_url,
     )
+    from experiments.nov7_baseline import UngatedTaskAgent, interpret_mobile_goal_nov7
     from experiments.phase1_interface import (
         build_providers,
         make_snapshot,
@@ -470,7 +471,8 @@ def serve(args, cfg):
                 observed = toolbox.call("observe_scene")
                 if not observed.ok:
                     raise RuntimeError("goal interpretation observation failed")
-                task.goal = interpret_mobile_goal(
+                # --mode nov7 is the measured unguarded arm of the comparison.
+                task.goal = interpret_mobile_goal_nov7(
                     recorder,
                     task.text,
                     toolbox.places,
@@ -500,7 +502,8 @@ def serve(args, cfg):
 
             from dream.runtime.budget import Budgeted
 
-            episode = TaskAgent(
+            agent_cls = TaskAgent if semantic_mode else UngatedTaskAgent
+            episode = agent_cls(
                 toolbox,
                 Budgeted(planner, base, args.budget_s),
                 max_steps=cfg["explore"]["max_steps"],

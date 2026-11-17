@@ -49,6 +49,7 @@ from dream.sim.camera import SIDE_CAMERA, CameraSpec  # noqa: E402
 from dream.sim.tabletop import sample_compartment_scene  # noqa: E402
 from dream.sim.tabletop_env import TabletopEnv  # noqa: E402
 from dream.tools.goals import InRegion  # noqa: E402
+from dream.tools.intent import spec_from_goal  # noqa: E402
 from dream.tools.toolbox import Toolbox  # noqa: E402
 from experiments.code_version import code_dirty, code_sha  # noqa: E402
 
@@ -76,7 +77,7 @@ def episode(args: tuple) -> dict:
     tb = Toolbox(env.embodiment(), sensing, rng=np.random.default_rng([seed, 2]))
     planner = RuleBasedPlanner(probe_budget=budget, **METHODS[method])
     t0 = time.perf_counter()
-    ep = TaskAgent(tb, planner, max_steps=14).run(GOAL)
+    ep = TaskAgent(tb, planner, max_steps=14).run(GOAL, spec=spec_from_goal(GOAL))
     wall = time.perf_counter() - t0
     env.step(250)  # let everything settle before judging
     comp = spec.compartment

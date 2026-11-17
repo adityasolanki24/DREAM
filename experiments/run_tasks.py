@@ -39,6 +39,7 @@ from dream.runtime.agent import RuleBasedPlanner, TaskAgent  # noqa: E402
 from dream.sim.tabletop import sample_tabletop  # noqa: E402
 from dream.sim.tabletop_env import TabletopEnv  # noqa: E402
 from dream.tools.goals import InRegion, OnTop  # noqa: E402
+from dream.tools.intent import spec_from_goal  # noqa: E402
 from dream.tools.toolbox import Toolbox  # noqa: E402
 
 
@@ -126,7 +127,7 @@ def fixed_sequence(env: TabletopEnv, goal) -> dict:
 
 def run_agent(env: TabletopEnv, goal, max_attempts: int) -> dict:
     agent = TaskAgent(Toolbox(env.embodiment(), env), RuleBasedPlanner(max_attempts=max_attempts))
-    ep = agent.run(goal)
+    ep = agent.run(goal, spec=spec_from_goal(goal))
     grasps = [s for s in ep.steps if s.call.name == "grasp"]
     return {
         "tool_calls": ep.tool_calls,

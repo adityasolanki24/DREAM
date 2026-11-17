@@ -209,6 +209,62 @@ def ground_request(
     )
 
 
+def spec_from_goal(goal, instruction: str | None = None) -> GoalSpecification:
+    """The original-request record for a caller whose request IS a typed goal.
+
+    For tests, demos and evaluation runners that construct a goal directly (or parse the typed
+    command syntax), so there is no separate natural-language request to ground. The record
+    states exactly what the goal establishes, with ``grounding="typed"``; ``TaskAgent`` still
+    enforces it (the goal must keep establishing it through the episode). ``instruction`` is
+    the text the goal was parsed from, when there is one; otherwise ``repr(goal)`` stands in.
+
+    Goals that are steps toward a request rather than requests (an exploration frontier, a
+    goal not yet interpreted from language) have no such record and raise ``ValueError``."""
+    from dream.tools.goals import (
+        FindObject,
+        GoToObserved,
+        GoToPlace,
+        InRegion,
+        Inspect,
+        OnTop,
+        UnsupportedGoal,
+    )
+
+    text = repr(goal) if instruction is None else instruction
+    fields: dict
+    if isinstance(goal, (InRegion, OnTop)):
+        fields = dict(target_class=goal.object, target_kind="object", required_outcome=PLACED)
+    elif isinstance(goal, Inspect):
+        fields = dict(
+            target_class=goal.target,
+            target_kind="object",
+            target_instance=None if goal.candidate is None else f"candidate:{goal.candidate}",
+            required_outcome=INSPECTED,
+        )
+    elif isinstance(goal, GoToPlace):
+        fields = dict(target_class=goal.place, target_kind="place", required_outcome=REACHED)
+    elif isinstance(goal, FindObject):
+        fields = dict(target_class=goal.target, target_kind="object", required_outcome=goal.outcome)
+    elif isinstance(goal, GoToObserved):
+        if goal.is_exploration_point:
+            raise ValueError(
+                f"{goal!r} is an exploration point, a step toward a request and not a request"
+            )
+        fields = dict(
+            target_class=None,
+            target_kind=None,
+            target_instance=goal.reference,
+            required_outcome=REACHED,
+        )
+    elif isinstance(goal, UnsupportedGoal):
+        fields = dict(target_class=None, target_kind=None, required_outcome=UNKNOWN)
+    else:
+        raise ValueError(f"no typed request record for {type(goal).__name__}")
+    return GoalSpecification(
+        original_instruction=text, grounding="typed", **{"target_instance": None, **fields}
+    )
+
+
 @dataclass(frozen=True)
 class Capabilities:
     """What this embodiment and its perception can establish and verify."""

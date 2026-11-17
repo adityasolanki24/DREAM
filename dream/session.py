@@ -30,6 +30,7 @@ from dream.sim.camera import CameraSpec
 from dream.sim.tabletop import TabletopSpec, sample_compartment_scene, sample_tabletop
 from dream.sim.tabletop_env import TabletopEnv
 from dream.tools.goals import Goal, parse_goal
+from dream.tools.intent import GoalSpecification, spec_from_goal
 from dream.tools.toolbox import Toolbox
 
 
@@ -100,6 +101,7 @@ class LiveSession:
         self._physics: threading.Thread | None = None
         self._worker: threading.Thread | None = None
         self._paused_goal: Goal | None = None
+        self._current_spec: GoalSpecification | None = None
         self._viewer = None
         self._want_viewer = viewer
 
@@ -125,17 +127,25 @@ class LiveSession:
 
     # ----- commands ------------------------------------------------------------------------
 
-    def submit(self, goal: str | dict | Goal) -> str:
-        """Start working on a goal. Returns an error message, or '' on acceptance."""
+    def submit(self, goal: str | dict | Goal, *, spec: GoalSpecification | None = None) -> str:
+        """Start working on a goal. Returns an error message, or '' on acceptance.
+
+        The original request is recorded as a ``GoalSpecification`` taken from the same parse
+        that produces the goal (the typed command text, when given as text), and the agent
+        enforces it. ``spec`` supplies an already-grounded record (``resume`` does)."""
         if self.busy:
             return "busy: pause or cancel the current goal first"
         try:
             g = goal if not isinstance(goal, (str, dict)) else parse_goal(goal)
+            if spec is None:
+                spec = spec_from_goal(g, goal if isinstance(goal, str) else None)
         except ValueError as e:
             return str(e)
         self.toolbox.cancel.clear()
         self.status = Status(goal=repr(g), state="running")
-        self._worker = threading.Thread(target=self._run_goal, args=(g,), name="agent", daemon=True)
+        self._worker = threading.Thread(
+            target=self._run_goal, args=(g, spec), name="agent", daemon=True
+        )
         self._worker.start()
         return ""
 
@@ -151,7 +161,7 @@ class LiveSession:
         if self._paused_goal is None:
             return "nothing to resume"
         g, self._paused_goal = self._paused_goal, None
-        return self.submit(g)
+        return self.submit(g, spec=self._current_spec)
 
     def cancel(self) -> None:
         self._paused_goal = None
@@ -202,8 +212,9 @@ class LiveSession:
                 if slack > 0:
                     time.sleep(slack)
 
-    def _run_goal(self, goal: Goal) -> None:
+    def _run_goal(self, goal: Goal, spec: GoalSpecification) -> None:
         self._current_goal = goal
+        self._current_spec = spec
 
         def on_event(kind: str, data: dict) -> None:
             self.status.events.append({"t": round(self.env.time, 2), "kind": kind, **data})
@@ -215,7 +226,7 @@ class LiveSession:
                 )
                 self.status.current_action = None
 
-        ep = self.agent.run(goal, on_event)
+        ep = self.agent.run(goal, on_event, spec=spec)
         self.episodes.append(ep)
         self.status.message = ep.reason
         if self.toolbox.cancel.is_set():

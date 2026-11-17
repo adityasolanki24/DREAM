@@ -476,6 +476,7 @@ def explore(env, base, cfg, ev, handles) -> dict:
     from dream.runtime.budget import Budgeted
     from dream.runtime.search import RoomSearchPlanner
     from dream.tools.goals import Inspect
+    from dream.tools.intent import spec_from_goal
     from dream.tools.mobile import MobileToolbox
 
     e = cfg["explore"]
@@ -489,7 +490,9 @@ def explore(env, base, cfg, ev, handles) -> dict:
         ev.line("decisions.jsonl", {"time_s": env.time, "kind": kind, "data": data})
 
     planner = Budgeted(RoomSearchPlanner(e["method"]), base, e["time_budget_s"])
-    ep = TaskAgent(tb, planner, max_steps=e["max_steps"]).run(Inspect("cabinet"), on_event)
+    ep = TaskAgent(tb, planner, max_steps=e["max_steps"]).run(
+        Inspect("cabinet"), on_event, spec=spec_from_goal(Inspect("cabinet"))
+    )
     out = {"mode": "explore", "claimed": ep.success_claimed, "reason": ep.reason,
            "tool_calls": [s.call.name for s in ep.steps],
            "explored_m2": float(tb.memory.grid.free().sum()) * 0.05**2}  # fmt: skip

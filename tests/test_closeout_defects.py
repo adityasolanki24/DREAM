@@ -13,8 +13,9 @@ import numpy as np
 
 from dream.perception.spatial import Candidate, SpatialMemory
 from dream.runtime.agent import Finish, TaskAgent
-from dream.runtime.mobile_model import MobileModelPlanner, available_actions, interpret_mobile_goal
+from dream.runtime.mobile_model import MobileModelPlanner, available_actions, propose_mobile_goal
 from dream.tools.goals import GoToObserved, UnsupportedGoal
+from dream.tools.intent import REACHED, GoalSpecification, ground_request
 from dream.tools.mobile import (
     ARRIVAL_MARGIN,
     INSPECT_RANGE,
@@ -24,6 +25,12 @@ from dream.tools.mobile import (
 from dream.tools.toolbox import ToolResult
 
 EXPLORATION = "exploration_point_reached_target_unverified"
+
+
+def names_reference(goal, request):
+    """A request record that names the goal's own reference, so the agent's binding check
+    passes and the typed-outcome layer underneath it is what these tests exercise."""
+    return GoalSpecification(request, None, None, goal.reference, REACHED)
 
 
 class Model:
@@ -45,7 +52,7 @@ def scene_with(frontiers, pose=(-0.078, -0.002, 0.003)):
 def test_frontier_under_the_robot_is_not_bound_as_a_goal():
     # The saved 1 Nov observation: cost 0.07 m, 0.09 m from the robot.
     scene = scene_with([{"xy": [-0.025, -0.075], "gain_m2": 23.76, "cost_m": 0.07}])
-    goal = interpret_mobile_goal(
+    goal = propose_mobile_goal(
         Model(("go_to_frontier", {"index": 0})), "walk to the fridge", {}, scene, lambda: None
     )
     assert isinstance(goal, UnsupportedGoal) and "already reached" in goal.reason
@@ -53,7 +60,7 @@ def test_frontier_under_the_robot_is_not_bound_as_a_goal():
 
 def test_distant_frontier_is_still_bound():
     scene = scene_with([{"xy": [-1.6, 2.1], "gain_m2": 16.0, "cost_m": 2.65}])
-    goal = interpret_mobile_goal(
+    goal = propose_mobile_goal(
         Model(("go_to_frontier", {"index": 0})), "go there", {}, scene, lambda: None
     )
     assert isinstance(goal, GoToObserved) and goal.reference == "frontier:0"
@@ -116,7 +123,9 @@ def test_exploration_goal_cannot_succeed_even_if_verifier_and_model_say_so():
     saved_verdict = {"satisfied": True, "reason": "0.09 m away", "reference": "frontier:0"}
     model = Model(("finish", {"success": True, "reason": "The refrigerator has been inspected."}))
     planner = MobileModelPlanner(model, "walk to the refrigerator", lambda: None)
-    episode = TaskAgent(FakeTools(saved_verdict), planner).run(goal)
+    episode = TaskAgent(FakeTools(saved_verdict), planner).run(
+        goal, spec=names_reference(goal, "walk to the refrigerator")
+    )
     assert not episode.success_claimed
     assert episode.completion == EXPLORATION
     assert "refrigerator" not in episode.reason  # user-facing text is not the model's
@@ -129,10 +138,20 @@ def test_agent_guard_overrides_any_planner_success_for_exploration_goals():
             return Finish(True, "arrived at the refrigerator")
 
     goal = GoToObserved(1.0, 1.0, "frontier:3")
-    episode = TaskAgent(FakeTools({"satisfied": True, "reason": "0.0 m away"}), Liar()).run(goal)
+    episode = TaskAgent(FakeTools({"satisfied": True, "reason": "0.0 m away"}), Liar()).run(
+        goal, spec=names_reference(goal, "walk to the refrigerator")
+    )
     assert not episode.success_claimed and episode.completion == EXPLORATION
     assert episode.model_reason == "arrived at the refrigerator"
     assert episode.to_dict()["completion"] == EXPLORATION
+
+
+def test_a_frontier_goal_is_refused_against_the_real_request_before_any_action():
+    goal = GoToObserved(-0.025, -0.075, "frontier:0")
+    spec = ground_request("walk to the refrigerator", {"refrigerator": ("refrigerator",)})
+    tools = FakeTools({"satisfied": True, "reason": "0.09 m away"})
+    episode = TaskAgent(tools, MobileModelPlanner(Model(), "x", lambda: None)).run(goal, spec=spec)
+    assert not episode.success_claimed and episode.completion == "goal_substitution_rejected"
 
 
 def test_non_frontier_go_to_observed_is_unchanged():
@@ -141,7 +160,9 @@ def test_non_frontier_go_to_observed_is_unchanged():
             return Finish(True, "at target")
 
     goal = GoToObserved(1.0, 1.0, "candidate:2:side:3")
-    episode = TaskAgent(FakeTools({"satisfied": True, "reason": "0.0 m away"}), Done()).run(goal)
+    episode = TaskAgent(FakeTools({"satisfied": True, "reason": "0.0 m away"}), Done()).run(
+        goal, spec=names_reference(goal, "go to that viewpoint")
+    )
     assert episode.success_claimed and episode.completion is None
 
 

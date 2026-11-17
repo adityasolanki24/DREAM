@@ -262,14 +262,15 @@ def test_chatgpt_backend_is_created_once_per_model(tmp_path):
 
 
 def test_each_task_gets_the_planner_its_meta_names(tmp_path, monkeypatch):
-    runs = []
+    runs, specs = [], []
 
     class RecordingAgent:
         def __init__(self, toolbox, planner, max_steps):
             self.planner = planner
 
-        def run(self, goal, on_event=None, history=None, preempt=None):
+        def run(self, goal, on_event=None, history=None, preempt=None, *, spec):
             runs.append(self.planner)
+            specs.append(spec)
             return goal
 
     monkeypatch.setattr(phase1, "TaskAgent", RecordingAgent)
@@ -311,3 +312,69 @@ def test_each_task_gets_the_planner_its_meta_names(tmp_path, monkeypatch):
 
     with pytest.raises(RuntimeError, match="provider not configured: missing"):
         run_task(task({"provider": "missing", "model": "x"}), [], preempt, cancel)
+    assert len(specs) == len(runs) and all(s.grounding == "typed" for s in specs)
+    assert specs[-1].original_instruction == "goto entrance"  # the user's own text
+
+
+def test_language_path_refuses_a_substituted_goal_with_the_original_request(monkeypatch):
+    """The 7 Nov substitution: "walk to the refrigerator" proposed as the entrance place."""
+    from dream.runtime.agent import TaskAgent
+    from dream.tools.goals import GoToPlace, NaturalLanguageGoal, UnsupportedGoal
+
+    seen = []
+
+    class RecordingAgent:
+        def __init__(self, toolbox, planner, max_steps):
+            pass
+
+        def run(self, goal, on_event=None, history=None, preempt=None, *, spec):
+            seen.append((goal, spec))
+            return goal
+
+    class Qwen(FakeBackend):
+        def generate(self, messages, tools):
+            call = {"name": "go_to_place", "arguments": {"place": "entrance"}}
+            return "<tool_call>" + json.dumps(call) + "</tool_call>"
+
+    class Tools:
+        places = {"entrance": [0, 0]}
+
+        def call(self, name, args=None):
+            return SimpleNamespace(ok=True, data={"candidates": [], "frontiers": []})
+
+    monkeypatch.setattr(phase1, "TaskAgent", RecordingAgent)
+    providers = {"qwen": provider("qwen", models=["q1"], default="q1", backend=Qwen)}
+    run_task = phase1.make_run_task(
+        Tools(), SimpleNamespace(time=0.0), SimpleNamespace(last_frame=None), providers,
+        lambda kind, data: None,
+    )  # fmt: skip
+    task = SimpleNamespace(
+        id="t1",
+        text="walk to the refrigerator",
+        goal=NaturalLanguageGoal("walk to the refrigerator"),
+        meta={"provider": "qwen", "model": "q1"},
+    )
+    run_task(task, [], threading.Event(), threading.Event())
+    goal, spec = seen[-1]
+    assert isinstance(goal, UnsupportedGoal) and "without changing it" in goal.reason
+    assert spec.original_instruction == "walk to the refrigerator"
+
+    class Done:
+        cancel = threading.Event()
+
+        def call(self, name, args=None):
+            data = {
+                "verify_goal": {"satisfied": True},
+                "get_robot_state": {"protective_stop": False},
+            }
+            return SimpleNamespace(ok=True, status="succeeded", message="", data=data.get(name, {}))
+
+    class Claims:
+        def next_action(self, goal, scene, verdict, history):
+            from dream.runtime.agent import Finish
+
+            return Finish(True, "arrived")
+
+    # Had the substituted goal reached the agent, the original request would refuse it.
+    episode = TaskAgent(Done(), Claims()).run(GoToPlace("entrance"), spec=spec)
+    assert not episode.success_claimed and episode.completion == "goal_substitution_rejected"

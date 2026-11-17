@@ -45,6 +45,7 @@ from dream.runtime.vlm import VLMAgent  # noqa: E402
 from dream.sim.tabletop import sample_tabletop  # noqa: E402
 from dream.sim.tabletop_env import TabletopEnv  # noqa: E402
 from dream.tools.goals import parse_goal  # noqa: E402
+from dream.tools.intent import spec_from_goal  # noqa: E402
 from dream.tools.toolbox import Toolbox  # noqa: E402
 
 
@@ -70,7 +71,7 @@ def episode(seed: int, item: dict, condition: str, backend, perception: str) -> 
     goal = parse_goal(item["goal"])
     t0 = time.perf_counter()
     if condition == "A_rule_based":
-        ep = TaskAgent(tb, RuleBasedPlanner()).run(goal)
+        ep = TaskAgent(tb, RuleBasedPlanner()).run(goal, spec=spec_from_goal(goal))
         record = {
             "tool_calls": [s.call.name for s in ep.steps],
             "claimed": ep.success_claimed,

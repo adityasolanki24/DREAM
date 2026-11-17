@@ -37,6 +37,7 @@ from dream.runtime.search import PlacePlanner, RoomSearchPlanner  # noqa: E402
 from dream.sim.g1_mobile import G1MobileBase, G1MobileEnv, build_mobile_g1  # noqa: E402
 from dream.sim.room import add_room, sample_room  # noqa: E402
 from dream.tools.goals import GoToPlace, parse_goal  # noqa: E402
+from dream.tools.intent import spec_from_goal  # noqa: E402
 from dream.tools.mobile import MobileToolbox  # noqa: E402
 
 
@@ -62,7 +63,9 @@ def main() -> None:
         tb.preempt, tb.cancel = preempt, cancel
         planner = (PlacePlanner() if isinstance(task.goal, GoToPlace)
                    else Budgeted(RoomSearchPlanner("gain"), base, base.time + 240))  # fmt: skip
-        return TaskAgent(tb, planner, max_steps=60).run(task.goal, history=history, preempt=preempt)
+        return TaskAgent(tb, planner, max_steps=60).run(
+            task.goal, history=history, preempt=preempt, spec=spec_from_goal(task.goal, task.text)
+        )
 
     store = pathlib.Path(os.environ.get("LOCALAPPDATA", pathlib.Path.home())) / "DREAM/phone"
     store.mkdir(parents=True, exist_ok=True)

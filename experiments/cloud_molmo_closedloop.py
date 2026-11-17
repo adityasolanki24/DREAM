@@ -35,6 +35,7 @@ from dream.runtime.molmo import (  # noqa: E402
 from dream.session import LiveSession  # noqa: E402
 from dream.sim.camera import CameraSpec  # noqa: E402
 from dream.tools.goals import parse_goal  # noqa: E402
+from dream.tools.intent import spec_from_goal  # noqa: E402
 from experiments.cloud_molmo_openloop import download_checkpoint  # noqa: E402
 
 
@@ -97,7 +98,8 @@ def run_condition(backend, cfg: dict, sensor_cfg: dict, condition: str, out: Pat
     error = None
     try:
         if condition == "classical":
-            ep = TaskAgent(session.toolbox).run(parse_goal(f"in {cfg['goal_object']} tray"))
+            goal = parse_goal(f"in {cfg['goal_object']} tray")
+            ep = TaskAgent(session.toolbox).run(goal, spec=spec_from_goal(goal))
             records.append({"controller": "classical", "episode": ep.to_dict()})
         else:
             for i in range(cfg["max_inferences"]):

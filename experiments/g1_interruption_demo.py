@@ -44,6 +44,7 @@ from dream.runtime.search import PlacePlanner, RoomSearchPlanner  # noqa: E402
 from dream.sim.g1_mobile import G1MobileBase, G1MobileEnv, build_mobile_g1  # noqa: E402
 from dream.sim.room import add_room, sample_room  # noqa: E402
 from dream.tools.goals import GoToPlace, parse_goal  # noqa: E402
+from dream.tools.intent import spec_from_goal  # noqa: E402
 from dream.tools.mobile import MobileToolbox  # noqa: E402
 from experiments.g1_explore_room import Monitor, score  # noqa: E402
 
@@ -109,7 +110,11 @@ def episode(seed: int, cfg: dict, store: pathlib.Path, record: str | None = None
                     trigger["at"] = env.time + cfg["interrupt_after_s"]
 
         ep = TaskAgent(tb, planner, max_steps=cfg["max_steps"]).run(
-            task.goal, on_event, history=history, preempt=preempt
+            task.goal,
+            on_event,
+            history=history,
+            preempt=preempt,
+            spec=spec_from_goal(task.goal, task.text),
         )
         if isinstance(task.goal, GoToPlace) and ep.success_claimed:
             truth["entrance_error_m"] = entrance_error(env.true_pose(), room.start)

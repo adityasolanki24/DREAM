@@ -40,6 +40,7 @@ from dream.runtime.search import RoomSearchPlanner  # noqa: E402
 from dream.sim.g1_mobile import HEAD_CAMERA, G1MobileBase, G1MobileEnv, build_mobile_g1  # noqa: E402
 from dream.sim.room import add_room, sample_room  # noqa: E402
 from dream.tools.goals import Inspect  # noqa: E402
+from dream.tools.intent import spec_from_goal  # noqa: E402
 from dream.tools.mobile import MobileToolbox  # noqa: E402
 
 TO_OPTICAL = np.diag([1.0, -1.0, -1.0])  # MuJoCo camera axes -> optical axes
@@ -134,7 +135,9 @@ def main() -> None:
     base = G1MobileBase(env, WBCLocomotion.from_cache(), on_tick)
     tb = MobileToolbox(base, SpatialMemory(np.random.default_rng([args.seed, 2])), navigator="rpp")
     planner = Budgeted(RoomSearchPlanner("gain"), base, args.budget)
-    ep = TaskAgent(tb, planner, max_steps=40).run(Inspect("cabinet"))
+    ep = TaskAgent(tb, planner, max_steps=40).run(
+        Inspect("cabinet"), spec=spec_from_goal(Inspect("cabinet"))
+    )
     home = tb.call("go_to", {"x": 0.0, "y": 0.0, "heading": 0.0})  # revisit the first view
     for f in files.values():
         f.close()

@@ -45,6 +45,7 @@ from dream.sim.camera import CameraSpec  # noqa: E402
 from dream.sim.tabletop import sample_tabletop  # noqa: E402
 from dream.sim.tabletop_env import TabletopEnv  # noqa: E402
 from dream.tools.goals import InRegion, OnTop  # noqa: E402
+from dream.tools.intent import spec_from_goal  # noqa: E402
 from dream.tools.toolbox import Toolbox  # noqa: E402
 
 
@@ -77,7 +78,7 @@ def episode(args: tuple) -> dict:
     tb = Toolbox(env.embodiment(), perception, rng=np.random.default_rng([seed, 3]))
     goal = InRegion(colors[0], "tray") if task == "tray" else OnTop(colors[0], colors[1])
     t0 = time.perf_counter()
-    ep = TaskAgent(tb, RuleBasedPlanner(max_attempts=attempts)).run(goal)
+    ep = TaskAgent(tb, RuleBasedPlanner(max_attempts=attempts)).run(goal, spec=spec_from_goal(goal))
     wall = time.perf_counter() - t0
     env.step(250)
     if task == "tray":

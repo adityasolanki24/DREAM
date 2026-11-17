@@ -70,6 +70,7 @@ from dream.tools.intent import (  # noqa: E402
     ground_request,
 )
 from dream.tools.mobile import MobileToolbox  # noqa: E402
+from experiments.nov7_baseline import UngatedTaskAgent  # noqa: E402
 
 GRID_SIZE = 24.0  # m: homes reach 11 m from the start (dream/sim/home.EXTENT_LIMIT)
 MEMORY_MAP = "episode-odometry"
@@ -364,7 +365,9 @@ def _run(home, job, cfg, arm, t0) -> dict:
         chosen = planner
         if "substitute_after_s" in arm:  # fault injection (goal-consistency ablation)
             chosen = SubstitutingPlanner(planner, toolbox, target, arm["substitute_after_s"])
-        agent = TaskAgent(toolbox, TimeBudget(chosen, meter, cfg["time_budget_s"]),
+        # gate: false is the measured ablation without the original-request guard.
+        agent_cls = TaskAgent if arm.get("gate", True) else UngatedTaskAgent
+        agent = agent_cls(toolbox, TimeBudget(chosen, meter, cfg["time_budget_s"]),
                           max_steps=cfg["max_steps"])  # fmt: skip
         instances = [
             TrueInstance(o.instance_id, o.cls, np.array(o.xy, float), np.array(o.half[:2], float),
@@ -387,8 +390,7 @@ def _run(home, job, cfg, arm, t0) -> dict:
             if diag is not None:
                 diag.on_event(kind, data)
 
-        episode = agent.run(goal, on_event=on_event,
-                            spec=spec if arm.get("gate", True) else None)  # fmt: skip
+        episode = agent.run(goal, on_event=on_event, spec=spec)
         shadow.check()  # the state after the last step
         verdict = toolbox.call("verify_goal", {"goal": goal}).data
         stored = write_back(mem, world, target, hints, verdict, 1_000_000.0 + meter.time)

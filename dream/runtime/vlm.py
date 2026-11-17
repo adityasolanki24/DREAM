@@ -212,6 +212,12 @@ class VLMEpisode:
 
 
 class VLMAgent:
+    """The legacy Panda tabletop model loop: the model picks tool calls turn by turn.
+
+    It is not guarded by the original-request record (``GoalSpecification``,
+    dream/tools/intent.py): the only check on what it accomplishes is ``expected_goal``
+    verification, when a caller supplies one. Mobile and language paths use ``TaskAgent``."""
+
     def __init__(
         self,
         toolbox: Toolbox,

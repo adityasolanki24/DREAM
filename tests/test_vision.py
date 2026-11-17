@@ -238,12 +238,13 @@ def test_camera_driven_pick_and_place_is_true_in_the_world(task):
     from dream.eval.manipulation import object_in_tray, object_on_top
     from dream.runtime.agent import TaskAgent
     from dream.tools.goals import InRegion, OnTop
+    from dream.tools.intent import spec_from_goal
     from dream.tools.toolbox import Toolbox
 
     _, env = _env(7)
     vis = _vision(env)
     goal = InRegion("red", "tray") if task == "tray" else OnTop("red", "blue")
-    ep = TaskAgent(Toolbox(env.embodiment(), vis)).run(goal)
+    ep = TaskAgent(Toolbox(env.embodiment(), vis)).run(goal, spec=spec_from_goal(goal))
     env.step(250)
     truth = object_in_tray(env, "red") if task == "tray" else object_on_top(env, "red", "blue")
     assert ep.success_claimed and truth

@@ -11,7 +11,16 @@ import pytest
 
 from dream.runtime.agent import Finish, TaskAgent, ToolCall
 from dream.runtime.mobile_model import interpret_mobile_goal, propose_grounding
-from dream.tools.goals import FindObject, GoToObserved, GoToPlace, Inspect, UnsupportedGoal
+from dream.tools.goals import (
+    FindObject,
+    GoToObserved,
+    GoToPlace,
+    InRegion,
+    Inspect,
+    NaturalLanguageGoal,
+    OnTop,
+    UnsupportedGoal,
+)
 from dream.tools.intent import (
     DELIVERED,
     GRASPED,
@@ -27,6 +36,7 @@ from dream.tools.intent import (
     check_binding,
     default_vocabulary,
     ground_request,
+    spec_from_goal,
 )
 from dream.tools.toolbox import ToolResult
 
@@ -210,13 +220,19 @@ def _frozen(case: str):
         ("s7_T4", Inspect("cabinet", 1)),
     ],
 )
-def test_frozen_substitutions_are_reproduced_without_spec_and_refused_with_it(case, original):
+def test_frozen_substitutions_are_reproduced_by_the_baseline_and_refused_with_a_spec(
+    case, original
+):
     if not (FROZEN / case).is_dir():
         pytest.skip("frozen Qwen evidence not present")
     output, request = _frozen(case)
     scene, places = request["observed_scene"], set(request["available_places"])
-    old = interpret_mobile_goal(Scripted([output]), request["request"], places, scene, lambda: None)
-    assert old == original  # the 7 Nov behaviour, unchanged without a spec
+    from experiments.nov7_baseline import interpret_mobile_goal_nov7
+
+    old = interpret_mobile_goal_nov7(
+        Scripted([output]), request["request"], places, scene, lambda: None
+    )
+    assert old == original  # the 7 Nov behaviour, kept only as the comparison baseline
     spec = ground_request(request["request"], OBJECTS, ROOMS, places=places)
     new = interpret_mobile_goal(
         Scripted([output]), request["request"], places, scene, lambda: None, spec=spec
@@ -254,9 +270,64 @@ def test_agent_refuses_an_inconsistent_binding_before_acting():
     assert "look_around" not in tools.calls and ep.spec is spec
 
 
-def test_agent_without_spec_keeps_the_old_behaviour():
-    ep = TaskAgent(FakeToolbox(), ClaimsSuccess()).run(GoToPlace("entrance"))
-    assert ep.success_claimed
+def test_agent_requires_the_original_request():
+    for kwargs in ({}, {"spec": None}):
+        with pytest.raises(TypeError):
+            TaskAgent(FakeToolbox(), ClaimsSuccess()).run(GoToPlace("entrance"), **kwargs)
+
+
+def test_only_the_experiment_ablation_agent_runs_without_the_guard():
+    from experiments.nov7_baseline import UngatedTaskAgent
+
+    ep = UngatedTaskAgent(FakeToolbox(), ClaimsSuccess()).run(GoToPlace("entrance"))
+    assert ep.success_claimed and ep.spec is None  # the measured 7 Nov behaviour
+
+
+TYPED_GOALS = [
+    InRegion("red", "tray"),
+    OnTop("red", "blue"),
+    Inspect("cabinet"),
+    Inspect("cabinet", candidate=3),
+    GoToPlace("entrance"),
+    FindObject("refrigerator"),
+    FindObject("refrigerator", outcome="reached"),
+    GoToObserved(1.0, 2.0, "candidate:2:side:3"),
+    UnsupportedGoal("no such skill"),
+]
+
+
+@pytest.mark.parametrize("goal", TYPED_GOALS, ids=lambda g: type(g).__name__)
+def test_spec_from_goal_binds_every_supported_goal_type(goal):
+    spec = spec_from_goal(goal)
+    assert spec.grounding == "typed" and spec.original_instruction == repr(goal)
+    assert check_binding(spec, goal)[0]
+    assert spec_from_goal(goal, "do the thing").original_instruction == "do the thing"
+    assert spec_from_goal(goal).digest == spec.digest  # deterministic
+
+
+def test_spec_from_goal_covers_every_goal_type_in_the_goal_union():
+    import typing
+
+    from dream.tools.goals import Goal
+
+    covered = {type(g) for g in TYPED_GOALS}
+    assert set(typing.get_args(Goal)) == covered
+
+
+@pytest.mark.parametrize(
+    "goal", [GoToObserved(1.0, 2.0, "frontier:0"), NaturalLanguageGoal("find the fridge")]
+)
+def test_spec_from_goal_refuses_steps_and_uninterpreted_requests(goal):
+    with pytest.raises(ValueError):
+        spec_from_goal(goal)
+
+
+def test_a_typed_record_still_refuses_a_different_goal_and_spec_is_immutable():
+    spec = spec_from_goal(GoToPlace("entrance"))
+    assert not check_binding(spec, GoToPlace("kitchen"))[0]
+    assert not check_binding(spec, Inspect("cabinet"))[0]
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        spec.required_outcome = LOCALIZED  # type: ignore[misc]
 
 
 def test_agent_rejects_a_claim_the_verifier_does_not_support():

@@ -38,6 +38,7 @@ from dream.runtime.phone_api import PhoneAPI
 from dream.runtime.scheduler import TaskScheduler
 from dream.runtime.search import PlacePlanner, RoomSearchPlanner
 from dream.tools.goals import GoToPlace, Inspect, parse_goal
+from dream.tools.intent import spec_from_goal
 
 INTERRUPT_AT_ACTION = 2
 INTERRUPT_AFTER_S = 2.0
@@ -84,7 +85,11 @@ def run_commands(env, base, tb, home, map_id: str, cfg: dict, scorer, log, store
                     state["trigger"] = env.time + INTERRUPT_AFTER_S
 
         ep = TaskAgent(tb, planner, max_steps=cfg["max_steps"]).run(
-            task.goal, on_event, history=history, preempt=preempt
+            task.goal,
+            on_event,
+            history=history,
+            preempt=preempt,
+            spec=spec_from_goal(task.goal, task.text),
         )
         if not ep.reason.startswith("interrupted"):
             v = scorer(task.text, ep.success_claimed)

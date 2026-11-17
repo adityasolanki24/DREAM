@@ -8,6 +8,7 @@ from dream.runtime.agent import Finish, RuleBasedPlanner, Step, TaskAgent, ToolC
 from dream.sim.tabletop import sample_tabletop
 from dream.sim.tabletop_env import TabletopEnv
 from dream.tools.goals import InRegion, OnTop, parse_goal, resting_on, verify
+from dream.tools.intent import spec_from_goal
 from dream.tools.toolbox import TOOL_SPECS, Toolbox, ToolResult
 from dream.types import ObjectObservation
 
@@ -19,6 +20,11 @@ def _obs(name, x, y, z=0.02, size=0.04):
 
 
 # ----- goals ----------------------------------------------------------------------------
+
+
+def run_typed(agent, text):
+    goal = parse_goal(text)
+    return agent.run(goal, spec=spec_from_goal(goal, text))
 
 
 def test_parse_structured_goals_and_reject_everything_else():
@@ -255,13 +261,13 @@ def test_cancel_stops_a_tool_and_leaves_the_robot_holding_still():
 def test_same_tools_solve_tray_and_stack_goals_in_one_persistent_scene():
     env = _env(7)
     agent = TaskAgent(Toolbox(env.embodiment(), env))
-    ep = agent.run(parse_goal("in red tray"))
+    ep = run_typed(agent, "in red tray")
     env.step(250)
     assert ep.success_claimed and object_in_tray(env, "red")
-    ep = agent.run(parse_goal("on blue green"))
+    ep = run_typed(agent, "on blue green")
     env.step(250)
     assert ep.success_claimed and object_on_top(env, "blue", "green")
-    ep = agent.run(parse_goal("in green tray"))  # green is under blue: must clear it first
+    ep = run_typed(agent, "in green tray")  # green is under blue: must clear it first
     env.step(250)
     assert ep.success_claimed and object_in_tray(env, "green")
     assert [s.call.args.get("object") for s in ep.steps][:2] == ["blue", "blue"]
@@ -277,7 +283,7 @@ def test_read_only_tools_still_answer_while_cancel_is_set():
         assert tb.call(name).ok
     assert tb.call("verify_goal", {"goal": "in red tray"}).ok
     assert tb.call("grasp", {"object": "red"}).status == "stopped"
-    ep = TaskAgent(tb).run(parse_goal("in red tray"))
+    ep = run_typed(TaskAgent(tb), "in red tray")
     assert not ep.success_claimed and "cancel" in ep.reason
 
 

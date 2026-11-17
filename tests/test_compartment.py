@@ -122,11 +122,13 @@ def test_quasi_static_model_predicts_panda_probes_with_true_parameters(kind):
 def _run_task(kind, seed):
     from dream.runtime.agent import TaskAgent
     from dream.tools.goals import InRegion
+    from dream.tools.intent import spec_from_goal
     from dream.tools.toolbox import Toolbox
 
     spec, env = _env(kind, seed)
     tb = Toolbox(env.embodiment(), env, rng=np.random.default_rng(seed))
-    ep = TaskAgent(tb).run(InRegion("red", "compartment"))
+    goal = InRegion("red", "compartment")
+    ep = TaskAgent(tb).run(goal, spec=spec_from_goal(goal))
     env.step(250)
     return env, ep
 

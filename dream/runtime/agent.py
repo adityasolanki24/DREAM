@@ -268,7 +268,8 @@ class TaskAgent:
         on_event: Callable[[str, dict], None] | None = None,
         history: list[Step] | None = None,
         preempt=None,
-        spec: GoalSpecification | None = None,
+        *,
+        spec: GoalSpecification,
     ) -> Episode:
         """Run to completion, failure or the step budget.
 
@@ -280,7 +281,17 @@ class TaskAgent:
 
         ``spec`` is the user's original request (dream/tools/intent.py). With it, a goal that
         cannot establish the request is refused before any action, and a success claim is
-        accepted only if the goal still establishes the request when the episode ends."""
+        accepted only if the goal still establishes the request when the episode ends.
+        ``spec`` is required and always enforced: callers whose request is itself a typed goal
+        pass ``spec_from_goal(goal)``; language paths pass the record grounded from the text."""
+        if not isinstance(spec, GoalSpecification):
+            raise TypeError("TaskAgent.run needs the original request: spec=GoalSpecification")
+        return self._run(goal, on_event, history, preempt, spec)
+
+    def _run(self, goal, on_event, history, preempt, spec: GoalSpecification | None) -> Episode:
+        """The episode loop. ``spec`` is None only for a measured ablation that runs without
+        the original-request guard (an experiment subclass overriding ``run``); ``run`` itself
+        never allows it."""
         emit = on_event or (lambda kind, data: None)
         steps: list[Step] = list(history or [])
         emit(

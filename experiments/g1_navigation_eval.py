@@ -47,6 +47,7 @@ from dream.runtime.search import RoomSearchPlanner  # noqa: E402
 from dream.sim.g1_mobile import G1MobileBase, G1MobileEnv, build_mobile_g1  # noqa: E402
 from dream.sim.room import add_room, sample_room  # noqa: E402
 from dream.tools.goals import Inspect  # noqa: E402
+from dream.tools.intent import spec_from_goal  # noqa: E402
 from dream.tools.mobile import MobileToolbox  # noqa: E402
 from experiments.g1_explore_room import Monitor, score  # noqa: E402
 
@@ -118,7 +119,9 @@ def episode(args: tuple) -> dict:
 
     t0 = time.perf_counter()
     planner = Budgeted(RoomSearchPlanner("gain"), base, cfg["time_budget_s"])
-    ep = TaskAgent(tb, planner, max_steps=cfg["max_steps"]).run(Inspect("cabinet"), on_event)
+    ep = TaskAgent(tb, planner, max_steps=cfg["max_steps"]).run(
+        Inspect("cabinet"), on_event, spec=spec_from_goal(Inspect("cabinet"))
+    )
     approaches = [(int(c["args"]["candidate"]), int(c["args"]["side"])) for c in calls
                   if c["tool"] == "approach"]  # fmt: skip
     out = {

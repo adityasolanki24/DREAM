@@ -114,18 +114,17 @@ def _reached(frontier, scene) -> bool:
     )
 
 
-def interpret_mobile_goal(backend, utterance, places, scene, camera, spec=None, attempts=3):
+def interpret_mobile_goal(backend, utterance, places, scene, camera, *, spec, attempts=3):
     """Ask the selected VLM to map a spoken request to a supported typed mobile goal.
 
-    With ``spec`` (the immutable original request, dream/tools/intent.py) every proposed goal
-    must pass ``check_binding``: one that would complete something else is rejected and the
-    model is told why, up to ``attempts`` proposals, then the request is refused. Without
-    ``spec`` this is the 7 Nov 2026 behaviour, kept unchanged as the comparison arm."""
-    if spec is None:
-        return _interpret_once(backend, utterance, places, scene, camera)
+    ``spec`` is the immutable original request (dream/tools/intent.py), required: every
+    proposed goal must pass ``check_binding``. One that would complete something else is
+    rejected and the model is told why, up to ``attempts`` proposals, then the request is
+    refused. The unguarded 7 Nov 2026 behaviour (the model's goal taken as is) is kept only as
+    a measured comparison baseline in ``experiments/nov7_baseline.py``."""
     feedback: list[dict] = []
     for _ in range(attempts):
-        goal = _interpret_once(backend, utterance, places, scene, camera, spec, feedback)
+        goal = propose_mobile_goal(backend, utterance, places, scene, camera, spec, feedback)
         ok, why = check_binding(spec, goal)
         if ok:
             return goal
@@ -136,7 +135,9 @@ def interpret_mobile_goal(backend, utterance, places, scene, camera, spec=None, 
     )
 
 
-def _interpret_once(backend, utterance, places, scene, camera, spec=None, feedback=()):
+def propose_mobile_goal(backend, utterance, places, scene, camera, spec=None, feedback=()):
+    """One model proposal of a typed goal, unchecked. Not an entry point: callers use
+    ``interpret_mobile_goal``, which checks the proposal against the original request."""
     # Stable references supplied by the user are constraints, not a model-chosen replacement.
     words = {
         name: i

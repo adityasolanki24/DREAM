@@ -53,6 +53,7 @@ from dream.runtime.search import RoomSearchPlanner  # noqa: E402
 from dream.sim.g1_mobile import G1MobileBase, G1MobileEnv, build_mobile_g1  # noqa: E402
 from dream.sim.room import _footprint_ok, add_room, sample_room  # noqa: E402
 from dream.tools.goals import Inspect  # noqa: E402
+from dream.tools.intent import spec_from_goal  # noqa: E402
 from dream.tools.mobile import MobileToolbox  # noqa: E402
 from experiments.g1_explore_room import Monitor, score  # noqa: E402
 from experiments.g1_memory_demo import moved_room, summarise  # noqa: E402
@@ -107,7 +108,7 @@ def run(room, start, seed, cfg, memory=None, map_id=None, now=0.0, stored_grid=N
     tb = MobileToolbox(base, SpatialMemory(np.random.default_rng([seed, 2])), navigator="rpp")
     inner = Budgeted(RoomSearchPlanner("gain"), base, cfg["time_budget_s"])
     planner = RelocalisingPlanner(inner, tb, memory, map_id, now, stored_grid) if memory else inner
-    ep = TaskAgent(tb, planner, max_steps=cfg["max_steps"]).run(GOAL)
+    ep = TaskAgent(tb, planner, max_steps=cfg["max_steps"]).run(GOAL, spec=spec_from_goal(GOAL))
     out = {"start": list(start), "claimed": ep.success_claimed, "reason": ep.reason,
            "sim_s": env.time, "path_m": monitor.path_m, "contact_steps": monitor.contact_steps,
            "fell": base.stop_reason is not None,

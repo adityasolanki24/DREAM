@@ -156,24 +156,24 @@ def test_candidate_nine_path_is_not_enough_when_handle_ray_is_occluded():
 
 
 def test_saved_candidate_one_and_unsupported_request_are_structured():
-    from dream.runtime.mobile_model import interpret_mobile_goal
+    from dream.runtime.mobile_model import propose_mobile_goal
     from dream.tools.goals import GoToObserved, UnsupportedGoal
 
     records = json.loads((SAVED.parent / "subsequent_requests.json").read_text())["records"]
     original = records[0]
     message = json.loads(next(m["text"] for m in original["messages"] if m["role"] == "user"))
     backend = Sequence([("inspect_cabinet", {})])
-    goal = interpret_mobile_goal(
+    goal = propose_mobile_goal(
         backend, message["request"], {"entrance": [0, 0]}, message["observed_scene"], lambda: None
     )
     assert goal.candidate == 1
     backend = Sequence([("go_to_frontier", {"index": 0})])
-    goal = interpret_mobile_goal(
+    goal = propose_mobile_goal(
         backend, "go to that observed frontier", {}, message["observed_scene"], lambda: None
     )
     assert isinstance(goal, GoToObserved)
     backend = Sequence([("unsupported", {"reason": "no grasp or pen tool"})])
-    goal = interpret_mobile_goal(
+    goal = propose_mobile_goal(
         backend, "grab the black pen", {}, message["observed_scene"], lambda: None
     )
     assert isinstance(goal, UnsupportedGoal) and "Available" in goal.reason

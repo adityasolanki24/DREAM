@@ -52,6 +52,7 @@ from dream.runtime.search import RoomSearchPlanner  # noqa: E402
 from dream.sim.g1_mobile import G1MobileBase, G1MobileEnv, build_mobile_g1  # noqa: E402
 from dream.sim.room import add_room, sample_room  # noqa: E402
 from dream.tools.goals import Inspect  # noqa: E402
+from dream.tools.intent import spec_from_goal  # noqa: E402
 from dream.tools.mobile import MobileToolbox  # noqa: E402
 from experiments.code_version import code_dirty, code_sha  # noqa: E402
 
@@ -236,7 +237,9 @@ def episode(args: tuple) -> dict:
 
     t0 = time.perf_counter()
     planner = Budgeted(RoomSearchPlanner(method), base, cfg["time_budget_s"], method)
-    ep = TaskAgent(tb, planner, max_steps=cfg["max_steps"]).run(Inspect("cabinet"), on_event)
+    ep = TaskAgent(tb, planner, max_steps=cfg["max_steps"]).run(
+        Inspect("cabinet"), on_event, spec=spec_from_goal(Inspect("cabinet"))
+    )
     wall = time.perf_counter() - t0
     out = {
         "kind": kind, "seed": seed, "method": method, "claimed": ep.success_claimed,

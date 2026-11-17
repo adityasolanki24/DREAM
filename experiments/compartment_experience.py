@@ -44,6 +44,7 @@ from dream.sim.tabletop import sample_compartment_scene  # noqa: E402
 from dream.sim.tabletop_env import TabletopEnv  # noqa: E402
 from dream.skills import articulation as art  # noqa: E402
 from dream.tools.goals import InRegion  # noqa: E402
+from dream.tools.intent import spec_from_goal  # noqa: E402
 
 GOAL = InRegion("red", "compartment")
 MAP = "panda-table"
@@ -59,7 +60,7 @@ def session(spec, seed, cfg, memory, artifacts, clock_offset, recall: bool) -> t
     planner = RuleBasedPlanner(probe_budget=cfg["probe_budget"], exploration="eig",
                                opening="learned")  # fmt: skip
     t0 = time.perf_counter()
-    ep = TaskAgent(tb, planner, max_steps=cfg["max_steps"]).run(GOAL)
+    ep = TaskAgent(tb, planner, max_steps=cfg["max_steps"]).run(GOAL, spec=spec_from_goal(GOAL))
     env.step(250)
     probes = sum(int(s.result.data.get("interactions", 0)) for s in ep.steps
                  if s.call.name == "investigate_physics")  # fmt: skip

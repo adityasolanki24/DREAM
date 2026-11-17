@@ -40,6 +40,7 @@ from dream.tools.goals import (
     UnsupportedGoal,
     parse_goal,
 )
+from dream.tools.intent import ground_request, spec_from_goal, surface_forms
 from dream.tools.mobile import MobileToolbox
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -429,11 +430,16 @@ def make_run_task(toolbox, base, memory, providers, emit):
         def event(kind, data):
             emit(kind, {"id": task.id, **data})
 
+        spec = None
         if isinstance(task.goal, NaturalLanguageGoal):
             if choice is None or choice.backend_for is None or provider_id != "qwen":
                 raise ValueError("natural-language goal interpretation needs the Qwen provider")
             from dream.runtime.mobile_model import interpret_mobile_goal
 
+            # The grammar reads the user's words once; every model proposal must establish it.
+            spec = ground_request(
+                task.text, {"cabinet": surface_forms("cabinet")}, places=toolbox.places
+            )
             backend = choice.backend_for(model)
             backend.set_cancel_event(cancel)
             observed = toolbox.call("observe_scene")
@@ -445,6 +451,7 @@ def make_run_task(toolbox, base, memory, providers, emit):
                 toolbox.places,
                 observed.data,
                 lambda: None if memory.last_frame is None else memory.last_frame.rgb.copy(),
+                spec=spec,
             )
             event("goal_interpreted", {"goal": repr(task.goal), "model": model})
         if (
@@ -469,7 +476,11 @@ def make_run_task(toolbox, base, memory, providers, emit):
             )
 
         return TaskAgent(toolbox, planner, max_steps=60).run(
-            task.goal, on_event=event, history=history, preempt=preempt
+            task.goal,
+            on_event=event,
+            history=history,
+            preempt=preempt,
+            spec=spec or spec_from_goal(task.goal, task.text),
         )
 
     return run_task

@@ -27,6 +27,7 @@ from dream.runtime.exploration import ExplorationPlanner
 from dream.sim.camera import CameraSpec, RGBDCamera
 from dream.sim.g1 import G1Env, build_g1
 from dream.tools.goals import InRegion
+from dream.tools.intent import spec_from_goal
 from dream.tools.object_exploration import ExplorationToolbox
 from dream.types import CameraCalibration, RGBDFrame
 from experiments.g1_dexterous import write_json
@@ -203,7 +204,7 @@ def run_case(
         try:
             if config["backend"] == "deterministic":
                 episode = TaskAgent(tools, ExplorationPlanner(), max_steps=config["max_steps"]).run(
-                    goal
+                    goal, spec=spec_from_goal(goal)
                 )
             elif config["backend"] == "qwen":
                 from dream.runtime.vlm import VLMAgent

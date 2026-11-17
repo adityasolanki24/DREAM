@@ -51,6 +51,7 @@ from dream.runtime.search import RoomSearchPlanner  # noqa: E402
 from dream.sim.g1_mobile import G1MobileBase, G1MobileEnv, build_mobile_g1  # noqa: E402
 from dream.sim.room import add_room, sample_room  # noqa: E402
 from dream.tools.goals import Inspect  # noqa: E402
+from dream.tools.intent import spec_from_goal  # noqa: E402
 from dream.tools.mobile import MobileToolbox  # noqa: E402
 from experiments.g1_explore_room import Monitor, score  # noqa: E402
 
@@ -114,7 +115,9 @@ def run(
     )
     t0 = time.perf_counter()
     log = (lambda k, d: rec.event(k, str(d)[:60])) if rec else None
-    ep = TaskAgent(tb, planner, max_steps=cfg["max_steps"]).run(GOAL, log)
+    ep = TaskAgent(tb, planner, max_steps=cfg["max_steps"]).run(
+        GOAL, log, spec=spec_from_goal(GOAL)
+    )
     out = {"claimed": ep.success_claimed, "reason": ep.reason, "sim_s": env.time,
            "wall_s": time.perf_counter() - t0, "path_m": monitor.path_m,
            "contact_steps": monitor.contact_steps, "fell": base.stop_reason is not None,
