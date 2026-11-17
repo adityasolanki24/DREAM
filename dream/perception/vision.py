@@ -27,7 +27,7 @@ from dataclasses import replace
 import numpy as np
 
 from dream.perception.detect import Detection, detect
-from dream.perception.world import OPENING_MAX_AGE_S, Track, WorldModel, entity_class
+from dream.perception.world import OPENING_MAX_AGE_S, WorldModel, WorldTrack, entity_class
 from dream.types import ArticulatedObservation, ObjectObservation, RGBDFrame
 
 STD_SCALE = 1.0  # uncertainty inflation (see the README for the measured calibration)
@@ -158,7 +158,7 @@ class VisionPerception:
             )
         return out
 
-    def _face_normal(self, receptacle: Track, handle: Track) -> np.ndarray:
+    def _face_normal(self, receptacle: WorldTrack, handle: WorldTrack) -> np.ndarray:
         """Outward normal of the receptacle side the handle protrudes from, fixed at first
         sight (later views of an opened box no longer show which side was the front)."""
         n = self._face.get(receptacle.id)

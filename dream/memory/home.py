@@ -57,7 +57,7 @@ CREATE INDEX IF NOT EXISTS obs_object ON observations (object_id, time);
 
 
 @dataclass(frozen=True)
-class Belief:
+class ObjectBelief:
     """Where an object is believed to be, and how far that belief can be trusted."""
 
     object_id: str
@@ -210,7 +210,7 @@ class HomeMemory:
         return "observed" if now - t_last <= FRESH_S else "remembered"
 
     # -- queries ------------------------------------------------------------------------------
-    def where_is(self, label: str, map_id: str, now: float | None = None) -> list[Belief]:
+    def where_is(self, label: str, map_id: str, now: float | None = None) -> list[ObjectBelief]:
         """Every known instance of ``label``, most trustworthy first."""
         t = self.clock() if now is None else float(now)
         out = []
@@ -224,7 +224,7 @@ class HomeMemory:
             state = self._state(oid, t)
             age = t - last[0]
             conf = 0.0 if state == "missing" else last[5] * 0.5 ** (max(age, 0) / HALF_LIFE_S)
-            out.append(Belief(oid, lab, np.array(last[1:4]), last[7], last[0], age, state,
+            out.append(ObjectBelief(oid, lab, np.array(last[1:4]), last[7], last[0], age, state,
                               conf, last[6], n))  # fmt: skip
         return sorted(out, key=lambda b: -b.confidence)
 
@@ -237,7 +237,7 @@ class HomeMemory:
         keys = ("time", "x", "y", "z", "sigma", "confidence", "source", "place_id")
         return [dict(zip(keys, r, strict=True)) for r in rows]
 
-    def objects_in(self, place: str, now: float | None = None) -> list[Belief]:
+    def objects_in(self, place: str, now: float | None = None) -> list[ObjectBelief]:
         t = self.clock() if now is None else float(now)
         labels = self.db.execute("SELECT DISTINCT label, map_id FROM objects").fetchall()
         return [b for lab, m in labels for b in self.where_is(lab, m, t)

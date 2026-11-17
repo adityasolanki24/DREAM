@@ -39,7 +39,7 @@ def entity_class(kind: str) -> str:
 
 
 @dataclass(frozen=True)
-class Track:
+class WorldTrack:
     id: int
     detection: Detection  # the estimate currently believed
     last_seen: float  # s
@@ -52,19 +52,19 @@ class Track:
 
 class WorldModel:
     def __init__(self) -> None:
-        self.tracks: list[Track] = []
+        self.tracks: list[WorldTrack] = []
         self._next = 1
         self.time = -np.inf
 
     def update(self, detections: list[Detection], time: float) -> None:
         self.time = time
         unmatched = list(range(len(self.tracks)))
-        new: list[Track] = []
+        new: list[WorldTrack] = []
         for d in sorted(detections, key=lambda d: d.occluded):  # full views claim tracks first
             i = self._match(d, unmatched, detections)
             if i is None:
                 new.append(
-                    Track(
+                    WorldTrack(
                         self._next,
                         d,
                         time,
@@ -158,7 +158,7 @@ class WorldModel:
     def _compatible(a: Detection, b: Detection) -> bool:
         return entity_class(a.kind) == entity_class(b.kind) and a.color == b.color
 
-    def handle_of(self, receptacle: Track) -> Track | None:
+    def handle_of(self, receptacle: WorldTrack) -> WorldTrack | None:
         """The originally associated handle, even when opening moves another handle closer."""
         return next((t for t in self.tracks if t.id == receptacle.handle_id), None)
 
