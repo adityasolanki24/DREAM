@@ -342,3 +342,12 @@ def test_agent_accepts_a_consistent_verified_claim():
     spec = ground_request("Find the refrigerator", OBJECTS)
     ep = TaskAgent(FakeToolbox(), ClaimsSuccess()).run(FindObject("refrigerator"), spec=spec)
     assert ep.success_claimed and ep.to_dict()["spec"]["digest"] == spec.digest
+
+
+def test_spec_record_survives_a_json_round_trip():
+    """Episode files store the record as JSON; tuple fields must come back equal (regression:
+    tests/test_cloud.py compared a saved episode with the in-memory one and failed)."""
+    spec = ground_request("find the cabinet and inspect it", default_vocabulary(["cabinet"]))
+    record = spec.to_dict()
+    assert json.loads(json.dumps(record)) == record
+    assert record["digest"] == spec.digest

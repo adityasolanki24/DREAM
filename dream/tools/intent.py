@@ -109,7 +109,8 @@ class GoalSpecification:
         return hashlib.sha256(blob).hexdigest()[:16]
 
     def to_dict(self) -> dict:
-        return {**asdict(self), "digest": self.digest}
+        """JSON-native form (tuples as lists) so a saved record reloads equal to this one."""
+        return {**json.loads(json.dumps(asdict(self))), "digest": self.digest}
 
 
 def normalise(text: str) -> str:
