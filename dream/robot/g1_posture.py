@@ -10,9 +10,8 @@ choice of arm are never coded as rules: every candidate (stance x arm) runs the 
 differential IK with the same tasks and limits.
 
 IK PROPOSES, PHYSICS DISPOSES (PLAN C5). Mink IK and the static gravity-torque proxy only RANK
-candidates; passing them proves nothing about feasibility. The feasibility gate is a contact-
-aware rollout of the real controller on a planning copy (dream/robot/g1_rollout.py), followed by
-the monitored real execution, which is the only thing that counts as success.
+candidates; passing them proves nothing about feasibility. The feasibility test is the
+monitored real execution of the real controller, which is the only thing that counts as success.
 
 IK (Mink 1.3.0, Apache-2.0, example humanoid_g1.py as the idiom), per candidate:
 - feet FrameTasks pinned flat at the stance (position and orientation, heavy);

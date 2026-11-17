@@ -251,7 +251,7 @@ class ExecutionReport:
     stops: list[StopEvent] = field(default_factory=list)
     trace: list[dict[str, object]] = field(default_factory=list)
     refused: str | None = None  # why the backend did not start
-    # Closed-loop correction iterations (dream/robot/g1_correction.py): one dict per iteration.
+    # Closed-loop correction iterations: one dict per iteration.
     iterations: list[dict[str, object]] = field(default_factory=list)
     # The last target sent to the backend by a closed-loop correction (the baseline for a
     # following correction stage); None when nothing was sent.
