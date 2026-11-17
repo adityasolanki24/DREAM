@@ -1,23 +1,228 @@
 # DREAM
 
-Research toward general-purpose embodied intelligence: receive an unfamiliar physical goal,
-observe, investigate, compose available skills, verify the outcome, and recognise limits.
-**General-purpose task completion is the objective, not an established capability.**
-`AGENTS.md` is the engineering and behavioural contract; `CLAUDE.md` aliases it.
+DREAM is research toward general-purpose embodied intelligence: receive an unfamiliar physical goal, observe,
+investigate, compose available skills, verify the outcome and recognise limits. Everything here is simulation
+(MuJoCo, plus Isaac Sim for some Unitree G1 work), and odometry or object tracking is oracle-assisted almost
+everywhere. **General-purpose task completion is the objective, not an established capability.** The G1 has not yet
+carried out reliable whole-body interaction: its grasps are development results with oracle-assisted inputs.
+[`AGENTS.md`](AGENTS.md) is the engineering and behavioural contract (`CLAUDE.md` aliases it), and
+[`Reports/`](Reports/INDEX.md) is the chronological record of every task and run. This file is the status record.
 
-This README is the research report of 9 November 2026. It covers the object-search and
-goal-consistency work on `claude/semantic-goal-search-20261108`, on top of the closeout of 7
-November. For the closeout, every item, with its success criteria, baseline, repro command, cost
-and evidence, is in
-[`results/research_closeout_20261106/inventory.json`](results/research_closeout_20261106/inventory.json).
-The previous README is preserved in `archive/documentation-closeout-20261107.zip`.
+## Start here
+
+Install (Python 3.10 or later; MuJoCo is pinned to 3.16.0; `mink` and `daqp` are core dependencies; Pillow is
+imported only when JPEG encoding runs). From the repository root, on Windows:
+
+```powershell
+python -m venv .venv
+.venv/Scripts/python.exe -m pip install -e ".[dev,locomotion]"
+.venv/Scripts/python.exe experiments/fetch_wbc_policy.py   # NVIDIA walking weights, cached outside Git; G1 commands need them
+```
+
+Run scripts from the repository root as modules (`python -m experiments.<name>`), so that `dream` resolves to this
+checkout and not to another editable install. The table lists what was run on 17 November 2026 at `a1e3297`, one
+worker, on the development laptop (CPU only), with logs outside the repository. Times include start-up.
+
+| Workflow | Command (short variant) | Time | What it prints and writes |
+|---|---|---|---|
+| Fast tests | `python -m pytest -q -m "not slow"` | about 5 min (not rerun here) | pass/fail summary; the slow suite is `-m slow` |
+| Isolation test | `python -m pytest tests/test_isolation.py -q` | 2 s | 38 passed; checks that decision code imports no simulator or robot module |
+| Reports check | `python -m experiments.reports check` | under 1 s | `ok: 15 task(s) checked`; exit 1 lists any incomplete report |
+| Panda pick and place | `python -m experiments.run_pick_place --n 1 --workers 1` | 8 s | JSON summary (1/1 placed, 1.2 mm error). **Overwrites the committed `results/pick_place/`: run it in a scratch clone or `git restore results/pick_place` afterwards** |
+| Panda task agent | `python -m experiments.run_tasks <config> --workers 1` | 9 s | one table row per task, condition and method. Needs a one-episode config (`n: 1`, one task, one condition, `agent`); it also writes `results/tasks/` |
+| G1 room search (MuJoCo) | `python -m experiments.g1_explore_room experiments/configs/g1_explore_room_smoke.json --workers 1 --out <dir>` | 10 min for the 3 episodes of this config on a loaded laptop; 87 s for a one-episode copy (`seeds` `{"nominal": [0, 1]}`, no `no_cabinet`, empty `record`) | `episodes.jsonl` with one row per episode (claimed, success, false claim, falls, path); the first episode also records frames to `C:\tmp\DREAM\recordings` |
+| Phone session | `python experiments/phone_session.py --seed 4100 --port 8791` | ready in 2 s | prints `serving http://127.0.0.1:8791/` and the token file path; `GET /` returns 200 and `/api/tasks` returns 401 without the token. Stop with Ctrl+C. It stores tasks and the token under `%LOCALAPPDATA%/DREAM/phone` |
+| Semantic object search | `python -m experiments.semantic_search_eval experiments/configs/semantic_search_dev.json --split smoke --arms proposed --limit 1 --workers 1 --out <dir>` | 26 s | `[1/1 25s] proposed B refrigerator s100: success target_found_verified`, then a JSON count; writes `episodes.jsonl` and `summary.json` to `<dir>` |
+| G1 grasp bring-up (R1) | `python -m experiments.g1_grasp_bringup --config experiments/configs/g1_walk_grasp.json --out <dir>` | 34 s | a JSON record ending `grasp_verified: true`, peak lift 0.144 m (walks to a selected stance, then grasps; oracle-assisted object pose and odometry, development only); writes `summary.json`, `trace.json` and `metadata.json` to `<dir>`. The fixed-stance `g1_grasp_bringup.json` refuses in 3 s (`no verified trajectory`). Other cases are in `Reports/2026-11-10/003-r0-r1-start/REPORT.md` |
+
+Panda pick and place and the task agent go through `TaskAgent.run`, which now requires the original-goal record.
+Other commands, such as the long evaluations, are listed under Reproduction.
+
+**Reproducing a published result.** Each result directory under `results/` holds its config, seeds and git SHA, and
+frozen configs name the commit they ran from (`frozen_commit`; those IDs are pre-rewrite, mapped in
+`results/commit_map_20261109.json`). Check out that commit, run the command recorded for the result and write to a
+new output directory. Recorded commands are in `results/research_closeout_20261106/inventory.json` (one entry per
+closeout item, with its success criteria, baseline, command, cost and evidence), in the run metadata under
+`Reports/` (`metadata.json`, field `command`) and in the Reproduction section below. Results from before the Reports
+system have only the commands that those files record.
+
+## How DREAM works
+
+One reusable loop, `TaskAgent.run` (`dream/runtime/agent.py`), serves every goal that is not a model-driven tabletop
+instruction. Reasoning chooses typed tools. Deterministic control and safety sit below the tool boundary and cannot be
+overridden by it.
+
+```
+REASONING (typed tool calls only)        CONTROL AND SAFETY (deterministic)       SIMULATOR (ground truth)
+GoalSpecification -> binding check  -->  Toolbox.call: schema, preconditions, -->  MuJoCo / Isaac Sim; truth is
+planner.next_action(goal, scene,         cancel, protective stop                    read only by dream/eval
+  verdict, history)                      skills / navigation -> robot adapter
+        ^                                (Panda IK; WBC velocity for the G1)               |
+        +---- observe_scene, verify_goal, get_robot_state, finish-time binding check <----+
+```
+
+1. **Receive and preserve the original goal.** `TaskAgent.run(goal, ..., spec=)` raises `TypeError` without a
+   `GoalSpecification` (`dream/tools/intent.py`): a frozen, hashed record of the request text, target and required
+   outcome. A caller whose request is already a typed goal builds it with `spec_from_goal`.
+2. **Interpret and bind.** `ground_request` reads the text with an explicit grammar; if that fails,
+   `propose_grounding` (`dream/runtime/mobile_model.py`) asks a language model, and `check_anchoring` requires its
+   words to come from the request. `bind_request` produces a typed goal (`dream/tools/goals.py`), `assess_support`
+   refuses unsupported requests before any motion, and `check_binding` confirms that the goal still serves the record.
+   Structured goals can also come straight from `parse_goal`.
+3. **Observe.** Each step calls `observe_scene`, `verify_goal` and `get_robot_state` through the toolbox
+   (`Toolbox._observe_scene` for the Panda, `MobileToolbox._observe_scene` for the G1).
+4. **Update the world model.** The Panda uses `VisionPerception` and `WorldModel` (or the oracle tracker). The mobile
+   robot uses `SpatialMemory` and the occupancy grid (`dream/perception/`) and, for object search, `SemanticWorld`
+   (`dream/semantics/world.py`) with `SemanticMap` tracks.
+5. **Choose the next action.** `planner.next_action(goal, scene, verdict, history)` returns a tool call or a finish.
+   Planners: `RuleBasedPlanner` (Panda), `RoomSearchPlanner`, `SemanticSearchPlanner`, `MobileModelPlanner` (a model
+   picks one admissible action), and others in `dream/runtime/`.
+6. **Execute through tools.** `Toolbox.call` validates arguments and preconditions, then runs a skill
+   (`dream/skills/`) or a mobile primitive. Mobile motion goes `dream/navigation/` (Dijkstra, frontiers, path
+   following) -> `G1MobileBase.walk` -> `WBCLocomotion.set_command` -> MuJoCo. Panda motion goes
+   `dream/skills/manipulation.py` -> `dream/robot/panda.py`.
+7. **Verify independently.** `verify_goal` checks the world state, not the planner's claim: `tools.goals.verify`
+   (Panda), `MobileToolbox._verify_goal` (G1) and, for search, `dream/semantics/verify.py` (multi-view track purity).
+   At finish, a success stands only if `check_binding` holds and the verdict confirms the **original** request;
+   otherwise the outcome becomes `goal_substitution_rejected`.
+8. **Continue, recover, refuse or stop.** The loop repeats from step 3. `RuleBasedPlanner` retries failures; a goal
+   the grammar cannot ground is refused (`UnsupportedGoal`); typed terminal outcomes include
+   `target_found_verified`, `search_exhausted` and `goal_unsupported`. The loop also stops on a protective stop,
+   cancellation, preemption (the task suspends at an action boundary), the step budget or the robot-time budget
+   (`Budgeted`, `dream/runtime/budget.py`).
+
+Discovery on the Panda (`investigate_opening` in `dream/tools/discovery.py`) is one tool within this loop: it uses
+`dream/agent/` (belief, expected-information-gain probe selection, quasi-static model, constraint-following opening).
+
+## Where things happen
+
+- **Where does execution begin?** A script in `experiments/` constructs a toolbox and planner and calls
+  `TaskAgent.run`; the live path is `LiveSession.submit` (`dream/session.py`, Panda only) or
+  `TaskScheduler` and `PhoneAPI` (`dream/runtime/scheduler.py`, `phone_api.py`, started by
+  `experiments/phone_session.py`).
+- **What happens when a goal is submitted?** The record is made, the goal is bound and checked, and the loop in steps
+  1 to 8 above runs (`TaskAgent._run`).
+- **Which component interprets the goal?** The explicit grammar (`dream/tools/goals.py`, `intent.py`), and optionally
+  a language model that only proposes a grounding (`dream/runtime/mobile_model.py`). `VLMAgent`
+  (`dream/runtime/vlm.py`) is the older Panda tabletop loop in which a model chooses tools directly.
+- **Where does perception happen?** `dream/sim/camera.py` renders RGB-D; `dream/perception/` detects, maps and
+  tracks; `dream/semantics/` fuses detections for search.
+- **What is estimated and what comes from an oracle?** See the next section for each pipeline.
+- **Which module plans robot motion?** Panda: `dream/robot/panda.py` (differential IK, workspace and force limits).
+  Mobile G1: `dream/navigation/planning.py`, `follow.py`, `rpp.py`. G1 grasp bring-up: `dream/robot/g1_posture.py`
+  (mink IK) and `wholebody.py`, reachable only from `experiments/g1_grasp_bringup.py`.
+- **How does the G1 controller receive commands?** `dream/robot/g1_wbc.py` runs NVIDIA's two ONNX policies at 50 Hz
+  (physics 200 Hz). `set_command(vx, vy, wz)` rejects values beyond `MAX_COMMAND` (0.5, 0.3, 0.6) and does not clip;
+  `set_posture` takes height and orientation within fixed ranges; arm targets are PD-held. Navigation reaches it
+  through `G1MobileBase.walk` (`dream/sim/g1_mobile.py`), updating velocity every 0.1 s and replanning every 1 s
+  (`dream/tools/mobile.py`). The whole-body grasp path (`dream/robot/wholebody.py`) sets posture and arm targets on
+  each 50 Hz tick under `g1_supervisor.py`.
+- **How is success independently verified?** `verify_goal` and the finish-time check (step 7), then scoring against
+  ground truth in `dream/eval/` (for example `semantic_scoring.py`), which the agent cannot import.
+- **Where are failures handled?** In the toolbox (precondition and safety refusals), the planner (retries, bounded
+  recovery in `semantic_search.py`), the agent loop (stops, typed outcomes) and the WBC fall latch (`FALL_TILT`).
+- **Which components are experimental?** Listed under Module map. In short: the T1 Isaac chain, the G1 grasp stack,
+  the Isaac assisted grasp, `VLMAgent`, MolmoAct2 and VoLoAgent code, and `dream/memory/experience.py`.
+- **How can a published result be reproduced?** See "Reproducing a published result" above.
+
+## Oracle versus estimated
+
+What decision code receives from the simulator. Ground truth otherwise reaches only scene construction and
+`dream/eval/` scoring; `tests/test_isolation.py` enforces that.
+
+| Pipeline | Estimated from sensors | Oracle-assisted (true state, usually with noise) |
+|---|---|---|
+| Panda tabletop and compartment, oracle arm | Proprioception; contact is real physics | Object pose and yaw (true plus Gaussian noise), exact size, colour equal to the object name, no occlusion or misses; exact tray geometry; compartment handle pose, bounding box and visible cavity (`observe_articulated`) |
+| Panda, camera arm | Objects and compartments from rendered RGB-D (`VisionPerception`) | None for objects; scenes still use box-like objects and a colour-and-depth detector |
+| Mobile G1 search (MuJoCo) | Occupancy, frontiers and path following from rendered depth; furniture candidates from `detect.py` plus a colour heuristic | Odometry: true increments with noise and gyro bias, no drift correction; in object search, detections are the true instance segmentation with an assumed noise model (`SemanticCamera`), on the G1 or a kinematic surrogate base |
+| G1 grasp (R1), `g1_grasp_bringup.py` | Hand pose from forward kinematics of the robot's own sensors; contact and tactile signals are real | Object pose, table geometry, start pose and localisation; odometry with noise; obstacles supplied as boxes; shared 0.10 kg mass prior |
+| Gantry (Active Physical Discovery) | Noisy sensor observations of the probed mechanism | None; handle position is sampled independently of the joint; truth is used for scoring only |
+| Isaac Sim G1 | Detections from Qwen3-VL on rendered RGB; head camera | Odometry from true increments (`G1MobileEnv._integrate_odometry`) |
+
+Sources: `Reports/2026-11-17/001-architecture-cleanup/inventory/body.md`, section 6.
+
+## Capability status
+
+Status classes. **Verified**: met its stated gate or test, scored independently, under the conditions in the last
+column. **Narrow simulation**: met a gate only with oracle-assisted inputs or a surrogate named there. **Partial**:
+some arms or gates pass, or the evidence is descriptive. **Failed**: a pre-registered gate failed or the outcome
+was negative. **Experimental**: code exists without a validated claim. **Not evaluated**: no evidence, or blocked.
+
+| Capability | Status class | Evidence | Main limitation |
+|---|---|---|---|
+| Original-goal record and completion gate (goal consistency) | Verified | Replay and fault injection in `results/semantic_search_heldout/H1_ablations` (7/40 false claims without it, 0/40 with it; L refused 10/10); `tests/test_intent.py`; Isaac re-test `results/isaac_semantic_eval` | Universal since this cleanup: `TaskAgent.run` requires the record (commit `90f65a6`), and the unguarded behaviour lives only in `experiments/nov7_baseline.py`. The measurements predate the cleanup; the guard is checked by unit tests, not re-measured end to end |
+| Active Physical Discovery on the gantry | Verified | `results/main/summary.json`; comparison table under Results (2.14 vs 5.18 probes) | Abstract gantry attaches by a constraint, not by contact; out-of-class mechanisms are not flagged (below) |
+| Object search, held-out H1 (kinematic base) | Narrow simulation | `results/semantic_search_heldout/H1_main`: proposed 83/87, 0/120 false claims, 0/87 false absence; G1, G2, G4 pass | Oracle segmentation with an assumed noise model on a kinematic surrogate; G0 passes in H1 but fails overall (H2) |
+| Object search, efficiency vs DREAM's explorer | Failed | `results/semantic_search_heldout/gates.json`: 46 vs 44 of 50, median paired difference 0 s, p = 0.73 | G3: no demonstrated improvement |
+| Object search, G1 whole-body controller (H4) | Narrow simulation | `results/semantic_search_heldout/H4`: 14/15 vs A 13/15; 0/24 false claims; 0 falls; G8 passes | Oracle segmentation; 48 episodes |
+| Object search, shifted homes and new targets (H2) | Failed | `results/semantic_search_heldout/H2`: proposed 31/32 vs A 29/32; 1/48 false claim (a shower claimed as the bathtub) | G0 and G7 fail; the record stands |
+| Object search, degraded detector (H3) | Narrow simulation | `results/semantic_search_heldout/H3`: proposed 14/16 vs A 11/16; 0/24 false claims; single-view verification 10/16 false claims | Reported as G6; assumed noise model |
+| Verifier confidence fix on fresh seeds (V1) | Narrow simulation | `results/semantic_search_verifier_v2/gates.json`: 0/192 false claims vs 1/192 for the frozen rule; found 94 vs 93 of 96; V1 and V2 pass | Nominal detector model on the kinematic base only; now the verifier default |
+| Room inference from objects | Partial | Heuristic weights, top-1 61%, cautious labels 62/70; laundry and storage 0% (`results/room_knowledge_comparison`) | ConceptNet knowledge never recognises laundry or storage rooms |
+| Qwen on Isaac G1, semantic re-test, held-out kitchens | Partial | `results/isaac_semantic_eval`: new path 0/9 false successes, 4/4 unsupported requests refused; old path 4/6 false successes; 0 falls | Gates incomplete: `l_island` never loaded; no rate is claimed |
+| Qwen on Isaac G1, frozen matrix | Failed | `results/isaac_qwen_closeout_20261107`: 3 false claims, T3 1/3, T4 2/3; falls 0, T1 3/3, T2 3/3 | Preserved as recorded; development kitchen, not held-out |
+| Same matrix after the viewpoint fix | Failed | `results/isaac_qwen_postfix_closeout`: same gate results; T2 2/3; hand contact in 2 of 15 cases | Development only; one run per case |
+| Whole-body W6 | Failed | Branch `claude/wholebody-autonomy` (8f47475): off-band 0.667 (0.70), refusal 0.864 (0.90); `Reports/2026-11-10/001-strategic-audit-and-plan/REPORT.md` | Held-out not run; not merged |
+| G1 R0 integration (model, controller, safety on one branch) | Verified | `Reports/2026-11-10/005-r0-integration-gate/REPORT.md` | Software integration checks only; no capability claim |
+| G1 R1 fixed-stance grasp and lift | Narrow simulation | `results/g1_r1_tabletop_dev_20261110/summary.json` (3/6 box fixtures), `results/g1_r1_bottle_dev_20261111/summary.json` (13/15 holds) | Development only; oracle-assisted object pose and odometry; heavy bottles and the sphere fail; broader R1 gate pending |
+| G1 R1 walking grasp | Narrow simulation | `results/g1_r1_walk_dev_20261111/summary.json`: three cubes pass the full gate, the cylinder slips | Development only; oracle-assisted pose, table geometry and odometry |
+| Panda pick and place | Verified | `results/pick_place/summary.json` (oracle 50/50), `results/vision/summary.json` (camera 39/40) | Cubes only; camera path is a colour-and-depth baseline for box-like objects |
+| Panda task agent vs fixed sequence | Verified | `results/tasks/summary.json`: agent 40/40 in every task and condition cell; fixed sequence 0/40 when disturbed | Panda tabletop only |
+| Compartment, oracle-assisted | Narrow simulation | `results/compartment/summary.json`: 27/30, 27/30, 30/30, 0 false claims | Oracle handle tracker; knob handle, shallow cavity, counterbalanced lid |
+| Compartment, camera | Failed | `results/compartment_vision_closeout/closeout_summary.json`: openable 11/20 (0.8 required); fixed 10/10; 0 false claims | Validated results still use the oracle tracker |
+| Out-of-class mechanisms | Failed | `results/compartment_out_of_class`: 0/16, 0 false claims, 0/16 flagged | Silent failure on a helical mechanism; open |
+| MolmoAct2 | Failed | `results/molmo_multichunk_closeout`: commands tracked 150/150; never reached the object or closed the gripper | Verified negative; one development seed |
+| GR00T | Not evaluated | `results/groot_openloop_preparation`, `results/groot_cuda_openloop` | Blocked: open-loop inference only |
+| Room search, frozen fresh seeds | Failed | `results/g1_explore_room_closeout`: 15/20, 4/10, 10/10; 0 false claims, 0 falls | Pre-registered gates failed; oracle-assisted odometry |
+| Room search, viewpoint fix | Partial | `results/g1_explore_room_postfix_closeout`: retention rule met in all arms | A fix on seen seeds, not a validation |
+| Gain vs nearest frontier | Not evaluated | `results/g1_explore_room_closeout/summary.json`: 7 divergent decisions, under the required 10 | Too few divergent decisions |
+| Navigation, RPP vs classic | Partial | `results/g1_navigation_heldout`, `results/g1_navigation_heldout_v2`: v1 RPP 25/30 vs classic 29/30; v2 28/30 each | No superiority; both navigators remain in use |
+| Home memory | Partial | `results/g1_memory_demo/summary.json`: recall 5/5, median 34.8 vs 69.0 s | Worse when an object moved; `dream/memory/experience.py` is a prototype |
+| Model-led recovery | Not evaluated | n=1, ineffective (`results/research_closeout_20261106/inventory.json`) | No comparison arm |
+| Camera delivery, loopback | Verified | `results/camera_delivery_closeout_20261106`: push median about 17 ms at 5, 10 and 15 fps | Loopback only |
+| Camera delivery, remote over IAP | Partial | `results/camera_delivery_cloud_20261107`: push 1.3 to 3.96 fps, median 177 to 195 ms; WHEP connects | No glass-to-glass, UDP or phone-network measurement |
+| Provider comparison (ChatGPT vs Qwen) | Partial | `results/phase1_vlm_compare`: 6/11 vs 5/11 on identical frames | Descriptive, n = 11 |
+| VoLoAgent | Not evaluated | `results/phase1_volo_evidence_20261028` | Interface contract and mock; no actuation |
+| Web app | Verified | `results/research_closeout_20261106/inventory.json`: types, 57/57 tests, production build | Software tests only; `web/interface-e2e.cjs` not run |
+| Android app | Verified | Same inventory: unit tests and build | Not exercised on a device |
+| Android on OPPO A31 | Not evaluated | Same inventory | Blocked: no device attached |
+| Isaac Sim G1 embodiment | Experimental | `results/isaac_qwen_closeout_20261107`, `results/isaac_semantic_eval` | No Isaac embodiment is validated; the kitchens lack a refrigerator (404 assets) |
+| Isaac assisted grasp (`experiments/isaac_task.py`) | Experimental | `experiments/isaac_task.py` | A PhysX `FixedJoint` pins the object; not a capability |
+| T1 on Isaac Lab | Experimental | `results/t1_stand_state_failure` and the other `results/t1_*` directories | Cloud and stand attempts failed; no walking claim |
+| Supported-pelvis G1 with Dex3 hands | Experimental | `results/g1_dex3_dev` | Commissioning testbed; Dex3 actuator path opt-in |
+
+## Module map
+
+| Package | Responsibility | Main entry points | Status |
+|---|---|---|---|
+| `dream/types.py` | Shared data and protocols | `Embodiment`, `Perception`, `MobileBase`, `CompliantMode` | Core |
+| `dream/agent/` | Active Physical Discovery | `Belief`, `EIGSelector`, `plan_opening`, `constraint_deviation` | Verified on the gantry; Panda compartment, narrow |
+| `dream/tools/` | Typed tools, goals, grammar, original-goal record | `Toolbox`, `MobileToolbox`, `parse_goal`, `GoalSpecification`, `bind_request`, `investigate_opening` | Core; `dexterous.py` and `object_exploration.py` are G1 Dex3 development |
+| `dream/runtime/` | Task loop, planners, scheduler, phone API, model backends | `TaskAgent`, `RuleBasedPlanner`, `RoomSearchPlanner`, `SemanticSearchPlanner`, `MobileModelPlanner`, `Budgeted`, `TaskScheduler`, `PhoneAPI` | Core; `vlm.py`, `molmo.py`, `volo_contract.py` legacy or experimental |
+| `dream/skills/` | Closed-loop Panda skills | `pick`, `place`, `grasp_handle`, `pull_along` | Panda only; no G1 skill |
+| `dream/perception/` | Camera perception, occupancy, spatial and semantic memory | `VisionPerception`, `SpatialMemory`, `SemanticMap`, `VLMDetector` | Camera arm verified on the Panda; mobile narrow |
+| `dream/semantics/` | Room and object knowledge, target belief, verifier, scene graph | `SemanticWorld`, `verify_find`, `purity_rule` | Narrow simulation |
+| `dream/navigation/` | Planning, path following | `planning.py`, `PathFollower`, `rpp.py` | Narrow simulation; `control.py` is T1, experimental |
+| `dream/memory/` | Home memory, relocalisation, scene graph view | `HomeMemory`, `ObjectBelief` | Partial; `experience.py` is a prototype |
+| `dream/robot/` | Controllers and adapters | `panda.py`, `g1.py`, `g1_wbc.py`, `wholebody.py`, `g1_posture.py`, `g1_supervisor.py` | Panda verified; G1 walking narrow; grasp stack development |
+| `dream/sim/` | MuJoCo and Isaac scenes (ground truth) | `tabletop_env.py`, `g1_mobile.py`, `kinematic_base.py`, `home.py`, `room.py`, `isaac_g1.py` | Isaac embodiments not validated |
+| `dream/eval/` | Episode runners and scoring against ground truth | `episode.py`, `semantic_scoring.py`, `g1.py` | Core |
+| `dream/session.py` | Live Panda session, physics thread plus agent thread | `LiveSession` | Panda demo shell |
+| `experiments/`, `cloud/` | Runners, configs, cloud tooling | `reports.py`, `cloud/isaac_session.py` | Evidence tooling |
+
+**Experimental or isolated.**
+- The T1 chain (`dream/robot/t1.py`, `dream/sim/isaac_t1.py`, `dream/navigation/control.py`) is labelled experimental;
+  its Isaac Lab runs failed (`results/t1_*`).
+- `experiments/archive/` holds isolated historical scripts that are not supported entry points.
+- `experiments/nov7_baseline.py` holds the unguarded 7 November behaviour (`UngatedTaskAgent`, the original
+  interpretation); it exists only for the measured comparison arms.
+- `VLMAgent` (`dream/runtime/vlm.py`) is the legacy Panda tabletop loop; it verifies only against `expected_goal`.
+- The Isaac assisted grasp in `experiments/isaac_task.py` pins the object with a PhysX `FixedJoint`; it is not a
+  capability. `dream/robot/g1_assisted_demo.py` is the equivalent MuJoCo constraint demo.
+- The R1 grasp stack (`g1_posture.py`, `wholebody.py`, `g1_supervisor.py`, `g1_grasp_geometry.py`) is reachable only
+  from `experiments/g1_grasp_bringup.py` and `g1_wbc_envelope.py`, not from the agent's tools.
 
 ## G1 roadmap
-
-The current priority is a free-standing G1 grasp under contact physics. The
-[roadmap](Reports/2026-11-10/001-strategic-audit-and-plan/PLAN.md) sequences grasp,
-carry and fetch before broader composition and discovery. AGENTS.md records the adopted
-sequencing and evidence rules.
 
 | Rung | Capability | Status |
 |---|---|---|
@@ -30,8 +235,23 @@ sequencing and evidence rules.
 | R6 | Experience that improves a later task | Pending |
 | R7 | Broader sensing and control envelope | Pending |
 
+The [plan](Reports/2026-11-10/001-strategic-audit-and-plan/PLAN.md) sequences grasp, carry and fetch before
+composition and discovery. R1 state: on the latest development comparison, 13 of 15 fixed-stance holds passed
+independent clearance and hold checks, and three of four walking cases passed the full lift-and-hold gate; heavy
+bottles, the sphere and the cylinder after lifting failed. Object pose, table geometry and odometry are
+oracle-assisted, the Dex3 actuator path is opt-in, and the broader R1 gate is still pending. W6 remains a failed
+development evaluation. Details are under "G1 grasp bring-up" in Results.
+
+## Results
+
+Unless stated otherwise these are simulation, with oracle-assisted odometry or tracking.
+
+### G1 grasp bring-up, R1 (development only)
+
+Development diagnostics from `experiments/g1_grasp_bringup.py`, kept here as the evidence behind the R1 rows. Object pose, table geometry and odometry are oracle-assisted throughout. The offset walking case is the `g1_walk_grasp.json` command under Start here.
+
 The Dex3 actuator path is opt-in. W6 remains a failed development evaluation.
-For the fixed-stance grasp diagnostic, install the `wholebody` and `locomotion` extras
+For the fixed-stance grasp diagnostic, install the `locomotion` extra (`mink` and `daqp` are core dependencies)
 and use the cached WBC weights. See the
 [bring-up report](Reports/2026-11-10/003-r0-r1-start/REPORT.md) for the commands and
 development outcomes. In the first fixed-stance development evaluation, 3 of 6
@@ -101,139 +321,6 @@ lift and hold gate. The cylinder slipped after lifting. Object pose, table
 geometry and odometry are oracle-assisted in these single-table scenes.
 [Measurements](results/g1_r1_walk_dev_20261111/summary.json) and
 [walking report](Reports/2026-11-11/002-r1-walk-to-grasp/REPORT.md).
-
-To reproduce the offset walking case from the repository root with cached WBC
-weights, use a fresh output directory.
-
-```powershell
-python -m experiments.g1_grasp_bringup --config experiments/configs/g1_walk_grasp.json --out "$env:TEMP/dream-r1-walk"
-```
-
-## Executive summary
-
-**New on 8-9 November**, all in simulation:
-
-- **Request-to-goal substitution is closed in the tested paths.** The original request is kept as
-  an immutable record. A goal that doesn't satisfy it is refused, and success is accepted only
-  when an independent check confirms the original request. The frozen 7 November outputs that
-  produced false claims are refused in replay. On held-out MuJoCo homes, a planner made to claim
-  "reached the kitchen" produced 7 false claims in 40 without the record and 0 with it.
-- **Semantic object search, held-out.** The proposed method found the target in 83 of 87 H1
-  homes, 31 of 32 larger shifted homes and 14 of 15 G1-controller homes. It refused every
-  manipulation request without moving. It made **one false success claim** in 216 held-out
-  episodes: a shower claimed as the bathtub, in a larger home with no bathtub. That fails the
-  pre-registered zero-false-claim gate (G0). No baseline made one.
-- **Verifier fix, confirmed on fresh seeds.** A confidence check on label purity was added and confirmed on 384 fresh-seed episodes:
-  - it made 0 false claims in 192 episodes, against 1 for the frozen rule;
-  - it found the target in 94 of 96 homes, against 93;
-  - it is now the verifier default;
-  - the held-out record above is not rescored.
-- **No efficiency gain.** On the pre-registered primary comparison it was no faster than DREAM's
-  existing frontier explorer: median paired difference 0 s, p = 0.73. Removing its semantic
-  components changed nothing measurable. **G3 is not met.**
-- **What does matter is the verifier.** Accepting single sightings produced 17 false claims in 50
-  episodes, against 0 for the full verifier.
-- **The knowledge source is weak.** ConceptNet never let the robot recognise a laundry or storage
-  room. Qwen's raw answers agree with the benchmark tables more often (23 vs 17 of 27 classes);
-  they are not yet used.
-- **The Isaac kitchens have no refrigerator.** The appliance assets they reference return HTTP 404,
-  so the 7 November refrigerator task had no right answer except "not found".
-
-**What DREAM genuinely achieves today**, all in simulation:
-
-- A Panda arm that discovers how a compartment opens through force-limited probing, and opens it:
-  drawer 27/30, lid 27/30, fixed boxes declined 30/30, with no false claims. Object tracking is
-  oracle-assisted.
-- A Unitree G1 in MuJoCo that searches an unknown room from RGB-D using a pretrained walking
-  controller, and refuses when no target exists. After the one fix made in this closeout it scores
-  20/20, 8/10 and 6/6 on the historical seeds under the original renderer. Odometry is
-  oracle-assisted, and no unseen seeds remain.
-- A genuine Qwen model driving an Isaac Sim G1 through typed tools: it inspected a cabinet in 3/3
-  frozen cases with no falls.
-- Independent verification of the bound goal against world state. Room and compartment evaluations
-  recorded no false claims. Its limit shows in the Qwen result below: it checks the goal the system
-  bound, not the one the person asked for.
-
-**What it does not achieve:**
-
-- The 7 November Qwen evaluation **failed its gates**. Asked to walk to a refrigerator or pick up a
-  kettle, the system substituted a goal it could do (go to the entrance, inspect a cabinet),
-  verified that, and claimed success. The record stands. The fix is above. In the Isaac
-  re-test on three held-out kitchens, the old path did this again in 4 of 6 cases and the new
-  path did not do it (0/9). Those gates are incomplete, because a fourth kitchen never loaded.
-  See "Qwen on the Isaac G1".
-- Room search on fresh seeds **failed its frozen gates** (15/20, 4/10). The later fix does not
-  change that record.
-- Compartment opening from camera perception **failed** (11/20). MolmoAct2 **did not complete the
-  task** (0/1). Whole-body W6 is **not ready**. 10 fps camera delivery over the remote link was not
-  demonstrated.
-- Nothing has run on a physical robot. Nothing here establishes general-purpose task completion.
-
-## Status by area
-
-| Area | Result | Status |
-|---|---|---|
-| Original-goal record (goal consistency) | 7 Nov outputs refused in replay; fault injection 7/40 false claims without it, 0/40 with it; L refused 10/10 | **PASS** in tested paths |
-| Object search, held-out H1 (kinematic) | Proposed 83/87, 0/120 false claims, 0/87 false absence | **PASS** G1, G2, G4; G0 met in H1 but fails overall (H2) |
-| Object search, efficiency vs DREAM explorer | 46 vs 44 of 50, median paired difference 0 s, p = 0.73 | **FAIL** G3: no demonstrated improvement |
-| Object search, G1 whole-body controller (H4) | 14/15 vs A 13/15; 0/24 false claims; 0 falls | **PASS** G8 |
-| Object search, shifted homes and new targets (H2) | Proposed 31/32 vs A 29/32; **1/48 false claim** (shower claimed as bathtub) | **FAIL** G0, G7 |
-| Object search, degraded detector (H3) | Proposed 14/16 vs A 11/16; 0/24 false claims; single-view 10/16 false claims | Reported (G6) |
-| Verifier confidence fix, fresh seeds (V1) | 0/192 false claims vs 1/192 for the frozen rule; found 94 vs 93 of 96 | **PASS** V1, V2; now the default |
-| Room inference from objects | Top-1 61%; labelled 62/70; laundry and storage 0% | Measured, heuristic |
-| Qwen on Isaac G1, semantic re-test, held-out kitchens | New path 0/9 false successes, 4/4 unsupported requests refused; old path 4/6 false successes; 0 falls; `l_island` never loaded | Gates **INCOMPLETE** |
-| Qwen on Isaac G1, frozen matrix | 3 false claims, T3 1/3, T4 2/3; falls 0, T1 3/3, T2 3/3 | **FAIL** |
-| Same matrix after the viewpoint fix | Same gate results; T2 2/3; hand contact in 2 of 15 cases | **FAIL**, development only |
-| Whole-body W6 | Off-band 0.667 (0.70), refusal 0.864 (0.90); held-out not run | **FAIL**, not merged |
-| Panda pick and place | Oracle 50/50; camera 39/40 | **PASS** |
-| Compartment, oracle-assisted | 27/30, 27/30, 30/30, 0 false claims | **PASS** |
-| Compartment, camera | Openable 11/20 (0.8); fixed 10/10; 0 false claims | **FAIL** |
-| Out-of-class mechanisms | 0/16, 0 false claims, 0/16 flagged | Verified negative |
-| MolmoAct2 | Commands tracked 150/150; never reached the object or closed the gripper | Verified negative |
-| GR00T | Open-loop inference only | **BLOCKED** |
-| Room search, frozen fresh seeds | 15/20 (0.9), 4/10 (0.7), 10/10; 0 false claims, 0 falls | **FAIL** |
-| Room search, viewpoint fix | Retention rule met in all arms; seen seeds | **PASS** as a fix, not a validation |
-| Gain vs nearest frontier | 7 divergent decisions, under the required 10 | NOT EVALUATED |
-| Navigation, RPP vs classic | v1 25/30 vs 29/30; v2 28/30 each | PARTIAL, no superiority |
-| Home memory | Recall 5/5, 34.8 vs 69.0 s; worse when an object moved | PARTIAL |
-| Model-led recovery | n=1 ineffective; no comparison arm | NOT EVALUATED |
-| Camera, loopback | Push median ~17 ms at 5/10/15 fps | **PASS** |
-| Camera, remote over IAP | Push 1.3-3.96 fps, median 177-195 ms; WHEP connects | PARTIAL |
-| Provider comparison | ChatGPT 6/11, Qwen 5/11 on identical frames | Descriptive only |
-| VoLoAgent | Interface contract and mock; no actuation | NOT EVALUATED |
-| Web app | Types, 57/57 tests, production build | **PASS** |
-| Android app | Unit tests and build | **PASS** |
-| Android on OPPO A31 | No device attached | **BLOCKED** |
-
-## Architecture
-
-```
-goal text -> GoalSpecification: immutable record of the original request
-          -> provider (Qwen, ChatGPT, or the explicit grammar) proposes a grounding
-          -> binding checked against the record; unsupported requests refused
-          -> typed tools only: models never get raw joint control
-          -> skills: probe, inspect, navigate, grasp, open, place
-          -> controller: Panda joints, or NVIDIA Decoupled WBC on the G1
-          -> simulator: MuJoCo or Isaac Sim, behind an isolation boundary
-independent verifier: reads world state, not the agent's claim
-completion gate: success stands only if the verdict satisfies the ORIGINAL request
-```
-
-Object search adds `dream/semantics`: object-to-room knowledge, room regions, a target belief
-over what has not been seen, a multi-view verifier, and a scene graph that labels every edge
-observed, verified, inferred, hypothesis, knowledge or remembered.
-
-Separate parts: a Bayesian mechanism belief with information-gain probe selection; RGB-D occupancy,
-Dijkstra and Regulated Pure Pursuit for navigation; SQLite home and experience memory; a task
-scheduler and phone API; a Next.js web app and an Android app; a camera path with MJPEG push, JPEG
-polling and an experimental NVENC, MediaMTX and WHEP publisher.
-
-**Embodiments:** abstract gantry; Franka Panda in MuJoCo; Unitree G1 in MuJoCo; Unitree G1 in Isaac
-Sim 6.2 with PhysX. The G1 uses a pretrained velocity-commanded motor controller with arms held.
-
-## Results
-
-Unless stated otherwise these are simulation, with oracle-assisted odometry or tracking.
 
 ### Object search and the original request
 
@@ -373,7 +460,8 @@ homes per arm:
 | With it | **0/40** | 7 | 19 |
 
 Every injected claim that reached `TaskAgent` with the record present was rewritten to
-`goal_substitution_rejected`. The 7 that passed without it were made next to a countertop, sink,
+`goal_substitution_rejected`. Since the architecture cleanup the "without" arm runs through `UngatedTaskAgent` in
+`experiments/nov7_baseline.py`; `TaskAgent.run` itself always applies the record. The 7 that passed without it were made next to a countertop, sink,
 stove, cabinet or storage shelf. Six were in homes with no refrigerator at all.
 
 **G1 whole-body controller (H4, gate G8, pass)** (`results/semantic_search_heldout/H4`, 48
@@ -544,7 +632,7 @@ deferred, and they ran unchanged in a second session. None was repeated.
   - `TaskAgent.run(spec=)`;
   - the frozen MuJoCo planner weights (κ = 3);
   - Qwen3-VL-4B at `ebb281ec` as the detector.
-- **Old arm.** The 7 November path, unchanged.
+- **Old arm.** The 7 November path, unchanged; it now lives in `experiments/nov7_baseline.py`.
 - **The refrigerator is absent.** Its SimReady asset reference returns 404 in every kitchen, so "Walk to the refrigerator" is an absent-target task.
 
 | Request | Old arm (7 Nov path) | Semantic arm |
@@ -636,9 +724,11 @@ Rule 3 classes for everything that affects the object-search results.
 
 | Item | Class | Scope and evidence |
 |---|---|---|
-| Original-goal record and completion gate | General algorithmic correction | The four frozen 7 November outputs are refused in replay. Independent held-out cases: H1 scenario L and the fault-injection arms. |
+| Original-goal record and completion gate | General algorithmic correction | The four frozen 7 November outputs are refused in replay. Independent held-out cases: H1 scenario L and the fault-injection arms. Required on every `TaskAgent.run` path since the architecture cleanup. |
 | Semantic detector: rendered segmentation plus an assumed, uncalibrated noise model (`dream/sim/semantic_sensor.py`) | Environment simplification | No learned detector in the MuJoCo loop. The harder variant kept is H3, a degraded detector. |
 | Kinematic surrogate base for H1-H3 (`dream/sim/kinematic_base.py`) | Environment simplification | No legged dynamics and no falls. The harder variant kept is H4 on the G1 whole-body controller. |
+| Closed vocabulary shared with the generator (`CLASSES` in `dream/sim/home.py`, used by `SemanticNoise.vocabulary`) | Environment simplification | The detector can only name the 29 benchmark classes that the home generator furnishes, and its confusion groups are the benchmark author's. Recognition is never open-vocabulary. The harder variant kept is the Qwen detector in the Isaac runs. |
+| Independent per-frame detector errors in the MuJoCo sensor (`dream/sim/semantic_sensor.py`) | Environment simplification | Misses, confusions and spurious detections are drawn independently in every frame, so a persistent look-alike error is not modelled, and multi-view agreement is easier than with a real detector. The harder variant kept is H3. |
 | Odometry from true increments plus noise, gyro bias 0.002 rad/s | Environment simplification | As in earlier G1 work. Drift is compensated only in scoring. |
 | Remembered sightings placed using the true start pose (scenario I) | Environment simplification | Oracle-assisted initial localisation. |
 | ConceptNet associations, room-label thresholds 0.5 and 0.2, verifier thresholds | Task-specific heuristic | Scope is stated in the code. Where they break is measured: laundry and storage rooms 0% top-1. |
@@ -650,7 +740,7 @@ Rule 3 classes for everything that affects the object-search results.
 
 | Finding | Evidence | State |
 |---|---|---|
-| Request-to-goal substitution produces false claims | T3 and T4, both 7 Nov Qwen runs. Replayed outputs refused, and the fault-injection gate holds (0/40). Isaac held-out re-test: old path 4/6, new path 0/9 (gates incomplete) | **Fixed** in tested paths |
+| Request-to-goal substitution produces false claims | T3 and T4, both 7 Nov Qwen runs. Replayed outputs refused, and the fault-injection gate holds (0/40). Isaac held-out re-test: old path 4/6, new path 0/9 (gates incomplete) | **Fixed** in tested paths; `TaskAgent.run` requires the record on every path since the architecture cleanup |
 | A single sighting of a look-alike accepted as the target | Single-view ablation: 17/50 false claims in H1, 10/16 in H3 | Reduced by the multi-view verifier, not prevented |
 | A look-alike accepted on a few mixed labels | H2: a shower verified as the bathtub after 582 s (1/48). V1, frozen rule: a stove claimed on a countertop (1/192) | **Fixed** in tested paths: confidence check, 0/192 in V1 |
 | Isaac kitchens lack the refrigerator and oven (404 assets) | `results/isaac_semantic_dev/scene_probe_5_kitchens.json` | Environment fact; refrigerator tasks are absent-target |
@@ -722,7 +812,7 @@ cd web; npm ci; npx tsc --noEmit; npm test; npm run build
 cd android; ./gradlew testDebugUnitTest assembleDebug
 ```
 
-MuJoCo is pinned to 3.16.0. Keep Isaac and VLM dependencies in their separately locked runtimes.
+MuJoCo is pinned to 3.16.0. `mink` and `daqp` are core dependencies, so no extra is needed for the G1 posture code. Keep Isaac and VLM dependencies in their separately locked runtimes. The quick commands for each workflow are under Start here.
 
 Cloud evaluation, on the immutable image `4812387390768042548`:
 
@@ -763,14 +853,9 @@ Verifier fix (V1): run from a checkout of `1e11889`. From `6d680b4` on, the defa
 & $PY experiments/diagnose_search_episode.py experiments/configs/semantic_search_heldout.json --split H2 --scenario E --target bathtub --seed 6001 --code-root <checkout of 9c19328> --focus-tracks 88,124 --out results/semantic_search_heldout/H2_false_claim_diagnosis.json
 ```
 
-**Final verification**, on this branch at `6d680b4`:
-- Python fast suite: 772 passed, 1 skipped.
-- Slow suite: 61 passed.
-- Isolation: 19 passed.
-- Web: type check, 60/60 tests and the production build.
-- Android: unchanged since the 7 November tree, where unit tests and build passed. Not rerun.
+**Final verification:** see `Reports/2026-11-17/001-architecture-cleanup/REPORT.md`.
 
-Ruff is clean on tracked Python, apart from files left byte-identical to the code that produced their results:
+Files exempt from ruff because they are byte-identical to the code that produced their results:
 - everything inside `results/`;
 - the two camera measurement harnesses;
 - `experiments/extract_household_knowledge.py`, which produced the ConceptNet extract the frozen evaluations used.
@@ -779,7 +864,9 @@ Ruff is clean on tracked Python, apart from files left byte-identical to the cod
 
 | Ref | Role | State |
 |---|---|---|
-| `claude/semantic-goal-search-20261108` | This tree: goal consistency, object search, held-out evaluations, this report | Not merged into `main` |
+| `claude/semantic-goal-search-20261108` | Goal consistency, object search, held-out evaluations (the 9 November report) | Not merged into `main` |
+| `claude/architecture-cleanup-20261117` | This cleanup, from `cf2851d`: one goal guard, `Budgeted` in the package, dead code removed, scripts archived, this README | Not merged, not pushed |
+| `codex/g1-integration` | G1 integration trunk (R0 passed; R1 development work) | Published to `origin` |
 | `claude/semantic-isaac-20261108` | Isaac and Qwen tier of the same work; re-test config frozen at `c4100e2` | Merged here (`95a2e60`); its commits are in this branch, and the branch itself is not pushed |
 | `9c19328` | Frozen held-out MuJoCo search config and code (κ = 3) | Every H1-H4 run executed from it |
 | `claude/research-closeout-20261106` | 7 November closeout: all evaluations, the room fix | Base of this branch |
@@ -787,7 +874,7 @@ Ruff is clean on tracked Python, apart from files left byte-identical to the cod
 | `claude/wholebody-autonomy` (8f47475) | W6 | **Not merged**: failed gates |
 | `claude/room-margin-diagnostic` (1fce5c5), `claude/postfix-r1-prefix-20261107` (117c97d), `claude/bisect-throwaway-20261107` | Diagnostics | Never merge |
 
-Key commits: `1e11889` the verifier confidence check, V1 ran from it; `6d680b4` it becomes the
+The previous README is preserved in `archive/documentation-closeout-20261107.zip`. Key commits: `1e11889` the verifier confidence check, V1 ran from it; `6d680b4` it becomes the
 default; `eaa313a` the room fix; `b8208bb` the regression; `b0e2e17` frozen Qwen run; `a3b4304` frozen
 room run; `aba05d1` post-fix runs. Earlier heads are retained by `archive/2026-10-29/...` tags.
 

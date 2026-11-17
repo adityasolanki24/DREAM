@@ -495,6 +495,9 @@ dedicated refactor commit that keeps the isolation test and all results reproduc
    - If a change alters validated results, rerun the affected evaluations and update the README
      in the same commit or the next one. Say which results are stale until then.
    - Keep original failure cases reproducible (Rule 4).
+8. **The original request is recorded.** `TaskAgent.run` requires the original-goal record
+   (`GoalSpecification`); unguarded behaviour exists only in `experiments/nov7_baseline.py` for measured
+   comparison arms.
 
 ## 7. How to decide what to build
 
@@ -709,10 +712,12 @@ dream/perception/     Camera perception: RGB-D geometry, detection, world model,
 dream/skills/         Closed-loop skills over Embodiment/Perception (manipulation, articulation)
 dream/tools/          Typed tools, structured goals, investigate_physics/opening (discovery.py)
 dream/navigation/     Path following, planning, frontiers (odometry frame; no simulator access)
-dream/runtime/        Task agent loop and planners (structured, multimodal, room search)
+dream/runtime/        Task agent loop and planners (structured, multimodal, room search); robot-time budget wrapper (budget.py)
 dream/session.py      Live session: physics thread + agent thread (wiring, like dream/eval)
 dream/eval/           Episode runners and scoring against ground truth
 experiments/          Reproducible runners, configs, calibration, demos, interactive session CLI
+experiments/archive/  Isolated historical scripts, kept for provenance; not supported entry points
+experiments/nov7_baseline.py  The unguarded 7 November baseline, for the measured comparison arms only
 third_party/          Vendored external assets (pinned, with licence and PROVENANCE.txt)
 tests/                pytest suite, including the isolation guard
 results/              Saved outputs that back README claims
