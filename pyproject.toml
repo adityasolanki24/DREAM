@@ -12,6 +12,10 @@ dependencies = [
     "numpy>=1.26",
     "matplotlib>=3.8",
     "scipy>=1.11",  # BSD-3-Clause; room segmentation and search belief (dream/semantics)
+    # dream/robot/g1_posture.py imports mink at module top, and the core G1 path (g1_supervisor,
+    # the posture and supervisor tests) imports that module, so these are core, not an extra.
+    "mink==1.3.0",  # Apache-2.0; differential IK for the whole-body posture planner
+    "daqp==0.10.3",  # MIT; QP solver backend used through mink and qpsolvers
 ]
 
 [project.optional-dependencies]
@@ -20,13 +24,15 @@ demo = ["pillow==13.0.0"]  # MIT-CMU; optional original-frame and annotation pip
 dataset = ["pyarrow==22.0.0"]  # Apache-2.0; optional LeRobot v2 Parquet export, CPU only
 # Separate loader-validation environment; incompatible with the older VLM Torch pin.
 # BSD-3-Clause packages; requires external FFmpeg 4–7 shared libraries on Windows.
+# torchcodec is not imported by dream: NVIDIA's LeRobot loader needs it implicitly for video decode.
 loader = ["pandas==2.3.3", "pyarrow==22.0.0", "torch==2.9.0", "torchcodec==0.8.1"]
 locomotion = ["onnxruntime==1.23.2"]  # MIT; optional CPU T1 actor, separate Isaac environment
 # Hydra's scene-graph library (MIT-SPARK/Spark-DSG, BSD); dream/memory/scene_graph.py.
 scenegraph = ["spark-dsg==1.1.3"]
 # ROS 2 bag writing without ROS (Apache-2.0): SLAM backends replay robot sensor streams.
 slam = ["rosbags==0.11.9"]
-# Mink (Apache-2.0), DAQP (MIT) and qpsolvers (LGPL-3.0, dynamic use).
+# qpsolvers (LGPL-3.0, dynamic use). Mink and DAQP are core dependencies; they are repeated
+# here so existing `pip install .[wholebody]` commands keep working.
 wholebody = ["mink==1.3.0", "daqp==0.10.3", "qpsolvers==4.13.0", "scipy==1.18.1"]
 # Local Qwen3-VL inference (dream/runtime/qwen.py). Not needed by the CPU test suite.
 # The validated GPU pilot uses a separate hashed Linux lockfile.

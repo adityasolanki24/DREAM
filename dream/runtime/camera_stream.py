@@ -13,8 +13,6 @@ import threading
 import time
 from dataclasses import dataclass
 
-from PIL import Image
-
 
 @dataclass(frozen=True)
 class EncodedFrame:
@@ -44,6 +42,8 @@ class CameraStream:
 
     @staticmethod
     def _jpeg(rgb):
+        from PIL import Image  # optional extra ("demo"): imported only when JPEG encoding runs
+
         out = io.BytesIO()
         Image.fromarray(rgb).convert("RGB").save(out, format="JPEG", quality=80)
         return out.getvalue()
