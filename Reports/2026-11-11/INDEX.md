@@ -6,6 +6,7 @@
 
 | Date | Task ID | Prompt | Status | Main finding | Runs | Report |
 |---|---|---|---|---|---|---|
+| 2026-11-11 | 2026-11-11-003 | [Expose the R1 grasp through the live humanoid toolbox](003-r1-humanoid-tools/PROMPT.md) | partially_completed | The live humanoid interface and tool path are connected. Camera and surviving matched walking evidence are recorded. Broad R1 acceptance remains pending. | 2 | [REPORT](003-r1-humanoid-tools/REPORT.md) |
 | 2026-11-11 | 2026-11-11-002 | [R1 walk to a reachable grasp stance](002-r1-walk-to-grasp/PROMPT.md) | partially_completed | All four chosen walking stances were reached and three cubes held, including the rotated fixture. Cylinder retention and full R1 acceptance remain open. | 11 | [REPORT](002-r1-walk-to-grasp/REPORT.md) |
 | 2026-11-11 | 2026-11-11-001 | [R1 bottle grasp failure attribution and recovery](001-r1-bottle-recovery/PROMPT.md) | partially_completed | Automatic proximal wrapping recovered a matched bottle and a fresh bottle while retaining all earlier holds. R1 mobility and acceptance remain open. | 6 | [REPORT](001-r1-bottle-recovery/REPORT.md) |
 
@@ -17,6 +18,8 @@
 
 | Run | Task | Status | Started | Report |
 |---|---|---|---|---|
+| 20261111-214921-walking-tool-replay | 2026-11-11-003 | partial | 2026-11-11T21:49:21+11:00 | [REPORT](003-r1-humanoid-tools/runs/20261111-214921-walking-tool-replay/REPORT.md) |
+| 20261111-215243-head-camera | 2026-11-11-003 | completed | 2026-11-11T21:52:43+11:00 | [REPORT](003-r1-humanoid-tools/runs/20261111-215243-head-camera/REPORT.md) |
 | 20261111-122316-walk-pilot | 2026-11-11-002 | completed | 2026-11-11T12:23:16+11:00 | [REPORT](002-r1-walk-to-grasp/runs/20261111-122316-walk-pilot/REPORT.md) |
 | 20261111-122448-planar-arrival | 2026-11-11-002 | completed | 2026-11-11T12:24:48+11:00 | [REPORT](002-r1-walk-to-grasp/runs/20261111-122448-planar-arrival/REPORT.md) |
 | 20261111-122802-mesh-docking | 2026-11-11-002 | completed | 2026-11-11T12:28:02+11:00 | [REPORT](002-r1-walk-to-grasp/runs/20261111-122802-mesh-docking/REPORT.md) |

@@ -1,0 +1,79 @@
+{
+  "run_id": "2026-11-27-001/20261127-033602-development-50",
+  "task_id": "2026-11-27-001",
+  "title": "Measure the full 50-episode R1 development gate",
+  "started": "2026-11-27T03:36:02+11:00",
+  "commit": "cf2851db6f1b266e1fdf63aa76b3bf45c94f8a53",
+  "dirty": true,
+  "branch": "codex/g1-integration",
+  "configs": [
+    {
+      "path": "experiments/configs/g1_r1_development.json",
+      "sha256": "ad756e6bae64358fafcdb318e8b38036294ccf6c0765dd6b302b8a5199ac18a1"
+    },
+    {
+      "path": "experiments/configs/g1_walk_grasp.json",
+      "sha256": "a89ceed5f1503ba183356877548120b509a109f6f2da6f68eb6e8e92211f82a6"
+    }
+  ],
+  "command": "python -m experiments.g1_r1_development --config experiments/configs/g1_r1_development.json --out C:/Users/24adi/DREAM-r1-evidence/r1-development-50-20261127 --workers 2",
+  "seeds": "1000-1049 development, 10 per shape",
+  "model": "Cached NVIDIA WBC walk and balance ONNX",
+  "simulator": "MuJoCo 3.16.0",
+  "renderer": "None",
+  "embodiment": "Free-standing G1 with Dex3 hands",
+  "controller": "Decoupled WBC with observed enclosing geometry",
+  "hardware": "Local CPU, two campaign workers plus one regression worker",
+  "status": "interrupted",
+  "ended": "2026-11-27T03:47:52+11:00",
+  "exit_status": 1,
+  "cases_attempted": null,
+  "cases_completed": 6,
+  "metrics": {
+    "reason": "Intentionally stopped after two regressions appeared in the full test suite.",
+    "scheduled": 50,
+    "completed_outputs": 6,
+    "gate_passed": null,
+    "cases": [
+      {
+        "seed": 1000,
+        "verified": true,
+        "observed": true
+      },
+      {
+        "seed": 1001,
+        "verified": false,
+        "observed": false
+      },
+      {
+        "seed": 1002,
+        "verified": false,
+        "observed": false
+      },
+      {
+        "seed": 1003,
+        "verified": true,
+        "observed": true
+      },
+      {
+        "seed": 1004,
+        "verified": false,
+        "observed": false
+      },
+      {
+        "seed": 1005,
+        "verified": false,
+        "observed": false
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-development-50-20261127",
+      "kind": "dir",
+      "sha256": "864ab98b5585a8ae0fe1b1bfbf03da0d9bd0ff0d3402ba798e5b8ba2bfaab3ea",
+      "skipped": []
+    }
+  ],
+  "cloud": null
+}

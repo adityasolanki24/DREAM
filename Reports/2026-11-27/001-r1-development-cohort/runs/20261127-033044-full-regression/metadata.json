@@ -1,0 +1,39 @@
+{
+  "run_id": "2026-11-27-001/20261127-033044-full-regression",
+  "task_id": "2026-11-27-001",
+  "title": "Run the complete CPU test suite on the corrected humanoid tree",
+  "started": "2026-11-27T03:30:44+11:00",
+  "commit": "cf2851db6f1b266e1fdf63aa76b3bf45c94f8a53",
+  "dirty": true,
+  "branch": "codex/g1-integration",
+  "configs": [],
+  "command": "python -m pytest --junitxml=C:/Users/24adi/DREAM-r1-evidence/r1-validation-20261127/full.xml",
+  "seeds": "Fixed seeds in the tests at the source snapshot",
+  "model": "Repository models and cached NVIDIA WBC ONNX",
+  "simulator": "MuJoCo 3.16.0",
+  "renderer": "Native OpenGL where required by tests",
+  "embodiment": "Panda, gantry, supported and free-standing G1",
+  "controller": "Repository controllers under their test contracts",
+  "hardware": "Local CPU, one pytest worker",
+  "status": "interrupted",
+  "ended": "2026-11-27T03:47:55+11:00",
+  "exit_status": -1,
+  "cases_attempted": null,
+  "cases_completed": null,
+  "metrics": {
+    "failed_nodes": [
+      "tests/test_g1_grasp_bringup.py::test_expanded_contact_search_retains_the_object[shift_in-True]",
+      "tests/test_g1_grasp_bringup.py::test_walk_to_grasp_reaches_a_selected_stance_and_holds[False]"
+    ],
+    "mapping": "Failure positions 211 and 213 in the progress log mapped to the saved full collection order. Focused physical reproduction is registered separately."
+  },
+  "evidence": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-validation-20261127",
+      "kind": "dir",
+      "sha256": "9892355c61c09ab29aec6692f0b920091ddf153eb94966da809b44e9b7c5adc0",
+      "skipped": []
+    }
+  ],
+  "cloud": null
+}

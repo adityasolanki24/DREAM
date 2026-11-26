@@ -1,0 +1,49 @@
+{
+  "run_id": "2026-11-27-001/20261127-032347-corrected-smoke",
+  "task_id": "2026-11-27-001",
+  "title": "Replay five object families with observed full-surface clearance",
+  "started": "2026-11-27T03:23:47+11:00",
+  "commit": "cf2851db6f1b266e1fdf63aa76b3bf45c94f8a53",
+  "dirty": true,
+  "branch": "codex/g1-integration",
+  "configs": [
+    {
+      "path": "experiments/configs/g1_r1_development.json",
+      "sha256": "ad756e6bae64358fafcdb318e8b38036294ccf6c0765dd6b302b8a5199ac18a1"
+    },
+    {
+      "path": "experiments/configs/g1_walk_grasp.json",
+      "sha256": "a89ceed5f1503ba183356877548120b509a109f6f2da6f68eb6e8e92211f82a6"
+    }
+  ],
+  "command": "python -m experiments.g1_r1_development --config experiments/configs/g1_r1_development.json --out C:/Users/24adi/DREAM-r1-evidence/r1-cohort-clearance-20261127 --limit 5 --workers 2",
+  "seeds": "1000-1004 development replay",
+  "model": "Cached NVIDIA WBC walk and balance ONNX",
+  "simulator": "MuJoCo 3.16.0",
+  "renderer": "None",
+  "embodiment": "Free-standing G1 with Dex3 hands",
+  "controller": "Decoupled WBC with observed enclosing geometry",
+  "hardware": "Local CPU, two workers",
+  "status": "completed",
+  "ended": "2026-11-27T03:36:53+11:00",
+  "exit_status": 0,
+  "cases_attempted": 5,
+  "cases_completed": 5,
+  "metrics": {
+    "attempted": 5,
+    "completed": 5,
+    "verified": 2,
+    "false_positive": 0,
+    "false_negative": 0,
+    "gate_passed": null
+  },
+  "evidence": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-cohort-clearance-20261127",
+      "kind": "dir",
+      "sha256": "fc9ef4c3f588f9e5a55832972b90a73e74d716b4677a5c80b919bbe158cba705",
+      "skipped": []
+    }
+  ],
+  "cloud": null
+}

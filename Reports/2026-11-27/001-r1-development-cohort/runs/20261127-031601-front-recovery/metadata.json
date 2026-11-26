@@ -1,0 +1,42 @@
+{
+  "run_id": "2026-11-27-001/20261127-031601-front-recovery",
+  "task_id": "2026-11-27-001",
+  "title": "Reproduce the front walking grasp whose saved output was corrupted",
+  "started": "2026-11-27T03:16:01+11:00",
+  "commit": "cf2851db6f1b266e1fdf63aa76b3bf45c94f8a53",
+  "dirty": true,
+  "branch": "codex/g1-integration",
+  "configs": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-humanoid-tool-walk-001/front.json",
+      "sha256": "94b4aaf4da04670231f05f033412dfca79bfd96a0c87febc97880d6423c0e357"
+    }
+  ],
+  "command": "python -m experiments.g1_grasp_bringup --config C:/Users/24adi/DREAM-r1-evidence/r1-humanoid-tool-walk-001/front.json --out C:/Users/24adi/DREAM-r1-evidence/r1-humanoid-front-20261127",
+  "seeds": "81 development replay",
+  "model": "Cached NVIDIA WBC walk and balance ONNX",
+  "simulator": "MuJoCo 3.16.0",
+  "renderer": "None",
+  "embodiment": "Free-standing G1 with Dex3 hands",
+  "controller": "Decoupled WBC with supervised posture and grasp",
+  "hardware": "Local CPU, one worker",
+  "status": "completed",
+  "ended": "2026-11-27T03:22:05+11:00",
+  "exit_status": 0,
+  "cases_attempted": 1,
+  "cases_completed": 1,
+  "metrics": {
+    "grasp_observed": true,
+    "grasp_verified": true,
+    "peak_lift_m": 0.1435134073538914
+  },
+  "evidence": [
+    {
+      "path": "C:/Users/24adi/DREAM-r1-evidence/r1-humanoid-front-20261127",
+      "kind": "dir",
+      "sha256": "080fc52ccb5efffc74a584a005cd392fd43a05d10e3c129ed9727df8894e16b7",
+      "skipped": []
+    }
+  ],
+  "cloud": null
+}
