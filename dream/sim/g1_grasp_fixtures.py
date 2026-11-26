@@ -1,5 +1,7 @@
 """Procedural rigid objects for the R1 tabletop contact benchmark."""
 
+from itertools import product
+
 import mujoco
 import numpy as np
 
@@ -85,3 +87,22 @@ def add_grasp_object(
             mass=mass * weight,
             **material,
         )
+
+
+def oracle_object_bounds(model: mujoco.MjModel, body: int) -> np.ndarray:
+    """Oracle-assisted local enclosing geometry for the R1 tracker.
+
+    Uses static geometry only. The live object pose comes separately from its
+    labelled tracker. No mass, contact identity, or evaluation result is exposed.
+    """
+    signs = np.array(list(product((-1.0, 1.0), repeat=3)))
+    points = []
+    for geom in np.flatnonzero(model.geom_bodyid == body):
+        if not (model.geom_contype[geom] or model.geom_conaffinity[geom]):
+            continue
+        bounds = model.geom_aabb[geom]
+        rotation = np.empty(9)
+        mujoco.mju_quat2Mat(rotation, model.geom_quat[geom])
+        corners = bounds[:3] + signs * bounds[3:]
+        points.append(corners @ rotation.reshape(3, 3).T + model.geom_pos[geom])
+    return np.concatenate(points)

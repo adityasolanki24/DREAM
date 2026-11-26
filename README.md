@@ -22,13 +22,35 @@ sequencing and evidence rules.
 | Rung | Capability | Status |
 |---|---|---|
 | R0 | G1 model, controller and safety on one integration branch | Integration checks passed |
-| R1 | Free-standing contact grasp and lift | Fixed-stance holds and walking cube grasps verified in development |
+| R1 | Free-standing contact grasp and lift | Humanoid tools and development holds exercised. Broad gates pending |
 | R2 | Carry and place | Pending |
 | R3 | Fetch from language | Pending |
 | R4 | Held-out task compositions | Pending |
 | R5 | Active discovery on the G1 | Pending |
 | R6 | Experience that improves a later task | Pending |
 | R7 | Broader sensing and control envelope | Pending |
+
+The walk-and-grasp diagnostic now calls a shared `Humanoid` interface and
+`HumanoidToolbox`. Its sensed result uses fingertip forces, finger travel and the
+tracked object's complete lower surface. Object and table geometry, object pose,
+and noisy odometry remain oracle-assisted. The head RGB-D camera and bilateral
+arm and hand command paths have separate execution checks.
+
+Development exposed a centre-height false success, an unnecessary extra lift
+that lost two previous holds, and a support-surface exception that masked the
+unused hand. The current code checks complete clearance, uses bounded hold
+recovery, and limits that exception to the working hand. In the latest approach
+diagnostic, the walking control held successfully. The sphere reached closure
+without securing a grasp. Cylinder and mug approaches still failed, and a fresh
+box lost its grip. The full fast suite passed 1,017 tests with two skipped.
+The complete full suite and the 50-development and 60-held-out R1 gates remain
+pending. [Development measurements](results/g1_r1_humanoid_dev_20261127/summary.json)
+and [report](Reports/2026-11-27/001-r1-development-cohort/REPORT.md).
+
+Historical fixed-stance live trajectory forecasts reused the execution model's
+material values. Both fixed and walking forecasts now use independent models
+with the declared common prior. The historical fixed-stance comparisons await a
+full replay with this isolation.
 
 The Dex3 actuator path is opt-in. W6 remains a failed development evaluation.
 For the fixed-stance grasp diagnostic, install the `wholebody` and `locomotion` extras
@@ -636,6 +658,7 @@ Rule 3 classes for everything that affects the object-search results.
 
 | Item | Class | Scope and evidence |
 |---|---|---|
+| Complete observed clearance, bounded hold recovery, independent material forecasts and working-hand support exception | General algorithmic corrections | Regression tests and development diagnostics are recorded in `results/g1_r1_humanoid_dev_20261127/summary.json`. Broad R1 acceptance remains pending. |
 | Original-goal record and completion gate | General algorithmic correction | The four frozen 7 November outputs are refused in replay. Independent held-out cases: H1 scenario L and the fault-injection arms. |
 | Semantic detector: rendered segmentation plus an assumed, uncalibrated noise model (`dream/sim/semantic_sensor.py`) | Environment simplification | No learned detector in the MuJoCo loop. The harder variant kept is H3, a degraded detector. |
 | Kinematic surrogate base for H1-H3 (`dream/sim/kinematic_base.py`) | Environment simplification | No legged dynamics and no falls. The harder variant kept is H4 on the G1 whole-body controller. |

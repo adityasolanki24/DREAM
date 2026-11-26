@@ -7,12 +7,14 @@ from copy import copy
 from dataclasses import asdict, replace
 from itertools import chain
 from pathlib import Path
+from threading import Event
 
 import mujoco
 import numpy as np
 
-from dream.eval.g1 import lowest_collision_point_z
+from dream.eval.g1 import lowest_collision_point_z, verify_contact_hold
 from dream.navigation.follow import wrap
+from dream.perception.geometry import observed_lower_bound_z
 from dream.robot.g1_grasp_geometry import rank_pinches, regulate_closure, rehearse_pinches
 from dream.robot.g1_posture import (
     PERCEPTION_MARGIN,
@@ -31,8 +33,16 @@ from dream.robot.wholebody import (
     WBCBackend,
     yaw_matrix,
 )
-from dream.sim.g1_grasp_fixtures import add_grasp_object
-from dream.sim.g1_mobile import TOUCH_THRESHOLD, G1MobileEnv, build_grasp_rehearsal, build_mobile_g1
+from dream.sim.g1_grasp_fixtures import add_grasp_object, oracle_object_bounds
+from dream.sim.g1_humanoid import G1Humanoid
+from dream.sim.g1_mobile import (
+    HEAD_CAMERA,
+    TOUCH_THRESHOLD,
+    G1MobileEnv,
+    build_grasp_rehearsal,
+    build_mobile_g1,
+)
+from dream.tools.humanoid import HumanoidToolbox
 
 # Right-hand targets mirror the supported G1's seven-joint closure in dream/robot/g1.py.
 OPEN = np.array([0, 0, -0.08, 0.08, 0.08, 0.08, 0.08])
@@ -57,6 +67,9 @@ MIN_RESPONSE_M = 0.01
 GRIP_NORMAL_N = 3.0
 GRIP_DWELL_S = 0.10
 LIFT_STEP_M = 0.03
+# Existing commissioning travel budget: at most 0.18 m above the lift probe.
+# Height corrections during verification share this budget with the initial lift.
+LIFT_BUDGET = 6
 # Require 2% of nominal closing travel in reserve, a commissioning observation margin.
 ENCODER_TRAVEL_MARGIN = 0.02
 # Upper end of the initial commissioning masses, used as a common planning prior.
@@ -77,10 +90,11 @@ def _material_prior(cfg: dict) -> tuple[float, float | None]:
     return mass, friction
 
 
-def attempt(cfg: dict) -> dict:
+def attempt(cfg: dict, *, cancel: Event | None = None) -> dict:
     """Execute and score a live simulated G1 grasp, optionally previewing the candidate."""
-    if not cfg.get("whole_body_grasp_preview", False):
-        return _attempt(cfg)
+    cancel = cancel if cancel is not None else Event()
+    if cancel.is_set() or not cfg.get("whole_body_grasp_preview", False):
+        return _attempt(cfg, cancel=cancel)
     # Validate the proposed grasp with the balance policy in an independent
     # world. Only observed geometry and a shared material prior enter it.
     prior_mass, prior_friction = _material_prior(cfg)
@@ -92,22 +106,30 @@ def attempt(cfg: dict) -> dict:
         # Use a reproducible planning stream independent of evaluation noise.
         seed=np.random.SeedSequence(0, spawn_key=(1,)),
     )
-    predicted, attempts = _preview_family(predicted_cfg, None, "pinch")
+    predicted, attempts = _preview_family(predicted_cfg, None, "pinch", cancel)
     proposed = attempts[0]["rank"]
     selected_closing = None
     selected_family = "pinch"
-    if cfg.get("grasp_depth_search", False) and not predicted["grasp_verified"]:
-        predicted, wrapping = _preview_family(predicted_cfg, WRAP_CLOSED, "proximal_wrap")
+    if (
+        not cancel.is_set()
+        and cfg.get("grasp_depth_search", False)
+        and not predicted["grasp_verified"]
+    ):
+        predicted, wrapping = _preview_family(predicted_cfg, WRAP_CLOSED, "proximal_wrap", cancel)
         attempts.extend(wrapping)
         if predicted["grasp_verified"]:
             selected_closing = WRAP_CLOSED
             selected_family = "proximal_wrap"
-    if cfg.get("grasp_depth_search", False) and not predicted["grasp_verified"]:
-        result = attempt(dict(cfg, grasp_depth_search=False))
+    if (
+        not cancel.is_set()
+        and cfg.get("grasp_depth_search", False)
+        and not predicted["grasp_verified"]
+    ):
+        result = attempt(dict(cfg, grasp_depth_search=False), cancel=cancel)
         result["phases"]["grasp_depth_fallback"] = attempts
         return result
     rank = attempts[-1]["rank"] if predicted["grasp_verified"] else 0
-    result = _attempt(cfg, planned_rank=rank, closing_target=selected_closing)
+    result = _attempt(cfg, planned_rank=rank, closing_target=selected_closing, cancel=cancel)
     result["phases"]["whole_body_grasp_preview"] = {
         "proposed_rank": proposed,
         "executed_rank": rank,
@@ -120,14 +142,20 @@ def attempt(cfg: dict) -> dict:
     return result
 
 
-def _preview_family(cfg: dict, closing: np.ndarray | None, family: str) -> tuple[dict, list]:
-    predicted = _attempt(cfg, closing_target=closing)
+def _preview_family(
+    cfg: dict, closing: np.ndarray | None, family: str, cancel: Event
+) -> tuple[dict, list]:
+    predicted = _attempt(cfg, closing_target=closing, cancel=cancel, rehearsal=True)
     rank = predicted["phases"].get("grasp_geometry", {}).get("rank", 0)
     attempts = [_preview_outcome(predicted, rank, family)]
     if cfg.get("grasp_depth_search", False) and not predicted["grasp_verified"]:
         alternatives = predicted["phases"].get("rehearsal_alternatives", [])
         for rank in alternatives[:2]:
-            predicted = _attempt(cfg, planned_rank=rank, closing_target=closing)
+            if cancel.is_set():
+                break
+            predicted = _attempt(
+                cfg, planned_rank=rank, closing_target=closing, cancel=cancel, rehearsal=True
+            )
             attempts.append(_preview_outcome(predicted, rank, family))
             if predicted["grasp_verified"]:
                 break
@@ -145,8 +173,14 @@ def _preview_outcome(predicted: dict, rank: int, family: str) -> dict:
 
 
 def _attempt(
-    cfg: dict, *, planned_rank: int | None = None, closing_target: np.ndarray | None = None
+    cfg: dict,
+    *,
+    planned_rank: int | None = None,
+    closing_target: np.ndarray | None = None,
+    cancel: Event | None = None,
+    rehearsal: bool = False,
 ) -> dict:
+    cancel = cancel if cancel is not None else Event()
     closing = CLOSED if closing_target is None else closing_target
     top = cfg["table_top_m"]
     size = np.asarray(
@@ -169,17 +203,18 @@ def _attempt(
         )
         add_grasp_object(spec, shape, center, size, mass, friction)
 
+    camera = None if rehearsal else HEAD_CAMERA
     model = build_mobile_g1(
         lambda spec: scene(
             spec, mass=cfg["object_mass_kg"], friction=cfg.get("object_sliding_friction")
         ),
-        head_camera=None,
+        head_camera=camera,
         hands=True,
         touch=True,
     )
     if model.neq:
         raise RuntimeError("grasp diagnostic requires a scene without equality constraints")
-    env = G1MobileEnv(model, np.random.default_rng(cfg["seed"]), head_camera=None)
+    env = G1MobileEnv(model, np.random.default_rng(cfg["seed"]), head_camera=camera)
     stance = cfg.get("starting_stance_xy_yaw", [0.0, 0.0, 0.0])
     env.reset(*stance)
     env.localise(stance)
@@ -195,15 +230,13 @@ def _attempt(
         mujoco.mj_forward(model, env.data)
     caps = ControllerCapabilities.from_envelope_json()
     mobile = cfg.get("walk_to_grasp", False)
-    trajectory_model = model
-    if mobile:
-        prior_mass, prior_friction = _material_prior(cfg)
-        trajectory_model = build_mobile_g1(
-            lambda spec: scene(spec, mass=prior_mass, friction=prior_friction),
-            head_camera=None,
-            hands=True,
-            touch=True,
-        )
+    prior_mass, prior_friction = _material_prior(cfg)
+    trajectory_model = build_mobile_g1(
+        lambda spec: scene(spec, mass=prior_mass, friction=prior_friction),
+        head_camera=None,
+        hands=True,
+        touch=True,
+    )
     planner_config = (
         PlannerConfig(
             radii=(0.32, 0.40, 0.48, 0.60), n_angles=16,
@@ -215,11 +248,11 @@ def _attempt(
     backend_force = lambda: sum(env.touch("right").values())  # noqa: E731
     monitor = WholeBodySupervisor(planner.pm, SafetyLimits(contact_force=35.0))
     backend = WBCBackend(env, ctrl, caps, contact_force=backend_force)
-    fingers = env.hand_targets.copy()
+    humanoid = G1Humanoid(env, backend, monitor)
     selected_closed = closing
-    fingers[RIGHT] = OPEN
-    env.set_hand(fingers)
+    humanoid.set_hand("right", OPEN)
     rows, phases = [], {}
+    sensed_hold_samples = []
     box_id = model.body("box").id
     wrist = model.joint("right_wrist_pitch_joint")
     wrist_dof = int(wrist.dofadr[0])
@@ -250,6 +283,7 @@ def _attempt(
     obstacle = PerceivedBox(table, tuple(table_half), hand_may_touch=True)
     wrist_body = model.body("right_wrist_yaw_link").id
     object_geoms = np.flatnonzero(model.geom_bodyid == box_id)
+    observed_bounds = oracle_object_bounds(model, box_id)
     box_pose_qpos = int(model.jnt_qposadr[model.body("box").jntadr[0]])
     thumb = [
         g
@@ -327,16 +361,20 @@ def _attempt(
     def observe_box():
         return observe_box_pose()[:3]
 
-    observed_reference_z = float(observe_box()[2])
+    def observed_clearance():
+        pose = observe_box_pose()
+        rotation = np.empty(9)
+        mujoco.mju_quat2Mat(rotation, pose[3:])
+        return observed_lower_bound_z(pose[:3], rotation.reshape(3, 3), observed_bounds) - top
 
     def observed_hold():
         travel = selected_closed - OPEN
-        encoders = env.hand_positions()[RIGHT]
+        encoders = humanoid.finger_positions("right")
         measured_fraction = (encoders - OPEN) @ travel / (travel @ travel)
         return bool(
             min(opposing_forces()) >= TOUCH_THRESHOLD
             and measured_fraction < 1.0 - ENCODER_TRAVEL_MARGIN
-            and observe_box()[2] - observed_reference_z >= LIFT_M
+            and observed_clearance() >= LIFT_M
         )
 
     def sample(phase):
@@ -366,7 +404,8 @@ def _attempt(
             "touch_n": env.touch("right"), "fingers_rad": env.hand_positions()[RIGHT].tolist(),
         })  # fmt: skip
         if phase == "hold":
-            rows[-1]["observed_hold"] = observed_hold()
+            rows[-1]["observed_hold"] = sensed_hold_samples[-1]
+            rows[-1]["observed_clearance_m"] = observed_clearance()
             rows[-1]["table_clearance_m"] = (
                 lowest_collision_point_z(model, env.data, object_geoms) - top
             )
@@ -377,17 +416,29 @@ def _attempt(
                 for c in env.data.contact
             )
 
+    def protective_guard(obs):
+        if cancel.is_set():
+            return StopEvent(obs.t, "cancelled")
+        return monitor(obs)
+
     def tick(phase):
-        env.step(ctrl)
+        if cancel.is_set():
+            humanoid.hold("cancelled")
+            return False
+        active = humanoid.step()
+        if phase == "hold":
+            sensed_hold_samples.append(observed_hold())
         sample(phase)
+        if not active:
+            return False
         obs = backend.observe()
-        stop = monitor(obs)
-        if stop is None and phase in {"walk", "walk_settle"}:
+        stop = None
+        if phase in {"walk", "walk_settle"}:
             set_scratch(obs)
             gap = body_table_distance()
             if gap < PERCEPTION_MARGIN:
                 stop = StopEvent(obs.t, "walking clearance", {"table_clearance_m": gap})
-        elif stop is None and phase != "settle":
+        elif phase != "settle":
             stop = clearance_stop(obs)
         if stop and not ctrl.stopped:
             backend.hold(stop)
@@ -498,13 +549,13 @@ def _attempt(
             magnitude = np.linalg.norm(command)
             if 0 < magnitude < WALK_COMMAND_THRESHOLD:
                 command *= (1.05 * WALK_COMMAND_THRESHOLD) / magnitude
-            ctrl.set_command(*command)
+            humanoid.set_velocity(*command)
             if not tick("walk"):
                 status = "protective stop"
                 break
         else:
             status = "time limit"
-        ctrl.set_command(0.0, 0.0, 0.0)
+        humanoid.set_velocity(0.0, 0.0, 0.0)
         arrived = env.odometry()
         phases["walk"] = {
             "status": status, "initial": start.tolist(), "arrival": arrived.tolist(),
@@ -623,7 +674,7 @@ def _attempt(
         supervisor = WholeBodySupervisor(planner.pm, monitor.limits)
 
         def guard(state):
-            stop = supervisor(state)
+            stop = StopEvent(state.t, "cancelled") if cancel.is_set() else supervisor(state)
             if stop:
                 return stop
             if mobile:
@@ -695,7 +746,7 @@ def _attempt(
 
         def watch(obs):
             sample(phase)
-            stop = monitor(obs) or clearance_stop(obs)
+            stop = protective_guard(obs) or clearance_stop(obs)
             if stop is None and mobile:
                 stop = unplanned_object_motion(obs, observe_box(), object_reference)
             return stop
@@ -746,7 +797,7 @@ def _attempt(
         return False
 
     def opposing_forces():
-        touch = env.touch("right")
+        touch = humanoid.finger_forces("right")
         return (
             touch.get("hand_thumb_2", 0.0),
             sum(
@@ -791,8 +842,7 @@ def _attempt(
         )
         rows[-1]["relative_box_motion_m"] = displacement
         rows[-1]["grip_target_n"] = normal_goal
-        fingers[RIGHT] = OPEN + fraction * (selected_closed - OPEN)
-        env.set_hand(fingers)
+        humanoid.set_hand("right", OPEN + fraction * (selected_closed - OPEN))
         return None
 
     def relative_command(point, rot):
@@ -830,7 +880,7 @@ def _attempt(
 
             def watch(state):
                 sample(phase)
-                stop = monitor(state) or clearance_stop(state)
+                stop = protective_guard(state) or clearance_stop(state)
                 if stop is None and grasp:
                     stop = maintain_grip(state)
                 return stop
@@ -876,7 +926,7 @@ def _attempt(
 
                 def watch(state, reference=object_reference):
                     sample("descend")
-                    stop = monitor(state) or clearance_stop(state)
+                    stop = protective_guard(state) or clearance_stop(state)
                     if stop is None and mobile:
                         stop = unplanned_object_motion(state, observe_box(), reference)
                     return stop
@@ -895,235 +945,271 @@ def _attempt(
         phases["descend"] = {"completed": False, "corrections": attempts}
         return False, geometry, error
 
-    # Keep the pinch near the upper part of the box. The wrist must be high
-    # enough to clear the table with the wider palm and fingers.
     pinch_offset = np.array([0.0, 0.0, half_height])
-    destination, heading = (
-        select_stance(observe_box() + [0, 0, 3 * half_height]) if mobile else (None, 0.0)
-    )
-    approach_frame = yaw_matrix(heading)
+    pinch_rotation = approach_frame = np.eye(3)
     approach_axis = approach_frame[:, 0]
-    pinch_rotation = approach_frame
-    rehearsal_search = planned_rank is None and cfg.get("contact_rehearsal_search", False)
-    depth_search = cfg.get("grasp_depth_search", False)
-    if (not mobile or destination is not None) and (
-        cfg.get("contact_geometry_search", False) or rehearsal_search or planned_rank is not None
-    ):
-        set_scratch(backend.observe())
-        object_pose = observe_box_pose()
 
-        def rank_candidates(**sampling):
-            return rank_pinches(
-                model,
-                scratch.qpos,
-                object_pose,
-                size,
-                env.hand_qadr[RIGHT],
-                OPEN,
-                closing,
-                GRASP_OFFSET,
-                TABLE_CLEARANCE_M,
-                object_body_id=box_id,
-                support_geom=table_geom,
-                depth_search=depth_search,
-                heading=heading,
-                **sampling,
-            )
+    def grasp_tabletop() -> bool:
+        nonlocal pinch_offset, pinch_rotation, approach_frame, approach_axis
+        nonlocal selected_closed, fraction, held_box
+        steady_ticks = 0
+        # Keep the pinch near the upper part of the box. The wrist must be high
+        # enough to clear the table with the wider palm and fingers.
+        pinch_offset = np.array([0.0, 0.0, half_height])
+        destination, heading = (
+            select_stance(observe_box() + [0, 0, 3 * half_height]) if mobile else (None, 0.0)
+        )
+        approach_frame = yaw_matrix(heading)
+        approach_axis = approach_frame[:, 0]
+        pinch_rotation = approach_frame
+        rehearsal_search = planned_rank is None and cfg.get("contact_rehearsal_search", False)
+        depth_search = cfg.get("grasp_depth_search", False)
+        if (not mobile or destination is not None) and (
+            cfg.get("contact_geometry_search", False)
+            or rehearsal_search
+            or planned_rank is not None
+        ):
+            set_scratch(backend.observe())
+            object_pose = observe_box_pose()
 
-        pinches = rank_candidates()
-        # Changing thumb abduction changes where the pad wraps around an
-        # object. Consider both directions when the usual closure cannot hold.
-        thumb_variants = (-np.pi / 12, np.pi / 12)
-        # The centre and lower half of the upper section are useful when
-        # the object's upper profile tapers. The same table clearance applies.
-        midbody = (0.0, 0.25)
-        if depth_search and planned_rank is not None and planned_rank >= len(pinches):
-            pinches.extend(rank_candidates(thumb_biases=thumb_variants))
-            if planned_rank >= len(pinches):
-                pinches.extend(rank_candidates(height_fractions=midbody))
-        rank = planned_rank if planned_rank is not None and planned_rank < len(pinches) else 0
-        if rehearsal_search and (pinches or depth_search):
-            prior_mass, prior_friction = _material_prior(cfg)
-            prediction = build_grasp_rehearsal(
-                lambda spec: scene(spec, mass=prior_mass, friction=prior_friction)
-            )
-
-            def depth_band(pinch):
-                # Depth is a distance along the approach, in every world frame.
-                return round(float(approach_axis @ pinch.offset), 9), pinch.thumb_bias_rad
-
-            def screen(first):
-                shortlist = list(enumerate(pinches[first:], start=first))
-                if depth_search:
-                    bands = {}
-                    for index, pinch in shortlist:
-                        band = depth_band(pinch)
-                        bands.setdefault(band, []).append((index, pinch))
-                    shortlist = [entry for band in bands.values() for entry in band[:4]]
-                else:
-                    shortlist = shortlist[:12]
-                return rehearse_pinches(
-                    prediction,
+            def rank_candidates(**sampling):
+                return rank_pinches(
+                    model,
+                    scratch.qpos,
                     object_pose,
-                    shortlist,
-                    tuple(model.actuator(index).name for index in env.finger_actuators[RIGHT]),
+                    size,
+                    env.hand_qadr[RIGHT],
                     OPEN,
                     closing,
                     GRASP_OFFSET,
-                    object_width=2.0 * half,
-                    control_period=TICK,
-                    grip_force=GRIP_NORMAL_N,
-                    grip_dwell=GRIP_DWELL_S,
-                    lift_height=LIFT_M + 0.02,
-                    hold_duration=HOLD_S,
+                    TABLE_CLEARANCE_M,
+                    object_body_id=box_id,
+                    support_geom=table_geom,
+                    depth_search=depth_search,
+                    heading=heading,
+                    **sampling,
                 )
 
-            rehearsals = screen(0)
-            if depth_search and (not any(r.minimum_hold_lift_m >= LIFT_M for r in rehearsals)):
-                first = len(pinches)
+            pinches = rank_candidates()
+            # Changing thumb abduction changes where the pad wraps around an
+            # object. Consider both directions when the usual closure cannot hold.
+            thumb_variants = (-np.pi / 12, np.pi / 12)
+            # The centre and lower half of the upper section are useful when
+            # the object's upper profile tapers. The same table clearance applies.
+            midbody = (0.0, 0.25)
+            if depth_search and planned_rank is not None and planned_rank >= len(pinches):
                 pinches.extend(rank_candidates(thumb_biases=thumb_variants))
-                rehearsals.extend(screen(first))
-            if depth_search and (not any(r.minimum_hold_lift_m >= LIFT_M for r in rehearsals)):
-                first = len(pinches)
-                pinches.extend(rank_candidates(height_fractions=midbody))
-                rehearsals.extend(screen(first))
-            retained = [r for r in rehearsals if r.minimum_hold_lift_m >= LIFT_M]
-            if retained:
-                retained.sort(key=lambda r: r.maximum_slip_m)
-                rank = retained[0].rank
-                if depth_search:
-                    used = {depth_band(pinches[rank])}
-                    alternatives = []
-                    for candidate in retained[1:]:
-                        pinch = pinches[candidate.rank]
-                        band = depth_band(pinch)
-                        if band not in used:
-                            used.add(band)
-                            alternatives.append(candidate.rank)
-                    phases["rehearsal_alternatives"] = alternatives
-            phases["rehearsal"] = [asdict(r) for r in rehearsals]
-        if pinches:
-            selected = pinches[rank]
-            pinch_offset, pinch_rotation = selected.offset, selected.rotation
-            selected_closed = closing.copy()
-            selected_closed[0] += selected.thumb_bias_rad
-            phases["grasp_geometry"] = {
-                "candidates": len(pinches), "rank": rank, "offset_m": pinch_offset.tolist(),
-                "rotation": pinch_rotation.tolist(), "score": selected.score,
-                "support_links": selected.support_links,
-                "predicted_closure_fraction": selected.closure_fraction,
-                "thumb_bias_rad": selected.thumb_bias_rad,
-                "closing_target_rad": selected_closed.tolist(),
-            }  # fmt: skip
-        else:
-            phases["grasp_geometry"] = {"candidates": 0}
-    positioned = not mobile or (destination is not None and walk_to_stance(destination))
-    grip_point = observe_box() + pinch_offset
-    # Raise on the near side of the table before moving over it. The open
-    # fingertip extends about 87 mm beyond the grasp centre along +x.
-    approach = grip_point - 0.06 * approach_axis + [0.0, 0.0, 0.04]
-    raise_point = approach.copy()
-    near_plane = approach_axis @ table - np.abs(approach_axis) @ table_half
-    raise_point -= max(0.0, approach_axis @ approach - near_plane + 0.11) * approach_axis
-    settle_phase = "walk_settle" if mobile else "settle"
-    settled = positioned and all(tick(settle_phase) for _ in range(round(1.0 / TICK)))
-    if settled and cfg.get("trajectory_search", True):
-        # Balance can keep moving the pelvis after the initial hold. This
-        # window needs to resolve drift below the table clearance allowance.
-        window = round(0.4 / TICK)
-        for _ in range(round(3.0 / TICK)):
-            if not tick(settle_phase):
-                settled = False
-                break
-            xy = np.asarray([row["odom"][:2] for row in rows[-window:]])
-            if np.linalg.norm(np.ptp(xy, axis=0)) < TABLE_CLEARANCE_M:
-                break
-        else:
-            settled = False
-        phases["settle"] = {"stable": settled}
-    if mobile and "walk" in phases:
-        phases["walk"]["settled_pose"] = env.odometry().tolist()
-        phases["walk"]["table_contact_samples"] = sum(
-            row.get("robot_table_contact", False) for row in rows
-        )
+                if planned_rank >= len(pinches):
+                    pinches.extend(rank_candidates(height_fractions=midbody))
+            rank = planned_rank if planned_rank is not None and planned_rank < len(pinches) else 0
+            if rehearsal_search and (pinches or depth_search):
+                prior_mass, prior_friction = _material_prior(cfg)
+                prediction = build_grasp_rehearsal(
+                    lambda spec: scene(spec, mass=prior_mass, friction=prior_friction)
+                )
 
-    can_close = False
-    above = grip_point + [0.0, 0.0, 2 * half_height]
-    if (
-        settled
-        and reach("raise", raise_point)
-        and reach("pregrasp", approach)
-        and reach("reach", above)
-    ):
-        command_point = above.copy()
-        for i in range(4):
-            clearance = check_closure()
-            grip_point = observe_box() + pinch_offset
-            measured = np.asarray(clearance["grasp_xyz_m"])
-            error = grip_point - measured
-            if np.abs(error[:2]).max() <= half / 2:
-                can_close, clearance, error = descend_to_grip()
-                break
-            if i == 3:
-                break
-            command_point[:2] += np.clip(error[:2], -2 * half, 2 * half)
-            if not reach(f"align_{i + 1}", command_point):
-                break
-        phases["preclose"] = {**clearance, "position_error_m": error.tolist(), "clear": can_close}
-    if can_close:
-        stable_ticks = 0
-        for _ in range(round(1.5 / TICK)):
-            fingers[RIGHT] = OPEN + fraction * (selected_closed - OPEN)
-            env.set_hand(fingers)
-            if not tick("close"):
-                break
-            if min(opposing_forces()) >= GRIP_NORMAL_N:
-                stable_ticks += 1
-                if stable_ticks >= round(GRIP_DWELL_S / TICK):
+                def depth_band(pinch):
+                    # Depth is a distance along the approach, in every world frame.
+                    return round(float(approach_axis @ pinch.offset), 9), pinch.thumb_bias_rad
+
+                def screen(first):
+                    shortlist = list(enumerate(pinches[first:], start=first))
+                    if depth_search:
+                        bands = {}
+                        for index, pinch in shortlist:
+                            band = depth_band(pinch)
+                            bands.setdefault(band, []).append((index, pinch))
+                        shortlist = [entry for band in bands.values() for entry in band[:4]]
+                    else:
+                        shortlist = shortlist[:12]
+                    return rehearse_pinches(
+                        prediction,
+                        object_pose,
+                        shortlist,
+                        tuple(model.actuator(index).name for index in env.finger_actuators[RIGHT]),
+                        OPEN,
+                        closing,
+                        GRASP_OFFSET,
+                        object_width=2.0 * half,
+                        control_period=TICK,
+                        grip_force=GRIP_NORMAL_N,
+                        grip_dwell=GRIP_DWELL_S,
+                        lift_height=LIFT_M + 0.02,
+                        hold_duration=HOLD_S,
+                    )
+
+                rehearsals = screen(0)
+                if depth_search and (not any(r.minimum_hold_lift_m >= LIFT_M for r in rehearsals)):
+                    first = len(pinches)
+                    pinches.extend(rank_candidates(thumb_biases=thumb_variants))
+                    rehearsals.extend(screen(first))
+                if depth_search and (not any(r.minimum_hold_lift_m >= LIFT_M for r in rehearsals)):
+                    first = len(pinches)
+                    pinches.extend(rank_candidates(height_fractions=midbody))
+                    rehearsals.extend(screen(first))
+                retained = [r for r in rehearsals if r.minimum_hold_lift_m >= LIFT_M]
+                if retained:
+                    retained.sort(key=lambda r: r.maximum_slip_m)
+                    rank = retained[0].rank
+                    if depth_search:
+                        used = {depth_band(pinches[rank])}
+                        alternatives = []
+                        for candidate in retained[1:]:
+                            pinch = pinches[candidate.rank]
+                            band = depth_band(pinch)
+                            if band not in used:
+                                used.add(band)
+                                alternatives.append(candidate.rank)
+                        phases["rehearsal_alternatives"] = alternatives
+                phases["rehearsal"] = [asdict(r) for r in rehearsals]
+            if pinches:
+                selected = pinches[rank]
+                pinch_offset, pinch_rotation = selected.offset, selected.rotation
+                selected_closed = closing.copy()
+                selected_closed[0] += selected.thumb_bias_rad
+                phases["grasp_geometry"] = {
+                    "candidates": len(pinches), "rank": rank, "offset_m": pinch_offset.tolist(),
+                    "rotation": pinch_rotation.tolist(), "score": selected.score,
+                    "support_links": selected.support_links,
+                    "predicted_closure_fraction": selected.closure_fraction,
+                    "thumb_bias_rad": selected.thumb_bias_rad,
+                    "closing_target_rad": selected_closed.tolist(),
+                }  # fmt: skip
+            else:
+                phases["grasp_geometry"] = {"candidates": 0}
+        positioned = not mobile or (destination is not None and walk_to_stance(destination))
+        grip_point = observe_box() + pinch_offset
+        # Raise on the near side of the table before moving over it. The open
+        # fingertip extends about 87 mm beyond the grasp centre along +x.
+        approach = grip_point - 0.06 * approach_axis + [0.0, 0.0, 0.04]
+        raise_point = approach.copy()
+        near_plane = approach_axis @ table - np.abs(approach_axis) @ table_half
+        raise_point -= max(0.0, approach_axis @ approach - near_plane + 0.11) * approach_axis
+        settle_phase = "walk_settle" if mobile else "settle"
+        settled = positioned and all(tick(settle_phase) for _ in range(round(1.0 / TICK)))
+        if settled and cfg.get("trajectory_search", True):
+            # Balance can keep moving the pelvis after the initial hold. This
+            # window needs to resolve drift below the table clearance allowance.
+            window = round(0.4 / TICK)
+            for _ in range(round(3.0 / TICK)):
+                if not tick(settle_phase):
+                    settled = False
+                    break
+                xy = np.asarray([row["odom"][:2] for row in rows[-window:]])
+                if np.linalg.norm(np.ptp(xy, axis=0)) < TABLE_CLEARANCE_M:
                     break
             else:
-                stable_ticks = 0
-                fraction = min(1.0, fraction + TICK)
-        opposed = stable_ticks >= round(GRIP_DWELL_S / TICK)
-        phases["close"] = {"opposed_touch": opposed, "closure_fraction": fraction}
-        if opposed:
-            set_scratch(backend.observe())
-            held_box = box_in_wrist()
-            before = float(observe_box()[2])
-            if vertical_move("probe", PROBE_M, grasp=True):
-                response = float(observe_box()[2]) - before
-                phases["probe"]["object_rise_m"] = response
-                if response >= MIN_RESPONSE_M:
-                    # Stop on observed height or lack of progress. Each
-                    # request is still a bounded vertical correction.
-                    for _ in range(6):
-                        z = float(observe_box()[2])
-                        if z - before >= LIFT_M + 0.02:
-                            break
-                        if not vertical_move("lift", LIFT_STEP_M, grasp=True):
-                            break
-                        if float(observe_box()[2]) - z < MIN_RESPONSE_M:
-                            break
-                    if not backend.held and float(observe_box()[2]) - before >= LIFT_M:
-                        for _ in range(round(HOLD_S / TICK)):
-                            if not tick("hold"):
-                                break
-                            obs = backend.observe()
-                            stop = maintain_grip(obs)
-                            if stop:
-                                backend.hold(stop)
-                                break
+                settled = False
+            phases["settle"] = {"stable": settled}
+        if mobile and "walk" in phases:
+            phases["walk"]["settled_pose"] = env.odometry().tolist()
+            phases["walk"]["table_contact_samples"] = sum(
+                row.get("robot_table_contact", False) for row in rows
+            )
 
-    hold = [r for r in rows if r["phase"] == "hold"]
-    completed_hold = not backend.held and not ctrl.stopped and len(hold) == round(HOLD_S / TICK)
+        can_close = False
+        above = grip_point + [0.0, 0.0, 2 * half_height]
+        if (
+            settled
+            and reach("raise", raise_point)
+            and reach("pregrasp", approach)
+            and reach("reach", above)
+        ):
+            command_point = above.copy()
+            for i in range(4):
+                clearance = check_closure()
+                grip_point = observe_box() + pinch_offset
+                measured = np.asarray(clearance["grasp_xyz_m"])
+                error = grip_point - measured
+                if np.abs(error[:2]).max() <= half / 2:
+                    can_close, clearance, error = descend_to_grip()
+                    break
+                if i == 3:
+                    break
+                command_point[:2] += np.clip(error[:2], -2 * half, 2 * half)
+                if not reach(f"align_{i + 1}", command_point):
+                    break
+            phases["preclose"] = {
+                **clearance,
+                "position_error_m": error.tolist(),
+                "clear": can_close,
+            }
+        if can_close:
+            stable_ticks = 0
+            for _ in range(round(1.5 / TICK)):
+                humanoid.set_hand("right", OPEN + fraction * (selected_closed - OPEN))
+                if not tick("close"):
+                    break
+                if min(opposing_forces()) >= GRIP_NORMAL_N:
+                    stable_ticks += 1
+                    if stable_ticks >= round(GRIP_DWELL_S / TICK):
+                        break
+                else:
+                    stable_ticks = 0
+                    fraction = min(1.0, fraction + TICK)
+            opposed = stable_ticks >= round(GRIP_DWELL_S / TICK)
+            phases["close"] = {"opposed_touch": opposed, "closure_fraction": fraction}
+            if opposed:
+                set_scratch(backend.observe())
+                held_box = box_in_wrist()
+                before = float(observe_box()[2])
+                if vertical_move("probe", PROBE_M, grasp=True):
+                    response = float(observe_box()[2]) - before
+                    phases["probe"]["object_rise_m"] = response
+                    if response >= MIN_RESPONSE_M:
+                        # Stop on observed height or lack of progress. Each
+                        # request is still a bounded vertical correction.
+                        remaining_lifts = LIFT_BUDGET
+                        for _ in range(LIFT_BUDGET):
+                            z = float(observe_box()[2])
+                            if z - before >= LIFT_M + 0.02 and observed_clearance() >= LIFT_M:
+                                break
+                            remaining_lifts -= 1
+                            if not vertical_move("lift", LIFT_STEP_M, grasp=True):
+                                break
+                            if float(observe_box()[2]) - z < MIN_RESPONSE_M:
+                                break
+                        if not backend.held and observed_clearance() >= LIFT_M:
+                            # Each of the bounded height corrections may require
+                            # restarting the full sensor-confirmed hold interval.
+                            for _ in range((LIFT_BUDGET + 1) * round(HOLD_S / TICK)):
+                                if steady_ticks == round(HOLD_S / TICK):
+                                    break
+                                if not tick("hold"):
+                                    break
+                                obs = backend.observe()
+                                stop = maintain_grip(obs)
+                                if stop:
+                                    backend.hold(stop)
+                                    break
+                                if observed_clearance() < LIFT_M:
+                                    if remaining_lifts == 0:
+                                        break
+                                    remaining_lifts -= 1
+                                    z = float(observe_box()[2])
+                                    if not vertical_move("hold_adjust", LIFT_STEP_M, grasp=True):
+                                        break
+                                    if float(observe_box()[2]) - z < MIN_RESPONSE_M:
+                                        break
+                                    steady_ticks = 0
+                                elif not sensed_hold_samples[-1]:
+                                    steady_ticks = 0
+                                else:
+                                    steady_ticks += 1
+
+        return not humanoid.stop_reason and steady_ticks == round(HOLD_S / TICK)
+
+    toolbox = HumanoidToolbox(humanoid, grasp_tabletop, cancel)
+    tool = toolbox.call("grasp_tabletop")
+    completed_hold = not backend.held and not ctrl.stopped
     walked_clear = not mobile or phases.get("walk", {}).get("table_contact_samples") == 0
     return {
         "phases": phases, "rows": rows,
         "stop": asdict(backend.held) if backend.held else ctrl.stopped,
         "peak_lift_m": max((r["lift_m"] for r in rows), default=0.0),
-        "grasp_observed": completed_hold and all(r["observed_hold"] for r in hold),
+        "grasp_observed": tool.ok, "grasp_tool": asdict(tool),
         "grasp_verified": completed_hold and walked_clear
-        and all(r["table_clearance_m"] >= LIFT_M and r["hand_only_contact"] for r in hold),
+        and verify_contact_hold(rows, LIFT_M, HOLD_S, TICK),
     }  # fmt: skip
 
 

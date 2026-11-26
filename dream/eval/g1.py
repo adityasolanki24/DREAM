@@ -108,3 +108,28 @@ def score_episode(rows: list[dict], gates: dict) -> dict:
         "scope": "supported-base scripted commissioning; "
         "no perception, autonomous reaching or balance; uncalibrated soft mesh contacts",
     }
+
+
+def verify_contact_hold(
+    rows: list[dict], minimum_clearance_m: float, hold_s: float, tick_s: float
+) -> bool:
+    """Score the final uninterrupted hold, including complete geometry and contact.
+
+    Each row records one control interval. A correction or a gap in sampling
+    breaks continuity. Previous failed intervals stay in the caller's full log.
+    """
+    if hold_s <= 0 or tick_s <= 0:
+        raise ValueError("hold duration and sample interval must be positive")
+    count = int(np.ceil(hold_s / tick_s))
+    window = rows[-count:]
+    return bool(
+        len(window) == count
+        and all(
+            row["phase"] == "hold"
+            and row["table_clearance_m"] >= minimum_clearance_m
+            and row["hand_only_contact"]
+            for row in window
+        )
+        # Physics timestamps accumulate rounding error at the 0.005 s step.
+        and np.allclose(np.diff([row["t"] for row in window]), tick_s, rtol=0, atol=1e-8)
+    )

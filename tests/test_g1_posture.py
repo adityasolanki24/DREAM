@@ -271,3 +271,30 @@ def test_rollout_gate_then_monitored_real_execution_reaches_a_mid_height_target(
     )  # fmt: skip
     assert len(again.iterations) <= 4 and not again.stops
     assert final < start - 0.005
+
+
+@pytest.mark.parametrize(
+    ("touching_hand", "point"),
+    [
+        ("left", (0.258658895780065, 0.13815286204275742, 0.8529955652341845)),
+        ("right", (0.2571355368331685, -0.16368335350740976, 0.8531847041663105)),
+    ],
+)
+def test_support_surface_exception_is_limited_to_the_working_hand(touching_hand, point):
+    # Reproduced isolated wrist overlaps from the saved two-sided geometry audit.
+    solver = gp.PosturePlanner(ControllerCapabilities.from_envelope_json())
+    q = solver._q_start((0.0, 0.0, 0.0))
+    obstacle = gp.PerceivedBox(point, (0.002,) * 3, hand_may_touch=True)
+    ids = solver.pm.load_obstacles([obstacle])
+    state = solver.pm.data_at(q)
+    for working_hand in ("left", "right"):
+        target = state.site_xpos[solver.pm.model.site(f"{working_hand}_grip").id].copy()
+        metrics, _, reasons = solver.evaluate(
+            q, (0.0, 0.0, 0.0), working_hand, target, boxes_touch=ids
+        )
+        if working_hand == touching_hand:
+            assert metrics["clearance"] > 0
+            assert "collision" not in reasons
+        else:
+            assert metrics["clearance"] < 0
+            assert "collision" in reasons

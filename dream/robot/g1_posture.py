@@ -119,8 +119,8 @@ def wrap(a: float) -> float:
 class PerceivedBox:
     """An obstacle as perceived (RGB-D): world/odometry-frame centre, half extents, yaw.
 
-    ``hand_may_touch`` marks the surface that carries the target: the hand geoms are exempt
-    from clearance against it (the body still keeps clear)."""
+    ``hand_may_touch`` marks the surface that carries the target. The selected hand is exempt
+    from clearance against it. The body and the unused hand keep clear."""
 
     center: tuple[float, float, float]
     half_extents: tuple[float, float, float]
@@ -673,10 +673,12 @@ class PosturePlanner:
         return out
 
     # -- IK -----------------------------------------------------------------------------
-    def _limits(self, boxes_regular, boxes_touch, sigma, relax=False):
+    def _limits(self, boxes_regular, boxes_touch, sigma, arm, relax=False):
         pm, m, caps = self.pm, self.pm.model, self.caps
         hands = {g for s in ARMS for g in pm.hand_geoms[s]}
-        body = [g for g in pm.no_foot if g not in hands]
+        # A support surface belongs to the working hand's contact task.
+        # The unused hand keeps the same obstacle protection as the body.
+        body = [g for g in pm.no_foot if g not in pm.hand_geoms[arm]]
         near = dict(
             minimum_distance_from_collisions=MIN_CLEARANCE, collision_detection_distance=0.1
         )
@@ -778,9 +780,9 @@ class PosturePlanner:
         return conf.q.copy()
 
     # -- evaluation ---------------------------------------------------------------------
-    def _min_clearance(self, d, boxes_regular, boxes_touch) -> float:
+    def _min_clearance(self, d, boxes_regular, boxes_touch, arm) -> float:
         pm, m = self.pm, self.pm.model
-        hands = {g for s in ARMS for g in pm.hand_geoms[s]}
+        hands = set(pm.hand_geoms[arm])
         fromto, best = np.zeros(6), 1.0
 
         def dist(a, b):
@@ -822,7 +824,7 @@ class PosturePlanner:
         joint_margin = float(np.min(np.minimum(qj - lo, hi - qj) / (hi - lo)))
         joint_clearance = float(np.min(np.minimum(qj - lo, hi - qj)))  # rad
         ratio = static_torque_ratio(pm, q)
-        clearance = self._min_clearance(d, list(boxes_regular), list(boxes_touch))
+        clearance = self._min_clearance(d, list(boxes_regular), list(boxes_touch), arm)
         nominal = pm.q_nominal[pm.qadr][:N_ACTION]
         deviation = float(np.sqrt(np.mean((qj[:N_ACTION] - nominal) ** 2)))
         z_pelvis = d.xmat[pm.pelvis].reshape(3, 3)[2, 2]
@@ -899,7 +901,7 @@ class PosturePlanner:
         ids = self.pm.load_obstacles(boxes)
         regular = [g for g, b in zip(ids, boxes, strict=True) if not b.hand_may_touch]
         touch = [g for g, b in zip(ids, boxes, strict=True) if b.hand_may_touch]
-        limits = self._limits(regular, touch, 0.0, relax=True)
+        limits = self._limits(regular, touch, 0.0, arm, relax=True)
         pt = np.asarray(point, float)
         d = self.pm.data_at(q_measured)  # feet stay where they are: the stance is fixed
         feet = {}
@@ -1022,9 +1024,9 @@ class PosturePlanner:
             stances, blocked = [tuple(float(v) for v in st) for st in stances], 0
         result = PlanResult(n_stances_blocked=blocked, executable=self.caps.executable)
         self.last_timings = []
-        limits = self._limits(regular, touch, sigma)
         for stance in stances:
             for arm in arms or self.config.arms:
+                limits = self._limits(regular, touch, sigma, arm)
                 t0 = time.perf_counter()
                 q = self._ik(
                     self._q_start(stance),

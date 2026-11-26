@@ -2,15 +2,21 @@
 
 import json
 from pathlib import Path
+from threading import Event
 
 import numpy as np
 import pytest
 
-from dream.robot.g1_wbc import policy_cache
+from dream.robot.g1_wbc import WBCLocomotion, policy_cache
+from dream.sim.g1_humanoid import G1Humanoid
+from dream.sim.g1_mobile import G1MobileEnv, build_mobile_g1
 
 pytest.importorskip("mink")
 pytest.importorskip("daqp")
 pytest.importorskip("onnxruntime")
+from dream.robot.g1_posture import PosturePlanner
+from dream.robot.g1_supervisor import WholeBodySupervisor
+from dream.robot.wholebody import ControllerCapabilities, WBCBackend
 from experiments.g1_grasp_bringup import HOLD_S, LIFT_M, TICK, _attempt, attempt
 
 CONFIG = Path(__file__).resolve().parents[1] / "experiments/configs"
@@ -58,8 +64,9 @@ def test_verified_free_standing_grasp_on_changed_box_positions(fixture):
     assert result["stop"] is None
     assert result["grasp_observed"], result["phases"]
     assert result["grasp_verified"], result["phases"]
-    hold = [row for row in result["rows"] if row["phase"] == "hold"]
+    hold = result["rows"][-round(HOLD_S / TICK) :]
     assert len(hold) == round(HOLD_S / TICK)
+    assert all(row["phase"] == "hold" for row in hold)
     assert min(row["lift_m"] for row in hold) >= LIFT_M
     assert min(row["table_clearance_m"] for row in hold) >= LIFT_M
     assert all(row["hand_only_contact"] for row in hold)
@@ -174,7 +181,96 @@ def test_walk_to_grasp_reaches_a_selected_stance_and_holds(rotated):
     assert walk["true_displacement_m"] >= 1.0
     assert walk["table_contact_samples"] == 0
     assert result["grasp_observed"] and result["grasp_verified"], phases
+    assert result["grasp_tool"]["status"] == "succeeded"
+    assert result["grasp_tool"]["data"] == {"grasp_observed": True}
     rows = result["rows"]
     assert max(r["t"] for r in rows if r["phase"] == "walk") < min(
         r["t"] for r in rows if r["phase"] == "hold"
     )
+
+
+def test_cancelled_walking_grasp_preserves_initial_state():
+    cfg = json.loads((CONFIG / "g1_walk_grasp.json").read_text())
+    cancel = Event()
+    cancel.set()
+    result = attempt(cfg, cancel=cancel)
+    assert not result["grasp_observed"] and not result["grasp_verified"]
+    assert result["grasp_tool"]["status"] == "stopped"
+    assert result["grasp_tool"]["sim_time"] == 0.0
+    assert not result["rows"]
+
+
+def test_humanoid_moves_each_arm_and_hand_under_the_same_supervisor():
+    model = build_mobile_g1(lambda spec: None, head_camera=None, hands=True, touch=True)
+    env = G1MobileEnv(model, np.random.default_rng(4), head_camera=None)
+    env.reset()
+    controller = WBCLocomotion.from_cache()
+    caps = ControllerCapabilities.from_envelope_json()
+    backend = WBCBackend(env, controller, caps)
+    supervisor = WholeBodySupervisor(PosturePlanner(caps).pm)
+    robot = G1Humanoid(env, backend, supervisor)
+    assert all(robot.step() for _ in range(round(1.0 / TICK)))
+
+    def joint(name):
+        state = robot.state()
+        return state.joint_pos[state.joint_names.index(name)]
+
+    for side in ("left", "right"):
+        elbow = f"{side}_elbow_joint"
+        before = joint(elbow)
+        assert robot.move_arm(side, np.array([0.0, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0]))
+        assert joint(elbow) > before + 0.10
+        assert robot.finger_forces(side)
+        finger_goal = np.zeros_like(robot.finger_positions(side))
+        finger_goal[0] = 0.20
+        robot.set_hand(side, finger_goal)
+        assert all(robot.step() for _ in range(round(0.5 / TICK)))
+        assert robot.finger_positions(side)[0] > 0.10
+
+    robot.hold("test stop")
+    now = robot.state().time
+    robot.set_velocity(0.15, 0.0, 0.0)
+    assert not robot.step()
+    assert robot.state().time == now
+    assert robot.state().stop_reason == "test stop"
+
+
+def test_large_tilted_box_cannot_claim_a_hold_from_centre_displacement():
+    from experiments.g1_r1_development import episodes
+
+    spec = json.loads((CONFIG / "g1_r1_development.json").read_text())
+    cfg = episodes(spec)[0]
+    assert cfg["object_shape"] == "box"
+    result = attempt(cfg)
+    assert not result["grasp_observed"] or result["grasp_verified"], result["phases"]
+    for row in result["rows"]:
+        if row["phase"] == "hold":
+            assert row["observed_clearance_m"] <= row["table_clearance_m"] + 1e-12
+
+
+@pytest.mark.parametrize("mobile", [False, True])
+def test_live_trajectory_forecast_uses_independent_material_prior(monkeypatch, mobile):
+    from experiments import g1_grasp_bringup as diagnostic
+
+    cfg = json.loads((CONFIG / "g1_grasp_bringup_pinch.json").read_text())
+    cfg.update(
+        walk_to_grasp=mobile,
+        object_mass_kg=0.27,
+        object_sliding_friction=0.53,
+        grasp_material_prior={"mass_kg": 0.10, "sliding_friction": 0.80},
+    )
+    built = []
+    original = diagnostic.build_mobile_g1
+
+    def capture_model(*args, **kwargs):
+        model = original(*args, **kwargs)
+        built.append((float(model.body("box").mass[0]), float(model.geom("box").friction[0])))
+        return model
+
+    monkeypatch.setattr(diagnostic, "build_mobile_g1", capture_model)
+    cancel = Event()
+    cancel.set()
+    diagnostic._attempt(cfg, cancel=cancel)
+    assert len(built) == 2
+    assert built[0] == pytest.approx((0.27, 0.53))
+    assert built[1] == pytest.approx((0.10, 0.80))

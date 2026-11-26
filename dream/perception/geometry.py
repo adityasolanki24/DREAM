@@ -108,3 +108,15 @@ def fit_plane(
         n = n * np.sign(n[2])
         c = float(n @ centre)
     return n, c
+
+
+def observed_lower_bound_z(
+    position: np.ndarray, rotation: np.ndarray, local_bounds: np.ndarray
+) -> float:
+    """Lower surface bound from tracked pose and an enclosing local point set.
+
+    The supplied points must enclose the complete observed geometry, including
+    protruding parts. Their transformed minimum is conservative for curved
+    surfaces enclosed by boxes.
+    """
+    return float(np.min(np.asarray(local_bounds) @ rotation[2] + position[2]))
