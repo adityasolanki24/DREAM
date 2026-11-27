@@ -45,3 +45,25 @@ def test_r1_cohort_is_repeatable_and_stratified():
             low, high = spec[key]
             cuts = (values - low) * 10 / (high - low)
             assert sorted(np.floor(cuts).astype(int)) == list(range(10))
+
+
+def test_measured_approach_follows_translation_and_shortest_wrist_rotation_together():
+    from scipy.spatial.transform import Rotation
+
+    from experiments.g1_grasp_bringup import GRASP_OFFSET, _hand_pose_step
+
+    start = np.array([0.15, -0.10, 0.85])
+    goal = np.array([0.23, -0.04, 0.87])
+    for angles in ((178, -178), (0, 105), (15, 15)):
+        current, desired = (Rotation.from_euler("z", a, degrees=True).as_matrix() for a in angles)
+        point, rotation, distance = _hand_pose_step(start, current, goal, desired, 0.035)
+        angle = Rotation.from_matrix(rotation @ current.T).magnitude()
+        assert np.linalg.norm(point - start) <= 0.035 + 1e-12
+        assert angle * np.linalg.norm(GRASP_OFFSET) <= 0.035 + 1e-12
+        assert np.linalg.norm(point - goal) < np.linalg.norm(start - goal)
+        _, _, remaining = _hand_pose_step(point, rotation, goal, desired, 0.035)
+        assert remaining == pytest.approx(max(0, distance - 0.035))
+    point, rotation, distance = _hand_pose_step(goal, current, goal, current, 0.035)
+    assert distance == pytest.approx(0)
+    np.testing.assert_allclose(point, goal)
+    np.testing.assert_allclose(rotation, current)

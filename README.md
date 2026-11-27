@@ -22,7 +22,7 @@ sequencing and evidence rules.
 | Rung | Capability | Status |
 |---|---|---|
 | R0 | G1 model, controller and safety on one integration branch | Integration checks passed |
-| R1 | Free-standing contact grasp and lift | Humanoid tools and development holds exercised. Broad gates pending |
+| R1 | Free-standing contact grasp and lift | Development baseline 2/50 verified holds. Stance and approach under investigation |
 | R2 | Carry and place | Pending |
 | R3 | Fetch from language | Pending |
 | R4 | Held-out task compositions | Pending |
@@ -39,13 +39,22 @@ arm and hand command paths have separate execution checks.
 Development exposed a centre-height false success, an unnecessary extra lift
 that lost two previous holds, and a support-surface exception that masked the
 unused hand. The current code checks complete clearance, uses bounded hold
-recovery, and limits that exception to the working hand. In the latest approach
-diagnostic, the walking control held successfully. The sphere reached closure
-without securing a grasp. Cylinder and mug approaches still failed, and a fresh
-box lost its grip. The full fast suite passed 1,017 tests with two skipped.
-The complete full suite and the 50-development and 60-held-out R1 gates remain
-pending. [Development measurements](results/g1_r1_humanoid_dev_20261127/summary.json)
-and [report](Reports/2026-11-27/001-r1-development-cohort/REPORT.md).
+recovery, and limits that exception to the working hand.
+[Earlier controls and regressions](results/g1_r1_humanoid_dev_20261127/summary.json).
+
+At revision `96964b8`, the full development cohort produced **2 verified holds
+in 50 episodes**, one bottle and one mug. There were zero false success claims.
+The target is 35 holds. In 29 episodes the robot stopped at pregrasp. Of those,
+22 had a forecast that violated hand clearance, 19 had a torque-limit rejection
+and 16 had a contact-force rejection. These counts overlap. Eight more episodes
+established opposing contact and then lost it during lift or hold. In a separate
+three-case replay, small arm movements from the measured posture recovered the
+cylinder approach, but the cylinder slipped. The mug still stopped before contact,
+and the walking box control retained its hold. The owner retained the Dex3 and all
+five shapes and prioritised approach and stance planning. Full-suite validation
+and the 60 held-out episodes remain pending.
+[Development results](results/g1_r1_approach_dev_20261127/summary.json) and
+[failure report](Reports/2026-11-27/002-r1-grasp-failure-attribution/REPORT.md).
 
 Historical fixed-stance live trajectory forecasts reused the execution model's
 material values. Both fixed and walking forecasts now use independent models
@@ -658,6 +667,7 @@ Rule 3 classes for everything that affects the object-search results.
 
 | Item | Class | Scope and evidence |
 |---|---|---|
+| Measured-posture approach after nominal trajectory refusal | General algorithmic correction | Body encoders and wrist pose drive bounded arm corrections checked in a separate WBC forecast. The cylinder reached closure and slipped, the mug remained blocked, and the walking control held. [Matched replay](results/g1_r1_approach_dev_20261127/summary.json). |
 | Complete observed clearance, bounded hold recovery, independent material forecasts and working-hand support exception | General algorithmic corrections | Regression tests and development diagnostics are recorded in `results/g1_r1_humanoid_dev_20261127/summary.json`. Broad R1 acceptance remains pending. |
 | Original-goal record and completion gate | General algorithmic correction | The four frozen 7 November outputs are refused in replay. Independent held-out cases: H1 scenario L and the fault-injection arms. |
 | Semantic detector: rendered segmentation plus an assumed, uncalibrated noise model (`dream/sim/semantic_sensor.py`) | Environment simplification | No learned detector in the MuJoCo loop. The harder variant kept is H3, a degraded detector. |

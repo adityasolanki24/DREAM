@@ -1,0 +1,685 @@
+{
+  "baseline_commit": "96964b8b013cf4f28b570520d491d9c9702dd20d",
+  "clean_source": true,
+  "mujoco": "3.16.0",
+  "config": {
+    "seed_start": 1000,
+    "episodes_per_shape": 10,
+    "shapes": {
+      "box": 1.0,
+      "cylinder": 1.25,
+      "sphere": 1.0,
+      "bottle": 1.8,
+      "mug": 1.15
+    },
+    "width_m": [
+      0.04,
+      0.08
+    ],
+    "mass_kg": [
+      0.05,
+      0.3
+    ],
+    "table_top_m": [
+      0.7,
+      0.9
+    ],
+    "sliding_friction": [
+      0.5,
+      1.0
+    ],
+    "start_distance_m": [
+      1.0,
+      2.0
+    ],
+    "gate": {
+      "episode_count": 50,
+      "minimum_verified_fraction": 0.7
+    }
+  },
+  "oracle_assisted": [
+    "table geometry",
+    "object pose",
+    "noisy odometry"
+  ],
+  "raw_directory": "C:\\Users\\24adi\\DREAM-r1-evidence\\r1-96964b8-development-50",
+  "baseline_summary_sha256": "15cbdb574c1c1dbb3f376b5f8eab4a6d4f3457dfed5829d48ad7e56947fe044c",
+  "attempted": 50,
+  "completed": 50,
+  "verified": 2,
+  "false_positive": 0,
+  "false_negative": 0,
+  "gate_passed": false,
+  "cases": [
+    {
+      "seed": 1000,
+      "shape": "box",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "raise",
+      "stop": null,
+      "peak_lift_m": -3.6939089425147564e-05
+    },
+    {
+      "seed": 1001,
+      "shape": "cylinder",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": null,
+      "peak_lift_m": -9.674635024059519e-05
+    },
+    {
+      "seed": 1002,
+      "shape": "sphere",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "close",
+      "stop": null,
+      "peak_lift_m": -0.00012188078888808462
+    },
+    {
+      "seed": 1003,
+      "shape": "bottle",
+      "observed": true,
+      "verified": true,
+      "failure_stage": null,
+      "stop": null,
+      "peak_lift_m": 0.1386397744992095
+    },
+    {
+      "seed": 1004,
+      "shape": "mug",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": null,
+      "peak_lift_m": -4.057687470793159e-05
+    },
+    {
+      "seed": 1005,
+      "shape": "box",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": null,
+      "peak_lift_m": -3.0449931344933567e-05
+    },
+    {
+      "seed": 1006,
+      "shape": "cylinder",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": null,
+      "peak_lift_m": -1.8133679369647382e-05
+    },
+    {
+      "seed": 1007,
+      "shape": "sphere",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": null,
+      "peak_lift_m": -0.00032756421832569327
+    },
+    {
+      "seed": 1008,
+      "shape": "bottle",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "lift_or_hold",
+      "stop": {
+        "t": 30.859999999998145,
+        "reason": "grip lost",
+        "detail": {
+          "weakest_normal_n": 0.0
+        }
+      },
+      "peak_lift_m": 0.06258321485711571
+    },
+    {
+      "seed": 1009,
+      "shape": "mug",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": null,
+      "peak_lift_m": -8.707519169526279e-05
+    },
+    {
+      "seed": 1010,
+      "shape": "box",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "raise",
+      "stop": null,
+      "peak_lift_m": -2.2152078071324688e-05
+    },
+    {
+      "seed": 1011,
+      "shape": "cylinder",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": null,
+      "peak_lift_m": -5.344042005284155e-05
+    },
+    {
+      "seed": 1012,
+      "shape": "sphere",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "close",
+      "stop": null,
+      "peak_lift_m": -0.0002615653637474402
+    },
+    {
+      "seed": 1013,
+      "shape": "bottle",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "walk",
+      "stop": {
+        "t": 8.919999999999995,
+        "reason": "walking clearance",
+        "detail": {
+          "table_clearance_m": 0.0199816053418353
+        }
+      },
+      "peak_lift_m": -3.0427754181716615e-05
+    },
+    {
+      "seed": 1014,
+      "shape": "mug",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": null,
+      "peak_lift_m": -2.3316155532859817e-05
+    },
+    {
+      "seed": 1015,
+      "shape": "box",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "reach",
+      "stop": {
+        "t": 17.82000000000074,
+        "reason": "object moved before closure",
+        "detail": {
+          "displacement_m": 0.0030843487666163153
+        }
+      },
+      "peak_lift_m": 0.0006972357377265093
+    },
+    {
+      "seed": 1016,
+      "shape": "cylinder",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": null,
+      "peak_lift_m": -6.473908753734658e-05
+    },
+    {
+      "seed": 1017,
+      "shape": "sphere",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "preclose",
+      "stop": null,
+      "peak_lift_m": -5.8621602448627463e-05
+    },
+    {
+      "seed": 1018,
+      "shape": "bottle",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": null,
+      "peak_lift_m": -7.742208650829419e-05
+    },
+    {
+      "seed": 1019,
+      "shape": "mug",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": null,
+      "peak_lift_m": -3.54411146956668e-05
+    },
+    {
+      "seed": 1020,
+      "shape": "box",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": null,
+      "peak_lift_m": -3.986668277899952e-05
+    },
+    {
+      "seed": 1021,
+      "shape": "cylinder",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": null,
+      "peak_lift_m": -3.144075133321156e-05
+    },
+    {
+      "seed": 1022,
+      "shape": "sphere",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": null,
+      "peak_lift_m": -1.664708416038163e-05
+    },
+    {
+      "seed": 1023,
+      "shape": "bottle",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "lift_or_hold",
+      "stop": {
+        "t": 26.239999999999064,
+        "reason": "object contact lost",
+        "detail": {
+          "observed_opposing_gap_m": 0.0035870623696470636
+        }
+      },
+      "peak_lift_m": 0.0008614437488766447
+    },
+    {
+      "seed": 1024,
+      "shape": "mug",
+      "observed": true,
+      "verified": true,
+      "failure_stage": null,
+      "stop": null,
+      "peak_lift_m": 0.13151567190604607
+    },
+    {
+      "seed": 1025,
+      "shape": "box",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": {
+        "t": 15.500000000001023,
+        "reason": "object moved before closure",
+        "detail": {
+          "displacement_m": 0.0032709456404537867
+        }
+      },
+      "peak_lift_m": 0.0016857036761819266
+    },
+    {
+      "seed": 1026,
+      "shape": "cylinder",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": null,
+      "peak_lift_m": -3.705133133269367e-05
+    },
+    {
+      "seed": 1027,
+      "shape": "sphere",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "reach",
+      "stop": null,
+      "peak_lift_m": -0.000204681785976768
+    },
+    {
+      "seed": 1028,
+      "shape": "bottle",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": null,
+      "peak_lift_m": -2.1379196542881118e-05
+    },
+    {
+      "seed": 1029,
+      "shape": "mug",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": null,
+      "peak_lift_m": -2.134607648485165e-05
+    },
+    {
+      "seed": 1030,
+      "shape": "box",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "lift_or_hold",
+      "stop": {
+        "t": 22.79999999999975,
+        "reason": "object contact lost",
+        "detail": {
+          "observed_opposing_gap_m": 0.01042432638494005
+        }
+      },
+      "peak_lift_m": 0.0011930051550527176
+    },
+    {
+      "seed": 1031,
+      "shape": "cylinder",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "lift_or_hold",
+      "stop": {
+        "t": 26.0599999999991,
+        "reason": "grip lost",
+        "detail": {
+          "weakest_normal_n": 0.0
+        }
+      },
+      "peak_lift_m": 0.03527633907371919
+    },
+    {
+      "seed": 1032,
+      "shape": "sphere",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": null,
+      "peak_lift_m": -0.00017362391048303394
+    },
+    {
+      "seed": 1033,
+      "shape": "bottle",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "lift_or_hold",
+      "stop": {
+        "t": 27.039999999998905,
+        "reason": "object contact lost",
+        "detail": {
+          "observed_opposing_gap_m": 0.012224663566045606
+        }
+      },
+      "peak_lift_m": 0.0013065357390278365
+    },
+    {
+      "seed": 1034,
+      "shape": "mug",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": null,
+      "peak_lift_m": -5.09954374386945e-05
+    },
+    {
+      "seed": 1035,
+      "shape": "box",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "preclose",
+      "stop": {
+        "t": 21.899999999999928,
+        "reason": "object moved before closure",
+        "detail": {
+          "displacement_m": 0.0039159928799612324
+        }
+      },
+      "peak_lift_m": 0.0007676556077937935
+    },
+    {
+      "seed": 1036,
+      "shape": "cylinder",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "walk",
+      "stop": {
+        "t": 10.400000000000226,
+        "reason": "walking clearance",
+        "detail": {
+          "table_clearance_m": 0.0189118218755094
+        }
+      },
+      "peak_lift_m": -2.2824362943651977e-05
+    },
+    {
+      "seed": 1037,
+      "shape": "sphere",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": null,
+      "peak_lift_m": -9.295218312155296e-05
+    },
+    {
+      "seed": 1038,
+      "shape": "bottle",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": null,
+      "peak_lift_m": -6.697173126501976e-05
+    },
+    {
+      "seed": 1039,
+      "shape": "mug",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": {
+        "t": 15.720000000001058,
+        "reason": "object moved before closure",
+        "detail": {
+          "displacement_m": 0.0031713624254458917
+        }
+      },
+      "peak_lift_m": 0.0013771065612844247
+    },
+    {
+      "seed": 1040,
+      "shape": "box",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": null,
+      "peak_lift_m": -1.9537385557821807e-05
+    },
+    {
+      "seed": 1041,
+      "shape": "cylinder",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "preclose",
+      "stop": null,
+      "peak_lift_m": 0.0005447700145359002
+    },
+    {
+      "seed": 1042,
+      "shape": "sphere",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "lift_or_hold",
+      "stop": {
+        "t": 22.93999999999972,
+        "reason": "object contact lost",
+        "detail": {
+          "observed_opposing_gap_m": 0.012150695620915513
+        }
+      },
+      "peak_lift_m": -0.00017473012207591676
+    },
+    {
+      "seed": 1043,
+      "shape": "bottle",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": null,
+      "peak_lift_m": -4.3835935167768625e-05
+    },
+    {
+      "seed": 1044,
+      "shape": "mug",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": null,
+      "peak_lift_m": -3.192155647990802e-05
+    },
+    {
+      "seed": 1045,
+      "shape": "box",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": null,
+      "peak_lift_m": -7.175066356124304e-05
+    },
+    {
+      "seed": 1046,
+      "shape": "cylinder",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": null,
+      "peak_lift_m": -7.486057060324125e-05
+    },
+    {
+      "seed": 1047,
+      "shape": "sphere",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "lift_or_hold",
+      "stop": {
+        "t": 26.539999999999004,
+        "reason": "grip lost",
+        "detail": {
+          "weakest_normal_n": 0.0
+        }
+      },
+      "peak_lift_m": 0.008759902762480287
+    },
+    {
+      "seed": 1048,
+      "shape": "bottle",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "lift_or_hold",
+      "stop": {
+        "t": 25.519999999999207,
+        "reason": "object contact lost",
+        "detail": {
+          "observed_opposing_gap_m": 0.004125725534874304
+        }
+      },
+      "peak_lift_m": 0.0005523839746831571
+    },
+    {
+      "seed": 1049,
+      "shape": "mug",
+      "observed": false,
+      "verified": false,
+      "failure_stage": "pregrasp",
+      "stop": null,
+      "peak_lift_m": -6.352152136357425e-05
+    }
+  ],
+  "failure_stages_by_family": {
+    "box": {
+      "raise": 2,
+      "pregrasp": 5,
+      "reach": 1,
+      "lift_or_hold": 1,
+      "preclose": 1
+    },
+    "cylinder": {
+      "pregrasp": 7,
+      "lift_or_hold": 1,
+      "walk": 1,
+      "preclose": 1
+    },
+    "sphere": {
+      "close": 2,
+      "pregrasp": 4,
+      "preclose": 1,
+      "reach": 1,
+      "lift_or_hold": 2
+    },
+    "bottle": {
+      "verified": 1,
+      "lift_or_hold": 4,
+      "walk": 1,
+      "pregrasp": 4
+    },
+    "mug": {
+      "pregrasp": 9,
+      "verified": 1
+    }
+  },
+  "pregrasp_cases_with_each_forecast_or_plan_rejection": {
+    "outside_capabilities": 4,
+    "hand clearance": 22,
+    "contact force": 16,
+    "torque limit": 19,
+    "object moved before closure": 5,
+    "collision": 3
+  },
+  "fall_stop_count": 0,
+  "measured_posture_replay": {
+    "source_sha256": "c6194b32215e7d09fc86a29faa4b23cfcb16aa44361aeda1b856e4f5dfe65ab1",
+    "raw_directory": "C:\\Users\\24adi\\DREAM-r1-evidence\\r1-measured-approach-replay-20261127",
+    "cases": [
+      {
+        "case": "cylinder",
+        "seed": 1001,
+        "rank": 0,
+        "stage": "lift_or_hold",
+        "verified": false,
+        "sensed": false,
+        "stop": {
+          "t": 43.34000000000372,
+          "reason": "object contact lost",
+          "detail": {
+            "observed_opposing_gap_m": 0.015830740151028526
+          }
+        },
+        "measured": {
+          "pregrasp": {
+            "completed": true,
+            "forecasts": 7,
+            "executed": 7
+          }
+        }
+      },
+      {
+        "case": "mug",
+        "seed": 1004,
+        "rank": 0,
+        "stage": "pregrasp",
+        "verified": false,
+        "sensed": false,
+        "stop": null,
+        "measured": {
+          "pregrasp": {
+            "completed": null,
+            "forecasts": 4,
+            "executed": 2
+          }
+        }
+      },
+      {
+        "case": "walk_control",
+        "seed": 83,
+        "rank": 52,
+        "stage": null,
+        "verified": true,
+        "sensed": true,
+        "stop": null,
+        "measured": {}
+      }
+    ],
+    "scope": "Replayed executed grasp candidate and shape-independent correction, separate from the baseline cohort."
+  }
+}

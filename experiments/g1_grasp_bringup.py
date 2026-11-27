@@ -11,12 +11,14 @@ from threading import Event
 
 import mujoco
 import numpy as np
+from scipy.spatial.transform import Rotation
 
 from dream.eval.g1 import lowest_collision_point_z, verify_contact_hold
 from dream.navigation.follow import wrap
 from dream.perception.geometry import observed_lower_bound_z
 from dream.robot.g1_grasp_geometry import rank_pinches, regulate_closure, rehearse_pinches
 from dream.robot.g1_posture import (
+    HAND_TOLERANCE,
     PERCEPTION_MARGIN,
     PerceivedBox,
     PlannerConfig,
@@ -74,6 +76,19 @@ LIFT_BUDGET = 6
 ENCODER_TRAVEL_MARGIN = 0.02
 # Upper end of the initial commissioning masses, used as a common planning prior.
 REHEARSAL_MASS_KG = 0.10
+
+
+def _hand_pose_step(position, rotation, goal, orientation, step_m):
+    """Bound both grasp-centre travel and the rotation arc at the wrist-to-grasp radius."""
+    delta = goal - position
+    turn = Rotation.from_matrix(orientation @ rotation.T).as_rotvec()
+    distance = max(np.linalg.norm(delta), np.linalg.norm(GRASP_OFFSET) * np.linalg.norm(turn))
+    scale = step_m / distance if distance > step_m else 1.0
+    return (
+        position + scale * delta,
+        Rotation.from_rotvec(scale * turn).as_matrix() @ rotation,
+        distance,
+    )
 
 
 def _material_prior(cfg: dict) -> tuple[float, float | None]:
@@ -710,6 +725,7 @@ def _attempt(
             set_scratch(trial_backend.observe(), hand=trial.hand_positions())
             rot = scratch.xmat[wrist_body].reshape(3, 3)
             report.achieved["grasp_xyz_m"] = scratch.xpos[wrist_body] + rot @ GRASP_OFFSET
+            report.achieved["grasp_rotation"] = rot.copy()
         return report
 
     def goals(phase, point):
@@ -793,7 +809,77 @@ def _attempt(
                 "stops": [asdict(stop) for stop in run.stops],
             }  # fmt: skip
             return run.completed
+        if mobile and use_search and not cancel.is_set():
+            return measured_approach(phase, point, pinch_rotation, attempts, watch)
         phases[phase] = {"refused": "no verified trajectory", "predictions": attempts}
+        return False
+
+    def measured_approach(phase, goal, orientation, attempts, watch):
+        """Try the measured stance with the idle arm, feet and torso commands held."""
+        progress = []
+        previous = np.inf
+        # Cover up to the diameter of the commissioned reach workspace. Each
+        # step is at most an observed object width and is previewed under WBC.
+        for _ in range(1 + int(np.ceil(2 * max(planner.config.radii) / (2 * half)))):
+            if cancel.is_set() or backend.held or ctrl.stopped:
+                break
+            set_scratch(backend.observe())
+            rotation = scratch.xmat[wrist_body].reshape(3, 3).copy()
+            position = scratch.xpos[wrist_body] + rotation @ GRASP_OFFSET
+            _, _, error = _hand_pose_step(position, rotation, goal, orientation, 2 * half)
+            if error <= HAND_TOLERANCE:
+                phases[phase] = {
+                    "completed": True,
+                    "predictions": attempts,
+                    "measured_approach": progress,
+                }
+                return True
+            # The 0.5 mm progress floor is shared with descent correction.
+            if error >= previous - 0.0005:
+                break
+            previous = error
+            for step in (2 * half, half):
+                point, rot, _ = _hand_pose_step(position, rotation, goal, orientation, step)
+                cmd = relative_command(point, rot)
+                if cmd is None:
+                    continue
+                prediction = preview([cmd], rate_scale=0.5)
+                item = {
+                    "before_error_m": error,
+                    "step_m": step,
+                    "stops": [asdict(s) for s in prediction.stops],
+                }
+                progress.append(item)
+                if not prediction.completed:
+                    continue
+                _, _, predicted_error = _hand_pose_step(
+                    prediction.achieved["grasp_xyz_m"],
+                    prediction.achieved["grasp_rotation"],
+                    goal,
+                    orientation,
+                    step,
+                )
+                item["predicted_error_m"] = predicted_error
+                if predicted_error >= error - 0.0005:
+                    continue
+                run = backend.follow([cmd], monitor=watch, rate_scale=0.5)
+                item["executed"] = run.completed
+                if not run.completed:
+                    phases[phase] = {
+                        "completed": False,
+                        "predictions": attempts,
+                        "measured_approach": progress,
+                        "stops": [asdict(s) for s in run.stops],
+                    }
+                    return False
+                break
+            else:
+                break
+        phases[phase] = {
+            "refused": "no verified trajectory",
+            "predictions": attempts,
+            "measured_approach": progress,
+        }
         return False
 
     def opposing_forces():
