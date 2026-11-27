@@ -6,6 +6,8 @@
 
 | Date | Task ID | Prompt | Status | Main finding | Runs | Report |
 |---|---|---|---|---|---|---|
+| 2026-11-27 | 2026-11-27-003 | [Improve stance and approach across the five-family R1 task](003-r1-stance-and-approach/PROMPT.md) | in_progress | - | 0 | [REPORT](003-r1-stance-and-approach/REPORT.md) |
+| 2026-11-27 | 2026-11-27-002 | [Locate and test the causes of R1 grasp failures](002-r1-grasp-failure-attribution/PROMPT.md) | partially_completed | Two holds in 50. Pregrasp failed in 29 cases; measured IK recovered one cylinder approach. Owner retained full scope. | 2 | [REPORT](002-r1-grasp-failure-attribution/REPORT.md) |
 | 2026-11-27 | 2026-11-27-001 | [Validate the humanoid grasp across the R1 development cohort](001-r1-development-cohort/PROMPT.md) | partially_completed | Humanoid tools, truthful complete-object holds, material isolation and working-hand collision exceptions are implemented and checked. Physical approach and grip failures remain. The complete R1 gates are pending. | 10 | [REPORT](001-r1-development-cohort/REPORT.md) |
 
 ## Continued on this day
@@ -16,6 +18,8 @@
 
 | Run | Task | Status | Started | Report |
 |---|---|---|---|---|
+| 20261127-043344-baseline-50 | 2026-11-27-002 | completed | 2026-11-27T04:33:44+11:00 | [REPORT](002-r1-grasp-failure-attribution/runs/20261127-043344-baseline-50/REPORT.md) |
+| 20261127-043739-measured-reach | 2026-11-27-002 | completed | 2026-11-27T04:37:39+11:00 | [REPORT](002-r1-grasp-failure-attribution/runs/20261127-043739-measured-reach/REPORT.md) |
 | 20261127-031336-cohort-smoke | 2026-11-27-001 | completed | 2026-11-27T03:13:36+11:00 | [REPORT](001-r1-development-cohort/runs/20261127-031336-cohort-smoke/REPORT.md) |
 | 20261127-031601-front-recovery | 2026-11-27-001 | completed | 2026-11-27T03:16:01+11:00 | [REPORT](001-r1-development-cohort/runs/20261127-031601-front-recovery/REPORT.md) |
 | 20261127-032347-corrected-smoke | 2026-11-27-001 | completed | 2026-11-27T03:23:47+11:00 | [REPORT](001-r1-development-cohort/runs/20261127-032347-corrected-smoke/REPORT.md) |
